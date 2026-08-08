@@ -1,0 +1,1 @@
+ALTER TABLE sections ADD COLUMN widget_type VARCHAR(100) DEFAULT NULL COMMENT 'BRICK widget type' AFTER type;

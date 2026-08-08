@@ -456,12 +456,41 @@ W.renderDashboard=async function(){
         '<div class="w-card"><h3>Recent Pages</h3>'+(d.data?.['recent_pages']||[]).map(function(p){return '<div style="font-size:12px;padding:6px 0;border-bottom:1px solid var(--w-border)">'+W.esc(p.title)+' <span class="w-badge w-badge-'+(p.status==='published'?'published':'draft')+'">'+p.status+'</span></div>'}).join('')+'</div>';
 };
 
+W.renderBricks=async function(){
+    var app=document.getElementById('wontia-app');
+    app.innerHTML='<div class="w-flex-between w-mb-lg"><h3>BRICK Hub — Widget Marketplace</h3></div><div id="brick-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px"></div>';
+    var d=await W.api('/api/v1/admin/bricks');
+    var bricks=d.data||{};
+    var grid=document.getElementById('brick-grid');
+    var html='';
+    for(var id in bricks){
+        var b=bricks[id];
+        html+='<div class="w-card" style="padding:20px"><div style="display:flex;align-items:center;gap:10px;margin-bottom:12px"><span style="font-size:20px">&#x1F9F1;</span><div><div style="font-size:14px;font-weight:600">'+W.esc(b.name)+'</div><div style="font-size:10px;color:var(--w-muted);text-transform:uppercase">'+W.esc(b.category||'general')+' v'+W.esc(b.version||'1.0')+'</div></div></div><div style="margin-bottom:12px;min-height:60px">'+b.adminPreview+'</div><div style="display:flex;gap:6px"><button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.showBrickConfig(\''+W.esc(id)+'\')">Config</button><span style="font-size:10px;color:var(--w-muted);align-self:center">ID: '+W.esc(id)+'</span></div></div>';
+    }
+    if(!html)html='<div class="w-empty-state" style="grid-column:1/-1"><h3>No BRICKs found</h3><p>Install widgets in src/Widgets/</p></div>';
+    grid.innerHTML=html;
+};
+
+W.showBrickConfig=async function(type){
+    var d=await W.api('/api/v1/admin/bricks/'+type);
+    var b=d.data||{};
+    var fields='';
+    (b.configSchema||[]).forEach(function(f){
+        if(f.type==='text')fields+='<div class="w-form-group"><label class="w-label">'+W.esc(f.label)+'</label><input class="w-input" id="bc-'+W.esc(f.key)+'" value="'+W.esc(f.default||'')+'"/></div>';
+        else if(f.type==='textarea')fields+='<div class="w-form-group"><label class="w-label">'+W.esc(f.label)+'</label><textarea class="w-textarea" id="bc-'+W.esc(f.key)+'">'+W.esc(f.default||'')+'</textarea></div>';
+        else if(f.type==='html')fields+='<div class="w-form-group"><label class="w-label">'+W.esc(f.label)+' <span style="font-size:9px;color:var(--w-muted)">HTML</span></label><textarea class="w-textarea" id="bc-'+W.esc(f.key)+'" style="min-height:80px">'+W.esc(f.default||'')+'</textarea></div>';
+        else if(f.type==='code')fields+='<div class="w-form-group"><label class="w-label">'+W.esc(f.label)+'</label><textarea class="w-textarea" id="bc-'+W.esc(f.key)+'" style="min-height:150px;font-family:monospace">'+W.esc(f.default||'')+'</textarea></div>';
+    });
+    W.modal(b.meta.name+' <span style="font-size:10px;color:var(--w-muted)">BRICK Configuration Schema</span>',fields,'<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Close</button>');
+};
+
 W.panels={
     dashboard:W.renderDashboard,
     pages:W.renderPageList,
     pageEditor:W.renderPageEditor,
     sections:W.renderSectionManager,
     pageSections:W.renderSectionManager,
+    bricks:W.renderBricks,
     blog:W.renderBlogList,
     blogEditor:W.renderBlogEditor,
     media:W.renderMediaManager,

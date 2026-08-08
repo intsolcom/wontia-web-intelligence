@@ -65,6 +65,9 @@ $router->group('/api/v1/admin', function (Router $r) {
     $r->delete('/sections/{id}', [\App\Controllers\Admin\SectionController::class, 'destroy']);
     $r->put('/sections/reorder', [\App\Controllers\Admin\SectionController::class, 'reorder']);
 
+    $r->get('/bricks', [\App\Controllers\Admin\BrickController::class, 'index']);
+    $r->get('/bricks/{type}', [\App\Controllers\Admin\BrickController::class, 'show']);
+
     $r->get('/media', [\App\Controllers\Admin\MediaController::class, 'index']);
     $r->post('/media/upload', [\App\Controllers\Admin\MediaController::class, 'upload']);
     $r->delete('/media/{id}', [\App\Controllers\Admin\MediaController::class, 'destroy']);
