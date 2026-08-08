@@ -71,11 +71,11 @@ AnalyticsService::track($_SERVER['REQUEST_URI'], $_SERVER['HTTP_REFERER'] ?? '',
     <span style="font-size:18px;font-weight:700;color:#2F2F2F;letter-spacing:-0.02em">WONTIA</span>
   </div>
   <div class="nav-links" style="display:flex;align-items:center;gap:24px">
-    <a href="#que-es">Que es Wontia</a>
-    <a href="#aip">AIP</a>
-    <a href="#tia">TIA</a>
-    <a href="#precios">Precios</a>
-    <a href="#funciona">Como funciona</a>
+    <a href="#">Wontia</a>
+    <a href="#ais-concept">AIS</a>
+    <a href="#tia-command">TIA</a>
+    <a href="#business">Business</a>
+    <a href="#food-security">Food Security</a>
   </div>
   <a href="https://app.wontia.com/login" class="btn-primary" style="padding:9px 22px;font-size:13px;box-shadow:0 4px 16px rgba(156,140,222,.3)">Ingresar</a>
 </nav>

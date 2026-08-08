@@ -1,0 +1,19 @@
+{
+    "name": "GitHub Sync",
+    "slug": "github-sync",
+    "version": "1.0.0",
+    "description": "Conecta WWI con repositorios GitHub para actualizacion automatica de bricks. El motor del BrickHub.",
+    "author": "Wontia",
+    "category": "system",
+    "brick_class": "App\\Bricks\\GitHubSync\\GitHubSyncBrick",
+    "requires": {
+        "php": ">=8.1",
+        "extensions": ["curl", "zip"]
+    },
+    "config": {
+        "auto_check_enabled": true,
+        "check_interval_hours": 6,
+        "auto_apply_updates": false,
+        "notify_on_update": true
+    }
+}

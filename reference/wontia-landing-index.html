@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WONTIA — Applied Intelligence Platform</title>
+  <meta name="description" content="WONTIA es una plataforma de inteligencia aplicada que integra IA en cada etapa del proceso comercial." />
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='10' fill='%239B8CDE'/%3E%3Ctext x='16' y='23' font-family='sans-serif' font-size='20' font-weight='800' fill='white' text-anchor='middle'%3EW%3C/text%3E%3C/svg%3E" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="/ice-pricing.js" defer></script>
+  <style>
+    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0 }
+    html { scroll-behavior:smooth }
+    body { font-family:'Inter', -apple-system, BlinkMacSystemFont, sans-serif; color:#2F2F2F; background:#F6F6F3; -webkit-font-smoothing:antialiased; overflow-x:hidden }
+
+    /* Scroll-triggered fade-in */
+    .reveal { opacity:0; transform:translateY(30px); transition:opacity .7s ease, transform .7s ease }
+    .reveal.visible { opacity:1; transform:translateY(0) }
+
+    .nav { position:fixed; top:0; left:0; right:0; z-index:100; padding:16px 40px; display:flex; align-items:center; justify-content:space-between; background:rgba(246,246,243,0.85); backdrop-filter:blur(20px); border-bottom:1px solid rgba(80,80,80,.06) }
+    .nav a { color:#6B6B6B; font-size:13px; font-weight:500; text-decoration:none; transition:color .2s }
+    .nav a:hover { color:#2F2F2F }
+    .btn-primary { display:inline-block; padding:14px 36px; border-radius:12px; border:none; background:linear-gradient(135deg, #9B8CDE, #B89EFF); color:#fff; cursor:pointer; font-size:15px; font-weight:700; text-decoration:none; box-shadow:0 8px 32px rgba(156,140,222,.35); transition:all .2s }
+    .btn-primary:hover { transform:translateY(-2px); box-shadow:0 12px 40px rgba(156,140,222,.45) }
+    .btn-outline { display:inline-block; padding:14px 36px; border-radius:12px; border:1px solid rgba(156,140,222,.4); background:transparent; color:#7C3AED; cursor:pointer; font-size:15px; font-weight:600; text-decoration:none; transition:all .2s }
+    .btn-outline:hover { background:rgba(156,140,222,.06) }
+    .badge { display:inline-block; padding:6px 16px; border-radius:20px; font-size:12px; font-weight:600 }
+    .card { border-radius:18px; background:#FBFBF9; border:1px solid rgba(80,80,80,.06); box-shadow:0 2px 8px rgba(0,0,0,.03), inset 0 1px 2px rgba(255,255,255,.70); overflow:hidden }
+    .card-padded { padding:32px 28px }
+    .gradient-text { background:linear-gradient(135deg, #9B8CDE, #B89EFF); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text }
+    .section { padding:100px 40px; max-width:1100px; margin:0 auto }
+    .hero { padding:160px 40px 100px; max-width:1100px; margin:0 auto; text-align:center }
+    .grid-3 { display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:20px }
+    .grid-2 { display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:24px }
+    .footer { padding:48px 40px; border-top:1px solid rgba(80,80,80,.06); background:#FBFBF8 }
+
+    /* Image swap container */
+    .img-swap { position:relative; width:100%; height:180px; border-radius:14px; overflow:hidden; margin-bottom:20px; background:#F3F3EF }
+    .img-swap .img-a, .img-swap .img-b { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; transition:opacity .5s ease, transform .5s ease }
+    .img-swap .img-b { opacity:0; transform:scale(1.03) }
+    .img-swap:hover .img-a { opacity:0; transform:scale(1.03) }
+    .img-swap:hover .img-b { opacity:1; transform:scale(1) }
+
+    /* List item for TIA section */
+    .list-item { display:flex; gap:12px; margin-bottom:16px; align-items:flex-start }
+    .list-num { width:22px; height:22px; border-radius:6px; background:#EDE9FE; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:2px }
+    .list-num span { font-size:11px; color:#7C3AED; font-weight:700 }
+
+    /* Hero abstract bg */
+    .hero-bg { position:absolute; top:-120px; left:50%; transform:translateX(-50%); width:800px; height:400px; pointer-events:none; z-index:0; opacity:.4 }
+    .hero-bg svg { width:100%; height:100% }
+
+    /* Section image cards (for AIP) */
+    .section-img { width:100%; height:160px; border-radius:12px; overflow:hidden; position:relative; margin-bottom:16px; background:linear-gradient(135deg, #F3F3EF, #EDE9FE) }
+    .section-img .img-a, .section-img .img-b { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; transition:opacity .5s ease, transform .5s ease }
+    .section-img .img-b { opacity:0; transform:scale(1.04) }
+    .section-img:hover .img-a { opacity:0; transform:scale(.97) }
+    .section-img:hover .img-b { opacity:1; transform:scale(1) }
+
+    @media (max-width:768px) {
+      .nav { padding:12px 20px; flex-wrap:wrap; gap:10px }
+      .nav-links { display:none }
+      .hero { padding:120px 20px 60px }
+      .hero h1 { font-size:36px }
+      .section { padding:60px 20px }
+      .grid-3, .grid-2 { grid-template-columns:1fr }
+    }
+
+    /* Image placeholder fallback — abstract SVG */
+    .img-fallback { width:100%; height:100%; display:flex; align-items:center; justify-content:center }
+  </style>
+</head>
+<body>
+
+<!-- ═══ NAVBAR ═══ -->
+<nav class="nav">
+  <div style="display:flex;align-items:center;gap:10px">
+    <div style="width:32px;height:32px;border-radius:10px;background:linear-gradient(135deg, #9B8CDE, #B89EFF);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;color:#fff">W</div>
+    <span style="font-size:18px;font-weight:700;color:#2F2F2F;letter-spacing:-0.02em">WONTIA</span>
+  </div>
+  <div class="nav-links" style="display:flex;align-items:center;gap:24px">
+    <a href="#que-es">Que es Wontia</a>
+    <a href="#aip">AIP</a>
+    <a href="#tia">TIA</a>
+    <a href="#precios">Precios</a>
+    <a href="#funciona">Como funciona</a>
+  </div>
+  <a href="https://app.wontia.com/login" class="btn-primary" style="padding:9px 22px;font-size:13px;box-shadow:0 4px 16px rgba(156,140,222,.3)">Ingresar</a>
+</nav>
+
+<!-- ═══ HERO ═══ -->
+<section class="hero reveal" id="que-es" style="position:relative">
+  <div class="hero-bg">
+    <svg viewBox="0 0 800 400" fill="none"><defs><radialGradient id="hg" cx="50%" cy="50%"><stop offset="0%" stop-color="#DCCFFF" stop-opacity="0.6"/><stop offset="100%" stop-color="transparent"/></radialGradient></defs><circle cx="400" cy="200" r="180" fill="url(#hg)"/><circle cx="400" cy="200" r="120" stroke="#DCCFFF" stroke-opacity="0.3" stroke-width="1" fill="none"/><circle cx="400" cy="200" r="80" stroke="#B89EFF" stroke-opacity="0.2" stroke-width="1.5" fill="none"/><circle cx="400" cy="200" r="40" stroke="#9B8CDE" stroke-opacity="0.15" stroke-width="2" fill="none"/><line x1="260" y1="200" x2="340" y2="200" stroke="#DCCFFF" stroke-opacity="0.3" stroke-width="1"/><line x1="460" y1="200" x2="540" y2="200" stroke="#DCCFFF" stroke-opacity="0.3" stroke-width="1"/><line x1="400" y1="60" x2="400" y2="140" stroke="#DCCFFF" stroke-opacity="0.3" stroke-width="1"/><line x1="400" y1="260" x2="400" y2="340" stroke="#DCCFFF" stroke-opacity="0.3" stroke-width="1"/></svg>
+  </div>
+  <div style="position:relative;z-index:1">
+    <div class="badge" style="background:#EDE9FE;color:#7C3AED;margin-bottom:28px">Plataforma de Inteligencia Aplicada</div>
+    <h1 style="font-size:56px;font-weight:800;color:#1A1A1E;line-height:1.15;letter-spacing:-0.03em;margin-bottom:20px">
+      La plataforma que <span class="gradient-text">piensa</span> por ti
+    </h1>
+    <p style="font-size:18px;color:#6B6B6B;line-height:1.7;max-width:680px;margin:0 auto 36px">
+      WONTIA es una <strong>Applied Intelligence Platform</strong> que integra inteligencia artificial en cada etapa del proceso comercial. No es un CRM: es un sistema operativo para equipos que venden con precision quirurgica, automatizan sin perder el toque humano y toman decisiones basadas en datos reales.
+    </p>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+      <a href="https://app.wontia.com/login?tab=register" class="btn-primary">Comenzar ahora</a>
+      <a href="#tia" class="btn-outline">&#x26A1; Conoce a TIA</a>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ FEATURES ═══ -->
+<section style="padding:40px 40px 80px;max-width:1100px;margin:0 auto">
+  <div class="grid-3">
+    <!-- Pipeline Inteligente -->
+    <div class="card reveal">
+      <div class="img-swap">
+        <svg class="img-a img-fallback" viewBox="0 0 400 180" fill="none"><rect width="400" height="180" fill="#EBE9F5"/><rect x="30" y="20" width="90" height="140" rx="10" fill="#fff" stroke="#DCCFFF" stroke-width="1"/><rect x="140" y="25" width="90" height="135" rx="10" fill="#fff" stroke="#CFE6FF" stroke-width="1"/><rect x="250" y="20" width="90" height="140" rx="10" fill="#fff" stroke="#D9F2E2" stroke-width="1"/><circle cx="75" cy="45" r="8" fill="#DCCFFF"/><circle cx="185" cy="50" r="8" fill="#CFE6FF"/><circle cx="295" cy="45" r="8" fill="#D9F2E2"/><rect x="45" y="65" width="60" height="8" rx="4" fill="#F0ECF8"/><rect x="45" y="80" width="45" height="8" rx="4" fill="#F0ECF8"/><rect x="45" y="100" width="55" height="6" rx="3" fill="#EDE9FE"/><rect x="155" y="70" width="60" height="8" rx="4" fill="#E8F2FE"/><rect x="155" y="85" width="40" height="8" rx="4" fill="#E8F2FE"/><rect x="265" y="65" width="60" height="8" rx="4" fill="#E6F5EC"/><rect x="265" y="80" width="50" height="8" rx="4" fill="#E6F5EC"/></svg>
+        <svg class="img-b img-fallback" viewBox="0 0 400 180" fill="none"><rect width="400" height="180" fill="#F3F3EF"/><line x1="75" y1="30" x2="75" y2="160" stroke="#DCCFFF" stroke-width="2" stroke-dasharray="6,4"/><line x1="185" y1="30" x2="185" y2="160" stroke="#CFE6FF" stroke-width="2" stroke-dasharray="6,4"/><line x1="295" y1="30" x2="295" y2="160" stroke="#D9F2E2" stroke-width="2" stroke-dasharray="6,4"/><circle cx="75" cy="80" r="12" fill="#9B8CDE" opacity="0.6"/><circle cx="185" cy="50" r="10" fill="#6B9CC8" opacity="0.6"/><circle cx="295" cy="110" r="14" fill="#4A9E6E" opacity="0.6"/><circle cx="75" cy="80" r="4" fill="#fff"/><circle cx="185" cy="50" r="4" fill="#fff"/><circle cx="295" cy="110" r="4" fill="#fff"/></svg>
+      </div>
+      <div style="padding:0 28px 32px">
+        <div style="font-size:15px;font-weight:700;color:#1A1A1E;margin-bottom:6px">Pipeline Inteligente</div>
+        <div style="font-size:12px;color:#6B6B6B;line-height:1.6">Visualiza cada oportunidad en su etapa exacta. TIA sugiere el siguiente paso, activa flujos automaticos y te alerta cuando algo requiere atencion.</div>
+      </div>
+    </div>
+    <!-- Automatizacion -->
+    <div class="card reveal">
+      <div class="img-swap">
+        <svg class="img-a img-fallback" viewBox="0 0 400 180" fill="none"><rect width="400" height="180" fill="#EBE9F5"/><rect x="30" y="50" width="60" height="30" rx="8" fill="#DCCFFF"/><rect x="110" y="55" width="60" height="30" rx="8" fill="#B89EFF"/><rect x="190" y="50" width="60" height="30" rx="8" fill="#9B8CDE"/><rect x="270" y="55" width="60" height="30" rx="8" fill="#7C3AED"/><line x1="90" y1="65" x2="110" y2="70" stroke="#DCCFFF" stroke-width="2"/><line x1="170" y1="70" x2="190" y2="65" stroke="#B89EFF" stroke-width="2"/><line x1="250" y1="65" x2="270" y2="70" stroke="#9B8CDE" stroke-width="2"/><circle cx="40" cy="110" r="5" fill="#CFE6FF"/><rect x="140" y="105" width="70" height="10" rx="5" fill="#D9F2E2"/><rect x="260" y="105" width="80" height="10" rx="5" fill="#F7E8C8"/></svg>
+        <svg class="img-b img-fallback" viewBox="0 0 400 180" fill="none"><rect width="400" height="180" fill="#F3F3EF"/><circle cx="200" cy="90" r="50" fill="none" stroke="#DCCFFF" stroke-width="1.5"/><circle cx="200" cy="90" r="60" fill="none" stroke="#DCCFFF" stroke-width="0.5" stroke-dasharray="4,6"/><rect x="140" y="70" width="30" height="40" rx="6" fill="#B89EFF" opacity="0.5"/><rect x="200" y="55" width="30" height="40" rx="6" fill="#9B8CDE" opacity="0.5"/><rect x="230" y="80" width="30" height="40" rx="6" fill="#7C3AED" opacity="0.5"/><line x1="170" y1="85" x2="200" y2="70" stroke="#B89EFF" stroke-width="1.5"/><line x1="230" y1="70" x2="230" y2="80" stroke="#9B8CDE" stroke-width="1.5"/></svg>
+      </div>
+      <div style="padding:0 28px 32px">
+        <div style="font-size:15px;font-weight:700;color:#1A1A1E;margin-bottom:6px">Automatizacion por Etapa</div>
+        <div style="font-size:12px;color:#6B6B6B;line-height:1.6">Flujos de trabajo vinculados a cada etapa. Correos, WhatsApp, tareas y notificaciones se activan automaticamente.</div>
+      </div>
+    </div>
+    <!-- Multi-Canal -->
+    <div class="card reveal">
+      <div class="img-swap">
+        <svg class="img-a img-fallback" viewBox="0 0 400 180" fill="none"><rect width="400" height="180" fill="#EBE9F5"/><circle cx="200" cy="90" r="25" fill="#9B8CDE" opacity="0.5"/><circle cx="200" cy="90" r="12" fill="#fff"/><rect x="140" y="40" width="50" height="24" rx="8" fill="#D9F2E2"/><text x="165" y="56" text-anchor="middle" fill="#4A9E6E" font-size="9" font-weight="600">email</text><rect x="280" y="60" width="60" height="24" rx="8" fill="#CFE6FF"/><text x="310" y="76" text-anchor="middle" fill="#3B82F6" font-size="9" font-weight="600">facebook</text><rect x="80" y="90" width="60" height="24" rx="8" fill="#F7E8C8"/><text x="110" y="106" text-anchor="middle" fill="#D4A54A" font-size="9" font-weight="600">whatsapp</text><rect x="260" y="120" width="55" height="24" rx="8" fill="#F4D9E8"/><text x="287" y="136" text-anchor="middle" fill="#D4726A" font-size="9" font-weight="600">instagram</text></svg>
+        <svg class="img-b img-fallback" viewBox="0 0 400 180" fill="none"><rect width="400" height="180" fill="#F3F3EF"/><circle cx="200" cy="90" r="35" fill="none" stroke="#DCCFFF" stroke-width="1"/><circle cx="200" cy="90" r="15" fill="#9B8CDE" opacity="0.3"/><circle cx="200" cy="90" r="6" fill="#fff"/><line x1="200" y1="55" x2="200" y2="30" stroke="#DCCFFF" stroke-width="1"/><line x1="200" y1="125" x2="200" y2="150" stroke="#CFE6FF" stroke-width="1"/><line x1="165" y1="90" x2="140" y2="90" stroke="#D9F2E2" stroke-width="1"/><line x1="235" y1="90" x2="260" y2="90" stroke="#F4D9E8" stroke-width="1"/></svg>
+      </div>
+      <div style="padding:0 28px 32px">
+        <div style="font-size:15px;font-weight:700;color:#1A1A1E;margin-bottom:6px">Multi-Canal Unificado</div>
+        <div style="font-size:12px;color:#6B6B6B;line-height:1.6">WhatsApp, email, Facebook, Instagram. Una sola bandeja. Responde sin cambiar de herramienta.</div>
+      </div>
+    </div>
+    <!-- IA que Ejecuta -->
+    <div class="card reveal">
+      <div class="img-swap">
+        <svg class="img-a img-fallback" viewBox="0 0 400 180" fill="none"><rect width="400" height="180" fill="#EBE9F5"/><circle cx="200" cy="80" r="50" fill="#EDE9FE"/><path d="M200 40 L215 65 L245 70 L222 90 L228 120 L200 105 L172 120 L178 90 L155 70 L185 65 Z" fill="#9B8CDE" opacity="0.4"/><circle cx="200" cy="75" r="8" fill="#fff"/><rect x="160" y="130" width="80" height="6" rx="3" fill="#DCCFFF"/><rect x="150" y="142" width="100" height="6" rx="3" fill="#DCCFFF"/></svg>
+        <svg class="img-b img-fallback" viewBox="0 0 400 180" fill="none"><rect width="400" height="180" fill="#F3F3EF"/><circle cx="200" cy="80" r="45" fill="none" stroke="#EDE9FE" stroke-width="2"/><path d="M200 45 L212 63 L233 66 L220 80 L223 98 L200 90 L177 98 L180 80 L167 66 L188 63 Z" fill="#B89EFF" opacity="0.25"/><circle cx="200" cy="75" r="6" fill="#9B8CDE"/><line x1="200" y1="40" x2="200" y2="20" stroke="#DCCFFF" stroke-width="0.5"/><line x1="230" y1="65" x2="245" y2="55" stroke="#DCCFFF" stroke-width="0.5"/><line x1="170" y1="65" x2="155" y2="55" stroke="#DCCFFF" stroke-width="0.5"/></svg>
+      </div>
+      <div style="padding:0 28px 32px">
+        <div style="font-size:15px;font-weight:700;color:#1A1A1E;margin-bottom:6px">IA que Ejecuta</div>
+        <div style="font-size:12px;color:#6B6B6B;line-height:1.6">TIA no solo sugiere: ejecuta. Redacta, envia, programa y analiza. Tu equipo solo supervisa.</div>
+      </div>
+    </div>
+    <!-- KPIs -->
+    <div class="card reveal">
+      <div class="img-swap">
+        <svg class="img-a img-fallback" viewBox="0 0 400 180" fill="none"><rect width="400" height="180" fill="#EBE9F5"/><rect x="30" y="30" width="60" height="10" rx="5" fill="#DCCFFF"/><rect x="30" y="60" width="90" height="10" rx="5" fill="#B89EFF"/><rect x="30" y="90" width="50" height="10" rx="5" fill="#CFE6FF"/><rect x="30" y="120" width="75" height="10" rx="5" fill="#D9F2E2"/><polyline points="60,35 120,55 180,45 240,75 300,50 360,70" fill="none" stroke="#9B8CDE" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="60" cy="35" r="4" fill="#B89EFF"/><circle cx="120" cy="55" r="4" fill="#B89EFF"/><circle cx="180" cy="45" r="4" fill="#B89EFF"/><circle cx="240" cy="75" r="4" fill="#B89EFF"/><circle cx="300" cy="50" r="4" fill="#B89EFF"/><circle cx="360" cy="70" r="4" fill="#B89EFF"/></svg>
+        <svg class="img-b img-fallback" viewBox="0 0 400 180" fill="none"><rect width="400" height="180" fill="#F3F3EF"/><rect x="20" y="30" width="50" height="50" rx="10" fill="#EDE9FE"/><text x="45" y="60" text-anchor="middle" fill="#7C3AED" font-size="18" font-weight="700">42</text><rect x="90" y="40" width="50" height="40" rx="10" fill="#E8F2FE"/><text x="115" y="65" text-anchor="middle" fill="#3B82F6" font-size="16" font-weight="700">87</text><rect x="160" y="35" width="50" height="45" rx="10" fill="#E6F5EC"/><text x="185" y="62" text-anchor="middle" fill="#4A9E6E" font-size="16" font-weight="700">63</text><rect x="230" y="45" width="60" height="35" rx="10" fill="#FEF3C7"/><text x="260" y="67" text-anchor="middle" fill="#D4A54A" font-size="13" font-weight="700">$12.4k</text></svg>
+      </div>
+      <div style="padding:0 28px 32px">
+        <div style="font-size:15px;font-weight:700;color:#1A1A1E;margin-bottom:6px">KPIs en Tiempo Real</div>
+        <div style="font-size:12px;color:#6B6B6B;line-height:1.6">Metricas vivas de conversion, ingresos y velocidad del pipeline. Decisiones basadas en datos reales.</div>
+      </div>
+    </div>
+    <!-- Roles y Permisos -->
+    <div class="card reveal">
+      <div class="img-swap">
+        <svg class="img-a img-fallback" viewBox="0 0 400 180" fill="none"><rect width="400" height="180" fill="#EBE9F5"/><circle cx="120" cy="60" r="22" fill="#DCCFFF"/><circle cx="120" cy="55" r="10" fill="#B89EFF"/><rect x="100" y="88" width="40" height="12" rx="4" fill="#DCCFFF"/><circle cx="200" cy="55" r="24" fill="#CFE6FF"/><circle cx="200" cy="50" r="11" fill="#6B9CC8"/><rect x="178" y="85" width="44" height="12" rx="4" fill="#CFE6FF"/><circle cx="300" cy="65" r="20" fill="#D9F2E2"/><circle cx="300" cy="60" r="9" fill="#4A9E6E"/><rect x="282" y="92" width="36" height="12" rx="4" fill="#D9F2E2"/><circle cx="340" cy="140" r="14" fill="#F4D9E8"/><circle cx="340" cy="137" r="7" fill="#D4726A"/></svg>
+        <svg class="img-b img-fallback" viewBox="0 0 400 180" fill="none"><rect width="400" height="180" fill="#F3F3EF"/><rect x="40" y="40" width="90" height="100" rx="10" fill="#EDE9FE" opacity="0.4"/><text x="85" y="95" text-anchor="middle" fill="#7C3AED" font-size="40" font-weight="800">A</text><rect x="150" y="50" width="90" height="90" rx="10" fill="#E8F2FE" opacity="0.4"/><text x="195" y="100" text-anchor="middle" fill="#3B82F6" font-size="36" font-weight="800">M</text><rect x="260" y="60" width="90" height="80" rx="10" fill="#E6F5EC" opacity="0.4"/><text x="305" y="105" text-anchor="middle" fill="#4A9E6E" font-size="30" font-weight="800">T</text></svg>
+      </div>
+      <div style="padding:0 28px 32px">
+        <div style="font-size:15px;font-weight:700;color:#1A1A1E;margin-bottom:6px">Roles y Permisos</div>
+        <div style="font-size:12px;color:#6B6B6B;line-height:1.6">Super admin, admin, manager, team leader, agente. Cada rol ve lo que necesita. Sin friccion.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ TIA SECTION ═══ -->
+<section id="tia" style="padding:100px 40px;background:linear-gradient(180deg, #F6F6F3, #F3F3EF, #F6F6F3)">
+  <div style="max-width:1100px;margin:0 auto;display:flex;gap:60px;align-items:center;flex-wrap:wrap">
+    <div style="flex:1;min-width:300px" class="reveal">
+      <div class="badge" style="background:#DCCFFF;color:#7C3AED;margin-bottom:20px">Tecnologia de Inteligencia Aplicada</div>
+      <h2 style="font-size:38px;font-weight:800;color:#1A1A1E;line-height:1.2;letter-spacing:-0.02em;margin-bottom:16px">
+        TIA es el <span class="gradient-text">cerebro</span> de Wontia
+      </h2>
+      <p style="font-size:15px;color:#6B6B6B;line-height:1.8">
+        TIA no es un chatbot. Es un sistema de inteligencia aplicada que opera en cada capa de la plataforma:
+      </p>
+      <div style="margin-top:20px">
+        <div class="list-item">
+          <div class="list-num"><span>1</span></div>
+          <div><div style="font-size:14px;font-weight:600;color:#1A1A1E;margin-bottom:3px">Analisis Predictivo</div><div style="font-size:12px;color:#6B6B6B;line-height:1.6">Identifica oportunidades con alta probabilidad de cierre antes que tu equipo.</div></div>
+        </div>
+        <div class="list-item">
+          <div class="list-num"><span>2</span></div>
+          <div><div style="font-size:14px;font-weight:600;color:#1A1A1E;margin-bottom:3px">Ejecucion Autonoma</div><div style="font-size:12px;color:#6B6B6B;line-height:1.6">Redacta y envia correos, WhatsApp y mensajes basados en el contexto del lead.</div></div>
+        </div>
+        <div class="list-item">
+          <div class="list-num"><span>3</span></div>
+          <div><div style="font-size:14px;font-weight:600;color:#1A1A1E;margin-bottom:3px">Orquestacion de Flujos</div><div style="font-size:12px;color:#6B6B6B;line-height:1.6">Activa tareas, recordatorios y seguimientos cuando se cumplen condiciones.</div></div>
+        </div>
+        <div class="list-item">
+          <div class="list-num"><span>4</span></div>
+          <div><div style="font-size:14px;font-weight:600;color:#1A1A1E;margin-bottom:3px">Asistencia en Vivo</div><div style="font-size:12px;color:#6B6B6B;line-height:1.6">Responde preguntas, crea leads, navega y ejecuta comandos por voz o texto.</div></div>
+        </div>
+        <div class="list-item">
+          <div class="list-num"><span>5</span></div>
+          <div><div style="font-size:14px;font-weight:600;color:#1A1A1E;margin-bottom:3px">Aprendizaje Continuo</div><div style="font-size:12px;color:#6B6B6B;line-height:1.6">Cada interaccion alimenta el modelo. TIA mejora con cada decision.</div></div>
+        </div>
+      </div>
+    </div>
+    <div style="flex:1;min-width:300px;display:flex;justify-content:center;align-items:center" class="reveal">
+      <div style="width:340px;height:380px;border-radius:24px;background:linear-gradient(180deg, #FBFBF9, #F3F3EF);border:1px solid rgba(80,80,80,.06);box-shadow:0 4px 24px rgba(0,0,0,.04), inset 0 1px 2px rgba(255,255,255,.80);display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;overflow:hidden">
+        <div style="position:absolute;top:-40px;right:-40px;width:160px;height:160px;border-radius:50%;background:radial-gradient(circle, rgba(184,158,255,.18), transparent 70%);pointer-events:none"></div>
+        <div style="position:absolute;bottom:-30px;left:-30px;width:120px;height:120px;border-radius:50%;background:radial-gradient(circle, rgba(207,230,255,.15), transparent 70%);pointer-events:none"></div>
+        <div style="position:relative;z-index:1;text-align:center">
+          <!-- TIA Blob Icon — Full visual identity from the app -->
+          <div style="width:100px;height:100px;margin:0 auto 16px;position:relative">
+            <svg viewBox="0 0 120 120" fill="none" style="width:100%;height:100%">
+              <defs>
+                <filter id="tiaGoo" x="-50%" y="-50%" width="200%" height="200%">
+                  <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="blur"/>
+                  <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 20 -8"/>
+                </filter>
+                <radialGradient id="tiaBlobGrad" cx="35%" cy="30%" r="75%">
+                  <stop offset="0%" stop-color="#D4C3FF"/>
+                  <stop offset="55%" stop-color="#B89EFF"/>
+                  <stop offset="100%" stop-color="#9B8CDE"/>
+                </radialGradient>
+              </defs>
+              <!-- Pulsing halo -->
+              <circle cx="60" cy="60" r="34" fill="#B89EFF" opacity="0.12">
+                <animate attributeName="r" values="34;38;34" dur="3s" repeatCount="indefinite"/>
+                <animate attributeName="opacity" values="0.12;0.22;0.12" dur="3s" repeatCount="indefinite"/>
+              </circle>
+              <!-- 18 rotating bars -->
+              <g opacity="0.35" transform="translate(60,60)">
+                <animateTransform attributeName="transform" type="rotate" from="0 60 60" to="360 60 60" dur="20s" repeatCount="indefinite" additive="sum"/>
+                <rect x="58.8" y="20" width="2.4" height="8" rx="1.2" fill="#C5B0FF" transform="rotate(0)"/>
+                <rect x="58.8" y="20" width="2.4" height="8" rx="1.2" fill="#C5B0FF" transform="rotate(20)"/>
+                <rect x="58.8" y="20" width="2.4" height="8" rx="1.2" fill="#C5B0FF" transform="rotate(40)"/>
+                <rect x="58.8" y="20" width="2.4" height="8" rx="1.2" fill="#C5B0FF" transform="rotate(60)"/>
+                <rect x="58.8" y="20" width="2.4" height="8" rx="1.2" fill="#C5B0FF" transform="rotate(80)"/>
+                <rect x="58.8" y="20" width="2.4" height="8" rx="1.2" fill="#C5B0FF" transform="rotate(100)"/>
+                <rect x="58.8" y="20" width="2.4" height="8" rx="1.2" fill="#C5B0FF" transform="rotate(120)"/>
+                <rect x="58.8" y="20" width="2.4" height="8" rx="1.2" fill="#C5B0FF" transform="rotate(140)"/>
+                <rect x="58.8" y="20" width="2.4" height="8" rx="1.2" fill="#C5B0FF" transform="rotate(160)"/>
+                <rect x="58.8" y="20" width="2.4" height="8" rx="1.2" fill="#C5B0FF" transform="rotate(180)"/>
+                <rect x="58.8" y="20" width="2.4" height="8" rx="1.2" fill="#C5B0FF" transform="rotate(200)"/>
+                <rect x="58.8" y="20" width="2.4" height="8" rx="1.2" fill="#C5B0FF" transform="rotate(220)"/>
+                <rect x="58.8" y="20" width="2.4" height="8" rx="1.2" fill="#C5B0FF" transform="rotate(240)"/>
+                <rect x="58.8" y="20" width="2.4" height="8" rx="1.2" fill="#C5B0FF" transform="rotate(260)"/>
+                <rect x="58.8" y="20" width="2.4" height="8" rx="1.2" fill="#C5B0FF" transform="rotate(280)"/>
+                <rect x="58.8" y="20" width="2.4" height="8" rx="1.2" fill="#C5B0FF" transform="rotate(300)"/>
+                <rect x="58.8" y="20" width="2.4" height="8" rx="1.2" fill="#C5B0FF" transform="rotate(320)"/>
+                <rect x="58.8" y="20" width="2.4" height="8" rx="1.2" fill="#C5B0FF" transform="rotate(340)"/>
+              </g>
+              <!-- Gooey blob -->
+              <g filter="url(#tiaGoo)">
+                <circle cx="60" cy="60" r="17" fill="url(#tiaBlobGrad)"><animate attributeName="cx" values="60;63;57;60" dur="5s" repeatCount="indefinite"/><animate attributeName="cy" values="60;57;63;60" dur="5s" repeatCount="indefinite"/></circle>
+                <circle cx="60" cy="60" r="14" fill="url(#tiaBlobGrad)"><animate attributeName="cx" values="60;56;62;60" dur="6s" repeatCount="indefinite"/><animate attributeName="cy" values="60;62;58;60" dur="6s" repeatCount="indefinite"/></circle>
+                <circle cx="60" cy="60" r="12" fill="url(#tiaBlobGrad)"><animate attributeName="cx" values="60;62;59;60" dur="4.5s" repeatCount="indefinite"/><animate attributeName="cy" values="60;59;61;60" dur="4.5s" repeatCount="indefinite"/></circle>
+                <circle cx="60" cy="60" r="10" fill="url(#tiaBlobGrad)"><animate attributeName="cx" values="60;58;63;60" dur="7s" repeatCount="indefinite"/><animate attributeName="cy" values="60;63;57;60" dur="7s" repeatCount="indefinite"/></circle>
+              </g>
+              <!-- TIA letters -->
+              <text x="47" y="66" font-family="Inter, sans-serif" font-size="15" font-weight="700" fill="#FFFFFF" stroke="#5A4AC7" stroke-width="0.5" paint-order="stroke">T</text>
+              <text x="58" y="66" font-family="Inter, sans-serif" font-size="15" font-weight="700" fill="#FFFFFF" stroke="#5A4AC7" stroke-width="0.5" paint-order="stroke">i</text>
+              <text x="61" y="66" font-family="Inter, sans-serif" font-size="15" font-weight="700" fill="#FFFFFF" stroke="#5A4AC7" stroke-width="0.5" paint-order="stroke">a</text>
+            </svg>
+          </div>
+          <div style="font-size:20px;font-weight:700;color:#1A1A1E;margin-bottom:8px">Hola, soy TIA</div>
+          <div style="font-size:12px;color:#6B6B6B;line-height:1.6;max-width:240px;margin:0 auto">
+            "Analice tu pipeline. Tienes 3 oportunidades listas para cerrar esta semana. Quieres que prepare las propuestas?"
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <style>@keyframes tia-ring { 0%,100% { opacity:.4; transform:scale(1) } 50% { opacity:1; transform:scale(1.06) } }</style>
+</section>
+
+<!-- ═══ WIDGET EMBED DEMO ═══ -->
+<section style="padding:40px 40px 80px;max-width:1100px;margin:0 auto" class="reveal">
+  <div style="text-align:center;margin-bottom:24px">
+    <div class="badge" style="background:#EDE9FE;color:#7C3AED;margin-bottom:8px;font-size:10px">INTEGRABLE</div>
+    <div style="font-size:13px;color:#6B6B6B;line-height:1.6">Este widget se instala en cualquier pagina con una linea de codigo.<br>Disponible en <a href="https://github.com/intsolcom/wontia-widget" style="color:#7C3AED;font-weight:600">GitHub</a> y desplegable via <strong>Dokploy</strong>.</div>
+  </div>
+  <script src="https://widget.wontia.com/wontia-ambient.js" defer></script>
+  <div data-wontia-ambient data-height="280"></div>
+</section>
+
+<!-- ═══ AIP SECTION ═══ -->
+<section id="aip" class="section">
+  <div style="text-align:center;margin-bottom:60px" class="reveal">
+    <div class="badge" style="background:#CFE6FF;color:#3B82F6;margin-bottom:20px">Applied Intelligence Platform</div>
+    <h2 style="font-size:38px;font-weight:800;color:#1A1A1E;line-height:1.2;letter-spacing:-0.02em;margin-bottom:16px">
+      El concepto <span class="gradient-text">AIP</span>
+    </h2>
+    <p style="font-size:16px;color:#6B6B6B;line-height:1.8;max-width:680px;margin:0 auto">
+      AIP —Applied Intelligence Platform— es la filosofia que define como Wontia integra la inteligencia artificial. La IA no es una funcionalidad: es el sistema operativo.
+    </p>
+  </div>
+  <div class="grid-2">
+    <div class="card reveal" style="padding:0">
+      <div class="section-img">
+        <svg class="img-a img-fallback" viewBox="0 0 400 160" fill="none"><rect width="400" height="160" fill="#EEECF5"/><circle cx="200" cy="80" r="50" fill="none" stroke="#DCCFFF" stroke-width="2"/><path d="M170 80 Q200 50 230 80 Q200 110 170 80" fill="#B89EFF" opacity="0.2"/><circle cx="200" cy="80" r="8" fill="#9B8CDE"/></svg>
+        <svg class="img-b img-fallback" viewBox="0 0 400 160" fill="none"><rect width="400" height="160" fill="#F3F3EF"/><circle cx="200" cy="80" r="55" fill="none" stroke="#DCCFFF" stroke-width="1"/><circle cx="160" cy="65" r="3" fill="#B89EFF"/><circle cx="230" cy="70" r="3" fill="#9B8CDE"/><circle cx="200" cy="95" r="3" fill="#7C3AED"/><circle cx="180" cy="55" r="2" fill="#DCCFFF"/><circle cx="250" cy="90" r="2" fill="#DCCFFF"/><circle cx="150" cy="85" r="2" fill="#DCCFFF"/></svg>
+      </div>
+      <div class="card-padded"><div style="font-size:15px;font-weight:700;color:#1A1A1E;margin-bottom:6px">Inteligencia Aplicada, no Artificial</div><div style="font-size:12px;color:#6B6B6B;line-height:1.6">La IA no reemplaza a tu equipo. Lo potencia. TIA decide basandose en datos reales de tu negocio, no en patrones genericos.</div></div>
+    </div>
+    <div class="card reveal" style="padding:0">
+      <div class="section-img">
+        <svg class="img-a img-fallback" viewBox="0 0 400 160" fill="none"><rect width="400" height="160" fill="#EEECF5"/><circle cx="120" cy="80" r="20" fill="#DCCFFF"/><line x1="140" y1="80" x2="190" y2="80" stroke="#B89EFF" stroke-width="3"/><circle cx="210" cy="80" r="20" fill="#CFE6FF"/><line x1="230" y1="80" x2="280" y2="80" stroke="#6B9CC8" stroke-width="3"/><circle cx="300" cy="80" r="20" fill="#D9F2E2"/></svg>
+        <svg class="img-b img-fallback" viewBox="0 0 400 160" fill="none"><rect width="400" height="160" fill="#F3F3EF"/><circle cx="90" cy="80" r="15" fill="none" stroke="#EDE9FE" stroke-width="1.5"/><circle cx="150" cy="70" r="18" fill="none" stroke="#E8F2FE" stroke-width="1.5"/><circle cx="220" cy="85" r="22" fill="none" stroke="#E6F5EC" stroke-width="1.5"/><circle cx="290" cy="75" r="16" fill="none" stroke="#FEF3C7" stroke-width="1.5"/><circle cx="160" cy="110" r="12" fill="none" stroke="#FCE4EC" stroke-width="1.5"/></svg>
+      </div>
+      <div class="card-padded"><div style="font-size:15px;font-weight:700;color:#1A1A1E;margin-bottom:6px">Orquestacion, no Automatizacion</div><div style="font-size:12px;color:#6B6B6B;line-height:1.6">Wontia orquesta procesos completos. TIA evalua, elige el canal, redacta, agenda y mide la respuesta. Todo en secuencia.</div></div>
+    </div>
+    <div class="card reveal" style="padding:0">
+      <div class="section-img">
+        <svg class="img-a img-fallback" viewBox="0 0 400 160" fill="none"><rect width="400" height="160" fill="#EEECF5"/><rect x="80" y="30" width="240" height="100" rx="12" fill="none" stroke="#DCCFFF" stroke-width="2"/><rect x="100" y="50" width="200" height="60" rx="8" fill="none" stroke="#B89EFF" stroke-width="1.5"/><rect x="130" y="65" width="140" height="30" rx="6" fill="#EDE9FE"/><text x="200" y="84" text-anchor="middle" fill="#7C3AED" font-size="11" font-weight="600">validacion</text></svg>
+        <svg class="img-b img-fallback" viewBox="0 0 400 160" fill="none"><rect width="400" height="160" fill="#F3F3EF"/><line x1="130" y1="40" x2="170" y2="80" stroke="#DCCFFF" stroke-width="2"/><line x1="200" y1="40" x2="200" y2="80" stroke="#CFE6FF" stroke-width="2"/><line x1="270" y1="40" x2="230" y2="80" stroke="#D9F2E2" stroke-width="2"/><rect x="110" y="80" width="180" height="50" rx="8" fill="none" stroke="#EDE9FE" stroke-width="1"/><circle cx="200" cy="105" r="10" fill="none" stroke="#B89EFF" stroke-width="2"/><path d="M195 105 L199 109 L206 101" stroke="#B89EFF" stroke-width="2"/></svg>
+      </div>
+      <div class="card-padded"><div style="font-size:15px;font-weight:700;color:#1A1A1E;margin-bottom:6px">Defensa en Profundidad</div><div style="font-size:12px;color:#6B6B6B;line-height:1.6">Capas de validacion: reglas de negocio, permisos, configuracion de etapa, historial del lead. Nada se ejecuta sin filtros.</div></div>
+    </div>
+    <div class="card reveal" style="padding:0">
+      <div class="section-img">
+        <svg class="img-a img-fallback" viewBox="0 0 400 160" fill="none"><rect width="400" height="160" fill="#EEECF5"/><rect x="40" y="40" width="80" height="80" rx="8" fill="#EDE9FE"/><text x="80" y="85" text-anchor="middle" fill="#7C3AED" font-size="22" font-weight="700">2.4x</text><rect x="150" y="50" width="80" height="70" rx="8" fill="#E8F2FE"/><text x="190" y="90" text-anchor="middle" fill="#3B82F6" font-size="18" font-weight="700">89%</text><rect x="260" y="45" width="80" height="75" rx="8" fill="#E6F5EC"/><text x="300" y="88" text-anchor="middle" fill="#4A9E6E" font-size="18" font-weight="700">3.2d</text></svg>
+        <svg class="img-b img-fallback" viewBox="0 0 400 160" fill="none"><rect width="400" height="160" fill="#F3F3EF"/><polyline points="40,130 80,100 120,115 160,70 200,85 240,50 280,60 320,30 360,45" fill="none" stroke="#B89EFF" stroke-width="2" stroke-linecap="round"/><polyline points="40,130 80,105 120,118 160,75 200,88 240,55 280,62 320,35 360,48" fill="none" stroke="#9B8CDE" stroke-width="1" stroke-linecap="round" stroke-dasharray="4,3"/><circle cx="160" cy="75" r="4" fill="#7C3AED"/><circle cx="240" cy="55" r="4" fill="#7C3AED"/><circle cx="320" cy="35" r="4" fill="#7C3AED"/></svg>
+      </div>
+      <div class="card-padded"><div style="font-size:15px;font-weight:700;color:#1A1A1E;margin-bottom:6px">Metricas que Importan</div><div style="font-size:12px;color:#6B6B6B;line-height:1.6">Velocidad, tasa de respuesta, tiempo de cierre, efectividad de TIA. Medimos resultados de negocio, no clicks.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ HOW IT WORKS ═══ -->
+<section id="funciona" style="padding:80px 40px;background:#F3F3EF">
+  <div style="max-width:1100px;margin:0 auto">
+    <div style="text-align:center;margin-bottom:60px" class="reveal">
+      <h2 style="font-size:34px;font-weight:800;color:#1A1A1E;letter-spacing:-0.02em;margin-bottom:12px">Como funciona</h2>
+      <p style="font-size:15px;color:#6B6B6B">Tres pasos. Una plataforma. Cero friccion.</p>
+    </div>
+    <div class="grid-3">
+      <div style="text-align:center;padding:40px 24px" class="reveal">
+        <div style="height:140px;margin-bottom:20px;display:flex;align-items:center;justify-content:center">
+          <img src="canales-wontia.jpg" alt="Conecta tus canales" style="max-width:100%;max-height:140px;border-radius:12px;object-fit:contain">
+        </div>
+        <div style="font-size:17px;font-weight:700;color:#1A1A1E;margin-bottom:10px">Conecta tus canales</div>
+        <div style="font-size:13px;color:#6B6B6B;line-height:1.7">WhatsApp, email, Facebook, Instagram. Conectalos en minutos. TIA reconoce el origen de cada lead.</div>
+      </div>
+      <div style="text-align:center;padding:40px 24px" class="reveal">
+        <div class="img-swap" style="height:140px;margin-bottom:20px">
+          <svg class="img-a img-fallback" viewBox="0 0 280 140" fill="none"><rect width="280" height="140" fill="#EBE9F5"/><rect x="10" y="15" width="80" height="110" rx="8" fill="#fff" stroke="#DCCFFF" stroke-width="1"/><rect x="100" y="20" width="80" height="105" rx="8" fill="#fff" stroke="#CFE6FF" stroke-width="1"/><rect x="190" y="15" width="80" height="110" rx="8" fill="#fff" stroke="#D9F2E2" stroke-width="1"/><circle cx="50" cy="40" r="6" fill="#DCCFFF"/><circle cx="140" cy="45" r="6" fill="#CFE6FF"/><circle cx="230" cy="40" r="6" fill="#D9F2E2"/></svg>
+          <svg class="img-b img-fallback" viewBox="0 0 280 140" fill="none"><rect width="280" height="140" fill="#F3F3EF"/><rect x="30" y="20" width="50" height="8" rx="4" fill="#DCCFFF"/><rect x="120" y="30" width="50" height="8" rx="4" fill="#CFE6FF"/><rect x="210" y="25" width="50" height="8" rx="4" fill="#D9F2E2"/><line x1="30" y1="55" x2="270" y2="55" stroke="#EDE9FE" stroke-width="0.5"/><rect x="30" y="65" width="50" height="8" rx="4" fill="#EDE9FE"/><rect x="120" y="75" width="50" height="8" rx="4" fill="#E8F2FE"/><rect x="210" y="70" width="50" height="8" rx="4" fill="#E6F5EC"/></svg>
+        </div>
+        <div style="font-size:17px;font-weight:700;color:#1A1A1E;margin-bottom:10px">Define tu pipeline</div>
+        <div style="font-size:13px;color:#6B6B6B;line-height:1.7">Crea etapas, reglas y flujos. TIA te guia con plantillas inteligentes por industria.</div>
+      </div>
+      <div style="text-align:center;padding:40px 24px" class="reveal">
+        <div class="img-swap" style="height:140px;margin-bottom:20px">
+          <svg class="img-a img-fallback" viewBox="0 0 280 140" fill="none"><rect width="280" height="140" fill="#EBE9F5"/><circle cx="140" cy="40" r="30" fill="none" stroke="#DCCFFF" stroke-width="2"/><path d="M115 55 L130 40 L150 55 L140 45 L130 55" fill="#B89EFF" opacity="0.5"/><circle cx="140" cy="40" r="6" fill="#9B8CDE"/><rect x="20" y="90" width="70" height="12" rx="4" fill="#D9F2E2" opacity="0.6"/><rect x="120" y="95" width="60" height="10" rx="4" fill="#CFE6FF" opacity="0.6"/><rect x="230" y="85" width="35" height="14" rx="4" fill="#F7E8C8" opacity="0.6"/></svg>
+          <svg class="img-b img-fallback" viewBox="0 0 280 140" fill="none"><rect width="280" height="140" fill="#F3F3EF"/><circle cx="140" cy="55" r="20" fill="#EDE9FE"/><text x="140" y="60" text-anchor="middle" fill="#7C3AED" font-size="16" font-weight="700">&#x2713;</text><rect x="40" y="95" width="200" height="4" rx="2" fill="#EDE9FE"/><rect x="40" y="95" width="150" height="4" rx="2" fill="#D9F2E2"/><circle cx="190" cy="97" r="3" fill="#4A9E6E"/><rect x="80" y="110" width="120" height="4" rx="2" fill="#E8F2FE"/></svg>
+        </div>
+        <div style="font-size:17px;font-weight:700;color:#1A1A1E;margin-bottom:10px">Deja que TIA opere</div>
+        <div style="font-size:13px;color:#6B6B6B;line-height:1.7">TIA analiza, ejecuta, sugiere y aprende. Tu equipo supervisa y cierra negocios.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ PRECIOS (ICE WIDGET) ═══ -->
+<section id="precios" style="padding:60px 20px; min-height:400px" class="reveal">
+  <div data-ice-pricing data-ice-workspace="1" data-ice-title="Precios" data-ice-subtitle="Encuentra el plan que se adapta a tu equipo. Todos incluyen acceso a TIA."></div>
+</section>
+
+<!-- ═══ CTA ═══ -->
+<section style="padding:120px 40px;text-align:center;max-width:680px;margin:0 auto" class="reveal">
+  <h2 style="font-size:36px;font-weight:800;color:#1A1A1E;letter-spacing:-0.02em;margin-bottom:16px">Deja que la inteligencia trabaje por ti</h2>
+  <p style="font-size:16px;color:#6B6B6B;line-height:1.7;margin-bottom:36px">
+    Wontia no es un CRM. Es una Applied Intelligence Platform que convierte cada oportunidad en un resultado medible.
+  </p>
+  <a href="https://app.wontia.com/login" class="btn-primary">Ingresar a Wontia</a>
+</section>
+
+<!-- ═══ FOOTER ═══ -->
+<footer class="footer">
+  <div style="max-width:1100px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px">
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <div style="width:24px;height:24px;border-radius:8px;background:linear-gradient(135deg, #9B8CDE, #B89EFF);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#fff">W</div>
+      <span style="font-size:12px;font-weight:600;color:#2F2F2F">WONTIA</span>
+      <span style="font-size:10px;color:#DCCFFF">|</span>
+      <span style="font-size:11px;color:#9A9A9A">Powered by <strong style="color:#2F2F2F">Intsolcom, LLC</strong></span>
+      <span style="font-size:10px;color:#DCCFFF">|</span>
+      <span style="font-size:11px;color:#9A9A9A"><strong style="color:#2F2F2F">Intsolcom SAS</strong></span>
+      <span style="font-size:10px;color:#DCCFFF">|</span>
+      <span style="font-size:11px;color:#9A9A9A">Through <strong style="color:#2F2F2F">Nearshore Dev MarcasBPO</strong></span>
+    </div>
+    <div style="font-size:11px;color:#9A9A9A">&copy; 2026 | Intsolcom, LLC. Todos los derechos reservados.</div>
+  </div>
+</footer>
+  <div style="padding:32px 40px;background:#F3F3EF;border-top:1px solid rgba(80,80,80,0.04)">
+    <div style="max-width:1100px;margin:0 auto;display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:32px">
+      <div style="display:flex;flex-direction:column;gap:8px;min-width:240px">
+        <div style="font-size:10px;font-weight:700;color:#9A9A9A;text-transform:uppercase;letter-spacing:0.06em">&#x1f1fa;&#x1f1f8; Intsolcom, LLC</div>
+        <div style="font-size:12px;color:#4A4A4A;display:flex;align-items:flex-start;gap:6px"><span style="flex-shrink:0">&#x1f4cd;</span><span>390 NE 191st St, STE 17284, Miami, FL 33179</span></div>
+        <div style="font-size:12px;color:#4A4A4A;display:flex;align-items:center;gap:6px"><span>&#x1f4de;</span><a href="tel:+17863861515" style="color:#4A4A4A;text-decoration:none">+1 (786) 386-1515</a></div>
+        <div style="font-size:12px;color:#4A4A4A;display:flex;align-items:center;gap:6px"><span>&#x2709;</span><a href="mailto:customer@intsolcom.com" style="color:#4A4A4A;text-decoration:none">customer@intsolcom.com</a></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;min-width:240px">
+        <div style="font-size:10px;font-weight:700;color:#9A9A9A;text-transform:uppercase;letter-spacing:0.06em">&#x1f1e8;&#x1f1f4; Intsolcom SAS</div>
+        <div style="font-size:12px;color:#4A4A4A;display:flex;align-items:flex-start;gap:6px"><span style="flex-shrink:0">&#x1f4cd;</span><span>Cra 53 # 80 - 192, Barranquilla, Colombia</span></div><div style="font-size:12px;color:#4A4A4A;display:flex;align-items:center;gap:6px"><span>&#x1f4de;</span><a href="tel:+573116020005" style="color:#4A4A4A;text-decoration:none">+57 311 602 0005</a></div><div style="font-size:12px;color:#4A4A4A;display:flex;align-items:center;gap:6px"><span>&#x2709;</span><a href="mailto:cliente@intsolcom.com" style="color:#4A4A4A;text-decoration:none">cliente@intsolcom.com</a></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;min-width:180px">
+        <div style="font-size:10px;font-weight:700;color:#9A9A9A;text-transform:uppercase;letter-spacing:0.06em">Powered by</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg, #9B8CDE, #B89EFF);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#fff">W</div>
+          <div>
+            <div style="font-size:11px;font-weight:700;color:#2F2F2F">WONTIA</div>
+            <div style="font-size:9px;color:#9A9A9A">by MarcasBPO</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  // Scroll-triggered reveal animation
+  (function() {
+    const reveals = document.querySelectorAll('.reveal');
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add('visible'); });
+    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+    reveals.forEach(el => observer.observe(el));
+  })();
+</script>
+
+</body>
+</html>

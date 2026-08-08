@@ -9,6 +9,7 @@ use App\Core\Request;
 use App\Core\Response;
 use App\Core\Session;
 use App\Middleware\AuthMiddleware;
+use App\Widgets\WidgetRegistry;
 
 Config::load();
 
@@ -28,6 +29,69 @@ $method = $_SERVER['REQUEST_METHOD'];
 
 $router = new Router();
 
+// ── PUBLIC ENDPOINTS ──
+
+$router->get('/api/v1/public/page/{slug}', function ($request, $slug) {
+    $siteId = (int)($_GET['site_id'] ?? 1);
+    $db = Database::instance();
+
+    $stmt = $db->prepare("SELECT id, title, slug, meta_title, meta_description, meta_keywords, og_image, canonical_url, no_index, template, status FROM pages WHERE slug = :slug AND site_id = :sid AND status = 'published' LIMIT 1");
+    $stmt->execute(['slug' => $slug, 'sid' => $siteId]);
+    $page = $stmt->fetch();
+
+    if (!$page) {
+        Response::error('Page not found', 404);
+        return;
+    }
+
+    $sec = $db->prepare("SELECT id, type, widget_type, title, subtitle, content, image, config, sort_order FROM sections WHERE page_id = :pid AND is_active = 1 ORDER BY sort_order ASC");
+    $sec->execute(['pid' => $page['id']]);
+    $sections = $sec->fetchAll();
+
+    $rendered = [];
+    foreach ($sections as $s) {
+        $cfg = json_decode($s['config'] ?? '{}', true) ?: [];
+        $html = '';
+        if ($s['widget_type'] && WidgetRegistry::get($s['widget_type'])) {
+            $html = WidgetRegistry::render($s['widget_type'], $cfg);
+        } elseif (in_array($s['type'], ['custom', 'html'])) {
+            $html = $s['content'] ?? '';
+        } else {
+            $html = '<section data-section="' . ($s['type'] ?? 'generic') . '">' . ($s['content'] ?? '') . '</section>';
+        }
+        $rendered[] = [
+            'id' => $s['id'],
+            'type' => $s['type'],
+            'widget_type' => $s['widget_type'],
+            'title' => $s['title'],
+            'subtitle' => $s['subtitle'],
+            'content' => $s['content'],
+            'image' => $s['image'],
+            'config' => $cfg,
+            'html' => $html,
+        ];
+    }
+
+    Response::json([
+        'ok' => true,
+        'data' => [
+            'page' => $page,
+            'sections' => $rendered,
+        ]
+    ]);
+});
+
+$router->get('/api/v1/public/settings', function () {
+    $siteId = (int)($_GET['site_id'] ?? 1);
+    $db = Database::instance();
+    $stmt = $db->prepare("SELECT `key`, `value` FROM settings WHERE site_id = :sid");
+    $stmt->execute(['sid' => $siteId]);
+    $settings = [];
+    foreach ($stmt->fetchAll() as $row) {
+        $settings[$row['key']] = $row['value'];
+    }
+    Response::json(['ok' => true, 'data' => $settings]);
+});
 $router->get('/api/v1/health', function () {
     $dbOk = false;
     $cacheOk = is_writable(ROOT_DIR . '/cache');
@@ -67,6 +131,22 @@ $router->group('/api/v1/admin', function (Router $r) {
 
     $r->get('/bricks', [\App\Controllers\Admin\BrickController::class, 'index']);
     $r->get('/bricks/{type}', [\App\Controllers\Admin\BrickController::class, 'show']);
+
+    $r->get('/brickhub', [\App\Controllers\Admin\BrickHubController::class, 'marketplace']);
+    $r->get('/brickhub/sources', [\App\Controllers\Admin\BrickHubController::class, 'sources']);
+    $r->post('/brickhub/sources', [\App\Controllers\Admin\BrickHubController::class, 'addSource']);
+    $r->delete('/brickhub/sources/{id}', [\App\Controllers\Admin\BrickHubController::class, 'removeSource']);
+    $r->post('/brickhub/sources/verify', [\App\Controllers\Admin\BrickHubController::class, 'verifySource']);
+    $r->get('/brickhub/sources/{sourceId}/discover', [\App\Controllers\Admin\BrickHubController::class, 'discoverBricks']);
+    $r->post('/brickhub/sync', [\App\Controllers\Admin\BrickHubController::class, 'sync']);
+    $r->post('/brickhub/install', [\App\Controllers\Admin\BrickHubController::class, 'install']);
+    $r->delete('/brickhub/uninstall/{id}', [\App\Controllers\Admin\BrickHubController::class, 'uninstall']);
+    $r->get('/brickhub/updates', [\App\Controllers\Admin\BrickHubController::class, 'checkUpdates']);
+    $r->post('/brickhub/updates/apply/{brickId}', [\App\Controllers\Admin\BrickHubController::class, 'applyUpdate']);
+    $r->post('/brickhub/updates/apply-all', [\App\Controllers\Admin\BrickHubController::class, 'applyAllUpdates']);
+    $r->get('/brickhub/history', [\App\Controllers\Admin\BrickHubController::class, 'updateHistory']);
+    $r->get('/brickhub/installed', [\App\Controllers\Admin\BrickHubController::class, 'installedBricks']);
+    $r->get('/brickhub/check/{brickId}', [\App\Controllers\Admin\BrickHubController::class, 'checkBrickUpdate']);
 
     $r->get('/media', [\App\Controllers\Admin\MediaController::class, 'index']);
     $r->post('/media/upload', [\App\Controllers\Admin\MediaController::class, 'upload']);

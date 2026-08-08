@@ -21,7 +21,7 @@ W.router=function(){
     var action=parts[2];
     document.querySelectorAll('.w-nav-item').forEach(function(a){a.classList.toggle('active',a.dataset.panel===panel)});
     var title=document.getElementById('panel-title');
-    var titles={dashboard:'Dashboard',pages:'Pages',sections:'Sections',blog:'Blog',media:'Media',seo:'SEO',analytics:'Analytics',settings:'Settings',users:'Users'};
+    var titles={dashboard:'Dashboard',pages:'Pages',sections:'Sections',bricks:'Bricks',brickhub:'BrickHub',blog:'Blog',media:'Media',seo:'SEO',analytics:'Analytics',settings:'Settings',users:'Users'};
     if(title)title.textContent=titles[panel]||panel;
     var app=document.getElementById('wontia-app');
     if(!app)return;
@@ -484,6 +484,219 @@ W.showBrickConfig=async function(type){
     W.modal(b.meta.name+' <span style="font-size:10px;color:var(--w-muted)">BRICK Configuration Schema</span>',fields,'<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Close</button>');
 };
 
+W.renderBrickHub=function(){
+    var tab=W.state.bhTab||'marketplace';
+    W.state.bhTab=tab;
+    var app=document.getElementById('wontia-app');
+    var tabs=[
+        {id:'marketplace',label:'Marketplace'},
+        {id:'sources',label:'Sources'},
+        {id:'installed',label:'Installed'},
+        {id:'updates',label:'Updates'},
+        {id:'history',label:'History'}
+    ];
+    var tabBar='<div class="w-toolbar w-mb-lg" style="border-bottom:1px solid var(--w-border);padding-bottom:12px">';
+    tabs.forEach(function(t){
+        tabBar+='<button class="w-btn '+(tab===t.id?'w-btn-primary':'w-btn-secondary')+'" onclick="wontia.switchBHTab(\''+t.id+'\')">'+t.label+'</button>';
+    });
+    tabBar+='</div>';
+    app.innerHTML='<div>'+tabBar+'<div id="bh-content"></div></div>';
+    var fns={marketplace:W.bhMarketplace,sources:W.bhSources,installed:W.bhInstalled,updates:W.bhUpdates,history:W.bhHistory};
+    (fns[tab]||W.bhMarketplace)();
+};
+
+W.switchBHTab=function(t){W.state.bhTab=t;W.renderBrickHub()};
+
+W.bhMarketplace=async function(){
+    var el=document.getElementById('bh-content');
+    el.innerHTML='<div style="text-align:center;padding:40px;color:var(--w-muted)">Loading marketplace...</div>';
+    var d=await W.api('/api/v1/admin/brickhub');
+    var bricks=d.data||[];
+    if(!bricks.length){el.innerHTML='<div class="w-empty-state"><h3>No bricks in marketplace</h3><p>Add a GitHub source to discover bricks to install.</p><button class="w-btn w-btn-primary" onclick="wontia.switchBHTab(\'sources\')">Add Source</button></div>';return}
+    var html='<div class="w-flex-between w-mb"><div><strong style="font-size:13px">'+bricks.length+' bricks available</strong></div><div class="w-flex w-gap-sm"><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.renderBrickHub()">Refresh</button><button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.bhSyncAll()">Sync All Sources</button></div></div>';
+    html+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px">';
+    bricks.forEach(function(b){
+        var installed=!!b.installed;
+        html+='<div class="w-card" style="padding:18px">';
+        html+='<div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:12px">';
+        html+='<div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,'+(installed?'rgba(0,184,125,.2)':'rgba(155,140,222,.2)')+');display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">'+(b.category==='system'?'\u2699':b.category==='integration'?'\uD83D\uDD17':'\uD83E\uDDE9')+'</div>';
+        html+='<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+W.esc(b.name)+'</div>';
+        html+='<div style="font-size:10px;color:var(--w-muted);margin-top:2px">'+W.esc(b.source_name||'')+'</div>';
+        if(installed)html+='<span style="font-size:9px;background:rgba(0,184,125,.15);color:var(--w-primary);padding:1px 8px;border-radius:10px;margin-top:4px;display:inline-block">v'+W.esc(b.installed_version)+' installed</span>';
+        else html+='<span style="font-size:9px;background:rgba(190,19,65,.12);color:var(--w-accent);padding:1px 8px;border-radius:10px;margin-top:4px;display:inline-block">Not installed</span>';
+        html+='</div></div>';
+        html+='<div style="display:flex;gap:6px;justify-content:flex-end">';
+        if(installed){
+            html+='<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.bhCheckUpdate('+b.installed_id+')">Check Update</button>';
+            html+='<button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.bhUninstall('+b.installed_id+',\''+W.esc(b.name)+'\')">Uninstall</button>';
+        }else{
+            html+='<button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.bhInstall('+b.source_id+',\''+W.esc(b.slug)+'\',\''+W.esc(b.name)+'\')">Install</button>';
+        }
+        html+='</div></div>';
+    });
+    html+='</div>';
+    el.innerHTML=html;
+};
+
+W.bhSources=async function(){
+    var el=document.getElementById('bh-content');
+    el.innerHTML='<div style="text-align:center;padding:40px;color:var(--w-muted)">Loading sources...</div>';
+    var d=await W.api('/api/v1/admin/brickhub/sources');
+    var sources=d.data||[];
+    var html='<div class="w-flex-between w-mb-lg"><div><strong style="font-size:13px">'+sources.length+' sources</strong></div><button class="w-btn w-btn-primary" onclick="wontia.bhShowAddSource()">+ Add Source</button></div>';
+    if(!sources.length){html+='<div class="w-empty-state"><h3>No GitHub sources</h3><p>Add your first source to start discovering bricks</p></div>'}
+    sources.forEach(function(s){
+        html+='<div class="w-card" style="padding:16px"><div class="w-flex-between w-mb"><div><div style="font-size:13px;font-weight:600">'+W.esc(s.name)+'</div><div style="font-size:11px;color:var(--w-muted)">'+W.esc(s.repo_url)+' <span class="w-badge w-badge-'+(s.is_active?'published':'draft')+'">'+(s.is_active?'active':'inactive')+'</span></div></div><div class="w-flex w-gap-sm">';
+        if(s.last_version)html+='<span style="font-size:10px;color:var(--w-muted)">Latest: v'+W.esc(s.last_version)+'</span>';
+        html+='<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.bhSyncSource('+s.id+')">Sync</button>';
+        html+='<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.bhDiscoverSource('+s.id+')">Discover</button>';
+        html+='<button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.bhRemoveSource('+s.id+',\''+W.esc(s.name)+'\')">Remove</button>';
+        html+='</div></div>';
+        if(s.brick_count>0)html+='<div style="font-size:11px;color:var(--w-muted);margin-top:6px">'+s.brick_count+' brick(s) installed from this source</div>';
+        html+='</div>';
+    });
+    el.innerHTML=html;
+};
+
+W.bhInstalled=async function(){
+    var el=document.getElementById('bh-content');
+    el.innerHTML='<div style="text-align:center;padding:40px;color:var(--w-muted)">Loading...</div>';
+    var d=await W.api('/api/v1/admin/brickhub/installed');
+    var bricks=d.data||[];
+    if(!bricks.length){el.innerHTML='<div class="w-empty-state"><h3>No bricks installed</h3><p>Visit the Marketplace to install bricks</p><button class="w-btn w-btn-primary" onclick="wontia.switchBHTab(\'marketplace\')">Go to Marketplace</button></div>';return}
+    var html='<div class="w-flex-between w-mb-lg"><strong style="font-size:13px">'+bricks.length+' installed</strong></div>';
+    bricks.forEach(function(b){
+        html+='<div class="w-card" style="padding:14px"><div class="w-flex-between"><div><div style="font-size:13px;font-weight:600">'+W.esc(b.name)+' <span style="font-size:10px;color:var(--w-muted)">v'+W.esc(b.version)+'</span></div><div style="font-size:11px;color:var(--w-muted)">'+W.esc(b.category||'')+' &middot; '+W.esc(b.source_name||'manual')+' &middot; <span class="w-badge w-badge-'+(b.status==='active'?'published':'draft')+'">'+b.status+'</span></div></div><div class="w-flex w-gap-sm"><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.bhCheckUpdate('+b.id+')">Check Update</button><button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.bhUninstall('+b.id+',\''+W.esc(b.name)+'\')">Uninstall</button></div></div></div>';
+    });
+    el.innerHTML=html;
+};
+
+W.bhUpdates=async function(){
+    var el=document.getElementById('bh-content');
+    el.innerHTML='<div style="text-align:center;padding:40px;color:var(--w-muted)">Checking for updates...</div>';
+    var d=await W.api('/api/v1/admin/brickhub/updates');
+    var updates=d.updates||[];
+    var html='<div class="w-flex-between w-mb-lg"><strong style="font-size:13px">'+updates.length+' update(s) available</strong><div class="w-flex w-gap-sm"><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.renderBrickHub()">Refresh</button>';
+    if(updates.length>0)html+='<button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.bhApplyAllUpdates()">Apply All Updates</button>';
+    html+='</div></div>';
+    if(!updates.length){html+='<div class="w-empty-state"><h3>All bricks are up to date</h3><p>No updates available. Check back later.</p></div>'}
+    updates.forEach(function(u){
+        html+='<div class="w-card" style="padding:14px"><div class="w-flex-between"><div><div style="font-size:13px;font-weight:600">'+W.esc(u.name)+'</div><div style="font-size:11px;color:var(--w-muted)">'+W.esc(u.current)+' \u2192 <span style="color:var(--w-primary)">'+W.esc(u.latest)+'</span></div></div><button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.bhApplyUpdate('+u.brick_id+')">Update Now</button></div></div>';
+    });
+    el.innerHTML=html;
+};
+
+W.bhHistory=async function(){
+    var el=document.getElementById('bh-content');
+    el.innerHTML='<div style="text-align:center;padding:40px;color:var(--w-muted)">Loading history...</div>';
+    var d=await W.api('/api/v1/admin/brickhub/history');
+    var history=d.data||[];
+    if(!history.length){el.innerHTML='<div class="w-empty-state"><h3>No update history</h3><p>Updates applied will appear here</p></div>';return}
+    var html='<div class="w-flex-between w-mb-lg"><strong style="font-size:13px">'+history.length+' record(s)</strong></div>';
+    history.forEach(function(h){
+        var statusColor=h.status==='applied'?'var(--w-primary)':h.status==='failed'?'var(--w-accent)':h.status==='pending'?'var(--w-muted)':'#f59e0b';
+        html+='<div class="w-card" style="padding:12px"><div class="w-flex-between"><div><div style="font-size:12px;font-weight:600">'+W.esc(h.brick_name)+'</div><div style="font-size:10px;color:var(--w-muted)">'+W.esc(h.from_version)+' \u2192 '+W.esc(h.to_version)+'</div></div><div style="text-align:right"><span style="font-size:10px;color:'+statusColor+';font-weight:600">'+h.status+'</span><div style="font-size:9px;color:var(--w-muted)">'+W.esc(h.created_at||'')+'</div></div></div>';
+        if(h.release_notes)html+='<div style="font-size:10px;color:var(--w-muted);margin-top:6px;white-space:pre-wrap;max-height:60px;overflow:hidden">'+W.esc(h.release_notes.substring(0,200))+'</div>';
+        html+='</div>';
+    });
+    el.innerHTML=html;
+};
+
+W.bhShowAddSource=function(){
+    var html='<div class="w-form-group"><label class="w-label">Source Name</label><input class="w-input" id="bs-name" placeholder="WWI Core"/></div>';
+    html+='<div class="w-form-group"><label class="w-label">GitHub Repo URL</label><input class="w-input" id="bs-repo" placeholder="https://github.com/user/repo"/></div>';
+    html+='<div class="w-form-group"><label class="w-label">Branch</label><input class="w-input" id="bs-branch" value="main"/></div>';
+    html+='<div class="w-form-group"><label class="w-label">Install Path</label><input class="w-input" id="bs-path" value="/src/Bricks/"/></div>';
+    html+='<div class="w-form-group"><label class="w-label">GitHub Token (optional, for private repos)</label><input class="w-input" id="bs-token" type="password" placeholder="ghp_..."/></div>';
+    W.modal('Add GitHub Source',html,
+        '<button class="w-btn w-btn-secondary" onclick="wontia.bhVerifyRepo()">Verify Repo</button>'+
+        '<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cancel</button>'+
+        '<button class="w-btn w-btn-primary" id="bs-save">Add Source</button>'
+    );
+    document.getElementById('bs-save').addEventListener('click',async function(){
+        var data={name:document.getElementById('bs-name').value,repo_url:document.getElementById('bs-repo').value,branch:document.getElementById('bs-branch').value,install_path:document.getElementById('bs-path').value,auth_token:document.getElementById('bs-token').value||null};
+        if(!data.name||!data.repo_url){W.notify('Name and repo URL required','error');return}
+        var r=await W.api('/api/v1/admin/brickhub/sources',{method:'POST',body:data});
+        if(r.ok){W.closeModal();W.bhSources();W.notify('Source added','success')}
+    });
+};
+
+W.bhVerifyRepo=async function(){
+    var url=document.getElementById('bs-repo').value;
+    var token=document.getElementById('bs-token').value;
+    if(!url){W.notify('Enter a repo URL','error');return}
+    W.notify('Verifying...','info');
+    var r=await W.api('/api/v1/admin/brickhub/sources/verify',{method:'POST',body:{repo_url:url,auth_token:token||null}});
+    if(r.ok)W.notify('Repo verified: '+r.name+' ('+r.language+', '+r.stars+' stars)','success');
+};
+
+W.bhRemoveSource=function(id,name){
+    W.confirm('Remove source "'+name+'"? (Installed bricks will remain)',async function(){
+        var r=await W.api('/api/v1/admin/brickhub/sources/'+id,{method:'DELETE'});
+        if(r.ok){W.bhSources();W.notify('Source removed','success')}
+    });
+};
+
+W.bhSyncSource=async function(id){
+    W.notify('Syncing...','info');
+    var r=await W.api('/api/v1/admin/brickhub/sync',{method:'POST',body:{source_id:id}});
+    if(r.ok&&r.data){
+        var d=r.data;
+        W.notify(d.source+': v'+d.latest_version+' ('+d.updates_available+' updates)','success');
+        W.bhSources();
+    }
+};
+
+W.bhSyncAll=async function(){
+    W.notify('Syncing all sources...','info');
+    var r=await W.api('/api/v1/admin/brickhub/sync',{method:'POST',body:{}});
+    if(r.ok){W.notify('Sync complete','success');W.renderBrickHub()}
+};
+
+W.bhDiscoverSource=async function(id){
+    W.notify('Discovering bricks...','info');
+    var r=await W.api('/api/v1/admin/brickhub/sources/'+id+'/discover');
+    if(r.ok&&r.data){
+        var bricks=r.data;
+        var list=bricks.map(function(b){return '<div style="padding:4px 0;font-size:12px">'+W.esc(b.name)+' <span style="color:var(--w-muted);font-size:10px">('+W.esc(b.slug)+')</span></div>'}).join('');
+        W.modal('Discovered Bricks in '+W.esc(r.source),list||'<p style="color:var(--w-muted)">No bricks found in this repo</p>','<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Close</button>');
+    }
+};
+
+W.bhInstall=async function(sourceId,slug,name){
+    var r=await W.api('/api/v1/admin/brickhub/install',{method:'POST',body:{source_id:sourceId,slug:slug,name:name}});
+    if(r.ok){W.notify('Installed: '+name,'success');W.renderBrickHub()}
+};
+
+W.bhUninstall=function(id,name){
+    W.confirm('Uninstall "'+name+'"?',async function(){
+        var r=await W.api('/api/v1/admin/brickhub/uninstall/'+id,{method:'DELETE'});
+        if(r.ok){W.notify('Uninstalled: '+name,'success');W.renderBrickHub()}
+    });
+};
+
+W.bhCheckUpdate=async function(brickId){
+    W.notify('Checking...','info');
+    var r=await W.api('/api/v1/admin/brickhub/check/'+brickId);
+    if(r.ok&&r.data&&r.data.available)W.notify('Update available: v'+r.data.latest_version,'success');
+    else W.notify('Already up to date','info');
+};
+
+W.bhApplyUpdate=async function(brickId){
+    W.notify('Applying update...','info');
+    var r=await W.api('/api/v1/admin/brickhub/updates/apply/'+brickId,{method:'POST'});
+    if(r.ok){W.notify('Updated!','success');W.renderBrickHub()}
+};
+
+W.bhApplyAllUpdates=function(){
+    W.confirm('Apply all available updates? This may take a few minutes.',async function(){
+        W.notify('Applying all updates...','info');
+        var r=await W.api('/api/v1/admin/brickhub/updates/apply-all',{method:'POST'});
+        if(r.ok)W.notify(r.applied+' updated, '+r.failed+' failed','success');
+        W.renderBrickHub();
+    });
+};
+
 W.panels={
     dashboard:W.renderDashboard,
     pages:W.renderPageList,
@@ -491,6 +704,7 @@ W.panels={
     sections:W.renderSectionManager,
     pageSections:W.renderSectionManager,
     bricks:W.renderBricks,
+    brickhub:W.renderBrickHub,
     blog:W.renderBlogList,
     blogEditor:W.renderBlogEditor,
     media:W.renderMediaManager,
