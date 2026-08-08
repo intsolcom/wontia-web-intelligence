@@ -1,0 +1,31 @@
+version: '3.8'
+services:
+  wontia:
+    build: .
+    ports:
+      - "${PORT:-4003}:80"
+    volumes:
+      - wontia-uploads:/app/public/assets/uploads
+      - wontia-cache:/app/cache
+    environment:
+      DB_HOST: ${DB_HOST:-mariadb}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_NAME: ${DB_NAME:-wontia}
+      DB_USER: ${DB_USER:-wontia}
+      DB_PASS: ${DB_PASS}
+      JWT_SECRET: ${JWT_SECRET}
+      APP_URL: ${APP_URL:-http://localhost}
+      APP_ENV: ${APP_ENV:-production}
+      APP_DEBUG: ${APP_DEBUG:-false}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+    restart: unless-stopped
+    networks:
+      - intsolcom
+
+volumes:
+  wontia-uploads:
+  wontia-cache:
+
+networks:
+  intsolcom:
+    external: true

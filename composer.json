@@ -1,0 +1,20 @@
+{
+    "name": "intsolcom/wontia-web-intelligence",
+    "description": "Wontia Web Intelligence — Standalone website & landing page intelligence engine. Page builder, blog, SEO, analytics, AI content, multi-tenant. Docker + Dokploy ready.",
+    "type": "project",
+    "license": "MIT",
+    "require": {
+        "php": ">=8.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Intsolcom",
+            "email": "dev@intsolcom.com"
+        }
+    ]
+}
