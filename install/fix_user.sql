@@ -1,0 +1,4 @@
+DROP USER IF EXISTS 'wontia'@'%';
+CREATE USER 'wontia'@'%' IDENTIFIED BY 'Wontia2026!';
+GRANT ALL PRIVILEGES ON wontia.* TO 'wontia'@'%';
+FLUSH PRIVILEGES;
