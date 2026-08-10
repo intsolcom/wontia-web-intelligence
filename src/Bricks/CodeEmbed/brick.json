@@ -1,0 +1,29 @@
+{
+    "name": "Code Embed",
+    "slug": "code-embed",
+    "version": "1.0.0",
+    "description": "Universal code injector: HTML, JavaScript, CSS, iframes, external scripts. Sandbox, Shadow DOM, lazy loading, CSP-ready, conditional rendering.",
+    "author": "Wontia",
+    "category": "embed",
+    "brick_class": "App\\Bricks\\CodeEmbed\\CodeEmbedBrick",
+    "widget_class": "App\\Widgets\\CodeEmbedWidget",
+    "requires": {
+        "php": ">=8.1"
+    },
+    "features": [
+        "7 embed modes (HTML, JS, CSS, iframe, external script, external style, mixed)",
+        "Sandboxed iframe isolation",
+        "Shadow DOM style encapsulation",
+        "Intersection Observer lazy loading",
+        "Conditional rendering (device, URL path)",
+        "CSP nonce support",
+        "Execute-once-per-session for JS",
+        "Cache busting for external resources",
+        "Head/body/before-body-end injection positions",
+        "Graceful fallback on load failure"
+    ],
+    "tags": ["embed", "code", "html", "javascript", "iframe", "css", "injection"],
+    "changelog": {
+        "1.0.0": "Initial release with 7 embed modes, sandbox, Shadow DOM, lazy load, conditions, CSP support"
+    }
+}

@@ -10,7 +10,7 @@ class BlogCategoryController
     public function index(): void
     {
         $db = Database::instance();
-        $cats = $db->query("SELECT c.*, (SELECT COUNT(*) FROM blog_posts WHERE category_id = c.id) AS post_count FROM blog_categories c WHERE c.site_id = 1 ORDER BY c.sort_order ASC, c.name ASC")->fetchAll();
+        $cats = $db->query("SELECT c.*, (SELECT COUNT(*) FROM blog_posts WHERE category_id = c.id) AS post_count FROM blog_categories c WHERE c.site_id = @site_id ORDER BY c.sort_order ASC, c.name ASC")->fetchAll();
         Response::json(['ok' => true, 'data' => $cats]);
     }
 

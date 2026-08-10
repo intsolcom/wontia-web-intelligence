@@ -63,7 +63,7 @@ class App
 
         $r->get('/{slug}', function (Request $req, string $slug) {
             $db = Database::instance();
-            $page = $db->prepare("SELECT * FROM pages WHERE slug = :slug AND site_id = 1 AND status = 'published'");
+            $page = $db->prepare("SELECT * FROM pages WHERE slug = :slug AND site_id = @site_id AND status = 'published'");
             $page->execute(['slug' => $slug]);
             $p = $page->fetch();
             if (!$p) {

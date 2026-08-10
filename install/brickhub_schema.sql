@@ -69,3 +69,16 @@ CREATE TABLE IF NOT EXISTS brick_webhooks (
     FOREIGN KEY (site_id) REFERENCES sites(id),
     FOREIGN KEY (source_id) REFERENCES brick_sources(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS brickhub_registry (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    site_id INT NOT NULL DEFAULT 1,
+    child_url VARCHAR(500) NOT NULL COMMENT 'URL de la instalacion hija',
+    child_name VARCHAR(255) DEFAULT '',
+    site_key VARCHAR(128) NOT NULL UNIQUE COMMENT 'Clave unica del sitio hijo',
+    is_active TINYINT DEFAULT 1,
+    last_seen_at DATETIME DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (site_id) REFERENCES sites(id)
+) ENGINE=InnoDB;

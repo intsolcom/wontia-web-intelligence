@@ -65,7 +65,7 @@ class BrickSystem
     public static function findBySlug(string $slug): ?array
     {
         $db = Database::instance();
-        $stmt = $db->prepare('SELECT * FROM bricks WHERE slug = ? AND site_id = 1');
+        $stmt = $db->prepare('SELECT * FROM bricks WHERE slug = ? AND site_id = @site_id');
         $stmt->execute([$slug]);
         $row = $stmt->fetch();
         if ($row && isset($row['config'])) {
@@ -77,7 +77,7 @@ class BrickSystem
     public static function all(): array
     {
         $db = Database::instance();
-        $stmt = $db->query('SELECT b.*, s.name as source_name, s.repo_url as source_url FROM bricks b LEFT JOIN brick_sources s ON b.source_id = s.id WHERE b.site_id = 1 ORDER BY b.installed_at DESC');
+        $stmt = $db->query('SELECT b.*, s.name as source_name, s.repo_url as source_url FROM bricks b LEFT JOIN brick_sources s ON b.source_id = s.id WHERE b.site_id = @site_id ORDER BY b.installed_at DESC');
         $rows = $stmt->fetchAll();
         foreach ($rows as &$row) {
             $row['config'] = json_decode($row['config'] ?? '{}', true) ?: [];
@@ -162,7 +162,7 @@ class BrickSystem
     public static function addSource(string $name, string $repoUrl, string $branch = 'main', string $installPath = '/src/Bricks/', ?string $token = null): array
     {
         $db = Database::instance();
-        $stmt = $db->prepare('SELECT id FROM brick_sources WHERE repo_url = ? AND site_id = 1');
+        $stmt = $db->prepare('SELECT id FROM brick_sources WHERE repo_url = ? AND site_id = @site_id');
         $stmt->execute([$repoUrl]);
         if ($stmt->fetch()) {
             return ['ok' => false, 'message' => 'Source already exists'];
@@ -189,7 +189,7 @@ class BrickSystem
     public static function listSources(): array
     {
         $db = Database::instance();
-        $stmt = $db->query('SELECT s.*, (SELECT COUNT(*) FROM bricks b WHERE b.source_id = s.id) as brick_count FROM brick_sources s WHERE s.site_id = 1 ORDER BY s.created_at DESC');
+        $stmt = $db->query('SELECT s.*, (SELECT COUNT(*) FROM bricks b WHERE b.source_id = s.id) as brick_count FROM brick_sources s WHERE s.site_id = @site_id ORDER BY s.created_at DESC');
         return $stmt->fetchAll();
     }
 
@@ -228,7 +228,7 @@ class BrickSystem
             $db = Database::instance();
             $db->prepare('UPDATE brick_sources SET last_checked_at = NOW(), last_version = ? WHERE id = ?')->execute([$latestVersion, $sourceId]);
 
-            $installedStmt = $db->prepare('SELECT * FROM bricks WHERE source_id = ? AND site_id = 1');
+            $installedStmt = $db->prepare('SELECT * FROM bricks WHERE source_id = ? AND site_id = @site_id');
             $installedStmt->execute([$sourceId]);
             $installedBricks = $installedStmt->fetchAll();
 
@@ -259,7 +259,7 @@ class BrickSystem
             $stmt = $db->prepare('SELECT u.*, b.name as brick_name FROM brick_updates u JOIN bricks b ON u.brick_id = b.id WHERE u.brick_id = ? ORDER BY u.created_at DESC');
             $stmt->execute([$brickId]);
         } else {
-            $stmt = $db->query('SELECT u.*, b.name as brick_name FROM brick_updates u JOIN bricks b ON u.brick_id = b.id WHERE u.site_id = 1 ORDER BY u.created_at DESC LIMIT 50');
+            $stmt = $db->query('SELECT u.*, b.name as brick_name FROM brick_updates u JOIN bricks b ON u.brick_id = b.id WHERE u.site_id = @site_id ORDER BY u.created_at DESC LIMIT 50');
         }
         return $stmt->fetchAll();
     }

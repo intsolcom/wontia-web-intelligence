@@ -10,15 +10,15 @@ class DashboardController
     public function index(): void
     {
         $db = Database::instance();
-        $totalPages = $db->query("SELECT COUNT(*) FROM pages WHERE site_id = 1")->fetchColumn();
-        $totalPosts = $db->query("SELECT COUNT(*) FROM blog_posts WHERE site_id = 1")->fetchColumn();
-        $publishedPosts = $db->query("SELECT COUNT(*) FROM blog_posts WHERE site_id = 1 AND status = 'published'")->fetchColumn();
+        $totalPages = $db->query("SELECT COUNT(*) FROM pages WHERE site_id = @site_id")->fetchColumn();
+        $totalPosts = $db->query("SELECT COUNT(*) FROM blog_posts WHERE site_id = @site_id")->fetchColumn();
+        $publishedPosts = $db->query("SELECT COUNT(*) FROM blog_posts WHERE site_id = @site_id AND status = 'published'")->fetchColumn();
         $draftPosts = $totalPosts - $publishedPosts;
-        $totalMedia = $db->query("SELECT COUNT(*) FROM media WHERE site_id = 1")->fetchColumn();
-        $totalViews = $db->query("SELECT COUNT(*) FROM analytics_views WHERE site_id = 1")->fetchColumn();
+        $totalMedia = $db->query("SELECT COUNT(*) FROM media WHERE site_id = @site_id")->fetchColumn();
+        $totalViews = $db->query("SELECT COUNT(*) FROM analytics_views WHERE site_id = @site_id")->fetchColumn();
 
-        $recentPages = $db->query("SELECT id, title, slug, status, updated_at FROM pages WHERE site_id = 1 ORDER BY updated_at DESC LIMIT 5")->fetchAll();
-        $recentPosts = $db->query("SELECT id, title, slug, status, views, updated_at FROM blog_posts WHERE site_id = 1 ORDER BY updated_at DESC LIMIT 5")->fetchAll();
+        $recentPages = $db->query("SELECT id, title, slug, status, updated_at FROM pages WHERE site_id = @site_id ORDER BY updated_at DESC LIMIT 5")->fetchAll();
+        $recentPosts = $db->query("SELECT id, title, slug, status, views, updated_at FROM blog_posts WHERE site_id = @site_id ORDER BY updated_at DESC LIMIT 5")->fetchAll();
 
         Response::json([
             'ok' => true,

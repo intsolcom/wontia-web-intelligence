@@ -14,6 +14,7 @@ class Database
             $user = Config::get('DB_USER', 'wontia');
             $pass = Config::get('DB_PASS', '');
             $dsn = "mysql:host=$host;port=$port;dbname=$name;charset=utf8mb4";
+            $siteId = (int)Config::get('SITE_ID', '1');
             $maxRetries = 3;
             $lastException = null;
             for ($i = 0; $i < $maxRetries; $i++) {
@@ -22,7 +23,7 @@ class Database
                         \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
                         \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
                         \PDO::ATTR_EMULATE_PREPARES => false,
-                        \PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4",
+                        \PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4; SET @site_id = $siteId;",
                     ]);
                     return self::$instance;
                 } catch (\PDOException $e) {

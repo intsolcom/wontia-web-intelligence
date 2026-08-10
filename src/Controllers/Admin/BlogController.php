@@ -16,7 +16,7 @@ class BlogController
         $search = $req->get('search');
         $status = $req->get('status');
         $params = [];
-        $where = "WHERE p.site_id = 1";
+        $where = "WHERE p.site_id = @site_id";
         if ($search) { $where .= " AND (p.title LIKE :search OR p.excerpt LIKE :search2)"; $params['search'] = "%$search%"; $params['search2'] = "%$search%"; }
         if ($status && in_array($status, ['draft', 'published'])) { $where .= " AND p.status = :status"; $params['status'] = $status; }
         $count = $db->prepare("SELECT COUNT(*) FROM blog_posts p $where")->execute($params)->fetchColumn();
@@ -27,7 +27,7 @@ class BlogController
     public function show(Request $req, string $id): void
     {
         $db = Database::instance();
-        $post = $db->prepare("SELECT p.*, c.name as category_name FROM blog_posts p LEFT JOIN blog_categories c ON p.category_id = c.id WHERE p.id = :id AND p.site_id = 1");
+        $post = $db->prepare("SELECT p.*, c.name as category_name FROM blog_posts p LEFT JOIN blog_categories c ON p.category_id = c.id WHERE p.id = :id AND p.site_id = @site_id");
         $post->execute(['id' => $id]);
         $p = $post->fetch();
         if (!$p) Response::error('Post not found', 404);
@@ -80,7 +80,7 @@ class BlogController
     public function update(Request $req, string $id): void
     {
         $db = Database::instance();
-        $existing = $db->prepare("SELECT id FROM blog_posts WHERE id = :id AND site_id = 1");
+        $existing = $db->prepare("SELECT id FROM blog_posts WHERE id = :id AND site_id = @site_id");
         $existing->execute(['id' => $id]);
         if (!$existing->fetch()) Response::error('Post not found', 404);
 
@@ -108,14 +108,14 @@ class BlogController
     public function destroy(Request $req, string $id): void
     {
         $db = Database::instance();
-        $db->prepare("DELETE FROM blog_posts WHERE id = :id AND site_id = 1")->execute(['id' => $id]);
+        $db->prepare("DELETE FROM blog_posts WHERE id = :id AND site_id = @site_id")->execute(['id' => $id]);
         Response::json(['ok' => true]);
     }
 
     public function toggleStatus(Request $req, string $id): void
     {
         $db = Database::instance();
-        $post = $db->prepare("SELECT id, status FROM blog_posts WHERE id = :id AND site_id = 1");
+        $post = $db->prepare("SELECT id, status FROM blog_posts WHERE id = :id AND site_id = @site_id");
         $post->execute(['id' => $id]);
         $p = $post->fetch();
         if (!$p) Response::error('Post not found', 404);

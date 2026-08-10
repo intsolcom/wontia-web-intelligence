@@ -1,8 +1,8 @@
 <?php
 $pdo = new PDO('mysql:host=mysql-prod;port=3306;dbname=wontia;charset=utf8mb4', 'root', 'Admin2026!', [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
 
-$pdo->exec("DELETE FROM sections WHERE page_id IN (SELECT id FROM pages WHERE site_id = 1)");
-$pdo->exec("DELETE FROM pages WHERE site_id = 1");
+$pdo->exec("DELETE FROM sections WHERE page_id IN (SELECT id FROM pages WHERE site_id = @site_id)");
+$pdo->exec("DELETE FROM pages WHERE site_id = @site_id");
 
 $pdo->exec("INSERT INTO pages (site_id, title, slug, template, meta_title, meta_description, status, sort_order) VALUES (1, 'WONTIA — Applied Intelligence System', 'home', 'default', 'WONTIA — Applied Intelligence System | Turn AI into Applied Intelligence', 'WONTIA is an Applied Intelligence System powered by TIA. Understand context. Make decisions. Execute actions. Across any domain.', 'published', 0)");
 $pageId = $pdo->lastInsertId();

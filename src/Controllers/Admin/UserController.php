@@ -12,7 +12,7 @@ class UserController
     {
         if (Session::userRole() !== 'superadmin') Response::error('Forbidden', 403);
         $db = Database::instance();
-        $users = $db->query("SELECT id, site_id, username, email, role, last_login, is_active, created_at FROM users WHERE site_id = 1 ORDER BY created_at ASC")->fetchAll();
+        $users = $db->query("SELECT id, site_id, username, email, role, last_login, is_active, created_at FROM users WHERE site_id = @site_id ORDER BY created_at ASC")->fetchAll();
         Response::json(['ok' => true, 'data' => $users]);
     }
 
@@ -42,7 +42,7 @@ class UserController
         }
         $password = $req->input('password');
         if ($password) { $sets[] = "password_hash = :ph"; $params['ph'] = password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]); }
-        if (!empty($sets)) $db->prepare("UPDATE users SET " . implode(', ', $sets) . " WHERE id = :id AND site_id = 1")->execute($params);
+        if (!empty($sets)) $db->prepare("UPDATE users SET " . implode(', ', $sets) . " WHERE id = :id AND site_id = @site_id")->execute($params);
         Response::json(['ok' => true]);
     }
 
@@ -51,7 +51,7 @@ class UserController
         if (Session::userRole() !== 'superadmin') Response::error('Forbidden', 403);
         if ((string)Session::userId() === $id) Response::error('Cannot delete yourself', 400);
         $db = Database::instance();
-        $db->prepare("DELETE FROM users WHERE id = :id AND site_id = 1")->execute(['id' => $id]);
+        $db->prepare("DELETE FROM users WHERE id = :id AND site_id = @site_id")->execute(['id' => $id]);
         Response::json(['ok' => true]);
     }
 }

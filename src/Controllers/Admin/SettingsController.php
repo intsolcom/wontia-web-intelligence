@@ -10,7 +10,7 @@ class SettingsController
     public function index(): void
     {
         $db = Database::instance();
-        $rows = $db->query("SELECT `key`, `value` FROM settings WHERE site_id = 1")->fetchAll();
+        $rows = $db->query("SELECT `key`, `value` FROM settings WHERE site_id = @site_id")->fetchAll();
         $settings = [];
         foreach ($rows as $r) $settings[$r['key']] = $r['value'];
         Response::json(['ok' => true, 'data' => $settings]);

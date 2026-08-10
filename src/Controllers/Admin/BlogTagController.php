@@ -10,7 +10,7 @@ class BlogTagController
     public function index(): void
     {
         $db = Database::instance();
-        $tags = $db->query("SELECT t.*, (SELECT COUNT(*) FROM blog_post_tags WHERE tag_id = t.id) AS post_count FROM blog_tags t WHERE t.site_id = 1 ORDER BY t.name ASC")->fetchAll();
+        $tags = $db->query("SELECT t.*, (SELECT COUNT(*) FROM blog_post_tags WHERE tag_id = t.id) AS post_count FROM blog_tags t WHERE t.site_id = @site_id ORDER BY t.name ASC")->fetchAll();
         Response::json(['ok' => true, 'data' => $tags]);
     }
 

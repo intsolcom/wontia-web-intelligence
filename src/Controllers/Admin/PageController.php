@@ -10,14 +10,14 @@ class PageController
     public function index(): void
     {
         $db = Database::instance();
-        $pages = $db->query("SELECT p.*, (SELECT COUNT(*) FROM sections WHERE page_id = p.id) AS section_count FROM pages p WHERE p.site_id = 1 ORDER BY p.sort_order ASC, p.created_at DESC")->fetchAll();
+        $pages = $db->query("SELECT p.*, (SELECT COUNT(*) FROM sections WHERE page_id = p.id) AS section_count FROM pages p WHERE p.site_id = @site_id ORDER BY p.sort_order ASC, p.created_at DESC")->fetchAll();
         Response::json(['ok' => true, 'data' => $pages]);
     }
 
     public function show(Request $req, string $id): void
     {
         $db = Database::instance();
-        $page = $db->prepare("SELECT * FROM pages WHERE id = :id AND site_id = 1");
+        $page = $db->prepare("SELECT * FROM pages WHERE id = :id AND site_id = @site_id");
         $page->execute(['id' => $id]);
         $p = $page->fetch();
         if (!$p) Response::error('Page not found', 404);
@@ -51,7 +51,7 @@ class PageController
     public function update(Request $req, string $id): void
     {
         $db = Database::instance();
-        $existing = $db->prepare("SELECT id FROM pages WHERE id = :id AND site_id = 1");
+        $existing = $db->prepare("SELECT id FROM pages WHERE id = :id AND site_id = @site_id");
         $existing->execute(['id' => $id]);
         if (!$existing->fetch()) Response::error('Page not found', 404);
 
@@ -74,7 +74,7 @@ class PageController
     public function destroy(Request $req, string $id): void
     {
         $db = Database::instance();
-        $db->prepare("DELETE FROM pages WHERE id = :id AND site_id = 1")->execute(['id' => $id]);
+        $db->prepare("DELETE FROM pages WHERE id = :id AND site_id = @site_id")->execute(['id' => $id]);
         Response::json(['ok' => true]);
     }
 

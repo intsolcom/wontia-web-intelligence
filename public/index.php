@@ -52,7 +52,7 @@ try {
     $db = Database::instance();
     $slug = $uri === '/' ? 'home' : trim($uri, '/');
 
-    $stmt = $db->prepare("SELECT * FROM pages WHERE slug = :slug AND site_id = 1 AND status = 'published' LIMIT 1");
+    $stmt = $db->prepare("SELECT * FROM pages WHERE slug = :slug AND site_id = @site_id AND status = 'published' LIMIT 1");
     $stmt->execute(['slug' => $slug]);
     $page = $stmt->fetch();
 

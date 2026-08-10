@@ -9,10 +9,10 @@ class SeoController
     public function index(): void
     {
         $db = Database::instance();
-        $pagesWithoutMeta = $db->query("SELECT COUNT(*) FROM pages WHERE site_id = 1 AND (meta_description IS NULL OR meta_description = '')")->fetchColumn();
-        $postsWithoutMeta = $db->query("SELECT COUNT(*) FROM blog_posts WHERE site_id = 1 AND (meta_description IS NULL OR meta_description = '') AND status = 'published'")->fetchColumn();
-        $duplicateTitles = $db->query("SELECT meta_title, COUNT(*) c FROM pages WHERE site_id = 1 AND meta_title IS NOT NULL GROUP BY meta_title HAVING c > 1")->fetchAll();
-        $longTitles = $db->query("SELECT title, CHAR_LENGTH(meta_title) len FROM pages WHERE site_id = 1 AND CHAR_LENGTH(meta_title) > 60")->fetchAll();
+        $pagesWithoutMeta = $db->query("SELECT COUNT(*) FROM pages WHERE site_id = @site_id AND (meta_description IS NULL OR meta_description = '')")->fetchColumn();
+        $postsWithoutMeta = $db->query("SELECT COUNT(*) FROM blog_posts WHERE site_id = @site_id AND (meta_description IS NULL OR meta_description = '') AND status = 'published'")->fetchColumn();
+        $duplicateTitles = $db->query("SELECT meta_title, COUNT(*) c FROM pages WHERE site_id = @site_id AND meta_title IS NOT NULL GROUP BY meta_title HAVING c > 1")->fetchAll();
+        $longTitles = $db->query("SELECT title, CHAR_LENGTH(meta_title) len FROM pages WHERE site_id = @site_id AND CHAR_LENGTH(meta_title) > 60")->fetchAll();
 
         Response::json(['ok' => true, 'data' => [
             'pages_without_meta' => (int)$pagesWithoutMeta,
@@ -28,7 +28,7 @@ class SeoController
         $db = Database::instance();
         $issues = [];
 
-        $pages = $db->query("SELECT * FROM pages WHERE site_id = 1")->fetchAll();
+        $pages = $db->query("SELECT * FROM pages WHERE site_id = @site_id")->fetchAll();
         foreach ($pages as $p) {
             $titleLen = strlen($p['meta_title'] ?? '');
             if ($titleLen < 10) $issues[] = ['type' => 'short_title', 'page' => $p['title'], 'slug' => $p['slug']];
@@ -36,7 +36,7 @@ class SeoController
             if (empty($p['meta_description'])) $issues[] = ['type' => 'missing_description', 'page' => $p['title'], 'slug' => $p['slug']];
         }
 
-        $posts = $db->query("SELECT * FROM blog_posts WHERE site_id = 1 AND status = 'published'")->fetchAll();
+        $posts = $db->query("SELECT * FROM blog_posts WHERE site_id = @site_id AND status = 'published'")->fetchAll();
         foreach ($posts as $p) {
             if (empty($p['meta_description'])) $issues[] = ['type' => 'post_missing_description', 'post' => $p['title'], 'slug' => $p['slug']];
             if (empty($p['cover_alt'])) $issues[] = ['type' => 'post_missing_alt', 'post' => $p['title'], 'slug' => $p['slug']];

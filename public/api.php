@@ -147,6 +147,19 @@ $router->group('/api/v1/admin', function (Router $r) {
     $r->get('/brickhub/history', [\App\Controllers\Admin\BrickHubController::class, 'updateHistory']);
     $r->get('/brickhub/installed', [\App\Controllers\Admin\BrickHubController::class, 'installedBricks']);
     $r->get('/brickhub/check/{brickId}', [\App\Controllers\Admin\BrickHubController::class, 'checkBrickUpdate']);
+    $r->post('/brickhub/broadcast/{slug}', [\App\Controllers\Admin\BrickHubController::class, 'broadcastUpdate']);
+    $r->post('/brickhub/scan-local', [\App\Controllers\Admin\BrickHubController::class, 'scanLocal']);
+    $r->post('/brickhub/ensure-tables', [\App\Controllers\Admin\BrickHubController::class, 'ensureTables']);
+    $r->post('/brickhub/setup', [\App\Controllers\Admin\BrickHubController::class, 'fullSetup']);
+
+    $r->get('/brickhub/notifications', [\App\Controllers\Admin\BrickHubController::class, 'pendingNotifications']);
+    $r->post('/brickhub/auto-check', [\App\Controllers\Admin\BrickHubController::class, 'autoCheck']);
+    $r->post('/brickhub/push/{brickId}', [\App\Controllers\Admin\BrickHubController::class, 'pushToSites']);
+    $r->get('/brickhub/registry', [\App\Controllers\Admin\BrickHubController::class, 'registeredSites']);
+
+    $r->get('/brickhub/mother/pending', [\App\Controllers\Admin\BrickHubController::class, 'motherPending']);
+    $r->post('/brickhub/child/notify', [\App\Controllers\Admin\BrickHubController::class, 'childNotify']);
+    $r->post('/brickhub/child/register', [\App\Controllers\Admin\BrickHubController::class, 'registerChildSite']);
 
     $r->get('/media', [\App\Controllers\Admin\MediaController::class, 'index']);
     $r->post('/media/upload', [\App\Controllers\Admin\MediaController::class, 'upload']);

@@ -14,7 +14,7 @@ class MediaController
         $limit = 30;
         $offset = ($page - 1) * $limit;
         $type = $req->get('type');
-        $where = "WHERE site_id = 1";
+        $where = "WHERE site_id = @site_id";
         $params = [];
         if ($type) {
             $where .= " AND mime LIKE :type";
@@ -56,7 +56,7 @@ class MediaController
     public function destroy(Request $req, string $id): void
     {
         $db = Database::instance();
-        $media = $db->prepare("SELECT * FROM media WHERE id = :id AND site_id = 1");
+        $media = $db->prepare("SELECT * FROM media WHERE id = :id AND site_id = @site_id");
         $media->execute(['id' => $id]);
         $m = $media->fetch();
         if ($m) {

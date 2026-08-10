@@ -454,6 +454,7 @@ W.renderDashboard=async function(){
         '<div class="w-stat-card"><div class="w-stat-value">'+W.num(s.total_views||0)+'</div><div class="w-stat-label">Views</div></div>'+
         '</div>'+
         '<div class="w-card"><h3>Recent Pages</h3>'+(d.data?.['recent_pages']||[]).map(function(p){return '<div style="font-size:12px;padding:6px 0;border-bottom:1px solid var(--w-border)">'+W.esc(p.title)+' <span class="w-badge w-badge-'+(p.status==='published'?'published':'draft')+'">'+p.status+'</span></div>'}).join('')+'</div>';
+    W.autoCheckBrickHub();
 };
 
 W.renderBricks=async function(){
@@ -479,9 +480,59 @@ W.showBrickConfig=async function(type){
         if(f.type==='text')fields+='<div class="w-form-group"><label class="w-label">'+W.esc(f.label)+'</label><input class="w-input" id="bc-'+W.esc(f.key)+'" value="'+W.esc(f.default||'')+'"/></div>';
         else if(f.type==='textarea')fields+='<div class="w-form-group"><label class="w-label">'+W.esc(f.label)+'</label><textarea class="w-textarea" id="bc-'+W.esc(f.key)+'">'+W.esc(f.default||'')+'</textarea></div>';
         else if(f.type==='html')fields+='<div class="w-form-group"><label class="w-label">'+W.esc(f.label)+' <span style="font-size:9px;color:var(--w-muted)">HTML</span></label><textarea class="w-textarea" id="bc-'+W.esc(f.key)+'" style="min-height:80px">'+W.esc(f.default||'')+'</textarea></div>';
-        else if(f.type==='code')fields+='<div class="w-form-group"><label class="w-label">'+W.esc(f.label)+'</label><textarea class="w-textarea" id="bc-'+W.esc(f.key)+'" style="min-height:150px;font-family:monospace">'+W.esc(f.default||'')+'</textarea></div>';
+        else if(f.type==='code')fields+=W.codeEditorField(f);
+        else if(f.type==='select'){
+            fields+='<div class="w-form-group"><label class="w-label">'+W.esc(f.label)+'</label><select class="w-select" id="bc-'+W.esc(f.key)+'">';
+            var opts=f.options||{};
+            for(var ok in opts)fields+='<option value="'+W.esc(ok)+'">'+W.esc(opts[ok])+'</option>';
+            fields+='</select></div>';
+        }
+        else if(f.type==='toggle'){
+            fields+='<div class="w-form-group"><label class="w-label" style="display:flex;align-items:center;gap:10px;cursor:pointer"><input type="checkbox" id="bc-'+W.esc(f.key)+'" style="width:auto"/> <span>'+W.esc(f.label)+'</span></label></div>';
+        }
     });
     W.modal(b.meta.name+' <span style="font-size:10px;color:var(--w-muted)">BRICK Configuration Schema</span>',fields,'<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Close</button>');
+};
+
+W.codeEditorField=function(f){
+    var uid='ce-'+f.key;
+    var html='<div class="w-form-group"><div class="w-flex-between" style="margin-bottom:6px"><label class="w-label" style="margin-bottom:0">'+W.esc(f.label)+'</label>';
+    html+='<div class="w-toolbar" style="gap:2px">';
+    html+='<button class="w-btn w-btn-secondary" style="padding:2px 6px;font-size:9px" onclick="wontia.insSnippet(\''+uid+'\',\'<div>...</div>\')" title="Insert div">&lt;div&gt;</button>';
+    html+='<button class="w-btn w-btn-secondary" style="padding:2px 6px;font-size:9px" onclick="wontia.insSnippet(\''+uid+'\',\'<script>\\n// your code\\n</script>\')" title="Insert script">&lt;script&gt;</button>';
+    html+='<button class="w-btn w-btn-secondary" style="padding:2px 6px;font-size:9px" onclick="wontia.insSnippet(\''+uid+'\',\'<style>\\n/* your styles */\\n</style>\')" title="Insert style">&lt;style&gt;</button>';
+    html+='<button class="w-btn w-btn-secondary" style="padding:2px 6px;font-size:9px" onclick="wontia.insSnippet(\''+uid+'\',\'<iframe src=\\"\\" width=\\"100%\\" height=\\"400\\" frameborder=\\"0\\"></iframe>\')" title="Insert iframe">iframe</button>';
+    html+='<button class="w-btn w-btn-secondary" style="padding:2px 6px;font-size:9px" onclick="wontia.openFullEditor(\''+uid+'\')" title="Fullscreen editor">&#x26F6;</button>';
+    html+='</div></div>';
+    html+='<textarea class="w-textarea w-code-editor" id="'+uid+'" style="min-height:200px;font-family:\'SF Mono\',\'Fira Code\',\'Consolas\',monospace;font-size:12px;line-height:1.6;background:#0d1117;color:#c9d1d9;border:1px solid #30363d;padding:16px;tab-size:2;white-space:pre;overflow:auto" spellcheck="false" onkeydown="wontia.handleCodeTab(event,this)">'+W.esc(f.default||'')+'</textarea>';
+    if(f.help)html+='<div style="font-size:9px;color:var(--w-muted);margin-top:4px">'+W.esc(f.help)+'</div>';
+    html+='</div>';
+    return html;
+};
+
+W.insSnippet=function(id,snippet){
+    var ta=document.getElementById(id);
+    if(!ta)return;
+    var start=ta.selectionStart;
+    var end=ta.selectionEnd;
+    var text=ta.value;
+    ta.value=text.substring(0,start)+snippet+text.substring(end);
+    ta.selectionStart=ta.selectionEnd=start+snippet.length;
+    ta.focus();
+};
+
+W.openFullEditor=function(id){
+    var ta=document.getElementById(id);
+    if(!ta)return;
+    var content=ta.value;
+    W.modal('Fullscreen Code Editor',
+        '<textarea id="fe-full" style="width:100%;min-height:60vh;font-family:\'SF Mono\',\'Fira Code\',\'Consolas\',monospace;font-size:13px;line-height:1.6;background:#0d1117;color:#c9d1d9;border:1px solid #30363d;padding:20px;tab-size:2;white-space:pre;overflow:auto;resize:none" spellcheck="false" onkeydown="wontia.handleCodeTab(event,this)">'+W.esc(content)+'</textarea>',
+        '<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cancel</button><button class="w-btn w-btn-primary" onclick="document.getElementById(\''+id+'\').value=document.getElementById(\'fe-full\').value;wontia.closeModal()">Apply & Close</button>'
+    );
+};
+
+W.handleCodeTab=function(e,ta){
+    if(e.key==='Tab'){e.preventDefault();var s=ta.selectionStart;ta.value=ta.value.substring(0,s)+'  '+ta.value.substring(ta.selectionEnd);ta.selectionStart=ta.selectionEnd=s+2}
 };
 
 W.renderBrickHub=function(){
@@ -493,6 +544,7 @@ W.renderBrickHub=function(){
         {id:'sources',label:'Sources'},
         {id:'installed',label:'Installed'},
         {id:'updates',label:'Updates'},
+        {id:'sites',label:'Sites'},
         {id:'history',label:'History'}
     ];
     var tabBar='<div class="w-toolbar w-mb-lg" style="border-bottom:1px solid var(--w-border);padding-bottom:12px">';
@@ -501,7 +553,7 @@ W.renderBrickHub=function(){
     });
     tabBar+='</div>';
     app.innerHTML='<div>'+tabBar+'<div id="bh-content"></div></div>';
-    var fns={marketplace:W.bhMarketplace,sources:W.bhSources,installed:W.bhInstalled,updates:W.bhUpdates,history:W.bhHistory};
+    var fns={marketplace:W.bhMarketplace,sources:W.bhSources,installed:W.bhInstalled,updates:W.bhUpdates,sites:W.bhRegisteredSites,history:W.bhHistory};
     (fns[tab]||W.bhMarketplace)();
 };
 
@@ -513,7 +565,7 @@ W.bhMarketplace=async function(){
     var d=await W.api('/api/v1/admin/brickhub');
     var bricks=d.data||[];
     if(!bricks.length){el.innerHTML='<div class="w-empty-state"><h3>No bricks in marketplace</h3><p>Add a GitHub source to discover bricks to install.</p><button class="w-btn w-btn-primary" onclick="wontia.switchBHTab(\'sources\')">Add Source</button></div>';return}
-    var html='<div class="w-flex-between w-mb"><div><strong style="font-size:13px">'+bricks.length+' bricks available</strong></div><div class="w-flex w-gap-sm"><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.renderBrickHub()">Refresh</button><button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.bhSyncAll()">Sync All Sources</button></div></div>';
+    var html='<div class="w-flex-between w-mb"><div><strong style="font-size:13px">'+bricks.length+' bricks available</strong></div><div class="w-flex w-gap-sm"><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.bhScanLocal()">Scan Local</button><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.bhSetupWizard()">Setup Wizard</button><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.renderBrickHub()">Refresh</button><button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.bhSyncAll()">Sync All</button></div></div>';
     html+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px">';
     bricks.forEach(function(b){
         var installed=!!b.installed;
@@ -566,7 +618,7 @@ W.bhInstalled=async function(){
     if(!bricks.length){el.innerHTML='<div class="w-empty-state"><h3>No bricks installed</h3><p>Visit the Marketplace to install bricks</p><button class="w-btn w-btn-primary" onclick="wontia.switchBHTab(\'marketplace\')">Go to Marketplace</button></div>';return}
     var html='<div class="w-flex-between w-mb-lg"><strong style="font-size:13px">'+bricks.length+' installed</strong></div>';
     bricks.forEach(function(b){
-        html+='<div class="w-card" style="padding:14px"><div class="w-flex-between"><div><div style="font-size:13px;font-weight:600">'+W.esc(b.name)+' <span style="font-size:10px;color:var(--w-muted)">v'+W.esc(b.version)+'</span></div><div style="font-size:11px;color:var(--w-muted)">'+W.esc(b.category||'')+' &middot; '+W.esc(b.source_name||'manual')+' &middot; <span class="w-badge w-badge-'+(b.status==='active'?'published':'draft')+'">'+b.status+'</span></div></div><div class="w-flex w-gap-sm"><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.bhCheckUpdate('+b.id+')">Check Update</button><button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.bhUninstall('+b.id+',\''+W.esc(b.name)+'\')">Uninstall</button></div></div></div>';
+        html+='<div class="w-card" style="padding:14px"><div class="w-flex-between"><div><div style="font-size:13px;font-weight:600">'+W.esc(b.name)+' <span style="font-size:10px;color:var(--w-muted)">v'+W.esc(b.version)+'</span></div><div style="font-size:11px;color:var(--w-muted)">'+W.esc(b.category||'')+' &middot; '+W.esc(b.source_name||'manual')+' &middot; <span class="w-badge w-badge-'+(b.status==='active'?'published':'draft')+'">'+b.status+'</span></div></div><div class="w-flex w-gap-sm"><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.bhCheckUpdate('+b.id+')">Check</button><button class="w-btn w-btn-primary w-btn-sm" style="font-size:10px" onclick="wontia.bhPushToSites('+b.id+',\''+W.esc(b.name)+'\')">Push All</button><button class="w-btn w-btn-secondary w-btn-sm" style="color:#d2991d" onclick="wontia.bhBroadcast(\''+W.esc(b.slug)+'\',\''+W.esc(b.name)+'\')">Notify Sites</button><button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.bhUninstall('+b.id+',\''+W.esc(b.name)+'\')">Uninstall</button></div></div></div>';
     });
     el.innerHTML=html;
 };
@@ -599,6 +651,24 @@ W.bhHistory=async function(){
         if(h.release_notes)html+='<div style="font-size:10px;color:var(--w-muted);margin-top:6px;white-space:pre-wrap;max-height:60px;overflow:hidden">'+W.esc(h.release_notes.substring(0,200))+'</div>';
         html+='</div>';
     });
+    el.innerHTML=html;
+};
+
+W.bhRegisteredSites=async function(){
+    var el=document.getElementById('bh-content');
+    el.innerHTML='<div style="text-align:center;padding:40px;color:var(--w-muted)">Loading registered sites...</div>';
+    var d=await W.api('/api/v1/admin/brickhub/registry');
+    var sites=d.data||[];
+    var html='<div class="w-flex-between w-mb-lg"><div><strong style="font-size:13px">'+sites.length+' registered site(s)</strong></div><div class="w-flex w-gap-sm"><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.bhRegisteredSites()">Refresh</button></div></div>';
+    if(!sites.length){
+        html+='<div class="w-empty-state"><h3>No registered sites</h3><p>Child WWI installations will appear here when they register with this mother installation.</p><div style="margin-top:16px;font-size:11px;color:var(--w-muted);background:var(--w-bg);padding:12px;border-radius:8px;text-align:left"><strong>How to connect a child site:</strong><br><br>1. On the child site admin, go to Settings<br>2. Set <code>BRICKHUB_MOTHER_URL</code> to <code id="bh-current-url" style="color:#B89EFF">'+window.location.origin+'</code><br>3. The child will auto-register on next admin login</div></div>'}
+    else{
+        html+='<table class="w-table"><thead><tr><th>Site</th><th>URL</th><th>Key</th><th>Last Seen</th><th>Status</th></tr></thead><tbody>';
+        sites.forEach(function(s){
+            html+='<tr><td style="font-weight:600">'+W.esc(s.child_name||'Unnamed')+'</td><td style="font-size:11px">'+W.esc(s.child_url)+'</td><td style="font-size:10px;font-family:monospace">'+W.esc(s.site_key.substring(0,16))+'...</td><td style="font-size:11px">'+W.esc(s.last_seen_at||'Never')+'</td><td><span class="w-badge w-badge-'+(s.is_active?'published':'draft')+'">'+(s.is_active?'active':'inactive')+'</span></td></tr>';
+        });
+        html+='</tbody></table>';
+    }
     el.innerHTML=html;
 };
 
@@ -675,6 +745,90 @@ W.bhUninstall=function(id,name){
     });
 };
 
+W.bhBroadcast=function(slug,name){
+    W.confirm('Send update notification for "'+name+'" to all installed sites?',async function(){
+        W.notify('Broadcasting...','info');
+        var r=await W.api('/api/v1/admin/brickhub/broadcast/'+slug,{method:'POST'});
+        if(r.ok)W.notify('Notified '+r.sites_notified+' site(s) about '+r.brick+' v'+r.version,'success');
+    });
+};
+
+W.bhPushToSites=function(brickId,name){
+    W.confirm('Push "'+name+'" update to ALL registered child sites? This sends HTTP requests to each site.',async function(){
+        W.notify('Pushing to all sites...','info');
+        var r=await W.api('/api/v1/admin/brickhub/push/'+brickId,{method:'POST'});
+        if(r.ok)W.notify('Pushed to '+r.remote_pushed+'/'+r.remote_total+' remote sites, '+r.local_notified+' local','success');
+    });
+};
+
+W.bhScanLocal=async function(){
+    W.notify('Scanning local bricks...','info');
+    var r=await W.api('/api/v1/admin/brickhub/scan-local',{method:'POST'});
+    if(r.ok){
+        var msg=r.registered+' new brick(s) registered, '+r.already_installed+' already present';
+        W.notify(msg,'success');
+        W.renderBrickHub();
+    }
+};
+
+W.bhSetupWizard=async function(){
+    W.modal('BrickHub Setup Wizard',
+        '<div style="text-align:center;padding:20px">'+
+        '<div style="font-size:48px;margin-bottom:16px">&#x1F9F1;</div>'+
+        '<h3 style="margin-bottom:8px">BrickHub Initial Setup</h3>'+
+        '<p style="font-size:12px;color:var(--w-muted);margin-bottom:20px">This will: create BrickHub tables, scan local bricks, and prepare the marketplace.</p>'+
+        '<div id="bh-setup-status" style="font-size:11px;color:var(--w-muted);margin-bottom:16px">Ready to start...</div>'+
+        '</div>',
+        '<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cancel</button>'+
+        '<button class="w-btn w-btn-primary" id="bh-setup-run">Run Setup</button>'
+    );
+    document.getElementById('bh-setup-run').addEventListener('click',async function(){
+        document.getElementById('bh-setup-status').innerHTML='<span style="color:#d2991d">Running setup...</span>';
+        var r=await W.api('/api/v1/admin/brickhub/setup',{method:'POST'});
+        if(r.ok){
+            var tablesOk=!r.tables.errors||!r.tables.errors.length;
+            var bricksMsg=r.bricks.message||'';
+            document.getElementById('bh-setup-status').innerHTML=
+                '<div style="color:var(--w-primary);margin-bottom:8px">Setup complete!</div>'+
+                '<div style="font-size:10px">Tables: '+(tablesOk?'OK':'Issues')+' | '+bricksMsg+'</div>'+
+                '<div style="font-size:10px;color:var(--w-muted);margin-top:8px">'+W.esc(r.source_note||'')+'</div>';
+            setTimeout(function(){W.closeModal();W.renderBrickHub();W.notify('BrickHub ready','success')},2000);
+        }
+    });
+};
+
+W.updateBHBadge=async function(){
+    try{
+        var r=await W.api('/api/v1/admin/brickhub/notifications');
+        var count=r.pending||0;
+        var badge=document.getElementById('bh-badge');
+        if(badge){
+            if(count>0){badge.style.display='inline-block';badge.textContent=count}
+            else{badge.style.display='none'}
+        }
+    }catch(e){}
+};
+
+W.autoCheckBrickHub=function(){
+    W.updateBHBadge();
+    W.api('/api/v1/admin/brickhub/auto-check',{method:'POST'}).then(function(r){
+        if(r.ok&&r.data&&r.data.updates_found>0){
+            W.notify(r.data.updates_found+' new BrickHub update(s) found','info');
+            W.updateBHBadge();
+        }
+    }).catch(function(){});
+    W.registerWithMother();
+};
+
+W.registerWithMother=function(){
+    var mother=W.state.motherUrl||null;
+    if(!mother)return;
+    var siteKey=W.state.siteKey||('wwi_'+Math.random().toString(36).substring(2,18));
+    W.state.siteKey=siteKey;
+    var payload={child_url:window.location.origin,site_key:siteKey,child_name:document.title||'WWI Site'};
+    fetch(mother+'/api/v1/brickhub/child/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).catch(function(){});
+};
+
 W.bhCheckUpdate=async function(brickId){
     W.notify('Checking...','info');
     var r=await W.api('/api/v1/admin/brickhub/check/'+brickId);
@@ -719,6 +873,6 @@ W.num=function(n){return n!=null?n.toLocaleString():'0'};
 W.slugify=function(t){return t.toLowerCase().replace(/[^a-z0-9\s-]/g,'').replace(/[\s_]+/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'')};
 
 window.addEventListener('hashchange',function(){W.router()});
-window.addEventListener('load',function(){W.router()});
+window.addEventListener('load',function(){W.router();W.updateBHBadge();setInterval(W.updateBHBadge,300000)});
 window.wontia=W;
 })();
