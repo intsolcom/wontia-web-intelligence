@@ -17,7 +17,7 @@ if (!$loggedIn):
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-    <title>Wontia Admin — Login</title>
+    <title>WWI Wontia Web Intelligence — Login</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
     <style>
         *{margin:0;padding:0;box-sizing:border-box}
@@ -37,7 +37,7 @@ if (!$loggedIn):
 </head>
 <body>
 <div class="login-box">
-    <div class="logo"><div class="logo-icon">W</div><span style="font-weight:600;font-size:15px">Wontia Admin</span></div>
+    <div class="logo"><div class="logo-icon">W</div><span style="font-weight:600;font-size:15px">WWI Wontia Web Intelligence</span></div>
     <h1>Welcome back</h1>
     <p>Sign in to manage your website</p>
     <div class="login-error" id="login-error">Invalid credentials</div>
@@ -71,7 +71,7 @@ endif;
 <head>
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-    <title>Wontia Admin</title>
+    <title>WWI Wontia Web Intelligence</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
     <link rel="stylesheet" href="/assets/css/admin.css"/>
 </head>
@@ -80,7 +80,7 @@ endif;
 <aside class="w-sidebar" id="sidebar">
     <div class="w-sidebar-brand">
         <div class="w-sidebar-logo">W</div>
-        <span>Wontia</span>
+        <span>WWI Wontia</span>
     </div>
     <nav class="w-sidebar-nav">
         <a href="#dashboard" class="w-nav-item active" data-panel="dashboard">
@@ -103,6 +103,10 @@ endif;
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
             BrickHub
             <span id="bh-badge" class="w-badge w-badge-published" style="display:none;margin-left:auto;font-size:10px;padding:2px 8px;border-radius:10px;background:var(--w-accent);color:#fff">0</span>
+        </a>
+        <a href="#brick" class="w-nav-item" data-panel="brick">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+            AI BRICK
         </a>
         <a href="#blog" class="w-nav-item" data-panel="blog">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>

@@ -21,7 +21,7 @@ W.router=function(){
     var action=parts[2];
     document.querySelectorAll('.w-nav-item').forEach(function(a){a.classList.toggle('active',a.dataset.panel===panel)});
     var title=document.getElementById('panel-title');
-    var titles={dashboard:'Dashboard',pages:'Pages',sections:'Sections',bricks:'Bricks',brickhub:'BrickHub',blog:'Blog',media:'Media',seo:'SEO',analytics:'Analytics',settings:'Settings',users:'Users'};
+    var titles={dashboard:'Dashboard',pages:'Pages',sections:'Sections',bricks:'Bricks',brickhub:'BrickHub',brick:'AI BRICK',blog:'Blog',media:'Media',seo:'SEO',analytics:'Analytics',settings:'Settings',users:'Users'};
     if(title)title.textContent=titles[panel]||panel;
     var app=document.getElementById('wontia-app');
     if(!app)return;
@@ -851,14 +851,400 @@ W.bhApplyAllUpdates=function(){
     });
 };
 
+W.state.brick={tab:'overview',providers:[],models:[],policies:[],instances:[],meta:null,range:'30d',group:'model'};
+
+W.brickLoad=async function(){
+    var m=W.state.brick;
+    var jobs=[W.api('/api/v1/admin/brick/capabilities'),W.api('/api/v1/admin/brick/providers'),W.api('/api/v1/admin/brick/models'),W.api('/api/v1/admin/brick/policies'),W.api('/api/v1/admin/brick/instances')];
+    var all=await Promise.all(jobs);
+    if(all[0].data)m.meta=all[0];
+    if(all[1].data)m.providers=all[1].data;
+    if(all[2].data)m.models=all[2].data;
+    if(all[3].data)m.policies=all[3].data;
+    if(all[4].data)m.instances=all[4].data;
+};
+
+W.renderBrick=async function(tab){
+    var m=W.state.brick;
+    tab=tab||m.tab||'overview';
+    m.tab=tab;
+    var app=document.getElementById('wontia-app');
+    var tabs=[['overview','Overview'],['providers','Providers'],['models','Models'],['policies','Policies'],['systems','Systems'],['usage','Usage & Cost'],['test','Test Model']];
+    var bar='<div class="w-brick-tabs">';
+    tabs.forEach(function(t){
+        bar+='<button class="w-brick-tab'+(tab===t[0]?' active':'')+'" onclick="wontia.brickGo(\''+t[0]+'\')">'+t[1]+'</button>';
+    });
+    bar+='<div style="flex:1"></div><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.brickEnsure()">Setup Tables</button></div>';
+    app.innerHTML='<div>'+bar+'<div id="brick-content"></div></div>';
+    try{await W.brickLoad()}catch(e){}
+    var fns={overview:W.brickOverview,providers:W.brickProviders,models:W.brickModels,policies:W.brickPolicies,systems:W.brickSystems,usage:W.brickUsage,test:W.brickTest};
+    (fns[tab]||W.brickOverview)();
+};
+
+W.brickGo=function(t){location.hash='#brick/'+t};
+
+W.brickEnsure=async function(){
+    W.notify('Ensuring BRICK tables...','info');
+    var r=await W.api('/api/v1/admin/brick/ensure-tables',{method:'POST'});
+    if(r.ok)W.notify(r.message,'success');
+    W.renderBrick();
+};
+
+W.bMoney=function(n){return '$'+Number(n||0).toFixed(4)};
+
+W.bCap=function(list){
+    var meta=(W.state.brick.meta&&W.state.brick.meta.data&&W.state.brick.meta.data.capabilities)||{};
+    var out='';
+    (list||[]).forEach(function(c){out+='<span class="w-brick-chip">'+W.esc(meta[c]||c)+'</span>'});
+    return out;
+};
+
+W.bStatus=function(s){
+    var map={success:['#00B87D','SUCCESS'],error:['#BE1341','ERROR'],fallback:['#B89EFF','FALLBACK'],budget_blocked:['#F5A623','BUDGET'],enabled:['#00B87D','ENABLED'],draft:['#8b8fa3','DISABLED'],active:['#00B87D','ACTIVE']};
+    var c=map[s]||['#8b8fa3',(s||'')];
+    return '<span class="w-badge" style="background:'+c[0]+'22;color:'+c[0]+'">'+c[1]+'</span>';
+};
+
+W.bDot=function(s){return '<span class="w-dot w-dot-'+(s||'disabled')+'"></span>'};
+
+W.brickBars=function(rows){
+    if(!rows||!rows.length)return '<div class="w-empty-state" style="padding:24px"><p>No data yet</p></div>';
+    var max=Math.max.apply(null,rows.map(function(r){return r.cost}))||1;
+    var html='';
+    rows.forEach(function(r){
+        var pct=Math.max(1,Math.round(r.cost/max*100));
+        html+='<div style="margin-bottom:10px"><div class="w-flex-between" style="font-size:11px"><span><span class="w-dot" style="background:'+W.esc(r.color||'#B89EFF')+'"></span>'+W.esc(r.label)+'</span><span style="color:var(--w-muted)">'+W.bMoney(r.cost)+' &middot; '+W.num(r.tokens)+' tokens &middot; '+r.requests+' req</span></div><div class="w-brick-bar"><i style="width:'+pct+'%;background:'+W.esc(r.color||'#B89EFF')+'"></i></div></div>';
+    });
+    return html;
+};
+
+W.brickRecentTable=function(rows){
+    if(!rows||!rows.length)return '<div class="w-empty-state" style="padding:24px"><p>No requests yet</p></div>';
+    var html='<table class="w-table"><tr><th>When</th><th>System</th><th>Provider</th><th>Model</th><th>Tokens</th><th>Cost</th><th>Latency</th><th>Status</th></tr>';
+    rows.forEach(function(r){
+        html+='<tr><td style="font-size:10px">'+W.esc((r.created_at||'').replace('T',' '))+'</td><td>'+W.esc(r.system_id||'')+'</td><td>'+W.esc(r.provider_name||'-')+'</td><td>'+W.esc(r.model_name||r.model_identifier||'-')+'</td><td>'+W.num(r.total_tokens)+'</td><td>'+W.bMoney(r.estimated_cost)+'</td><td>'+r.latency_ms+' ms</td><td>'+W.bStatus(r.status)+'</td></tr>';
+    });
+    html+='</table>';
+    return html;
+};
+
+W.brickSuggHtml=function(list){
+    if(!list||!list.length)return '<div class="w-empty-state" style="padding:24px"><p>All systems nominal. No suggestions needed.</p></div>';
+    var html='';
+    list.forEach(function(s){
+        var color=s.severity==='critical'?'#BE1341':s.severity==='warning'?'#F5A623':'#B89EFF';
+        html+='<div class="w-brick-sugg" style="border-color:'+color+'"><div class="w-flex-between"><strong style="font-size:12px">'+W.esc(s.title)+'</strong><span style="font-size:9px;color:'+color+';font-weight:700">'+W.esc((s.severity||'').toUpperCase())+'</span></div><div style="font-size:11px;color:var(--w-muted);margin-top:4px">'+W.esc(s.detail)+'</div><button class="w-btn w-btn-secondary w-btn-sm" style="margin-top:8px" onclick="wontia.brickSuggAction(\''+W.esc(s.type)+'\')">'+W.esc(s.action)+'</button></div>';
+    });
+    return html;
+};
+
+W.brickSuggAction=function(type){
+    if(type==='budget'||type==='fallback'||type==='cost')location.hash='#brick/policies';
+    else if(type==='error')location.hash='#brick/test';
+    else location.hash='#brick/models';
+};
+
+W.brickOverview=async function(){
+    var el=document.getElementById('brick-content');
+    el.innerHTML='<div style="text-align:center;padding:40px;color:var(--w-muted)">Loading AI infrastructure...</div>';
+    var r=await W.api('/api/v1/admin/brick/overview?range=30d');
+    if(!r.ok||!r.data){el.innerHTML='<div class="w-empty-state"><h3>BRICK is not initialized</h3><p>Create the AI infrastructure tables and seed data.</p><button class="w-btn w-btn-primary" onclick="wontia.brickEnsure()">Setup BRICK Tables</button></div>';return}
+    var d=r.data,s=d.stats,b=d.budget;
+    var budgetColor=b.status==='limit'?'#BE1341':b.status==='warning'?'#F5A623':'#00B87D';
+    var kpis=[['Active Providers',s.active_providers],['Active Models',s.active_models+' / '+s.total_models],['Requests (30d)',W.num(s.requests_range)],['Tokens (30d)',W.num(s.tokens_range)],['Cost (30d)',W.bMoney(s.cost_range)],['Cost Today',W.bMoney(s.cost_today)],['Error Rate',s.error_rate+'%'],['Avg Latency',s.avg_latency_ms+' ms']];
+    var html='<div class="w-stats">';
+    kpis.forEach(function(k){html+='<div class="w-stat-card"><div class="w-stat-value">'+k[1]+'</div><div class="w-stat-label">'+W.esc(k[0])+'</div></div>'});
+    html+='</div>';
+    html+='<div class="w-card" style="padding:16px 20px"><div class="w-flex-between"><div><strong style="font-size:13px">Monthly AI Budget</strong><div style="font-size:11px;color:var(--w-muted);margin-top:2px">'+W.bMoney(b.monthly_spent)+' of '+W.bMoney(b.monthly_budget)+' &middot; '+b.pct_used+'% used &middot; '+s.failover_count+' failovers &middot; '+s.requests_today+' requests today</div></div><span class="w-badge" style="background:'+budgetColor+'22;color:'+budgetColor+'">'+(b.status==='limit'?'LIMIT':b.status==='warning'?'WARNING':'OK')+'</span></div><div class="w-brick-bar" style="margin-top:10px"><i style="width:'+Math.min(100,b.pct_used)+'%;background:'+budgetColor+'"></i></div></div>';
+    html+='<div class="w-brick-grid2" style="margin-top:16px"><div class="w-card"><h3>Suggestions</h3>'+W.brickSuggHtml(d.suggestions)+'</div><div class="w-card"><h3>Cost by Provider (30d)</h3>'+W.brickBars(d.cost_by_provider)+'</div></div>';
+    html+='<div class="w-brick-grid2" style="margin-top:16px"><div class="w-card"><h3>Cost by Model (30d)</h3>'+W.brickBars(d.cost_by_model)+'</div><div class="w-card"><h3>System → Model → Requests → Cost</h3>'+W.brickSystemTable(d.usage_by_system)+'</div></div>';
+    html+='<div class="w-brick-grid2" style="margin-top:16px"><div class="w-card"><h3>Model Health</h3>'+W.brickHealthHtml(d.health)+'</div><div class="w-card"><h3>Recent Requests</h3>'+W.brickRecentTable(d.recent)+'</div></div>';
+    el.innerHTML=html;
+};
+
+W.brickSystemTable=function(rows){
+    if(!rows||!rows.length)return '<div class="w-empty-state" style="padding:24px"><p>No data yet</p></div>';
+    var html='<table class="w-table"><tr><th>System</th><th>Requests</th><th>Tokens</th><th>Cost</th><th>Avg Latency</th><th>Errors</th></tr>';
+    rows.forEach(function(r){html+='<tr><td>'+W.esc(r.label)+'</td><td>'+W.num(r.requests)+'</td><td>'+W.num(r.tokens)+'</td><td>'+W.bMoney(r.cost)+'</td><td>'+Math.round(r.avg_latency)+' ms</td><td>'+r.errors+'</td></tr>'});
+    html+='</table>';
+    return html;
+};
+
+W.brickHealthHtml=function(rows){
+    if(!rows||!rows.length)return '<div class="w-empty-state" style="padding:24px"><p>No health data yet. Run a test or send a request.</p></div>';
+    var html='';
+    rows.forEach(function(h){
+        html+='<div class="w-flex-between" style="padding:6px 0;border-bottom:1px solid var(--w-border);font-size:11px"><span>'+W.bDot(h.status)+W.esc(h.model_name||'')+' <span style="color:var(--w-muted)">('+W.esc(h.provider_name||'')+')</span></span><span style="color:var(--w-muted)">'+h.latency_ms+' ms &middot; '+h.success_count+' ok / '+h.error_count+' err</span></div>';
+    });
+    return html;
+};
+
+W.brickProviders=function(){
+    var el=document.getElementById('brick-content');
+    var rows=W.state.brick.providers;
+    var html='<div class="w-flex-between w-mb"><div style="font-size:12px;color:var(--w-muted)">'+rows.length+' providers &middot; API keys live in environment variables, never in the database</div><button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.brickProviderForm()">+ New Provider</button></div>';
+    if(!rows.length){el.innerHTML=html+'<div class="w-empty-state"><p>No providers</p></div>';return}
+    html+='<table class="w-table"><tr><th>Provider</th><th>Adapter</th><th>Key</th><th>Models</th><th>Status</th><th>Actions</th></tr>';
+    rows.forEach(function(p){
+        html+='<tr><td><span class="w-brick-chip" style="background:'+W.esc(p.color)+';color:#fff">'+W.esc(p.badge||'AI')+'</span> <strong>'+W.esc(p.name)+'</strong> <span style="font-size:10px;color:var(--w-muted)">'+W.esc(p.slug)+'</span></td><td style="font-size:10px">'+W.esc(p.adapter)+'</td><td>'+(p.has_key?'<span style="color:#00B87D">Configured</span>':'<span style="color:#F5A623">Missing</span>')+'</td><td>'+p.enabled_models+'</td><td>'+W.bStatus(p.status)+'</td><td><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.brickProviderForm('+p.id+')">Edit</button> <button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.brickToggleProvider('+p.id+')">Toggle</button> <button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.brickDeleteProvider('+p.id+')">Del</button></td></tr>';
+    });
+    html+='</table>';
+    html+='<div style="font-size:11px;color:var(--w-muted);margin-top:12px">Set credentials with the referenced env variable (e.g. BRICK_OPENAI_API_KEY) in .env or the container environment. DeepSeek falls back to DEEPSEEK_API_KEY.</div>';
+    el.innerHTML=html;
+};
+
+W.brickProviderForm=function(id){
+    var p=null;
+    if(id)W.state.brick.providers.forEach(function(x){if(x.id===id)p=x});
+    var meta=(W.state.brick.meta&&W.state.brick.meta.data)||{};
+    var body='<div class="w-form-group"><label class="w-label">Name</label><input class="w-input" id="bp-name" value="'+W.esc(p?p.name:'')+'"/></div>';
+    body+='<div class="w-form-group"><label class="w-label">Slug</label><input class="w-input" id="bp-slug" value="'+W.esc(p?p.slug:'')+'"/></div>';
+    body+='<div class="w-form-group"><label class="w-label">Description</label><input class="w-input" id="bp-desc" value="'+W.esc(p?p.description:'')+'"/></div>';
+    body+='<div class="w-form-group"><label class="w-label">Adapter</label><select class="w-select" id="bp-adapter">';
+    for(var a in (meta.adapters||{}))body+='<option value="'+W.esc(a)+'"'+((p&&p.adapter===a)?' selected':'')+'>'+W.esc(meta.adapters[a])+'</option>';
+    body+='</select></div>';
+    body+='<div class="w-form-group"><label class="w-label">API Base URL</label><input class="w-input" id="bp-base" value="'+W.esc(p?p.api_base_url:'')+'"/></div>';
+    body+='<div class="w-form-group"><label class="w-label">Auth Method</label><select class="w-select" id="bp-auth"><option value="bearer"'+(p&&p.auth_method==='bearer'?' selected':'')+'>Bearer Token</option><option value="api-key"'+(p&&p.auth_method==='api-key'?' selected':'')+'>API Key Header</option><option value="azure"'+(p&&p.auth_method==='azure'?' selected':'')+'>Azure</option></select></div>';
+    body+='<div class="w-form-group"><label class="w-label">API Key Env Var (reference only — never the key itself)</label><input class="w-input" id="bp-env" value="'+W.esc(p?p.api_key_env:'')+'" placeholder="BRICK_PROVIDER_API_KEY"/></div>';
+    body+='<div class="w-flex" style="gap:12px"><div class="w-form-group" style="flex:1"><label class="w-label">Badge (2 letters)</label><input class="w-input" id="bp-badge" value="'+W.esc(p?p.badge:'AI')+'"/></div><div class="w-form-group" style="flex:1"><label class="w-label">Color</label><input class="w-input" id="bp-color" value="'+W.esc(p?p.color:'#9B8CDE')+'"/></div></div>';
+    body+='<div class="w-form-group"><label class="w-label">Status</label><select class="w-select" id="bp-status"><option value="enabled"'+(p&&p.status==='enabled'?' selected':'')+'>Enabled</option><option value="disabled"'+(p&&p.status!=='enabled'?' selected':'')+'>Disabled</option></select></div>';
+    W.modal(p?'Edit Provider':'New Provider',body,'<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cancel</button><button class="w-btn w-btn-primary" onclick="wontia.brickSaveProvider('+(p?p.id:'null')+')">Save</button>');
+};
+
+W.brickSaveProvider=async function(id){
+    var payload={name:W.val('bp-name'),slug:W.val('bp-slug'),description:W.val('bp-desc'),adapter:W.val('bp-adapter'),api_base_url:W.val('bp-base'),auth_method:W.val('bp-auth'),api_key_env:W.val('bp-env'),badge:W.val('bp-badge'),color:W.val('bp-color'),status:W.val('bp-status')};
+    var r=id?await W.api('/api/v1/admin/brick/providers/'+id,{method:'PUT',body:payload}):await W.api('/api/v1/admin/brick/providers',{method:'POST',body:payload});
+    if(r.ok){W.closeModal();W.notify(r.message,'success');W.renderBrick('providers')}
+};
+
+W.brickToggleProvider=async function(id){
+    var p=null;W.state.brick.providers.forEach(function(x){if(x.id===id)p=x});
+    if(!p)return;
+    var payload={name:p.name,slug:p.slug,description:p.description,adapter:p.adapter,api_base_url:p.api_base_url,auth_method:p.auth_method,api_key_env:p.api_key_env,badge:p.badge,color:p.color,docs_url:p.docs_url,status:p.status==='enabled'?'disabled':'enabled',sort_order:p.sort_order};
+    var r=await W.api('/api/v1/admin/brick/providers/'+id,{method:'PUT',body:payload});
+    if(r.ok)W.renderBrick('providers');
+};
+
+W.brickDeleteProvider=function(id){
+    W.confirm('Delete this provider and all its models?',async function(){
+        var r=await W.api('/api/v1/admin/brick/providers/'+id,{method:'DELETE'});
+        if(r.ok)W.renderBrick('providers');
+    });
+};
+
+W.brickModels=function(){
+    var el=document.getElementById('brick-content');
+    var rows=W.state.brick.models;
+    var provs=W.state.brick.providers;
+    var html='<div class="w-flex-between w-mb"><div class="w-toolbar"><select class="w-select" style="width:180px" id="bm-filter" onchange="wontia.brickModelsFilter(this.value)"><option value="">All providers</option>';
+    provs.forEach(function(p){html+='<option value="'+p.id+'">'+W.esc(p.name)+'</option>'});
+    html+='</select></div><button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.brickModelForm()">+ New Model</button></div>';
+    html+='<table class="w-table"><tr><th>Model</th><th>Identifier</th><th>Context</th><th>Input $/M</th><th>Output $/M</th><th>Capabilities</th><th>Priority</th><th>Enabled</th><th>Actions</th></tr>';
+    rows.forEach(function(m){
+        if(W.state.brick.modelFilter&&m.provider_id!==W.state.brick.modelFilter)return;
+        html+='<tr><td><span class="w-brick-chip" style="background:'+W.esc(m.color)+';color:#fff">'+W.esc(m.badge||'AI')+'</span> '+W.esc(m.display_name||m.name)+'</td><td style="font-size:10px">'+W.esc(m.model_identifier)+'</td><td>'+W.num(m.context_window)+'</td><td>'+m.input_cost+'</td><td>'+m.output_cost+'</td><td style="max-width:260px">'+W.bCap(m.capabilities)+'</td><td>'+m.priority+'</td><td>'+(m.enabled===1||m.enabled==='1'?'<span style="color:#00B87D">ON</span>':'<span style="color:var(--w-muted)">OFF</span>')+'</td><td><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.brickModelForm('+m.id+')">Edit</button> <button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.brickToggleModel('+m.id+')">Toggle</button> <button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.brickDeleteModel('+m.id+')">Del</button></td></tr>';
+    });
+    html+='</table>';
+    html+='<div style="font-size:11px;color:var(--w-muted);margin-top:12px">Costs are USD per 1M tokens. Only enabled models with an enabled provider participate in routing.</div>';
+    el.innerHTML=html;
+};
+
+W.brickModelsFilter=function(v){W.state.brick.modelFilter=v?parseInt(v):null;W.brickModels()};
+
+W.brickModelPayload=function(m){
+    return {provider_id:m.provider_id,name:m.name,display_name:m.display_name,version:m.version,model_identifier:m.model_identifier,description:m.description,context_window:m.context_window,max_output_tokens:m.max_output_tokens,input_cost:m.input_cost,cached_input_cost:m.cached_input_cost,output_cost:m.output_cost,capabilities:m.capabilities||[],priority:m.priority,status:m.status,enabled:m.enabled?1:0};
+};
+
+W.brickToggleModel=async function(id){
+    var m=null;W.state.brick.models.forEach(function(x){if(x.id===id)m=x});
+    if(!m)return;
+    var payload=W.brickModelPayload(m);
+    payload.enabled=(m.enabled===1||m.enabled==='1')?0:1;
+    var r=await W.api('/api/v1/admin/brick/models/'+id,{method:'PUT',body:payload});
+    if(r.ok)W.renderBrick('models');
+};
+
+W.brickDeleteModel=function(id){
+    W.confirm('Delete this model?',async function(){
+        var r=await W.api('/api/v1/admin/brick/models/'+id,{method:'DELETE'});
+        if(r.ok)W.renderBrick('models');
+    });
+};
+
+W.brickModelForm=function(id){
+    var m=null;
+    if(id)W.state.brick.models.forEach(function(x){if(x.id===id)m=x});
+    var caps=(W.state.brick.meta&&W.state.brick.meta.data&&W.state.brick.meta.data.capabilities)||{};
+    var body='<div class="w-form-group"><label class="w-label">Provider</label><select class="w-select" id="bmf-provider">';
+    W.state.brick.providers.forEach(function(p){body+='<option value="'+p.id+'"'+((m&&m.provider_id===p.id)?' selected':'')+'>'+W.esc(p.name)+'</option>'});
+    body+='</select></div>';
+    body+='<div class="w-form-group"><label class="w-label">Name</label><input class="w-input" id="bmf-name" value="'+W.esc(m?m.name:'')+'"/></div>';
+    body+='<div class="w-form-group"><label class="w-label">Display Name</label><input class="w-input" id="bmf-display" value="'+W.esc(m?m.display_name:'')+'"/></div>';
+    body+='<div class="w-form-group"><label class="w-label">Model Identifier (API)</label><input class="w-input" id="bmf-ident" value="'+W.esc(m?m.model_identifier:'')+'" placeholder="e.g. gpt-4o-mini"/></div>';
+    body+='<div class="w-flex" style="gap:12px"><div class="w-form-group" style="flex:1"><label class="w-label">Version</label><input class="w-input" id="bmf-version" value="'+W.esc(m?m.version:'1.0')+'"/></div><div class="w-form-group" style="flex:1"><label class="w-label">Priority</label><input class="w-input" id="bmf-priority" value="'+(m?m.priority:0)+'" type="number"/></div></div>';
+    body+='<div class="w-form-group"><label class="w-label">Description</label><input class="w-input" id="bmf-desc" value="'+W.esc(m?m.description:'')+'"/></div>';
+    body+='<div class="w-flex" style="gap:12px"><div class="w-form-group" style="flex:1"><label class="w-label">Context Window</label><input class="w-input" id="bmf-ctx" value="'+(m?m.context_window:0)+'" type="number"/></div><div class="w-form-group" style="flex:1"><label class="w-label">Max Output Tokens</label><input class="w-input" id="bmf-maxtok" value="'+(m?m.max_output_tokens:4096)+'" type="number"/></div></div>';
+    body+='<div class="w-flex" style="gap:12px"><div class="w-form-group" style="flex:1"><label class="w-label">Input $/1M</label><input class="w-input" id="bmf-in" value="'+(m?m.input_cost:0)+'" type="number" step="0.0001"/></div><div class="w-form-group" style="flex:1"><label class="w-label">Cached In $/1M</label><input class="w-input" id="bmf-cin" value="'+(m?m.cached_input_cost:0)+'" type="number" step="0.0001"/></div><div class="w-form-group" style="flex:1"><label class="w-label">Output $/1M</label><input class="w-input" id="bmf-out" value="'+(m?m.output_cost:0)+'" type="number" step="0.0001"/></div></div>';
+    body+='<div class="w-form-group"><label class="w-label">Capabilities</label><div style="display:flex;flex-wrap:wrap;gap:4px">';
+    var sel=m?(m.capabilities||[]):[];
+    for(var c in caps){
+        var on=sel.indexOf(c)>-1;
+        body+='<label style="font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid '+(on?'#B89EFF':'var(--w-border)')+';cursor:pointer;background:'+(on?'rgba(155,140,222,.12)':'transparent')+'"><input type="checkbox" class="bmf-cap" value="'+W.esc(c)+'" '+(on?'checked':'')+' style="margin-right:4px;width:auto"/>'+W.esc(caps[c])+'</label>';
+    }
+    body+='</div></div>';
+    body+='<div class="w-form-group"><label class="w-label">Status</label><select class="w-select" id="bmf-status"><option value="active"'+(m&&m.status==='active'?' selected':'')+'>Active</option><option value="deprecated"'+(m&&m.status==='deprecated'?' selected':'')+'>Deprecated</option><option value="retired"'+(m&&m.status==='retired'?' selected':'')+'>Retired</option></select></div>';
+    body+='<label style="font-size:12px;display:flex;align-items:center;gap:8px"><input type="checkbox" id="bmf-enabled" '+((m?(m.enabled===1||m.enabled==='1'):true)?'checked':'')+' style="width:auto"/> Enabled</label>';
+    W.modal(m?'Edit Model':'New Model',body,'<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cancel</button><button class="w-btn w-btn-primary" onclick="wontia.brickSaveModel('+(m?m.id:'null')+')">Save</button>');
+};
+
+W.brickSaveModel=async function(id){
+    var caps=[];
+    document.querySelectorAll('#w-modal-content .bmf-cap:checked').forEach(function(c){caps.push(c.value)});
+    var payload={provider_id:parseInt(W.val('bmf-provider')),name:W.val('bmf-name'),display_name:W.val('bmf-display'),version:W.val('bmf-version'),model_identifier:W.val('bmf-ident'),description:W.val('bmf-desc'),context_window:parseInt(W.val('bmf-ctx'))||0,max_output_tokens:parseInt(W.val('bmf-maxtok'))||4096,input_cost:parseFloat(W.val('bmf-in'))||0,cached_input_cost:parseFloat(W.val('bmf-cin'))||0,output_cost:parseFloat(W.val('bmf-out'))||0,capabilities:caps,priority:parseInt(W.val('bmf-priority'))||0,status:W.val('bmf-status'),enabled:document.getElementById('bmf-enabled').checked?1:0};
+    var r=id?await W.api('/api/v1/admin/brick/models/'+id,{method:'PUT',body:payload}):await W.api('/api/v1/admin/brick/models',{method:'POST',body:payload});
+    if(r.ok){W.closeModal();W.notify(r.message,'success');W.renderBrick('models')}
+};
+
+W.brickPolicies=function(){
+    var el=document.getElementById('brick-content');
+    var rows=W.state.brick.policies;
+    var html='<div class="w-flex-between w-mb"><div style="font-size:12px;color:var(--w-muted)">'+rows.length+' policies &middot; system → module → function → model chain with failover</div><button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.brickPolicyForm()">+ New Policy</button></div>';
+    if(!rows.length){el.innerHTML=html+'<div class="w-empty-state"><p>No policies</p></div>';return}
+    html+='<table class="w-table"><tr><th>System / Module / Function</th><th>Strategy</th><th>Primary → Fallback</th><th>Capabilities</th><th>Budget</th><th>Active</th><th>Actions</th></tr>';
+    rows.forEach(function(p){
+        html+='<tr><td><strong>'+W.esc(p.system_id)+'</strong><span style="color:var(--w-muted)"> / '+W.esc(p.module)+' / '+W.esc(p.function_key)+'</span></td><td><span class="w-brick-chip">'+W.esc(p.strategy)+'</span></td><td style="font-size:10px">'+W.esc(p.primary_name||'-')+' → '+W.esc(p.fallback_name||'-')+(p.fallback2_name?' → '+W.esc(p.fallback2_name):'')+'</td><td>'+W.bCap(p.required_capabilities)+'</td><td>$'+p.monthly_budget+'</td><td>'+(p.is_active===1||p.is_active==='1'?'<span style="color:#00B87D">ON</span>':'<span style="color:var(--w-muted)">OFF</span>')+'</td><td><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.brickPolicyForm('+p.id+')">Edit</button> <button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.brickDeletePolicy('+p.id+')">Del</button></td></tr>';
+    });
+    html+='</table>';
+    el.innerHTML=html;
+};
+
+W.brickDeletePolicy=function(id){
+    W.confirm('Delete this policy?',async function(){
+        var r=await W.api('/api/v1/admin/brick/policies/'+id,{method:'DELETE'});
+        if(r.ok)W.renderBrick('policies');
+    });
+};
+
+W.brickPolicyForm=function(id){
+    var p=null;
+    if(id)W.state.brick.policies.forEach(function(x){if(x.id===id)p=x});
+    var models=W.state.brick.models;
+    var caps=(W.state.brick.meta&&W.state.brick.meta.data&&W.state.brick.meta.data.capabilities)||{};
+    var strat=(W.state.brick.meta&&W.state.brick.meta.data&&W.state.brick.meta.data.strategies)||{};
+    var msel=function(val){
+        var s='<option value="">— none —</option>';
+        models.forEach(function(m){s+='<option value="'+m.id+'"'+((val&&val===m.id)?' selected':'')+'>'+W.esc(m.provider_name+' — '+(m.display_name||m.name))+'</option>'});
+        return s;
+    };
+    var body='<div class="w-form-group"><label class="w-label">System</label><input class="w-input" id="bpf-system" list="bpf-systems" value="'+W.esc(p?p.system_id:'wontia')+'"/><datalist id="bpf-systems">';
+    W.state.brick.instances.forEach(function(i){body+='<option value="'+W.esc(i.system_id)+'">'+W.esc(i.name)+'</option>'});
+    body+='</datalist></div>';
+    body+='<div class="w-flex" style="gap:12px"><div class="w-form-group" style="flex:1"><label class="w-label">Module</label><input class="w-input" id="bpf-module" value="'+W.esc(p?p.module:'general')+'"/></div><div class="w-form-group" style="flex:1"><label class="w-label">Function</label><input class="w-input" id="bpf-function" value="'+W.esc(p?p.function_key:'default')+'"/></div></div>';
+    body+='<div class="w-form-group"><label class="w-label">Strategy</label><select class="w-select" id="bpf-strategy">';
+    for(var s2 in strat)body+='<option value="'+W.esc(s2)+'"'+((p&&p.strategy===s2)?' selected':'')+'>'+W.esc(strat[s2])+'</option>';
+    body+='</select></div>';
+    body+='<div class="w-form-group"><label class="w-label">Primary Model</label><select class="w-select" id="bpf-primary">'+msel(p?p.primary_model_id:null)+'</select></div>';
+    body+='<div class="w-flex" style="gap:12px"><div class="w-form-group" style="flex:1"><label class="w-label">Fallback 1</label><select class="w-select" id="bpf-fallback">'+msel(p?p.fallback_model_id:null)+'</select></div><div class="w-form-group" style="flex:1"><label class="w-label">Fallback 2</label><select class="w-select" id="bpf-fallback2">'+msel(p?p.fallback2_model_id:null)+'</select></div></div>';
+    body+='<div class="w-form-group"><label class="w-label">Required Capabilities</label><div style="display:flex;flex-wrap:wrap;gap:4px">';
+    var sel=p?(p.required_capabilities||[]):[];
+    for(var c in caps){
+        var on=sel.indexOf(c)>-1;
+        body+='<label style="font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid '+(on?'#B89EFF':'var(--w-border)')+';cursor:pointer;background:'+(on?'rgba(155,140,222,.12)':'transparent')+'"><input type="checkbox" class="bpf-cap" value="'+W.esc(c)+'" '+(on?'checked':'')+' style="margin-right:4px;width:auto"/>'+W.esc(caps[c])+'</label>';
+    }
+    body+='</div></div>';
+    body+='<div class="w-flex" style="gap:12px"><div class="w-form-group" style="flex:1"><label class="w-label">Monthly Budget $</label><input class="w-input" id="bpf-budget" value="'+(p?p.monthly_budget:0)+'" type="number" step="1"/></div><div class="w-form-group" style="flex:1"><label class="w-label">Warning %</label><input class="w-input" id="bpf-warn" value="'+(p?p.budget_warning_pct:80)+'" type="number"/></div><div class="w-form-group" style="flex:1"><label class="w-label">Hard Limit %</label><input class="w-input" id="bpf-hard" value="'+(p?p.budget_hard_limit_pct:100)+'" type="number"/></div></div>';
+    body+='<label style="font-size:12px;display:flex;align-items:center;gap:8px"><input type="checkbox" id="bpf-fbenabled" '+((p?(p.fallback_enabled===1||p.fallback_enabled==='1'):true)?'checked':'')+' style="width:auto"/> Fallback enabled</label>';
+    body+='<label style="font-size:12px;display:flex;align-items:center;gap:8px;margin-top:8px"><input type="checkbox" id="bpf-active" '+((p?(p.is_active===1||p.is_active==='1'):true)?'checked':'')+' style="width:auto"/> Active</label>';
+    W.modal(p?'Edit Policy':'New Policy',body,'<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cancel</button><button class="w-btn w-btn-primary" onclick="wontia.brickSavePolicy('+(p?p.id:'null')+')">Save</button>');
+};
+
+W.brickSavePolicy=async function(id){
+    var caps=[];
+    document.querySelectorAll('#w-modal-content .bpf-cap:checked').forEach(function(c){caps.push(c.value)});
+    var payload={system_id:W.val('bpf-system'),module:W.val('bpf-module'),function:W.val('bpf-function'),strategy:W.val('bpf-strategy'),primary_model_id:parseInt(W.val('bpf-primary'))||0,fallback_model_id:parseInt(W.val('bpf-fallback'))||0,fallback2_model_id:parseInt(W.val('bpf-fallback2'))||0,required_capabilities:caps,preferred_providers:[],excluded_providers:[],max_cost_per_request:0,fallback_enabled:document.getElementById('bpf-fbenabled').checked?1:0,monthly_budget:parseFloat(W.val('bpf-budget'))||0,budget_warning_pct:parseInt(W.val('bpf-warn'))||80,budget_hard_limit_pct:parseInt(W.val('bpf-hard'))||100,is_active:document.getElementById('bpf-active').checked?1:0};
+    var r=id?await W.api('/api/v1/admin/brick/policies/'+id,{method:'PUT',body:payload}):await W.api('/api/v1/admin/brick/policies',{method:'POST',body:payload});
+    if(r.ok){W.closeModal();W.notify(r.message,'success');W.renderBrick('policies')}
+};
+
+W.brickSystems=function(){
+    var el=document.getElementById('brick-content');
+    var rows=W.state.brick.instances;
+    var html='<div class="w-flex-between w-mb"><div style="font-size:12px;color:var(--w-muted)">BRICK instances across the WONTIA ecosystem. Each system configures its own policies (module → function → model chain).</div></div>';
+    if(!rows.length){el.innerHTML=html+'<div class="w-empty-state"><p>No systems registered</p></div>';return}
+    html+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px">';
+    rows.forEach(function(i){
+        html+='<div class="w-card" style="padding:16px"><div class="w-flex-between"><strong style="font-size:13px">'+W.esc(i.name)+'</strong><span class="w-brick-chip">'+W.esc(i.system_id)+'</span></div><div style="font-size:11px;color:var(--w-muted);margin-top:6px">'+W.esc(i.description||'')+'</div><div style="font-size:11px;margin-top:10px;color:#B89EFF">'+i.policy_count+' policies</div></div>';
+    });
+    html+='</div>';
+    html+='<div style="font-size:11px;color:var(--w-muted);margin-top:14px">Reusable across WONTIA, TIA System, IA Annotation, Websites, Landing Pages, Agents, Automations and future products. Ecosystem apps call <code>POST /api/v1/brick/request</code> with header <code>X-Brick-Key</code> (env BRICK_API_KEY); TIA controls BRICK via <code>POST /api/v1/brick/command</code>. Health: <code>GET /api/v1/brick/health</code>.</div>';
+    el.innerHTML=html;
+};
+
+W.brickUsage=async function(){
+    var el=document.getElementById('brick-content');
+    el.innerHTML='<div style="text-align:center;padding:40px;color:var(--w-muted)">Loading usage...</div>';
+    var range=W.state.brick.range||'30d';
+    var group=W.state.brick.group||'model';
+    var r=await W.api('/api/v1/admin/brick/usage?range='+range+'&group='+group);
+    var d=r.data||{rows:[],recent:[]};
+    var ranges=[['today','Today'],['7d','7 Days'],['30d','30 Days'],['all','All Time']];
+    var groups=[['model','By Model'],['provider','By Provider'],['system','By System'],['function','By Function']];
+    var html='<div class="w-toolbar w-mb">';
+    ranges.forEach(function(x){html+='<button class="w-btn '+(range===x[0]?'w-btn-primary':'w-btn-secondary')+'" onclick="wontia.brickRange(\''+x[0]+'\')">'+x[1]+'</button>'});
+    html+='<span style="flex:1"></span><select class="w-select" style="width:150px" onchange="wontia.brickGroup(this.value)">';
+    groups.forEach(function(g){html+='<option value="'+g[0]+'"'+(group===g[0]?' selected':'')+'>'+g[1]+'</option>'});
+    html+='</select></div>';
+    html+='<div class="w-card"><h3>Cost & Consumption — '+W.esc(range)+'</h3>'+W.brickBars(d.rows)+'</div>';
+    html+='<div class="w-card"><h3>Aggregated</h3><table class="w-table"><tr><th>Label</th><th>Requests</th><th>Tokens</th><th>Cost</th><th>Avg Latency</th><th>Errors</th></tr>';
+    (d.rows||[]).forEach(function(x){html+='<tr><td>'+W.esc(x.label)+'</td><td>'+W.num(x.requests)+'</td><td>'+W.num(x.tokens)+'</td><td>'+W.bMoney(x.cost)+'</td><td>'+Math.round(x.avg_latency)+' ms</td><td>'+x.errors+'</td></tr>'});
+    html+='</table></div>';
+    html+='<div class="w-card"><h3>Recent Requests</h3>'+W.brickRecentTable(d.recent)+'</div>';
+    el.innerHTML=html;
+};
+
+W.brickRange=function(r){W.state.brick.range=r;W.brickUsage()};
+W.brickGroup=function(g){W.state.brick.group=g;W.brickUsage()};
+
+W.brickTest=function(){
+    var el=document.getElementById('brick-content');
+    var models=W.state.brick.models.filter(function(m){return (m.enabled===1||m.enabled==='1')&&m.provider_name});
+    var body='<div class="w-card"><h3>Test Model</h3>';
+    body+='<div class="w-form-group"><label class="w-label">Model</label><select class="w-select" id="bt-model">';
+    models.forEach(function(m){body+='<option value="'+m.id+'">'+W.esc(m.provider_name+' — '+(m.display_name||m.name))+'</option>'});
+    body+='</select></div>';
+    body+='<div class="w-form-group"><label class="w-label">System Prompt</label><textarea class="w-textarea" id="bt-system" style="min-height:60px"></textarea></div>';
+    body+='<div class="w-form-group"><label class="w-label">Prompt</label><textarea class="w-textarea" id="bt-prompt" style="min-height:100px" placeholder="Type a test prompt..."></textarea></div>';
+    body+='<div class="w-flex" style="gap:12px"><div class="w-form-group" style="flex:1"><label class="w-label">Temperature</label><input class="w-input" id="bt-temp" value="0.7" type="number" step="0.1"/></div><div class="w-form-group" style="flex:1"><label class="w-label">Max Tokens</label><input class="w-input" id="bt-tokens" value="500" type="number"/></div><div class="w-form-group" style="flex:1"><label class="w-label">System</label><input class="w-input" id="bt-sys" value="wontia"/></div></div>';
+    body+='<button class="w-btn w-btn-primary" onclick="wontia.brickRunTest()">Run Test</button>';
+    body+='<div id="bt-result" style="margin-top:16px"></div>';
+    body+='</div>';
+    el.innerHTML=body;
+};
+
+W.brickRunTest=async function(){
+    var res=document.getElementById('bt-result');
+    res.innerHTML='<div style="padding:20px;color:var(--w-muted);text-align:center">Running...</div>';
+    var payload={model_id:parseInt(W.val('bt-model')),system_prompt:W.val('bt-system'),prompt:W.val('bt-prompt'),temperature:parseFloat(W.val('bt-temp'))||0.7,max_tokens:parseInt(W.val('bt-tokens'))||500,system_id:W.val('bt-sys')||'wontia'};
+    var r=await W.api('/api/v1/admin/brick/test',{method:'POST',body:payload});
+    var d=r.data||{};
+    if(!d.ok){res.innerHTML='<div class="w-card" style="border-color:var(--w-accent)"><strong style="color:var(--w-accent)">Error</strong><p style="font-size:12px;margin-top:6px">'+W.esc(d.error||r.message||'Request failed')+'</p></div>';return}
+    var u=d.usage||{};
+    var html='<div class="w-card" style="border-color:rgba(0,184,125,.4)">';
+    html+='<div class="w-flex" style="flex-wrap:wrap;gap:8px"><span class="w-brick-chip">'+W.esc(d.provider||'')+'</span><span class="w-brick-chip">'+W.esc(d.model||'')+'</span><span class="w-brick-chip">'+d.latency_ms+' ms</span><span class="w-brick-chip">'+W.num(u.input_tokens)+' in</span><span class="w-brick-chip">'+W.num(u.output_tokens)+' out</span><span class="w-brick-chip">'+W.bMoney(d.cost)+'</span></div>';
+    html+='<pre style="margin-top:14px;font-size:12px;line-height:1.7;white-space:pre-wrap;font-family:inherit">'+W.esc(d.content||'')+'</pre></div>';
+    res.innerHTML=html;
+};
+
+W.val=function(id){var e=document.getElementById(id);return e?e.value:''};
+
 W.panels={
     dashboard:W.renderDashboard,
-    pages:W.renderPageList,
     pageEditor:W.renderPageEditor,
     sections:W.renderSectionManager,
     pageSections:W.renderSectionManager,
     bricks:W.renderBricks,
     brickhub:W.renderBrickHub,
+    brick:W.renderBrick,
     blog:W.renderBlogList,
     blogEditor:W.renderBlogEditor,
     media:W.renderMediaManager,

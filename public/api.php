@@ -111,6 +111,26 @@ $router->get('/api/v1/health', function () {
 
 $router->post('/api/v1/admin/auth/login', [\App\Controllers\Admin\AuthController::class, 'login']);
 
+$router->get('/api/v1/brick/health', function () {
+    $db = \App\Core\Database::instance();
+    $providers = 0;
+    try {
+        $providers = (int)$db->query("SELECT COUNT(*) FROM ai_providers WHERE site_id = @site_id")->fetchColumn();
+    } catch (\Exception $e) {}
+    Response::json([
+        'ok' => true,
+        'component' => 'BRICK',
+        'version' => '1.0.0',
+        'db' => $providers > 0 || $providers === 0,
+        'providers_registered' => $providers,
+    ]);
+});
+
+$router->group('/api/v1/brick', function (Router $r) {
+    $r->post('/request', [\App\Controllers\Admin\AiBrickController::class, 'aiRequest']);
+    $r->post('/command', [\App\Controllers\Admin\AiBrickController::class, 'command']);
+}, [\App\Middleware\BrickKeyMiddleware::class]);
+
 $router->group('/api/v1/admin', function (Router $r) {
     $r->post('/auth/logout', [\App\Controllers\Admin\AuthController::class, 'logout']);
     $r->get('/auth/me', [\App\Controllers\Admin\AuthController::class, 'me']);
@@ -160,6 +180,29 @@ $router->group('/api/v1/admin', function (Router $r) {
     $r->get('/brickhub/mother/pending', [\App\Controllers\Admin\BrickHubController::class, 'motherPending']);
     $r->post('/brickhub/child/notify', [\App\Controllers\Admin\BrickHubController::class, 'childNotify']);
     $r->post('/brickhub/child/register', [\App\Controllers\Admin\BrickHubController::class, 'registerChildSite']);
+
+    $r->get('/brick/overview', [\App\Controllers\Admin\AiBrickController::class, 'overview']);
+    $r->get('/brick/suggestions', [\App\Controllers\Admin\AiBrickController::class, 'suggestions']);
+    $r->get('/brick/providers', [\App\Controllers\Admin\AiBrickController::class, 'providers']);
+    $r->post('/brick/providers', [\App\Controllers\Admin\AiBrickController::class, 'saveProvider']);
+    $r->put('/brick/providers/{id}', [\App\Controllers\Admin\AiBrickController::class, 'saveProvider']);
+    $r->delete('/brick/providers/{id}', [\App\Controllers\Admin\AiBrickController::class, 'deleteProvider']);
+    $r->get('/brick/models', [\App\Controllers\Admin\AiBrickController::class, 'models']);
+    $r->post('/brick/models', [\App\Controllers\Admin\AiBrickController::class, 'saveModel']);
+    $r->put('/brick/models/{id}', [\App\Controllers\Admin\AiBrickController::class, 'saveModel']);
+    $r->delete('/brick/models/{id}', [\App\Controllers\Admin\AiBrickController::class, 'deleteModel']);
+    $r->get('/brick/capabilities', [\App\Controllers\Admin\AiBrickController::class, 'capabilities']);
+    $r->get('/brick/instances', [\App\Controllers\Admin\AiBrickController::class, 'instances']);
+    $r->get('/brick/policies', [\App\Controllers\Admin\AiBrickController::class, 'policies']);
+    $r->post('/brick/policies', [\App\Controllers\Admin\AiBrickController::class, 'savePolicy']);
+    $r->put('/brick/policies/{id}', [\App\Controllers\Admin\AiBrickController::class, 'savePolicy']);
+    $r->delete('/brick/policies/{id}', [\App\Controllers\Admin\AiBrickController::class, 'deletePolicy']);
+    $r->get('/brick/usage', [\App\Controllers\Admin\AiBrickController::class, 'usage']);
+    $r->post('/brick/test', [\App\Controllers\Admin\AiBrickController::class, 'test']);
+    $r->post('/brick/request', [\App\Controllers\Admin\AiBrickController::class, 'aiRequest']);
+    $r->post('/brick/command', [\App\Controllers\Admin\AiBrickController::class, 'command']);
+    $r->post('/brick/health/check', [\App\Controllers\Admin\AiBrickController::class, 'healthCheck']);
+    $r->post('/brick/ensure-tables', [\App\Controllers\Admin\AiBrickController::class, 'ensureTables']);
 
     $r->get('/media', [\App\Controllers\Admin\MediaController::class, 'index']);
     $r->post('/media/upload', [\App\Controllers\Admin\MediaController::class, 'upload']);
