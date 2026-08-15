@@ -18,10 +18,9 @@ CMS ligero **basado en BRICKs** embebido en el ecosistema Wontia. PHP 8.3 + Ngin
 | `2417154` | MASTER-PROMPT v2.0 (reposicionamiento evolucionado) |
 | `6733852` | API pública: `GET /api/v1/public/page/{slug}`, `GET /api/v1/public/settings` |
 | `c6c7e15` | **Multi-site**: env `SITE_ID` → variable de sesión MySQL `@site_id` |
+| `32a409b` | **BRICK — AI Provider & Model Management**: capa de IA del ecosistema (ver §13) + rebrand "WWI" en admin |
 
-**Sin commitear:** `public/admin.php` — rebranding de títulos/login a "WWI Wontia Web Intelligence" (8 líneas). Pendiente de commit si se confirma el rebrand.
-
-**NUEVO (no commiteado):** **BRICK — AI Provider & Model Management** (capa de infraestructura de IA del ecosistema). Ver §13.
+**Sin commitear:** nada pendiente en este momento.
 
 **Seed disponible:** `install/seed-wontia-ais.php` es el seed más reciente (posicionamiento AIS v3 con secciones: HeroEvolved → Differentiator → TiaCommand → WontiaBusiness → DomainArch → FoodSecurity → PlatformArch → Trust → FutureVision → Pricing → CTA → Footer).
 
@@ -161,4 +160,4 @@ Pestañas: Overview (8 KPIs, barra de presupuesto, **Sugerencias permanentes** �
 1. ~~Poner API key de proveedor en prod~~ — **HECHO 14-ago-2026**: DeepSeek configurado (`BRICK_DEEPSEEK_API_KEY` + `DEEPSEEK_API_KEY` en `.env` del build VPS), verificado en vivo con respuestas reales (tia/orchestration y wontia/general OK, costos registrados).
 2. Migrar `AiContentService` para enrutar por BRICK (hoy usa DeepSeek directo con `DEEPSEEK_API_KEY` — ya tiene key en prod; migrar sin romper).
 3. Catálogo automático de modelos (model discovery) y cost dashboard por función.
-4. Commit de todo el BRICK + deploy docs (pendiente de aprobación del usuario).
+4. ~~Commit de todo el BRICK~~ — **HECHO**: commit `32a409b`. Falta `git push origin main` (confirmar con usuario).
