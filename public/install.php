@@ -42,6 +42,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $hash = password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]);
                 $seed = str_replace("VALUES (1, 'admin', 'admin@intsolcom.com', '\$2y\$12\$LJ3m4ys3YOlDkOmMrPJ7OOCCpN.1S3Xv7JfYMm8PbBRHxdsF3POMG', 'superadmin')", "VALUES (1, '$username', '$email', '$hash', 'superadmin')", $seed);
                 $pdo->exec($seed);
+                $pdo->exec('SET @site_id = 1');
+                $brickSql = file_get_contents(dirname(__DIR__) . '/install/brick_ai.sql');
+                if ($brickSql) $pdo->exec($brickSql);
                 $step = 3;
                 $success = 'Installation complete!';
             } catch (Exception $e) { $error = 'Installation failed: ' . $e->getMessage(); }

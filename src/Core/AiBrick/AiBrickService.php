@@ -38,6 +38,7 @@ class AiBrickService
 
     public function providers(): array
     {
+        $this->provision();
         $db = Database::instance();
         $rows = $db->query("SELECT p.*, (SELECT COUNT(*) FROM ai_models m WHERE m.provider_id = p.id AND m.enabled = 1) AS enabled_models FROM ai_providers p WHERE p.site_id = @site_id ORDER BY p.sort_order ASC")->fetchAll();
         foreach ($rows as &$row) {
@@ -64,6 +65,7 @@ class AiBrickService
 
     public function models(?int $providerId = null): array
     {
+        $this->provision();
         $db = Database::instance();
         if ($providerId) {
             $stmt = $db->prepare("SELECT m.*, p.name AS provider_name, p.slug AS provider_slug, p.badge, p.color FROM ai_models m JOIN ai_providers p ON p.id = m.provider_id WHERE m.site_id = @site_id AND m.provider_id = :pid ORDER BY m.priority DESC, m.name ASC");
@@ -97,12 +99,14 @@ class AiBrickService
 
     public function instances(): array
     {
+        $this->provision();
         $db = Database::instance();
         return $db->query("SELECT i.*, (SELECT COUNT(*) FROM ai_policies p WHERE p.system_id = i.system_id AND p.site_id = i.site_id AND p.is_active = 1) AS policy_count FROM ai_instances i WHERE i.site_id = @site_id ORDER BY i.id ASC")->fetchAll();
     }
 
     public function policies(): array
     {
+        $this->provision();
         $db = Database::instance();
         $rows = $db->query("SELECT p.*, pm.name AS primary_name, pm.model_identifier AS primary_identifier, pr.name AS primary_provider,
             fm.name AS fallback_name, fm.model_identifier AS fallback_identifier,
@@ -124,6 +128,7 @@ class AiBrickService
 
     public function findPolicy(string $systemId, string $module, string $function): ?array
     {
+        $this->provision();
         $db = Database::instance();
         $stmt = $db->prepare("SELECT p.*, pm.model_identifier AS primary_identifier, fm.model_identifier AS fallback_identifier, f2m.model_identifier AS fallback2_identifier
             FROM ai_policies p
@@ -376,6 +381,7 @@ class AiBrickService
 
     public function overview(string $range = '30d'): array
     {
+        $this->provision();
         $db = Database::instance();
         [$from, $fromToday] = $this->rangeBounds($range);
 
@@ -695,8 +701,23 @@ class AiBrickService
         ];
         foreach ($statements as $sql) $db->exec($sql);
 
-        $seedCount = (int)$db->query("SELECT COUNT(*) FROM ai_providers WHERE site_id = @site_id")->fetchColumn();
+        $seeded = $this->seedIfEmpty();
+        return ['ok' => true, 'message' => $seeded ? 'BRICK tables created and seeded' : 'BRICK tables already exist', 'data' => ['seeded' => $seeded]];
+    }
+
+    public function provision(): void
+    {
+        try {
+            $this->seedIfEmpty();
+        } catch (\Exception $e) {}
+    }
+
+    private function seedIfEmpty(): bool
+    {
+        $db = Database::instance();
         $seeded = false;
+
+        $seedCount = (int)$db->query("SELECT COUNT(*) FROM ai_providers WHERE site_id = @site_id")->fetchColumn();
         if ($seedCount === 0) {
             $db->exec("INSERT IGNORE INTO ai_providers (site_id, name, slug, description, adapter, api_base_url, auth_method, api_key_env, badge, color, docs_url, status, sort_order) VALUES
                 (@site_id, 'OpenAI', 'openai', 'GPT models with vision, tools and structured output.', 'openai-compatible', 'https://api.openai.com/v1', 'bearer', 'BRICK_OPENAI_API_KEY', 'OA', '#10A37F', 'https://platform.openai.com/docs', 'disabled', 1),
@@ -750,6 +771,6 @@ class AiBrickService
             $seeded = true;
         }
 
-        return ['ok' => true, 'message' => $seeded ? 'BRICK tables created and seeded' : 'BRICK tables already exist', 'data' => ['seeded' => $seeded]];
+        return $seeded;
     }
 }
