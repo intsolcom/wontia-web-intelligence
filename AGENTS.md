@@ -97,9 +97,9 @@ Fondo `#F6F6F3`, texto `#2F2F2F`, primary lavender `linear-gradient(135deg,#9B8C
 
 ## 9. Deploy (VPS Contabo)
 
-- VPS `root@169.58.12.55`, SSH key `~/.ssh/contabo_vps`, contenedor `wontia-web-intelligence` (puerto `4003`, red `intsolcom`), DB en contenedor `mysql-prod`.
+- VPS `root@<VPS_IP>`, SSH key `~/.ssh/contabo_vps`, contenedor `wontia-web-intelligence` (puerto `4003`, red `intsolcom`), DB en contenedor `mysql-prod`.
 - Flujo: `scp` archivos a `/tmp/wontia-build/app/...` → `docker build -t wontia-web-intelligence:latest .` → `docker rm -f` + `docker run -d ... -v /var/lib/dokploy/uploads/wontia:/app/public/assets/uploads`.
-- SQL siempre vía archivo: `docker exec -i mysql-prod mysql -uroot -pAdmin2026! wontia < archivo.sql`.
+- SQL siempre vía archivo: `docker exec -i mysql-prod mysql -uroot -p<DB_ROOT_PASS_EN_VPS> wontia < archivo.sql`.
 - PowerShell 5.1: **NO usar `&&`** — usar `; if ($?) { ... }`.
 
 ## 10. Convenciones de código
@@ -124,6 +124,20 @@ Fondo `#F6F6F3`, texto `#2F2F2F`, primary lavender `linear-gradient(135deg,#9B8C
 2. Leer el widget/controlador más parecido a lo que toca cambiar.
 3. Tras cambios: `php -l` en los archivos tocados, `git diff` de revisión.
 4. Commitear SOLO cuando el usuario lo pida, mensaje estilo `feat: ...` / `fix: ...` / `docs: ...`.
+
+## 12b. Seguridad — controles aplicados (ago 2026)
+
+- **Sesiones**: cookie `HttpOnly + SameSite=Lax + Secure`, `use_strict_mode`, ID regenerado en login (`Session.php`).
+- **Login**: throttle por IP+usuario (5 fallos → bloqueo 15 min, HTTP 429) + delay anti-brute-force (`AuthController`). Mensaje genérico siempre.
+- **JWT**: fail-closed si `JWT_SECRET` falta o es placeholder. **Rotado en prod** (agregado al `.env` del build, última línea manda). No exponer el valor.
+- **Uploads**: whitelist de extensiones + validación de contenido real con `getimagesize` + **SVG bloqueado** (era XSS). `site_id = @site_id` corregido. Ejecución de PHP en `/assets/uploads/` denegada en nginx.
+- **Users**: un usuario NO-superadmin ya no puede escalarse cambiando su propio `role`; roles restringidos a `superadmin|admin|editor`.
+- **install.php**: devuelve 403 si ya existe `.env` (no se puede re-ejecutar la instalación en prod).
+- **CORS**: `*` solo en endpoints públicos; `/api/v1/admin/*` y `/api/v1/brick/*` restringen origen a `APP_URL`. API y admin envían `Cache-Control: no-store`.
+- **Headers nginx**: X-Frame-Options DENY, nosniff, Referrer-Policy, Permissions-Policy + **HSTS en host nginx** (`wontia-cms.conf`). Error handler devuelve 500 real (antes devolvía 200).
+- **Credenciales redactadas** de AGENTS.md / MASTER-PROMPT.md / IMPLEMENTATION-PROMPT.md (estaban con passwords reales commiteadas). Valores reales viven solo en el VPS.
+- **INFRA (crítico)**: si se recrea `mysql-prod` hay que reconectarlo a la red: `docker network connect intsolcom mysql-prod` — si no, todas las apps fallan con `db:false`.
+- **Pendiente usuario**: cambiar la contraseña `admin/admin` (aún activa).
 
 ## 13. BRICK — AI Infrastructure Layer (agosto 2026)
 

@@ -5,6 +5,8 @@ use App\Core\Config;
 use App\Core\Session;
 
 Config::load();
+header('Cache-Control: no-store, no-cache, must-revalidate');
+header('Pragma: no-cache');
 Session::start();
 
 $loggedIn = Session::isLoggedIn();

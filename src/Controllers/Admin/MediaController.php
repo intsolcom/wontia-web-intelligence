@@ -29,26 +29,34 @@ class MediaController
     {
         if (empty($_FILES['file'])) Response::error('No file uploaded', 400);
         $file = $_FILES['file'];
-        $allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml', 'image/gif', 'image/x-icon', 'image/vnd.microsoft.icon'];
         $maxSize = 5 * 1024 * 1024;
-        if (!in_array($file['type'], $allowed)) Response::error('File type not allowed: ' . $file['type'], 400);
-        if ($file['size'] > $maxSize) Response::error('File too large (max 5MB)', 400);
+        $extMap = ['jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png', 'webp' => 'image/webp', 'gif' => 'image/gif', 'ico' => 'image/x-icon'];
+        $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        if (!isset($extMap[$ext])) Response::error('File type not allowed', 400);
+        if ($file['size'] <= 0 || $file['size'] > $maxSize) Response::error('File too large (max 5MB)', 400);
+        if (!is_uploaded_file($file['tmp_name'])) Response::error('Invalid upload', 400);
 
-        $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
-        $name = uniqid('wontia_') . '.' . strtolower($ext);
+        $info = @getimagesize($file['tmp_name']);
+        if ($info === false) Response::error('Invalid image file', 400);
+        if ($info[2] !== IMAGETYPE_JPEG && $info[2] !== IMAGETYPE_PNG && $info[2] !== IMAGETYPE_WEBP && $info[2] !== IMAGETYPE_GIF && $info[2] !== IMAGETYPE_ICO) {
+            Response::error('Invalid image content', 400);
+        }
+
+        $name = uniqid('wontia_', true) . '.' . $ext;
         $dir = ROOT_DIR . '/public/assets/uploads/';
-        if (!is_dir($dir)) mkdir($dir, 0777, true);
+        if (!is_dir($dir)) mkdir($dir, 0775, true);
         $path = $dir . $name;
 
         if (!move_uploaded_file($file['tmp_name'], $path)) Response::error('Upload failed', 500);
+        @chmod($path, 0644);
 
-        [$w, $h] = @getimagesize($path) ?: [0, 0];
+        [$w, $h] = $info;
         $url = '/assets/uploads/' . $name;
         $size = filesize($path);
 
         $db = Database::instance();
-        $db->prepare("INSERT INTO media (site_id, filename, url, size, mime, alt_text, width, height) VALUES (1, :name, :url, :size, :mime, :alt, :w, :h)")
-            ->execute(['name' => $name, 'url' => $url, 'size' => $size, 'mime' => $file['type'], 'alt' => $req->input('alt_text', ''), 'w' => $w, 'h' => $h]);
+        $db->prepare("INSERT INTO media (site_id, filename, url, size, mime, alt_text, width, height) VALUES (@site_id, :name, :url, :size, :mime, :alt, :w, :h)")
+            ->execute(['name' => $name, 'url' => $url, 'size' => $size, 'mime' => $extMap[$ext], 'alt' => $req->input('alt_text', ''), 'w' => $w, 'h' => $h]);
         $id = $db->lastInsertId();
         Response::json(['ok' => true, 'data' => ['id' => $id, 'url' => $url, 'filename' => $name]], 201);
     }

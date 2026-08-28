@@ -25,7 +25,7 @@ Docker Container: wontia-web-intelligence
     │ PHP 8.3-FPM + Nginx (Alpine)
     │
 MariaDB (docker: mysql-prod, network: intsolcom)
-    │ DB: wontia / user: wontia / pass: Wontia2026!
+    │ DB: wontia / user: wontia / pass: <DB_APP_PASS_EN_VPS>
 ```
 
 ---
@@ -34,9 +34,9 @@ MariaDB (docker: mysql-prod, network: intsolcom)
 
 | Key | Value |
 |---|---|
-| VPS | `root@169.58.12.55` |
+| VPS | `root@<VPS_IP>` |
 | SSH Key | `~/.ssh/contabo_vps` |
-| DB Container | `mysql-prod`, root pass `Admin2026!`, DB `wontia` |
+| DB Container | `mysql-prod`, root pass `<DB_ROOT_PASS_EN_VPS>`, DB `wontia` |
 | App Container | `wontia-web-intelligence`, port `4003`, network `intsolcom` |
 | Volume Mount | `-v /var/lib/dokploy/uploads/wontia:/app/public/assets/uploads` |
 | Nginx Config | `/etc/nginx/sites-enabled/wontia-landing` (proxies to :4003) |
@@ -45,17 +45,17 @@ MariaDB (docker: mysql-prod, network: intsolcom)
 
 ```powershell
 # COPY files
-scp -i $env:USERPROFILE\.ssh\contabo_vps file.php root@169.58.12.55:/tmp/wontia-build/app/path/to/file.php
+scp -i $env:USERPROFILE\.ssh\contabo_vps file.php root@<VPS_IP>:/tmp/wontia-build/app/path/to/file.php
 
 # BUILD & DEPLOY
-ssh -i $env:USERPROFILE\.ssh\contabo_vps root@169.58.12.55 "cd /tmp/wontia-build/app && docker build -t wontia-web-intelligence:latest . 2>&1 | tail -3 && docker rm -f wontia-web-intelligence 2>/dev/null; docker run -d --name wontia-web-intelligence --network intsolcom -p 4003:80 -v /var/lib/dokploy/uploads/wontia:/app/public/assets/uploads --restart unless-stopped wontia-web-intelligence:latest"
+ssh -i $env:USERPROFILE\.ssh\contabo_vps root@<VPS_IP> "cd /tmp/wontia-build/app && docker build -t wontia-web-intelligence:latest . 2>&1 | tail -3 && docker rm -f wontia-web-intelligence 2>/dev/null; docker run -d --name wontia-web-intelligence --network intsolcom -p 4003:80 -v /var/lib/dokploy/uploads/wontia:/app/public/assets/uploads --restart unless-stopped wontia-web-intelligence:latest"
 
 # DB operations (use file-based approach to avoid PowerShell escaping hell)
-scp -i $env:USERPROFILE\.ssh\contabo_vps sqlfile.sql root@169.58.12.55:/tmp/
-ssh -i $env:USERPROFILE\.ssh\contabo_vps root@169.58.12.55 "docker exec -i mysql-prod mysql -uroot -pAdmin2026! wontia < /tmp/sqlfile.sql"
+scp -i $env:USERPROFILE\.ssh\contabo_vps sqlfile.sql root@<VPS_IP>:/tmp/
+ssh -i $env:USERPROFILE\.ssh\contabo_vps root@<VPS_IP> "docker exec -i mysql-prod mysql -uroot -p<DB_ROOT_PASS_EN_VPS> wontia < /tmp/sqlfile.sql"
 
 # COPY assets into running container
-ssh -i $env:USERPROFILE\.ssh\contabo_vps root@169.58.12.55 "docker cp /var/www/wontia-landing/canales-wontia.jpg wontia-web-intelligence:/app/public/"
+ssh -i $env:USERPROFILE\.ssh\contabo_vps root@<VPS_IP> "docker cp /var/www/wontia-landing/canales-wontia.jpg wontia-web-intelligence:/app/public/"
 ```
 
 **CRITICAL: NEVER use `&&` in PowerShell 5.1.** Use `; if ($?) { ... }` or separate commands. Quote paths with spaces. For SQL, always write to a .sql file and pipe it via `docker exec -i`.

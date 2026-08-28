@@ -18,7 +18,7 @@ set_exception_handler(function (\Throwable $e) {
     if ($debug) {
         Response::error($e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine(), 500);
     } else {
-        Response::html('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Error</title><style>body{font-family:sans-serif;text-align:center;padding:100px;background:#F6F6F3;color:#2F2F2F}h1{font-size:64px;margin:0;color:#9B8CDE}p{margin:16px 0;color:#6B6B6B}</style></head><body><h1>500</h1><p>Something went wrong. Please try again.</p><a href="/">Go home</a></body></html>');
+        Response::html('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Error</title><style>body{font-family:sans-serif;text-align:center;padding:100px;background:#F6F6F3;color:#2F2F2F}h1{font-size:64px;margin:0;color:#9B8CDE}p{margin:16px 0;color:#6B6B6B}</style></head><body><h1>500</h1><p>Something went wrong. Please try again.</p><a href="/">Go home</a></body></html>', 500);
     }
 });
 

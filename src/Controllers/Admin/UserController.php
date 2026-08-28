@@ -25,20 +25,34 @@ class UserController
         if (!$username || !$email || !$password) Response::error('Username, email and password required', 400);
         $db = Database::instance();
         $hash = password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]);
-        $db->prepare("INSERT INTO users (site_id, username, email, password_hash, role) VALUES (1, :u, :e, :h, :r)")
-            ->execute(['u' => $username, 'e' => $email, 'h' => $hash, 'r' => $req->input('role', 'admin')]);
+        $role = $req->input('role', 'admin');
+        if (!in_array($role, ['superadmin', 'admin', 'editor'], true)) $role = 'admin';
+        $db->prepare("INSERT INTO users (site_id, username, email, password_hash, role) VALUES (@site_id, :u, :e, :h, :r)")
+            ->execute(['u' => $username, 'e' => $email, 'h' => $hash, 'r' => $role]);
         Response::json(['ok' => true, 'data' => ['id' => $db->lastInsertId()]], 201);
     }
 
     public function update(Request $req, string $id): void
     {
-        if (Session::userRole() !== 'superadmin' && (string)Session::userId() !== $id) Response::error('Forbidden', 403);
+        $isSuper = Session::userRole() === 'superadmin';
+        $isSelf = (string)Session::userId() === $id;
+        if (!$isSuper && !$isSelf) Response::error('Forbidden', 403);
         $db = Database::instance();
         $sets = [];
         $params = ['id' => $id];
-        foreach (['username', 'email', 'role', 'is_active'] as $f) {
+        foreach (['username', 'email'] as $f) {
             $val = $req->input($f);
-            if ($val !== null) { $sets[] = "$f = :$f"; $params[$f] = $f === 'is_active' ? (int)$val : $val; }
+            if ($val !== null && $val !== '') { $sets[] = "$f = :$f"; $params[$f] = $val; }
+        }
+        if ($isSuper) {
+            foreach (['role', 'is_active'] as $f) {
+                $val = $req->input($f);
+                if ($val !== null) {
+                    if ($f === 'role' && !in_array($val, ['superadmin', 'admin', 'editor'], true)) continue;
+                    $sets[] = "$f = :$f";
+                    $params[$f] = $f === 'is_active' ? (int)$val : $val;
+                }
+            }
         }
         $password = $req->input('password');
         if ($password) { $sets[] = "password_hash = :ph"; $params['ph'] = password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]); }

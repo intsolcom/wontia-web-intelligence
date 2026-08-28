@@ -1,4 +1,11 @@
 <?php
+$envPath = dirname(__DIR__) . '/.env';
+if (file_exists($envPath) && filesize($envPath) > 0) {
+    http_response_code(403);
+    header('Content-Type: text/html; charset=utf-8');
+    exit('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Already installed</title><style>body{font-family:sans-serif;text-align:center;padding:100px;background:#0f1117;color:#e1e4ed}h1{color:#B89EFF}</style></head><body><h1>Installer disabled</h1><p>Wontia is already installed. Remove the .env file on the server to re-run the installer.</p></body></html>');
+}
+
 $step = (int)($_GET['step'] ?? 1);
 $error = '';
 $success = '';

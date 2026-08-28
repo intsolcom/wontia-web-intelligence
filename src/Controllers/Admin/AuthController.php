@@ -11,11 +11,18 @@ class AuthController
 {
     public function login(Request $req): void
     {
-        $username = $req->input('username');
-        $password = $req->input('password');
+        $username = trim((string)$req->input('username', ''));
+        $password = (string)$req->input('password', '');
 
-        if (!$username || !$password) {
+        if ($username === '' || $password === '') {
             Response::error('Username and password are required', 400);
+        }
+
+        $ip = $req->ip();
+        $lock = $this->throttleCheck($ip, $username);
+        if ($lock !== null) {
+            usleep(400000);
+            Response::error($lock, 429);
         }
 
         $db = Database::instance();
@@ -24,8 +31,12 @@ class AuthController
         $user = $stmt->fetch();
 
         if (!$user || !password_verify($password, $user['password_hash'])) {
+            $this->throttleFail($ip, $username);
+            usleep(400000);
             Response::error('Invalid credentials', 401);
         }
+
+        $this->throttleClear($ip, $username);
 
         $db->prepare("UPDATE users SET last_login = NOW() WHERE id = :id")->execute(['id' => $user['id']]);
 
@@ -64,5 +75,46 @@ class AuthController
             Response::error('Not authenticated', 401);
         }
         Response::json(['ok' => true, 'user' => Session::user()]);
+    }
+
+    private function throttleFile(string $ip, string $user): string
+    {
+        $dir = ROOT_DIR . '/cache/security';
+        if (!is_dir($dir)) @mkdir($dir, 0770, true);
+        return $dir . '/login_' . md5($ip . '|' . $user) . '.json';
+    }
+
+    private function throttleCheck(string $ip, string $user): ?string
+    {
+        $file = $this->throttleFile($ip, $user);
+        if (!file_exists($file)) return null;
+        $data = json_decode((string)file_get_contents($file), true);
+        if (!is_array($data)) return null;
+        $now = time();
+        if (!empty($data['until']) && $now < (int)$data['until']) {
+            return 'Too many failed attempts. Try again in ' . ceil(((int)$data['until'] - $now) / 60) . ' minutes.';
+        }
+        return null;
+    }
+
+    private function throttleFail(string $ip, string $user): void
+    {
+        $file = $this->throttleFile($ip, $user);
+        $now = time();
+        $data = ['fails' => 1, 'first' => $now, 'until' => 0];
+        if (file_exists($file)) {
+            $prev = json_decode((string)file_get_contents($file), true);
+            if (is_array($prev) && $now - (int)($prev['first'] ?? $now) <= 900) {
+                $data['fails'] = (int)($prev['fails'] ?? 0) + 1;
+                $data['first'] = (int)($prev['first'] ?? $now);
+            }
+        }
+        if ($data['fails'] >= 5) $data['until'] = $now + 900;
+        @file_put_contents($file, json_encode($data), LOCK_EX);
+    }
+
+    private function throttleClear(string $ip, string $user): void
+    {
+        @unlink($this->throttleFile($ip, $user));
     }
 }

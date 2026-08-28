@@ -24,9 +24,9 @@ Your task: implement the FULL application — Core classes, Controllers, Service
 - `D:\INTSOLCOM\IA DEVELOPMENT\MARCASBPO\PEDS-WONTIA-WEB-INTELLIGENCE-MASTER-PROMPT.md` (Full architecture spec, 895 lines)
 
 ## SERVER (for deployment later)
-- **VPS:** Contabo `169.58.12.55`, SSH `root@169.58.12.55`, key `~/.ssh/contabo_vps`
+- **VPS:** Contabo `<VPS_IP>`, SSH `root@<VPS_IP>`, key `~/.ssh/contabo_vps`
 - **Docker network:** `intsolcom`
-- **MariaDB container:** `mysql-prod`, root pass `Admin2026!`, DB `wontia`, user `wontia` / `Wontia2026!`
+- **MariaDB container:** `mysql-prod`, root pass `<DB_ROOT_PASS_EN_VPS>`, DB `wontia`, user `wontia` / `<DB_APP_PASS_EN_VPS>`
 - **Host Nginx:** `/etc/nginx/sites-enabled/wontia` proxies `https://wontia.intsolcom.com` → `127.0.0.1:4003`
 - **Dokploy** is available on the VPS for one-click deploys
 
@@ -564,34 +564,34 @@ Multi-step setup wizard:
 ### Step 10: Install Schema on VPS
 
 ```bash
-ssh -o StrictHostKeyChecking=no -i ~/.ssh/contabo_vps root@169.58.12.55 "docker exec mysql-prod mysql -uroot -pAdmin2026! -e \"CREATE DATABASE IF NOT EXISTS wontia CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; CREATE USER IF NOT EXISTS 'wontia'@'%' IDENTIFIED BY 'Wontia2026!'; GRANT ALL PRIVILEGES ON wontia.* TO 'wontia'@'%'; FLUSH PRIVILEGES;\""
+ssh -o StrictHostKeyChecking=no -i ~/.ssh/contabo_vps root@<VPS_IP> "docker exec mysql-prod mysql -uroot -p<DB_ROOT_PASS_EN_VPS> -e \"CREATE DATABASE IF NOT EXISTS wontia CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci; CREATE USER IF NOT EXISTS 'wontia'@'%' IDENTIFIED BY '<DB_APP_PASS_EN_VPS>'; GRANT ALL PRIVILEGES ON wontia.* TO 'wontia'@'%'; FLUSH PRIVILEGES;\""
 ```
 
 ```bash
-scp -o StrictHostKeyChecking=no -i ~/.ssh/contabo_vps "D:\INTSOLCOM\IA DEVELOPMENT\wontia-web-intelligence\install\schema.sql" root@169.58.12.55:/tmp/
-ssh -o StrictHostKeyChecking=no -i ~/.ssh/contabo_vps root@169.58.12.55 "docker exec -i mysql-prod mysql -uwontia -pWontia2026! wontia < /tmp/schema.sql"
+scp -o StrictHostKeyChecking=no -i ~/.ssh/contabo_vps "D:\INTSOLCOM\IA DEVELOPMENT\wontia-web-intelligence\install\schema.sql" root@<VPS_IP>:/tmp/
+ssh -o StrictHostKeyChecking=no -i ~/.ssh/contabo_vps root@<VPS_IP> "docker exec -i mysql-prod mysql -uwontia -p<DB_APP_PASS_EN_VPS> wontia < /tmp/schema.sql"
 ```
 
 ### Step 11: Build & Deploy
 
 ```bash
 # Copy all files to VPS build directory
-scp -o StrictHostKeyChecking=no -i ~/.ssh/contabo_vps -r "D:\INTSOLCOM\IA DEVELOPMENT\wontia-web-intelligence\*" root@169.58.12.55:/tmp/wontia-build/app/
+scp -o StrictHostKeyChecking=no -i ~/.ssh/contabo_vps -r "D:\INTSOLCOM\IA DEVELOPMENT\wontia-web-intelligence\*" root@<VPS_IP>:/tmp/wontia-build/app/
 
 # Build Docker image
-ssh -o StrictHostKeyChecking=no -i ~/.ssh/contabo_vps root@169.58.12.55 "cd /tmp/wontia-build/app; docker build -t wontia-web-intelligence:latest ."
+ssh -o StrictHostKeyChecking=no -i ~/.ssh/contabo_vps root@<VPS_IP> "cd /tmp/wontia-build/app; docker build -t wontia-web-intelligence:latest ."
 
 # Stop old container, start new with persistent volume
-ssh -o StrictHostKeyChecking=no -i ~/.ssh/contabo_vps root@169.58.12.55 "docker rm -f wontia-web-intelligence 2>/dev/null; docker run -d --name wontia-web-intelligence --network intsolcom -p 4003:80 -v /var/lib/dokploy/uploads/wontia:/app/public/assets/uploads --restart unless-stopped wontia-web-intelligence:latest"
+ssh -o StrictHostKeyChecking=no -i ~/.ssh/contabo_vps root@<VPS_IP> "docker rm -f wontia-web-intelligence 2>/dev/null; docker run -d --name wontia-web-intelligence --network intsolcom -p 4003:80 -v /var/lib/dokploy/uploads/wontia:/app/public/assets/uploads --restart unless-stopped wontia-web-intelligence:latest"
 
 # Smoke test
-ssh -o StrictHostKeyChecking=no -i ~/.ssh/contabo_vps root@169.58.12.55 "sleep 2; curl -s http://localhost:4003/api/v1/health"
+ssh -o StrictHostKeyChecking=no -i ~/.ssh/contabo_vps root@<VPS_IP> "sleep 2; curl -s http://localhost:4003/api/v1/health"
 ```
 
 ### Step 12: Configure Nginx on Host
 
 ```bash
-ssh -o StrictHostKeyChecking=no -i ~/.ssh/contabo_vps root@169.58.12.55 'cat > /etc/nginx/sites-enabled/wontia << '"'"'NGINXEOF'"'"'
+ssh -o StrictHostKeyChecking=no -i ~/.ssh/contabo_vps root@<VPS_IP> 'cat > /etc/nginx/sites-enabled/wontia << '"'"'NGINXEOF'"'"'
 server {
     listen 80;
     server_name wontia.intsolcom.com;

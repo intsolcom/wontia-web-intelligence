@@ -43,6 +43,16 @@ class AuthMiddleware
         }
     }
 
+    private static function secret(): ?string
+    {
+        $secret = Config::get('JWT_SECRET', '');
+        $lower = strtolower((string)$secret);
+        if ($secret === '' || str_contains($lower, 'change-me') || str_contains($lower, 'secret-change')) {
+            return null;
+        }
+        return $secret;
+    }
+
     public static function validateJwt(string $token): ?array
     {
         $parts = explode('.', $token);
@@ -50,7 +60,8 @@ class AuthMiddleware
         $payload = json_decode(base64_decode(strtr($parts[1], '-_', '+/')), true);
         if (!$payload || !isset($payload['exp'])) return null;
         if ($payload['exp'] < time()) return null;
-        $secret = Config::get('JWT_SECRET', 'wontia-jwt-secret-change-me');
+        $secret = self::secret();
+        if ($secret === null) return null;
         $sig = hash_hmac('sha256', "$parts[0].$parts[1]", $secret, true);
         $sigB64 = rtrim(strtr(base64_encode($sig), '+/', '-_'), '=');
         if (!hash_equals($sigB64, $parts[2])) return null;
@@ -59,7 +70,7 @@ class AuthMiddleware
 
     public static function generateJwt(array $user, int $expHours = 24): string
     {
-        $secret = Config::get('JWT_SECRET', 'wontia-jwt-secret-change-me');
+        $secret = self::secret() ?? bin2hex(random_bytes(32));
         $header = rtrim(strtr(base64_encode(json_encode(['alg' => 'HS256', 'typ' => 'JWT'])), '+/', '-_'), '=');
         $payload = rtrim(strtr(base64_encode(json_encode([
             'sub' => $user['id'],

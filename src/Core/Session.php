@@ -9,6 +9,15 @@ class Session
     {
         if (self::$started) return;
         if (session_status() === PHP_SESSION_NONE) {
+            $secure = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
+            session_set_cookie_params([
+                'lifetime' => 0,
+                'path' => '/',
+                'secure' => $secure,
+                'httponly' => true,
+                'samesite' => 'Lax',
+            ]);
+            ini_set('session.use_strict_mode', '1');
             session_start();
         }
         self::$started = true;
@@ -82,6 +91,8 @@ class Session
 
     public static function login(array $user): void
     {
+        self::start();
+        session_regenerate_id(true);
         self::set('user', $user);
     }
 
