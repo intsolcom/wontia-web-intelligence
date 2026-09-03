@@ -194,9 +194,10 @@ async function wwiCheckDomain(){
         if(sug.length){
             html+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:14px">';
             sug.forEach(function(x){
-                var sc=x.state==='AVAILABLE'?'var(--ok)':(x.state==='ERROR'?'var(--warn)':'var(--bad)');
+                var sc=x.state==='AVAILABLE'?'var(--ok)':(x.state==='CHECKING'||x.state==='ERROR'?'var(--warn)':'var(--bad)');
                 var price=x.state==='AVAILABLE'&&x.price_reg!=null?'<span style="color:var(--text)">$'+x.price_reg+'</span> <span style="color:var(--muted)">USD/año</span>'+(x.price_ren!=null&&x.price_ren!==x.price_reg?'<div style="color:var(--muted)">ren. $'+x.price_ren+'</div>':''):'';
-                html+='<div class="panel" style="padding:10px 12px;text-align:left"><div class="mono" style="font-size:12px;color:'+sc+'">'+wwiEsc(x.name)+'</div><div class="mono" style="font-size:10px;margin-top:3px">'+(x.state==='AVAILABLE'?price:wwiEsc(x.state))+'</div></div>';
+                var detail=x.state==='CHECKING'?'<div style="font-size:9px;color:var(--muted);margin-top:2px">verificar al registrar</div>':'';
+                html+='<div class="panel" style="padding:10px 12px;text-align:left"><div class="mono" style="font-size:12px;color:'+sc+'">'+wwiEsc(x.name)+'</div><div class="mono" style="font-size:10px;margin-top:3px">'+(x.state==='AVAILABLE'?price:wwiEsc(x.state))+detail+'</div></div>';
             });
             html+='</div>';
         }

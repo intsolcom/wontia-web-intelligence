@@ -18,7 +18,7 @@ class DomainCheckerService
         $name = rtrim($name, '/');
         $name = preg_replace('/\.$/', '', $name);
 
-        if ($name === '' || !preg_match('/^(?!-)[a-z0-9-]{1,63}(?<!-)\.[a-z]{2,24}$/', $name)) {
+        if ($name === '' || !preg_match('/^(?!-)([a-z0-9-]{1,63}(?<!-)\.)+[a-z]{2,24}$/', $name)) {
             return ['name' => $rawName, 'state' => 'INVALID', 'message' => 'Invalid domain name', 'suggestions' => []];
         }
 
@@ -49,12 +49,36 @@ class DomainCheckerService
     private function lookup(string $name): array
     {
         $cacheFile = (defined('ROOT_DIR') ? ROOT_DIR : sys_get_temp_dir()) . '/cache/rdap_' . md5($name) . '.json';
-        if (file_exists($cacheFile) && time() - (int)@filemtime($cacheFile) < 300) {
+        if (file_exists($cacheFile)) {
             $cached = json_decode((string)@file_get_contents($cacheFile), true);
-            if (is_array($cached)) return $cached;
+            if (is_array($cached) && isset($cached['_t'])) {
+                $ttl = (int)($cached['_ttl'] ?? 300);
+                if (time() - (int)$cached['_t'] < $ttl) {
+                    unset($cached['_t'], $cached['_ttl']);
+                    return $cached;
+                }
+            }
         }
 
         $tld = substr($name, strrpos($name, '.') + 1);
+        $result = $this->rdapLookup($name, $tld);
+        if ($result['state'] === 'ERROR') {
+            $whois = $this->whoisLookup($name, $tld);
+            if ($whois['state'] !== 'ERROR') {
+                $result = $whois;
+            } else {
+                $result = ['state' => 'CHECKING', 'message' => 'Verificación de .' . $tld . ' no disponible — se confirmará al registrar'];
+            }
+        }
+        $result['_t'] = time();
+        $result['_ttl'] = $result['state'] === 'ERROR' ? 60 : 300;
+        @file_put_contents($cacheFile, json_encode($result));
+        unset($result['_t'], $result['_ttl']);
+        return $result;
+    }
+
+    private function rdapLookup(string $name, string $tld): array
+    {
         $base = $this->rdapBase($tld);
         if (!$base) {
             return ['state' => 'ERROR', 'message' => 'No RDAP server for .' . $tld];
@@ -73,14 +97,12 @@ class DomainCheckerService
         $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
-        if ($code === 0) {
-            return ['state' => 'ERROR', 'message' => 'Verification unavailable'];
+        if ($code === 404) {
+            return ['state' => 'AVAILABLE', 'message' => '¡Libre!'];
         }
 
-        if ($code === 404) {
-            $result = ['state' => 'AVAILABLE', 'message' => '¡Libre!'];
-            @file_put_contents($cacheFile, json_encode($result));
-            return $result;
+        if ($code === 429) {
+            return ['state' => 'ERROR', 'message' => 'Muchas consultas — intenta de nuevo en un momento'];
         }
 
         if ($code === 200) {
@@ -106,16 +128,47 @@ class DomainCheckerService
             $msg = 'Ya está registrado';
             if ($registrar) $msg .= ' · ' . $registrar;
             if ($expires) $msg .= ' · expira ' . $expires;
-            $result = ['state' => 'TAKEN', 'message' => $msg, 'registrar' => $registrar, 'expires_at' => $expires];
-            @file_put_contents($cacheFile, json_encode($result));
-            return $result;
+            return ['state' => 'TAKEN', 'message' => $msg, 'registrar' => $registrar, 'expires_at' => $expires];
         }
 
-        if ($code === 429) {
-            return ['state' => 'ERROR', 'message' => 'Demasiadas consultas — intenta en un minuto'];
-        }
+        return ['state' => 'ERROR', 'message' => 'RDAP no respondió (HTTP ' . $code . ')'];
+    }
 
-        return ['state' => 'ERROR', 'message' => 'Registro no respondió (HTTP ' . $code . ')'];
+    private function whoisLookup(string $name, string $tld): array
+    {
+        $servers = [
+            'com' => 'whois.verisign-grs.com',
+            'net' => 'whois.verisign-grs.com',
+            'org' => 'whois.publicinterestregistry.net',
+            'co' => 'whois.nic.co',
+            'com.co' => 'whois.nic.co',
+        ];
+        $host = $servers[$tld] ?? null;
+        if (!$host) return ['state' => 'ERROR', 'message' => 'No WHOIS server for .' . $tld];
+
+        $fp = @fsockopen($host, 43, $errno, $errstr, 10);
+        if (!$fp) return ['state' => 'ERROR', 'message' => 'WHOIS unavailable'];
+        fwrite($fp, $name . "\r\n");
+        stream_set_timeout($fp, 10);
+        $data = '';
+        while (!feof($fp)) $data .= fgets($fp, 512);
+        fclose($fp);
+
+        $upper = strtoupper((string)$data);
+        if (str_contains($upper, 'NO MATCH') || str_contains($upper, 'NOT FOUND') || str_contains($upper, 'NO DATA FOUND') || str_contains($upper, 'IS FREE')) {
+            return ['state' => 'AVAILABLE', 'message' => '¡Libre!'];
+        }
+        if (str_contains($upper, 'DOMAIN NAME') || str_contains($upper, 'REGISTRAR')) {
+            $registrar = null;
+            $expires = null;
+            if (preg_match('/Registrar:\s*(.+)/i', (string)$data, $m)) $registrar = trim($m[1]);
+            if (preg_match('/(?:Registry Expiry Date|Expiration Date):\s*(.+)/i', (string)$data, $m)) $expires = substr(trim($m[1]), 0, 10);
+            $msg = 'Ya está registrado';
+            if ($registrar) $msg .= ' · ' . $registrar;
+            if ($expires) $msg .= ' · expira ' . $expires;
+            return ['state' => 'TAKEN', 'message' => $msg, 'registrar' => $registrar, 'expires_at' => $expires];
+        }
+        return ['state' => 'ERROR', 'message' => 'Verificación no concluyente'];
     }
 
     private function costEngine(): array
