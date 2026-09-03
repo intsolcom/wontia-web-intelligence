@@ -99,7 +99,7 @@ Fondo `#F6F6F3`, texto `#2F2F2F`, primary lavender `linear-gradient(135deg,#9B8C
 
 - VPS `root@<VPS_IP>`, SSH key `~/.ssh/contabo_vps`, contenedor `wontia-web-intelligence` (puerto `4003`, red `intsolcom`), DB en contenedor `mysql-prod`.
 - Flujo: `scp` archivos a `/tmp/wontia-build/app/...` → `docker build -t wontia-web-intelligence:latest .` → `docker rm -f` + `docker run -d ... -v /var/lib/dokploy/uploads/wontia:/app/public/assets/uploads`.
-- SQL siempre vía archivo: `docker exec -i mysql-prod mysql -uroot -p<DB_ROOT_PASS_EN_VPS> wontia < archivo.sql`.
+- SQL siempre vía archivo: `docker exec -i mysql-prod mysql -uwontia -p<DB_APP_PASS_EN_VPS> wontia < archivo.sql` (usar el usuario de la app; el pass de root de mysql-prod fue cambiado en ago-2026 y ya no es el documentado).
 - PowerShell 5.1: **NO usar `&&`** — usar `; if ($?) { ... }`.
 
 ## 10. Convenciones de código
@@ -137,6 +137,10 @@ Fondo `#F6F6F3`, texto `#2F2F2F`, primary lavender `linear-gradient(135deg,#9B8C
 - **Headers nginx**: X-Frame-Options DENY, nosniff, Referrer-Policy, Permissions-Policy + **HSTS en host nginx** (`wontia-cms.conf`). Error handler devuelve 500 real (antes devolvía 200).
 - **Credenciales redactadas** de AGENTS.md / MASTER-PROMPT.md / IMPLEMENTATION-PROMPT.md (estaban con passwords reales commiteadas). Valores reales viven solo en el VPS.
 - **INFRA (crítico)**: si se recrea `mysql-prod` hay que reconectarlo a la red: `docker network connect intsolcom mysql-prod` — si no, todas las apps fallan con `db:false`.
+- **WWI FACTORY (ago 2026)**: iniciada la transformación en "Autonomous AI Website Factory". Ver `WWI-AUDIT.md` (auditoría + matriz) y `WWI-MASTER-IMPLEMENTATION-PLAN.md` (fases). Fase 0 hecha: schema `install/wwi_factory.sql` (planes/órdenes/pagos/provisioning/dominios/email/plantillas/ai_actions/audit/versions) + `FactoryService`/`FactoryController` + panel admin "Factory" (Plans/Config/Margin Guard) + API pública `/api/v1/public/plans`, `/plans/{slug}`, `/domain/check`. Margin Guard activo: Web Starter sembrado da margen 13.6% (CRITICAL <25%) — revisar precios/costos en el panel.
+- **WWI FACTORY — dominio propio**: tenant dedicado en contenedor `wontia-wwi` (puerto 4009, `SITE_ID=3`, `APP_URL=https://wwi.wontia.com`, BRICK_API_KEY propia). Vhost host nginx `/etc/nginx/sites-enabled/wwi.conf` (80 → 301; falta el bloque 443 + cert cuando el usuario cree el DNS `wwi.wontia.com → <VPS_IP>`). El operador de la Factory usa `https://wwi.wontia.com/admin.php#factory`.
+- **Config env-priority (ago 2026)**: `Config::get` ahora respeta el entorno real del contenedor (`-e`) por encima del `.env` del archivo (12-factor). Permite APP_URL/BRICK_API_KEY por tenant. BRICK_API_KEY del site 1 rotada (la anterior quedó expuesta en chat); JWT_SECRET rotado (128 chars).
+- **Tenants activos**: 4003 site1 (wontia.com/intsolcom.com) · 4004 site2 (marcasbpo.com) · 4006 catastro (wontia-catastro-core) · 4008 iannma (IA Annotation) · 4009 site3 (WWI Factory). Todos comparten la misma imagen.
 - **Pendiente usuario**: cambiar la contraseña `admin/admin` (aún activa).
 
 ## 13. BRICK — AI Infrastructure Layer (agosto 2026)

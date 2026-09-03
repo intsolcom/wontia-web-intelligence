@@ -14,6 +14,7 @@ class Config
         if (!file_exists($path)) {
             $path = dirname(__DIR__, 2) . '/.env.example';
         }
+        $realEnv = array_merge($_ENV, is_array(getenv()) ? getenv() : []);
         if (file_exists($path)) {
             $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
             foreach ($lines as $line) {
@@ -26,8 +27,10 @@ class Config
                 $value = trim($value, '"\'');
                 $value = str_replace(['\n', '\r'], ["\n", "\r"], $value);
                 self::$items[$key] = $value;
-                $_ENV[$key] = $value;
-                putenv("$key=$value");
+                if (!array_key_exists($key, $realEnv)) {
+                    $_ENV[$key] = $value;
+                    putenv("$key=$value");
+                }
             }
         }
         self::$loaded = true;
@@ -36,7 +39,9 @@ class Config
     public static function get(string $key, $default = null): mixed
     {
         if (!self::$loaded) self::load();
-        return self::$items[$key] ?? $_ENV[$key] ?? getenv($key) ?: $default;
+        $env = getenv($key);
+        if ($env !== false) return $env;
+        return $_ENV[$key] ?? self::$items[$key] ?? $default;
     }
 
     public static function all(): array
