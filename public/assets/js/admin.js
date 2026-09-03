@@ -111,6 +111,7 @@ W.renderPageEditor=function(id){
     app.innerHTML='<div class="w-card"><h3>'+(id?'Edit Page':'New Page')+'</h3><div class="w-form-group"><label class="w-label">Title</label><input class="w-input" id="pe-title" placeholder="Page title"/></div><div class="w-form-group"><label class="w-label">Slug</label><input class="w-input" id="pe-slug" placeholder="page-slug"/></div><div class="w-form-group"><label class="w-label">Status</label><select class="w-select" id="pe-status"><option value="draft">Draft</option><option value="published">Published</option></select></div><div class="w-form-group"><label class="w-label">Meta Title (SEO)</label><input class="w-input" id="pe-meta-title"/></div><div class="w-form-group"><label class="w-label">Meta Description</label><textarea class="w-textarea" id="pe-meta-desc"></textarea></div><div class="w-flex w-gap-sm w-mt"><button class="w-btn w-btn-primary" id="pe-save">Save</button><button class="w-btn w-btn-secondary" onclick="wontia.router()">Cancel</button></div></div>';
     if(id){
         W.api('/api/v1/admin/pages/'+id).then(function(d){
+            if(!d.ok||!d.data){W.notify(d.message||'Page not found','error');W.router();return}
             var p=d.data;
             document.getElementById('pe-title').value=p.title||'';
             document.getElementById('pe-slug').value=p.slug||'';
@@ -140,10 +141,19 @@ W.renderSectionManager=function(pageId){
 };
 
 W.loadSections=async function(pageId){
-    var d=await W.api('/api/v1/admin/pages/'+pageId);
-    W.state.currentPage=d.data;
     var el=document.getElementById('section-panel');
     if(!el)return;
+    if(!pageId){
+        el.innerHTML='<div class="w-empty-state"><h3>Selecciona una página</h3><p>Entra a Pages y elige la página cuyas secciones quieres editar.</p><a href="#pages" class="w-btn w-btn-primary">Ir a Pages</a></div>';
+        return;
+    }
+    var d=await W.api('/api/v1/admin/pages/'+pageId);
+    if(!d.ok||!d.data){
+        el.innerHTML='<div class="w-empty-state"><h3>Page not found</h3><p>La página no existe en este sitio. Entra a Pages para ver las disponibles.</p><a href="#pages" class="w-btn w-btn-primary">Ir a Pages</a></div>';
+        return;
+    }
+    W.state.currentPage=d.data;
+    if(!W.state.currentPage.sections)W.state.currentPage.sections=[];
     var html='<div class="w-flex-between w-mb-lg"><div><h3 style="font-size:15px">Sections: '+W.esc(W.state.currentPage.title)+'</h3><span style="font-size:11px;color:var(--w-muted)">'+W.state.currentPage.sections.length+' sections</span></div><div class="w-flex w-gap-sm"><button class="w-btn w-btn-primary" onclick="wontia.showSectionTypePicker('+pageId+')">+ Add Section</button><a href="#pages" class="w-btn w-btn-secondary">Back</a></div></div>';
     if(!W.state.currentPage.sections.length){
         html+='<div class="w-empty-state"><h3>No sections yet</h3><p>Add your first section to this page</p></div>';
