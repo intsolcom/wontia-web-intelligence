@@ -494,6 +494,7 @@ class FactoryService
             'wwi.min_margin_pct' => '25',
             'wwi.site_promise_hours' => '24',
             'wwi.locales' => '["es","en"]',
+            'wwi.domain_costs' => '{"com":{"reg":10.97,"ren":10.97},"net":{"reg":12.98,"ren":12.98},"org":{"reg":12.50,"ren":12.50},"co":{"reg":28.00,"ren":30.00},"com.co":{"reg":25.00,"ren":35.00},"site":{"reg":2.50,"ren":30.00},"info":{"reg":15.00,"ren":20.00}}',
         ] as $key => $value) {
             $cfgStmt->execute(['k' => $key, 'v' => $value]);
         }
