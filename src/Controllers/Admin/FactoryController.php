@@ -134,6 +134,13 @@ class FactoryController
         Response::json(['ok' => true, 'data' => $this->service->myPortal()]);
     }
 
+    public function publicTemplates(): void
+    {
+        $db = \App\Core\Database::instance();
+        $rows = $db->query("SELECT slug, name_es, name_en, icon FROM wwi_template_categories WHERE site_id = @site_id ORDER BY sort_order ASC LIMIT 20")->fetchAll();
+        Response::json(['ok' => true, 'data' => $rows]);
+    }
+
     public function plans(): void
     {
         Response::json(['ok' => true, 'data' => $this->service->plans()]);

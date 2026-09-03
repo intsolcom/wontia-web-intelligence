@@ -66,7 +66,8 @@ try {
     $sec->execute(['pid' => $page['id']]);
     $sections = $sec->fetchAll();
 
-    require ROOT_DIR . '/templates/themes/' . (Config::get('theme', 'default')) . '/index.php';
+    $theme = $db->query("SELECT theme FROM sites WHERE id = @site_id")->fetchColumn() ?: Config::get('theme', 'default');
+    require ROOT_DIR . '/templates/themes/' . $theme . '/index.php';
 } catch (\Exception $e) {
     if (Config::get('APP_DEBUG', 'false') === 'true') {
         echo '<div style="padding:40px;font-family:monospace"><h2>Error</h2><pre>' . $e->getMessage() . '</pre></div>';

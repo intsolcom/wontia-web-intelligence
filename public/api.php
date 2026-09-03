@@ -101,6 +101,7 @@ $router->get('/api/v1/public/settings', function () {
 
 $router->get('/api/v1/public/plans', [\App\Controllers\Admin\FactoryController::class, 'publicPlans']);
 $router->get('/api/v1/public/plans/{slug}', [\App\Controllers\Admin\FactoryController::class, 'publicPlan']);
+$router->get('/api/v1/public/templates', [\App\Controllers\Admin\FactoryController::class, 'publicTemplates']);
 $router->get('/api/v1/public/domain/check', function ($request) {
     $name = (string)($request->get('name', ''));
     Response::json(['ok' => true, 'data' => (new \App\Services\DomainCheckerService())->check($name)]);

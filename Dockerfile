@@ -9,7 +9,8 @@ COPY . /app
 
 RUN mkdir -p /app/public/assets/uploads /app/cache \
     && chown -R www-data:www-data /app/public/assets/uploads /app/cache \
-    && chmod 777 /app/public/assets/uploads /app/cache
+    && chmod 777 /app/public/assets/uploads /app/cache \
+    && chmod -R a+rX /app/src /app/templates
 
 EXPOSE 80
 

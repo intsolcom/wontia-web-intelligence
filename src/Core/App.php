@@ -40,7 +40,9 @@ class App
         $r = $this->router;
 
         $r->get('/', function () {
-            require_once ROOT_DIR . '/templates/themes/' . Config::$defaultTheme . '/index.php';
+            $db = Database::instance();
+            $theme = $db->query("SELECT theme FROM sites WHERE id = @site_id")->fetchColumn() ?: 'default';
+            require_once ROOT_DIR . '/templates/themes/' . $theme . '/index.php';
         });
 
         $r->get('/admin', function () {
@@ -74,7 +76,8 @@ class App
             $sections = $db->prepare("SELECT * FROM sections WHERE page_id = :pid AND is_active = 1 ORDER BY sort_order ASC");
             $sections->execute(['pid' => $p['id']]);
             $s = $sections->fetchAll();
-            require ROOT_DIR . '/templates/themes/' . Config::$defaultTheme . '/index.php';
+            $theme = $db->query("SELECT theme FROM sites WHERE id = @site_id")->fetchColumn() ?: 'default';
+            require ROOT_DIR . '/templates/themes/' . $theme . '/index.php';
         });
     }
 
