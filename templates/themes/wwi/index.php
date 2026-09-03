@@ -185,7 +185,11 @@ async function wwiCheckDomain(){
         var color='var(--warn)';
         if(s.state==='AVAILABLE')color='var(--ok)';
         if(s.state==='INVALID'||s.state==='ERROR'||s.state==='TAKEN')color='var(--bad)';
-        res.innerHTML='<span style="color:'+color+'">'+wwiEsc(s.state)+'</span> <span style="color:var(--muted)">— '+wwiEsc(s.message||'')+'</span>';
+        var msg=s.state;
+        if(s.state==='AVAILABLE')msg='AVAILABLE — ¡libre! Inclúyelo con tu plan';
+        if(s.state==='TAKEN')msg='TAKEN'+(s.message?' — '+s.message:'');
+        if(s.state==='ERROR')msg='ERROR — '+(s.message||'revisa el dominio');
+        res.innerHTML='<span style="color:'+color+'">'+wwiEsc(msg)+'</span>';
     }catch(e){res.textContent='Could not check right now.'}
 }
 function wwiEsc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
