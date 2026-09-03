@@ -21,7 +21,7 @@ W.router=function(){
     var action=parts[2];
     document.querySelectorAll('.w-nav-item').forEach(function(a){a.classList.toggle('active',a.dataset.panel===panel)});
     var title=document.getElementById('panel-title');
-    var titles={dashboard:'Dashboard',pages:'Pages',sections:'Sections',bricks:'Bricks',brickhub:'BrickHub',brick:'AI BRICK',blog:'Blog',media:'Media',seo:'SEO',analytics:'Analytics',settings:'Settings',users:'Users'};
+    var titles={dashboard:'Dashboard',pages:'Pages',sections:'Sections',bricks:'Bricks',brickhub:'BrickHub',brick:'AI BRICK',factory:'Factory',blog:'Blog',media:'Media',seo:'SEO',analytics:'Analytics',settings:'Settings',users:'Users'};
     if(title)title.textContent=titles[panel]||panel;
     var app=document.getElementById('wontia-app');
     if(!app)return;
@@ -1237,6 +1237,142 @@ W.brickRunTest=async function(){
 
 W.val=function(id){var e=document.getElementById(id);return e?e.value:''};
 
+W.state.factory={tab:'plans',plans:[],config:{}};
+
+W.renderFactory=async function(tab){
+    var m=W.state.factory;
+    tab=tab||m.tab||'plans';
+    m.tab=tab;
+    var app=document.getElementById('wontia-app');
+    var tabs=[['plans','Plans'],['config','Config'],['margin','Margin Guard']];
+    var bar='<div class="w-brick-tabs">';
+    tabs.forEach(function(t){
+        bar+='<button class="w-brick-tab'+(tab===t[0]?' active':'')+'" onclick="wontia.factoryGo(\''+t[0]+'\')">'+t[1]+'</button>';
+    });
+    bar+='<div style="flex:1"></div><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.factoryEnsure()">Setup Tables</button></div>';
+    app.innerHTML='<div>'+bar+'<div id="factory-content"></div></div>';
+    try{
+        var pl=await W.api('/api/v1/admin/factory/plans');
+        if(pl.data)m.plans=pl.data;
+        var cf=await W.api('/api/v1/admin/factory/config');
+        if(cf.data)m.config=cf.data;
+    }catch(e){}
+    var fns={plans:W.factoryPlans,config:W.factoryConfig,margin:W.factoryMargin};
+    (fns[tab]||W.factoryPlans)();
+};
+
+W.factoryGo=function(t){location.hash='#factory/'+t};
+
+W.factoryEnsure=async function(){
+    W.notify('Ensuring factory tables...','info');
+    var r=await W.api('/api/v1/admin/factory/ensure-tables',{method:'POST'});
+    if(r.ok)W.notify(r.message,'success');
+    W.renderFactory();
+};
+
+W.factoryPlans=function(){
+    var el=document.getElementById('factory-content');
+    var rows=W.state.factory.plans;
+    var html='<div class="w-flex-between w-mb"><div style="font-size:12px;color:var(--w-muted)">Plans & pricing engine — nothing hardcoded. Bilingual ES/EN.</div><button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.factoryPlanForm()">+ New Plan</button></div>';
+    if(!rows.length){el.innerHTML=html+'<div class="w-empty-state"><p>No plans. Run Setup Tables or create one.</p></div>';return}
+    html+='<table class="w-table"><tr><th>Plan</th><th>Price COP</th><th>Price USD</th><th>Billing</th><th>Margin</th><th>Active</th><th>Actions</th></tr>';
+    rows.forEach(function(p){
+        var m=p.margin||{};
+        var mc=m.status==='critical'?'#BE1341':m.status==='warning'?'#F5A623':'#00B87D';
+        html+='<tr><td><strong>'+W.esc(p.name_es)+'</strong> <span style="color:var(--w-muted)">/ '+W.esc(p.name_en)+'</span><div style="font-size:10px;color:var(--w-muted)">'+W.esc(p.slug)+'</div></td><td>$'+W.num(p.price_cop)+'</td><td>$'+p.price_usd+'</td><td><span class="w-brick-chip">'+W.esc(p.billing_type)+'</span></td><td style="color:'+mc+'">'+(m.margin_pct!=null?m.margin_pct+'%':'—')+'</td><td>'+(p.is_active===1?'<span style="color:#00B87D">ON</span>':'<span style="color:var(--w-muted)">OFF</span>')+'</td><td><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.factoryPlanForm('+p.id+')">Edit</button> <button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.factoryDeletePlan('+p.id+')">Del</button></td></tr>';
+    });
+    html+='</table>';
+    html+='<div style="font-size:11px;color:var(--w-muted);margin-top:12px">Margin is computed live: price − internal costs (USD items × wwi.usd_cop_rate + % items) vs min_margin_pct.</div>';
+    el.innerHTML=html;
+};
+
+W.factoryDeletePlan=function(id){
+    W.confirm('Delete this plan?',async function(){
+        var r=await W.api('/api/v1/admin/factory/plans/'+id,{method:'DELETE'});
+        if(r.ok)W.renderFactory('plans');
+    });
+};
+
+W.factoryPlanForm=function(id){
+    var p=null;
+    if(id)W.state.factory.plans.forEach(function(x){if(x.id===id)p=x});
+    var body='<div class="w-flex" style="gap:12px"><div class="w-form-group" style="flex:1"><label class="w-label">Slug</label><input class="w-input" id="fp-slug" value="'+W.esc(p?p.slug:'')+'"/></div><div class="w-form-group" style="flex:1"><label class="w-label">Billing</label><select class="w-select" id="fp-billing"><option value="one_time"'+(p&&p.billing_type==='one_time'?' selected':'')+'>One time</option><option value="monthly"'+(p&&p.billing_type==='monthly'?' selected':'')+'>Monthly</option><option value="annual"'+(p&&p.billing_type==='annual'?' selected':'')+'>Annual</option></select></div></div>';
+    body+='<div class="w-flex" style="gap:12px"><div class="w-form-group" style="flex:1"><label class="w-label">Name ES</label><input class="w-input" id="fp-nes" value="'+W.esc(p?p.name_es:'')+'"/></div><div class="w-form-group" style="flex:1"><label class="w-label">Name EN</label><input class="w-input" id="fp-nen" value="'+W.esc(p?p.name_en:'')+'"/></div></div>';
+    body+='<div class="w-flex" style="gap:12px"><div class="w-form-group" style="flex:1"><label class="w-label">Price COP</label><input class="w-input" id="fp-cop" type="number" value="'+(p?p.price_cop:0)+'"/></div><div class="w-form-group" style="flex:1"><label class="w-label">Price USD</label><input class="w-input" id="fp-usd" type="number" step="0.01" value="'+(p?p.price_usd:0)+'"/></div><div class="w-form-group" style="flex:1"><label class="w-label">Duration (months)</label><input class="w-input" id="fp-dur" type="number" value="'+(p?p.duration_months:12)+'"/></div></div>';
+    body+='<div class="w-form-group"><label class="w-label">Description ES</label><input class="w-input" id="fp-des" value="'+W.esc(p?p.description_es:'')+'"/></div>';
+    body+='<div class="w-form-group"><label class="w-label">Description EN</label><input class="w-input" id="fp-den" value="'+W.esc(p?p.description_en:'')+'"/></div>';
+    body+='<div class="w-form-group"><label class="w-label">Features (JSON array)</label><textarea class="w-textarea" id="fp-feat" style="min-height:70px;font-family:monospace;font-size:11px">'+W.esc(JSON.stringify(p?p.features:[]))+'</textarea></div>';
+    body+='<div class="w-form-group"><label class="w-label">Limits (JSON object)</label><textarea class="w-textarea" id="fp-lim" style="min-height:70px;font-family:monospace;font-size:11px">'+W.esc(JSON.stringify(p?p.limits:{}))+'</textarea></div>';
+    body+='<div class="w-form-group"><label class="w-label">Margin cost items (JSON: usd or pct)</label><textarea class="w-textarea" id="fp-costs" style="min-height:90px;font-family:monospace;font-size:11px">'+W.esc(JSON.stringify(p?p.margin_cost_items:[]))+'</textarea></div>';
+    body+='<div class="w-flex" style="gap:12px"><div class="w-form-group" style="flex:1"><label class="w-label">Min margin %</label><input class="w-input" id="fp-minm" type="number" value="'+(p?p.min_margin_pct:25)+'"/></div><div class="w-form-group" style="flex:1"><label class="w-label">Sort</label><input class="w-input" id="fp-sort" type="number" value="'+(p?p.sort_order:0)+'"/></div></div>';
+    body+='<label style="font-size:12px;display:flex;align-items:center;gap:8px"><input type="checkbox" id="fp-active" '+((p?(p.is_active===1):true)?'checked':'')+' style="width:auto"/> Active</label>';
+    W.modal(p?'Edit Plan':'New Plan',body,'<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cancel</button><button class="w-btn w-btn-primary" onclick="wontia.factorySavePlan('+(p?p.id:'null')+')">Save</button>');
+};
+
+W.factorySavePlan=async function(id){
+    var payload={
+        slug:W.val('fp-slug'),name_es:W.val('fp-nes'),name_en:W.val('fp-nen'),
+        description_es:W.val('fp-des'),description_en:W.val('fp-den'),
+        price_cop:parseFloat(W.val('fp-cop'))||0,price_usd:parseFloat(W.val('fp-usd'))||0,
+        billing_type:W.val('fp-billing'),duration_months:parseInt(W.val('fp-dur'))||0,
+        features:W.safeJsonField('fp-feat'),limits:W.safeJsonField('fp-lim'),
+        margin_cost_items:W.safeJsonField('fp-costs'),
+        min_margin_pct:parseFloat(W.val('fp-minm'))||25,sort_order:parseInt(W.val('fp-sort'))||0,
+        is_active:document.getElementById('fp-active').checked?1:0
+    };
+    var r=id?await W.api('/api/v1/admin/factory/plans/'+id,{method:'PUT',body:payload}):await W.api('/api/v1/admin/factory/plans',{method:'POST',body:payload});
+    if(r.ok){W.closeModal();W.notify(r.message,'success');W.renderFactory('plans')}else if(r.message){W.notify(r.message,'error')}
+};
+
+W.safeJsonField=function(id){
+    var v=W.val(id);
+    try{var parsed=JSON.parse(v||'[]');return parsed}catch(e){W.notify('Invalid JSON in field '+id,'error');throw e}
+};
+
+W.factoryConfig=function(){
+    var el=document.getElementById('factory-content');
+    var cfg=W.state.factory.config||{};
+    var html='<div class="w-flex-between w-mb"><div style="font-size:12px;color:var(--w-muted)">Configuration engine — prices, limits and rules. Nothing hardcoded.</div></div>';
+    html+='<table class="w-table"><tr><th>Key</th><th>Value</th></tr>';
+    for(var k in cfg){
+        html+='<tr><td style="font-size:11px;color:var(--w-muted)"><code>'+W.esc(k)+'</code></td><td><input class="w-input fc-val" data-key="'+W.esc(k)+'" value="'+W.esc(cfg[k])+'" style="max-width:400px"/></td></tr>';
+    }
+    html+='</table>';
+    html+='<button class="w-btn w-btn-primary w-mt" onclick="wontia.factorySaveConfig()">Save Configuration</button>';
+    el.innerHTML=html;
+};
+
+W.factorySaveConfig=async function(){
+    var payload={};
+    document.querySelectorAll('.fc-val').forEach(function(i){payload[i.dataset.key]=i.value});
+    var r=await W.api('/api/v1/admin/factory/config',{method:'PUT',body:payload});
+    if(r.ok)W.notify(r.message,'success');
+};
+
+W.factoryMargin=async function(){
+    var el=document.getElementById('factory-content');
+    el.innerHTML='<div style="text-align:center;padding:40px;color:var(--w-muted)">Computing margins...</div>';
+    var r=await W.api('/api/v1/admin/factory/margin');
+    var rows=r.data||[];
+    if(!rows.length){el.innerHTML='<div class="w-empty-state"><p>No plans with margin data.</p></div>';return}
+    var html='<div style="font-size:12px;color:var(--w-muted);margin-bottom:16px">Margin Guard — computed live at USD rate '+rows[0].usd_rate+' COP (editable: wwi.usd_cop_rate). Alerts when margin &lt; min_margin_pct.</div>';
+    html+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px">';
+    rows.forEach(function(m){
+        var color=m.status==='critical'?'#BE1341':m.status==='warning'?'#F5A623':'#00B87D';
+        html+='<div class="w-card" style="padding:16px;border-left:3px solid '+color+'"><div class="w-flex-between"><strong style="font-size:13px">'+W.esc(m.plan)+'</strong><span class="w-badge" style="background:'+color+'22;color:'+color+'">'+(m.status==='critical'?'CRITICAL':m.status==='warning'?'WARNING':'OK')+'</span></div>';
+        html+='<div style="font-size:11px;color:var(--w-muted);margin-top:4px">'+W.esc(m.billing)+' &middot; '+(m.slug||'')+'</div>';
+        html+='<div style="margin-top:10px;font-size:12px"><div class="w-flex-between" style="padding:3px 0"><span>Price</span><strong>$'+W.num(m.price_cop)+'</strong></div>';
+        (m.items||[]).forEach(function(i){
+            html+='<div class="w-flex-between" style="padding:3px 0;color:var(--w-muted)"><span>− '+W.esc(i.item)+' '+(i.usd!=null?'($'+i.usd+')':i.pct!=null?'('+i.pct+'%)':'')+'</span><span>−$'+W.num(i.cop)+'</span></div>';
+        });
+        html+='<div class="w-flex-between" style="padding:3px 0"><span>Total cost</span><span>−$'+W.num(m.total_cost_cop)+'</span></div>';
+        html+='<div class="w-flex-between" style="padding:6px 0;border-top:1px solid var(--w-border)"><span style="font-weight:600">Margin</span><strong style="color:'+color+'">$'+W.num(m.margin_cop)+' ('+m.margin_pct+'%)</strong></div></div>';
+        html+='</div>';
+    });
+    html+='</div>';
+    el.innerHTML=html;
+};
+
 W.panels={
     dashboard:W.renderDashboard,
     pageEditor:W.renderPageEditor,
@@ -1245,6 +1381,7 @@ W.panels={
     bricks:W.renderBricks,
     brickhub:W.renderBrickHub,
     brick:W.renderBrick,
+    factory:W.renderFactory,
     blog:W.renderBlogList,
     blogEditor:W.renderBlogEditor,
     media:W.renderMediaManager,

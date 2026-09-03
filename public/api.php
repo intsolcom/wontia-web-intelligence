@@ -98,6 +98,13 @@ $router->get('/api/v1/public/settings', function () {
     }
     Response::json(['ok' => true, 'data' => $settings]);
 });
+
+$router->get('/api/v1/public/plans', [\App\Controllers\Admin\FactoryController::class, 'publicPlans']);
+$router->get('/api/v1/public/plans/{slug}', [\App\Controllers\Admin\FactoryController::class, 'publicPlan']);
+$router->get('/api/v1/public/domain/check', function ($request) {
+    $name = (string)($request->get('name', ''));
+    Response::json(['ok' => true, 'data' => (new \App\Services\DomainCheckerService())->check($name)]);
+});
 $router->get('/api/v1/health', function () {
     $dbOk = false;
     $cacheOk = is_writable(ROOT_DIR . '/cache');
@@ -209,6 +216,15 @@ $router->group('/api/v1/admin', function (Router $r) {
     $r->post('/brick/command', [\App\Controllers\Admin\AiBrickController::class, 'command']);
     $r->post('/brick/health/check', [\App\Controllers\Admin\AiBrickController::class, 'healthCheck']);
     $r->post('/brick/ensure-tables', [\App\Controllers\Admin\AiBrickController::class, 'ensureTables']);
+
+    $r->get('/factory/plans', [\App\Controllers\Admin\FactoryController::class, 'plans']);
+    $r->post('/factory/plans', [\App\Controllers\Admin\FactoryController::class, 'savePlan']);
+    $r->put('/factory/plans/{id}', [\App\Controllers\Admin\FactoryController::class, 'savePlan']);
+    $r->delete('/factory/plans/{id}', [\App\Controllers\Admin\FactoryController::class, 'deletePlan']);
+    $r->get('/factory/config', [\App\Controllers\Admin\FactoryController::class, 'config']);
+    $r->put('/factory/config', [\App\Controllers\Admin\FactoryController::class, 'saveConfig']);
+    $r->get('/factory/margin', [\App\Controllers\Admin\FactoryController::class, 'margin']);
+    $r->post('/factory/ensure-tables', [\App\Controllers\Admin\FactoryController::class, 'ensureTables']);
 
     $r->get('/media', [\App\Controllers\Admin\MediaController::class, 'index']);
     $r->post('/media/upload', [\App\Controllers\Admin\MediaController::class, 'upload']);
