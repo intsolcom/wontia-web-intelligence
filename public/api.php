@@ -225,6 +225,23 @@ $router->group('/api/v1/admin', function (Router $r) {
     $r->put('/factory/config', [\App\Controllers\Admin\FactoryController::class, 'saveConfig']);
     $r->get('/factory/margin', [\App\Controllers\Admin\FactoryController::class, 'margin']);
     $r->post('/factory/ensure-tables', [\App\Controllers\Admin\FactoryController::class, 'ensureTables']);
+    $r->get('/factory/dashboard', [\App\Controllers\Admin\FactoryController::class, 'dashboard']);
+    $r->get('/factory/sites', [\App\Controllers\Admin\FactoryController::class, 'sites']);
+    $r->post('/factory/sites', [\App\Controllers\Admin\FactoryController::class, 'addSite']);
+    $r->put('/factory/sites/{id}/status', [\App\Controllers\Admin\FactoryController::class, 'siteStatus']);
+    $r->get('/factory/domains', [\App\Controllers\Admin\FactoryController::class, 'domains']);
+    $r->post('/factory/domains', [\App\Controllers\Admin\FactoryController::class, 'addDomain']);
+    $r->put('/factory/domains/{id}/status', [\App\Controllers\Admin\FactoryController::class, 'domainStatus']);
+    $r->get('/factory/emails', [\App\Controllers\Admin\FactoryController::class, 'emails']);
+    $r->post('/factory/emails', [\App\Controllers\Admin\FactoryController::class, 'addEmail']);
+    $r->put('/factory/emails/{id}/status', [\App\Controllers\Admin\FactoryController::class, 'emailStatus']);
+    $r->get('/factory/orders', [\App\Controllers\Admin\FactoryController::class, 'orders']);
+    $r->post('/factory/orders', [\App\Controllers\Admin\FactoryController::class, 'addOrder']);
+    $r->put('/factory/orders/{id}/status', [\App\Controllers\Admin\FactoryController::class, 'orderStatus']);
+    $r->get('/factory/ledger', [\App\Controllers\Admin\FactoryController::class, 'ledger']);
+    $r->post('/factory/ledger', [\App\Controllers\Admin\FactoryController::class, 'addLedger']);
+    $r->get('/factory/ai-usage', [\App\Controllers\Admin\FactoryController::class, 'aiUsageBySite']);
+    $r->get('/factory/my-portal', [\App\Controllers\Admin\FactoryController::class, 'myPortal']);
 
     $r->get('/media', [\App\Controllers\Admin\MediaController::class, 'index']);
     $r->post('/media/upload', [\App\Controllers\Admin\MediaController::class, 'upload']);

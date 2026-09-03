@@ -21,7 +21,7 @@ W.router=function(){
     var action=parts[2];
     document.querySelectorAll('.w-nav-item').forEach(function(a){a.classList.toggle('active',a.dataset.panel===panel)});
     var title=document.getElementById('panel-title');
-    var titles={dashboard:'Dashboard',pages:'Pages',sections:'Sections',bricks:'Bricks',brickhub:'BrickHub',brick:'AI BRICK',factory:'Factory',blog:'Blog',media:'Media',seo:'SEO',analytics:'Analytics',settings:'Settings',users:'Users'};
+    var titles={dashboard:'Dashboard',pages:'Pages',sections:'Sections',bricks:'Bricks',brickhub:'BrickHub',brick:'AI BRICK',factory:'Factory',portal:'Mi Portal',blog:'Blog',media:'Media',seo:'SEO',analytics:'Analytics',settings:'Settings',users:'Users'};
     if(title)title.textContent=titles[panel]||panel;
     var app=document.getElementById('wontia-app');
     if(!app)return;
@@ -1241,10 +1241,10 @@ W.state.factory={tab:'plans',plans:[],config:{}};
 
 W.renderFactory=async function(tab){
     var m=W.state.factory;
-    tab=tab||m.tab||'plans';
+    tab=tab||m.tab||'inicio';
     m.tab=tab;
     var app=document.getElementById('wontia-app');
-    var tabs=[['plans','Plans'],['config','Config'],['margin','Margin Guard']];
+    var tabs=[['inicio','Inicio'],['sitios','Sitios'],['dominios','Dominios'],['emails','Emails'],['pedidos','Pedidos'],['saldos','Saldos'],['ia','Consumo IA'],['planes','Planes'],['config','Config'],['margin','Margin Guard']];
     var bar='<div class="w-brick-tabs">';
     tabs.forEach(function(t){
         bar+='<button class="w-brick-tab'+(tab===t[0]?' active':'')+'" onclick="wontia.factoryGo(\''+t[0]+'\')">'+t[1]+'</button>';
@@ -1256,9 +1256,13 @@ W.renderFactory=async function(tab){
         if(pl.data)m.plans=pl.data;
         var cf=await W.api('/api/v1/admin/factory/config');
         if(cf.data)m.config=cf.data;
+        var st=await W.api('/api/v1/admin/factory/sites');
+        if(st.data)m.sites=st.data;
+        var dm=await W.api('/api/v1/admin/factory/domains');
+        if(dm.data)m.domains=dm.data;
     }catch(e){}
-    var fns={plans:W.factoryPlans,config:W.factoryConfig,margin:W.factoryMargin};
-    (fns[tab]||W.factoryPlans)();
+    var fns={inicio:W.factoryInicio,sitios:W.factorySites,dominios:W.factoryDominios,emails:W.factoryEmails,pedidos:W.factoryPedidos,saldos:W.factorySaldos,ia:W.factoryIA,plans:W.factoryPlans,config:W.factoryConfig,margin:W.factoryMargin};
+    (fns[tab]||W.factoryInicio)();
 };
 
 W.factoryGo=function(t){location.hash='#factory/'+t};
@@ -1373,6 +1377,253 @@ W.factoryMargin=async function(){
     el.innerHTML=html;
 };
 
+W.fStatus=function(s){
+    var map={PUBLISHED:['#00B87D'],ACTIVE:['#00B87D'],PAID:['#00B87D'],READY:['#00B87D'],DRAFT:['#8b8fa3'],CREATED:['#8b8fa3'],PENDING_PAYMENT:['#F5A623'],PROVISIONING:['#B89EFF'],REGISTERED:['#B89EFF'],DNS_PENDING:['#B89EFF'],GENERATING:['#B89EFF'],REQUESTED:['#F5A623'],EXPIRING:['#F5A623'],AVAILABLE:['#B89EFF'],SUSPENDED:['#BE1341'],FAILED:['#BE1341'],EXPIRED:['#BE1341'],CANCELLED:['#BE1341'],REFUNDED:['#BE1341'],ARCHIVED:['#8b8fa3'],DELETED:['#8b8fa3']};
+    var c=map[s]||['#8b8fa3'];
+    return '<span class="w-badge" style="background:'+c[0]+'22;color:'+c[0]+'">'+W.esc(s||'')+'</span>';
+};
+
+W.fStatusSelect=function(id,current,options){
+    var s='<select class="w-select" id="'+id+'" onchange="wontia.'+options.cb+'(this.dataset.id,this.value)">';
+    options.list.forEach(function(o){s+='<option value="'+o+'"'+((current===o)?' selected':'')+'>'+o+'</option>'});
+    s+='</select>';
+    return s;
+};
+
+W.factoryInicio=async function(){
+    var el=document.getElementById('factory-content');
+    el.innerHTML='<div style="text-align:center;padding:40px;color:var(--w-muted)">Loading...</div>';
+    var r=await W.api('/api/v1/admin/factory/dashboard');
+    if(!r.ok){el.innerHTML='<div class="w-empty-state"><h3>Factory not initialized</h3><button class="w-btn w-btn-primary" onclick="wontia.factoryEnsure()">Setup Tables</button></div>';return}
+    var d=r.data;
+    var kpis=[['Sitios',d.sites_total],['Publicados',d.sites_published],['Dominios',d.domains_total+' ('+d.domains_active+' activos)'],['Emails',d.emails_total],['Clientes',d.clients],['Pedidos',d.orders_total+' ('+d.orders_paid+' pagados)'],['Ingresos',W.bMoney(d.revenue_total)],['IA del mes',W.bMoney(d.ai_cost_month)],['Jobs pendientes',d.pending_jobs]];
+    var html='<div class="w-stats">';
+    kpis.forEach(function(k){html+='<div class="w-stat-card"><div class="w-stat-value">'+k[1]+'</div><div class="w-stat-label">'+W.esc(k[0])+'</div></div>'});
+    html+='</div>';
+    html+='<div class="w-card"><h3>Servicios del ecosistema</h3><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px">';
+    [['Sitios web','#sitios','Gestionar sitios de clientes','fabrik'],['Dominios','#dominios','Registro y ciclo de vida','dom'],['Emails','#emails','Buzones corporativos','mail'],['Pedidos y Pagos','#pedidos','Órdenes y transiciones','ord'],['Saldos','#saldos','Créditos y consumos','sal'],['Consumo IA','#ia','Tokens y costos por cliente','ia']].forEach(function(s){
+        html+='<div class="w-card" style="padding:16px;cursor:pointer" onclick="wontia.factoryGo(\''+s[1].slice(1)+'\')"><div style="font-size:13px;font-weight:600">'+s[0]+'</div><div style="font-size:11px;color:var(--w-muted);margin-top:4px">'+s[2]+'</div></div>';
+    });
+    html+='</div></div>';
+    html+='<div class="w-card"><h3>Margin Guard</h3><div id="fg-margin-mini" style="font-size:11px;color:var(--w-muted)">Loading...</div></div>';
+    el.innerHTML=html;
+    var m=await W.api('/api/v1/admin/factory/margin');
+    var mini='';
+    (m.data||[]).forEach(function(x){
+        var color=x.status==='critical'?'#BE1341':x.status==='warning'?'#F5A623':'#00B87D';
+        mini+='<div class="w-flex-between" style="padding:6px 0;border-bottom:1px solid var(--w-border)"><span>'+W.esc(x.plan)+' ('+W.esc(x.billing)+')</span><strong style="color:'+color+'">'+x.margin_pct+'%</strong></div>';
+    });
+    document.getElementById('fg-margin-mini').innerHTML=mini||'No plans';
+};
+
+W.factorySites=async function(){
+    var el=document.getElementById('factory-content');
+    el.innerHTML='<div style="text-align:center;padding:40px;color:var(--w-muted)">Loading...</div>';
+    var r=await W.api('/api/v1/admin/factory/sites');
+    var rows=r.data||[];
+    var html='<div class="w-flex-between w-mb"><div style="font-size:12px;color:var(--w-muted)">Client sites (tenants) with lifecycle and plan.</div><button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.factorySiteForm()">+ New Site</button></div>';
+    html+='<table class="w-table"><tr><th>Site</th><th>Domain</th><th>Plan</th><th>Active Domain</th><th>Status</th><th>Created</th></tr>';
+    rows.forEach(function(s){
+        html+='<tr><td><strong>'+W.esc(s.name)+'</strong> <span style="font-size:10px;color:var(--w-muted)">#'+s.id+'</span></td><td style="font-size:11px">'+W.esc(s.domain||'-')+'</td><td>'+W.esc(s.plan_name||'-')+'</td><td style="font-size:11px">'+W.esc(s.active_domain||'-')+'</td><td>'+W.fStatusSelect('fs-'+s.id,s.status||'DRAFT',{list:['DRAFT','GENERATING','READY','PUBLISHED','SUSPENDED','ARCHIVED'],cb:'factorySiteStatus'})+'</td><td style="font-size:10px">'+W.esc((s.created_at||'').slice(0,10))+'</td></tr>';
+    });
+    html+='</table>';
+    el.innerHTML=html;
+};
+
+W.factorySiteStatus=async function(id,status){
+    var r=await W.api('/api/v1/admin/factory/sites/'+id+'/status',{method:'PUT',body:{status:status}});
+    if(r.ok)W.notify(r.message,'success');
+};
+
+W.factorySiteForm=function(){
+    var plans=W.state.factory.plans;
+    var opts='<option value="">— none —</option>';
+    plans.forEach(function(p){opts+='<option value="'+p.id+'">'+W.esc(p.name_es)+'</option>'});
+    var body='<div class="w-form-group"><label class="w-label">Site Name</label><input class="w-input" id="fsite-name" placeholder="Cliente - Negocio"/></div>';
+    body+='<div class="w-form-group"><label class="w-label">Domain (para publicar)</label><input class="w-input" id="fsite-domain" placeholder="cliente.com"/></div>';
+    body+='<div class="w-flex" style="gap:12px"><div class="w-form-group" style="flex:1"><label class="w-label">Locale</label><select class="w-select" id="fsite-locale"><option value="es">es</option><option value="en">en</option><option value="pt">pt</option></select></div><div class="w-form-group" style="flex:1"><label class="w-label">Plan</label><select class="w-select" id="fsite-plan">'+opts+'</select></div></div>';
+    W.modal('New Client Site',body,'<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cancel</button><button class="w-btn w-btn-primary" onclick="wontia.factorySaveSite()">Create</button>');
+};
+
+W.factorySaveSite=async function(){
+    var r=await W.api('/api/v1/admin/factory/sites',{method:'POST',body:{name:W.val('fsite-name'),domain:W.val('fsite-domain'),locale:W.val('fsite-locale'),plan_id:parseInt(W.val('fsite-plan'))||0,status:'DRAFT'}});
+    if(r.ok){W.closeModal();W.notify(r.message,'success');W.factorySites()}
+};
+
+W.factoryDominios=async function(){
+    var el=document.getElementById('factory-content');
+    el.innerHTML='<div style="text-align:center;padding:40px;color:var(--w-muted)">Loading...</div>';
+    var r=await W.api('/api/v1/admin/factory/domains');
+    var rows=r.data||[];
+    var html='<div class="w-flex-between w-mb"><div style="font-size:12px;color:var(--w-muted)">Domain registry & lifecycle.</div><button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.factoryDomainForm()">+ New Domain</button></div>';
+    html+='<table class="w-table"><tr><th>Domain</th><th>Site</th><th>Provider</th><th>Status</th><th>Renewal USD</th><th>Expires</th></tr>';
+    rows.forEach(function(d){
+        html+='<tr><td><strong>'+W.esc(d.name)+'</strong></td><td style="font-size:11px">'+W.esc(d.site_name||'-')+'</td><td>'+W.esc(d.provider||'-')+'</td><td>'+W.fStatusSelect('fd-'+d.id,d.status,{list:['SEARCH','AVAILABLE','REGISTERING','REGISTERED','DNS_PENDING','ACTIVE','EXPIRING','EXPIRED'],cb:'factoryDomainStatus'})+'</td><td>'+d.renewal_cost+'</td><td style="font-size:10px">'+W.esc((d.expires_at||'').slice(0,10)||'-')+'</td></tr>';
+    });
+    html+='</table>';
+    el.innerHTML=html;
+};
+
+W.factoryDomainStatus=async function(id,status){
+    var r=await W.api('/api/v1/admin/factory/domains/'+id+'/status',{method:'PUT',body:{status:status}});
+    if(r.ok)W.notify(r.message,'success');
+};
+
+W.factoryDomainForm=function(){
+    var sites=W.state.factory.sites||[];
+    var opts='<option value="0">— none —</option>';
+    sites.forEach(function(s){opts+='<option value="'+s.id+'">'+W.esc(s.name)+'</option>'});
+    var body='<div class="w-form-group"><label class="w-label">Domain</label><input class="w-input" id="fdom-name" placeholder="cliente.com"/></div>';
+    body+='<div class="w-flex" style="gap:12px"><div class="w-form-group" style="flex:1"><label class="w-label">Site</label><select class="w-select" id="fdom-site">'+opts+'</select></div><div class="w-form-group" style="flex:1"><label class="w-label">Provider</label><input class="w-input" id="fdom-prov" placeholder="registrar"/></div></div>';
+    body+='<div class="w-flex" style="gap:12px"><div class="w-form-group" style="flex:1"><label class="w-label">Registration USD</label><input class="w-input" id="fdom-reg" type="number" step="0.01" value="10.97"/></div><div class="w-form-group" style="flex:1"><label class="w-label">Renewal USD</label><input class="w-input" id="fdom-ren" type="number" step="0.01" value="10.97"/></div></div>';
+    W.modal('New Domain',body,'<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cancel</button><button class="w-btn w-btn-primary" onclick="wontia.factorySaveDomain()">Create</button>');
+};
+
+W.factorySaveDomain=async function(){
+    var r=await W.api('/api/v1/admin/factory/domains',{method:'POST',body:{name:W.val('fdom-name'),site_id:parseInt(W.val('fdom-site'))||0,provider:W.val('fdom-prov'),registration_cost:parseFloat(W.val('fdom-reg'))||0,renewal_cost:parseFloat(W.val('fdom-ren'))||0,status:'AVAILABLE'}});
+    if(r.ok){W.closeModal();W.notify(r.message,'success');W.factoryDominios()}
+};
+
+W.factoryEmails=async function(){
+    var el=document.getElementById('factory-content');
+    el.innerHTML='<div style="text-align:center;padding:40px;color:var(--w-muted)">Loading...</div>';
+    var r=await W.api('/api/v1/admin/factory/emails');
+    var rows=r.data||[];
+    var html='<div class="w-flex-between w-mb"><div style="font-size:12px;color:var(--w-muted)">Corporate mailboxes. Passwords are never stored in plain text.</div><button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.factoryEmailForm()">+ New Mailbox</button></div>';
+    html+='<table class="w-table"><tr><th>Mailbox</th><th>Domain</th><th>Provider</th><th>Status</th></tr>';
+    rows.forEach(function(e){
+        html+='<tr><td><strong>'+W.esc(e.mailbox)+'</strong></td><td style="font-size:11px">'+W.esc(e.domain_name||'-')+'</td><td>'+W.esc(e.provider||'-')+'</td><td>'+W.fStatusSelect('fe-'+e.id,e.status,{list:['REQUESTED','PROVISIONING','ACTIVE','SUSPENDED','DELETED'],cb:'factoryEmailStatus'})+'</td></tr>';
+    });
+    html+='</table>';
+    el.innerHTML=html;
+};
+
+W.factoryEmailStatus=async function(id,status){
+    var r=await W.api('/api/v1/admin/factory/emails/'+id+'/status',{method:'PUT',body:{status:status}});
+    if(r.ok)W.notify(r.message,'success');
+};
+
+W.factoryEmailForm=function(){
+    var sites=W.state.factory.sites||[];
+    var domains=W.state.factory.domains||[];
+    var sopts='<option value="0">— none —</option>';
+    sites.forEach(function(s){sopts+='<option value="'+s.id+'">'+W.esc(s.name)+'</option>'});
+    var dopts='<option value="0">— none —</option>';
+    domains.forEach(function(d){dopts+='<option value="'+d.id+'">'+W.esc(d.name)+'</option>'});
+    var body='<div class="w-form-group"><label class="w-label">Mailbox (usuario@dominio.com)</label><input class="w-input" id="fmail-box" placeholder="contacto"/></div>';
+    body+='<div class="w-flex" style="gap:12px"><div class="w-form-group" style="flex:1"><label class="w-label">Site</label><select class="w-select" id="fmail-site">'+sopts+'</select></div><div class="w-form-group" style="flex:1"><label class="w-label">Domain</label><select class="w-select" id="fmail-dom">'+dopts+'</select></div></div>';
+    body+='<div class="w-form-group"><label class="w-label">Provider</label><input class="w-input" id="fmail-prov" placeholder="mail provider"/></div>';
+    W.modal('New Mailbox',body,'<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cancel</button><button class="w-btn w-btn-primary" onclick="wontia.factorySaveEmail()">Create</button>');
+};
+
+W.factorySaveEmail=async function(){
+    var r=await W.api('/api/v1/admin/factory/emails',{method:'POST',body:{mailbox:W.val('fmail-box'),site_id:parseInt(W.val('fmail-site'))||0,domain_id:parseInt(W.val('fmail-dom'))||0,provider:W.val('fmail-prov'),status:'REQUESTED'}});
+    if(r.ok){W.closeModal();W.notify(r.message,'success');W.factoryEmails()}
+};
+
+W.factoryPedidos=async function(){
+    var el=document.getElementById('factory-content');
+    el.innerHTML='<div style="text-align:center;padding:40px;color:var(--w-muted)">Loading...</div>';
+    var r=await W.api('/api/v1/admin/factory/orders');
+    var rows=r.data||[];
+    var html='<div class="w-flex-between w-mb"><div style="font-size:12px;color:var(--w-muted)">Orders — payment webhook will drive these states automatically (Fase 1).</div><button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.factoryOrderForm()">+ New Order</button></div>';
+    html+='<table class="w-table"><tr><th>Order</th><th>Client</th><th>Plan</th><th>Domain</th><th>Total</th><th>Status</th><th>Created</th></tr>';
+    rows.forEach(function(o){
+        html+='<tr><td style="font-size:10px">'+W.esc((o.uuid||'').slice(0,8))+'</td><td style="font-size:11px">'+W.esc(o.customer_name||o.site_name||'-')+'</td><td>'+W.esc(o.plan_slug||'-')+'</td><td style="font-size:11px">'+W.esc(o.domain_name||'-')+'</td><td>$'+W.num(o.total)+' '+W.esc(o.currency||'')+'</td><td>'+W.fStatusSelect('fo-'+o.id,o.status,{list:['CREATED','PENDING_PAYMENT','PAID','PROVISIONING','READY','FAILED','CANCELLED','REFUNDED'],cb:'factoryOrderStatus'})+'</td><td style="font-size:10px">'+W.esc((o.created_at||'').slice(0,10))+'</td></tr>';
+    });
+    html+='</table>';
+    el.innerHTML=html;
+};
+
+W.factoryOrderStatus=async function(id,status){
+    var r=await W.api('/api/v1/admin/factory/orders/'+id+'/status',{method:'PUT',body:{status:status}});
+    if(r.ok){W.notify(r.message,'success');if(status==='PAID')W.notify('Balance credited to tenant','success')}
+};
+
+W.factoryOrderForm=function(){
+    var plans=W.state.factory.plans;
+    var sites=W.state.factory.sites||[];
+    var opts='<option value="">— none —</option>';
+    plans.forEach(function(p){opts+='<option value="'+p.id+'">'+W.esc(p.name_es)+' ($'+W.num(p.price_cop)+')</option>'});
+    var sopts='<option value="0">— none —</option>';
+    sites.forEach(function(s){sopts+='<option value="'+s.id+'">'+W.esc(s.name)+'</option>'});
+    var body='<div class="w-flex" style="gap:12px"><div class="w-form-group" style="flex:1"><label class="w-label">Client Name</label><input class="w-input" id="fo-name"/></div><div class="w-form-group" style="flex:1"><label class="w-label">Client Email</label><input class="w-input" id="fo-email" type="email"/></div></div>';
+    body+='<div class="w-flex" style="gap:12px"><div class="w-form-group" style="flex:1"><label class="w-label">Plan</label><select class="w-select" id="fo-plan">'+opts+'</select></div><div class="w-form-group" style="flex:1"><label class="w-label">Tenant Site</label><select class="w-select" id="fo-tenant">'+sopts+'</select></div></div>';
+    body+='<div class="w-form-group"><label class="w-label">Domain (opcional)</label><input class="w-input" id="fo-domain" placeholder="cliente.com"/></div>';
+    W.modal('New Order',body,'<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cancel</button><button class="w-btn w-btn-primary" onclick="wontia.factorySaveOrder()">Create</button>');
+};
+
+W.factorySaveOrder=async function(){
+    var r=await W.api('/api/v1/admin/factory/orders',{method:'POST',body:{customer_name:W.val('fo-name'),customer_email:W.val('fo-email'),plan_id:parseInt(W.val('fo-plan'))||0,tenant_id:parseInt(W.val('fo-tenant'))||0,domain_name:W.val('fo-domain')}});
+    if(r.ok){W.closeModal();W.notify(r.message,'success');W.factoryPedidos()}
+};
+
+W.factorySaldos=async function(){
+    var el=document.getElementById('factory-content');
+    el.innerHTML='<div style="text-align:center;padding:40px;color:var(--w-muted)">Loading...</div>';
+    var r=await W.api('/api/v1/admin/factory/ledger');
+    var rows=r.data||[];
+    var html='<div class="w-flex-between w-mb"><div style="font-size:12px;color:var(--w-muted)">Balance ledger — credits and debits per tenant. Auto-credited when orders are PAID.</div><button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.factoryLedgerForm()">+ Entry</button></div>';
+    html+='<table class="w-table"><tr><th>Site</th><th>Type</th><th>Amount</th><th>Reason</th><th>Ref</th><th>When</th></tr>';
+    rows.forEach(function(l){
+        html+='<tr><td style="font-size:11px">'+W.esc(l.site_name||('#'+l.site_id))+'</td><td>'+(l.direction==='credit'?'<span style="color:#00B87D">CREDIT</span>':'<span style="color:#BE1341">DEBIT</span>')+'</td><td><strong>$'+W.num(l.amount)+'</strong></td><td style="font-size:11px">'+W.esc(l.reason||'')+'</td><td style="font-size:10px">'+W.esc(l.ref||'')+'</td><td style="font-size:10px">'+W.esc((l.created_at||'').slice(0,16))+'</td></tr>';
+    });
+    html+='</table>';
+    el.innerHTML=html;
+};
+
+W.factoryLedgerForm=function(){
+    var sites=W.state.factory.sites||[];
+    var sopts='<option value="0">— none —</option>';
+    sites.forEach(function(s){sopts+='<option value="'+s.id+'">'+W.esc(s.name)+'</option>'});
+    var body='<div class="w-form-group"><label class="w-label">Site</label><select class="w-select" id="fl-site">'+sopts+'</select></div>';
+    body+='<div class="w-flex" style="gap:12px"><div class="w-form-group" style="flex:1"><label class="w-label">Type</label><select class="w-select" id="fl-dir"><option value="credit">Credit (+)</option><option value="debit">Debit (−)</option></select></div><div class="w-form-group" style="flex:1"><label class="w-label">Amount</label><input class="w-input" id="fl-amt" type="number"/></div></div>';
+    body+='<div class="w-form-group"><label class="w-label">Reason</label><input class="w-input" id="fl-reason" placeholder="Pago, consumo, ajuste..."/></div>';
+    W.modal('New Ledger Entry',body,'<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cancel</button><button class="w-btn w-btn-primary" onclick="wontia.factorySaveLedger()">Create</button>');
+};
+
+W.factorySaveLedger=async function(){
+    var r=await W.api('/api/v1/admin/factory/ledger',{method:'POST',body:{site_id:parseInt(W.val('fl-site'))||0,direction:W.val('fl-dir'),amount:parseFloat(W.val('fl-amt'))||0,reason:W.val('fl-reason')}});
+    if(r.ok){W.closeModal();W.notify(r.message,'success');W.factorySaldos()}
+};
+
+W.factoryIA=async function(){
+    var el=document.getElementById('factory-content');
+    el.innerHTML='<div style="text-align:center;padding:40px;color:var(--w-muted)">Loading...</div>';
+    var r=await W.api('/api/v1/admin/factory/ai-usage');
+    var rows=r.data||[];
+    var html='<div class="w-flex-between w-mb"><div style="font-size:12px;color:var(--w-muted)">AI consumption per client this month (from BRICK usage records).</div><button class="w-btn w-btn-secondary w-btn-sm" onclick="location.hash=\'#brick\'">Open AI BRICK</button></div>';
+    html+='<table class="w-table"><tr><th>Site</th><th>Requests</th><th>Tokens</th><th>Cost</th></tr>';
+    rows.forEach(function(x){
+        html+='<tr><td style="font-size:11px">'+W.esc(x.site_name||('#'+x.site_id))+'</td><td>'+W.num(x.requests)+'</td><td>'+W.num(x.tokens)+'</td><td>'+W.bMoney(x.cost)+'</td></tr>';
+    });
+    html+='</table>';
+    if(!rows.length)html+='<div class="w-empty-state"><p>No AI usage yet this month.</p></div>';
+    el.innerHTML=html;
+};
+
+W.renderPortal=async function(){
+    var app=document.getElementById('wontia-app');
+    app.innerHTML='<div style="text-align:center;padding:60px;color:var(--w-muted)">Loading your services...</div>';
+    var r=await W.api('/api/v1/admin/factory/my-portal');
+    if(!r.ok){app.innerHTML='<div class="w-empty-state"><p>'+W.esc(r.message||'Error')+'</p></div>';return}
+    var d=r.data;
+    var site=d.site||{};
+    var plan=d.plan||{};
+    var ai=d.ai_month||{};
+    var html='<div class="w-stats">';
+    html+='<div class="w-stat-card"><div class="w-stat-value">'+W.esc(site.status||'-')+'</div><div class="w-stat-label">Mi sitio</div></div>';
+    html+='<div class="w-stat-card"><div class="w-stat-value">'+W.esc(plan?plan.name_es:'-')+'</div><div class="w-stat-label">Plan</div></div>';
+    html+='<div class="w-stat-card"><div class="w-stat-value">'+W.bMoney(d.balance)+'</div><div class="w-stat-label">Saldo</div></div>';
+    html+='<div class="w-stat-card"><div class="w-stat-value">'+W.bMoney(ai.cost||0)+'</div><div class="w-stat-label">IA del mes</div></div>';
+    html+='</div>';
+    html+='<div class="w-brick-grid2"><div class="w-card"><h3>Mi sitio</h3><table class="w-table"><tr><th>Nombre</th><td>'+W.esc(site.name||'-')+'</td></tr><tr><th>Dominio</th><td>'+W.esc(site.domain||'-')+'</td></tr><tr><th>Estado</th><td>'+W.fStatus(site.status||'DRAFT')+'</td></tr></table></div>';
+    html+='<div class="w-card"><h3>Dominios</h3>'+(d.domains&&d.domains.length?'<table class="w-table"><tr><th>Dominio</th><th>Estado</th><th>Expira</th></tr>'+d.domains.map(function(x){return '<tr><td>'+W.esc(x.name)+'</td><td>'+W.fStatus(x.status)+'</td><td>'+(x.expires_at||'-')+'</td></tr>'}).join('')+'</table>':'<div class="w-empty-state" style="padding:20px"><p>Sin dominios</p></div>')+'</div></div>';
+    html+='<div class="w-brick-grid2"><div class="w-card"><h3>Correos</h3>'+(d.emails&&d.emails.length?'<table class="w-table"><tr><th>Buzón</th><th>Estado</th></tr>'+d.emails.map(function(x){return '<tr><td>'+W.esc(x.mailbox)+'</td><td>'+W.fStatus(x.status)+'</td></tr>'}).join('')+'</table>':'<div class="w-empty-state" style="padding:20px"><p>Sin buzones</p></div>')+'</div>';
+    html+='<div class="w-card"><h3>Pedidos</h3>'+(d.orders&&d.orders.length?'<table class="w-table"><tr><th>#</th><th>Plan</th><th>Total</th><th>Estado</th></tr>'+d.orders.map(function(o){return '<tr><td>'+W.esc((o.uuid||'').slice(0,8))+'</td><td>'+(o.plan_id||'-')+'</td><td>$'+W.num(o.total)+'</td><td>'+W.fStatus(o.status)+'</td></tr>'}).join('')+'</table>':'<div class="w-empty-state" style="padding:20px"><p>Sin pedidos</p></div>')+'</div></div>';
+    app.innerHTML=html;
+};
+
 W.panels={
     dashboard:W.renderDashboard,
     pageEditor:W.renderPageEditor,
@@ -1382,6 +1633,7 @@ W.panels={
     brickhub:W.renderBrickHub,
     brick:W.renderBrick,
     factory:W.renderFactory,
+    portal:W.renderPortal,
     blog:W.renderBlogList,
     blogEditor:W.renderBlogEditor,
     media:W.renderMediaManager,

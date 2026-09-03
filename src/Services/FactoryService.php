@@ -167,6 +167,253 @@ class FactoryService
         return [];
     }
 
+    public function dashboard(): array
+    {
+        $db = Database::instance();
+        $monthStart = date('Y-m-01 00:00:00');
+        return [
+            'sites_total' => (int)$db->query("SELECT COUNT(*) FROM sites")->fetchColumn(),
+            'sites_published' => (int)$db->query("SELECT COUNT(*) FROM sites WHERE status = 'PUBLISHED'")->fetchColumn(),
+            'domains_total' => (int)$db->query("SELECT COUNT(*) FROM wwi_domains")->fetchColumn(),
+            'domains_active' => (int)$db->query("SELECT COUNT(*) FROM wwi_domains WHERE status IN ('ACTIVE','REGISTERED')")->fetchColumn(),
+            'emails_total' => (int)$db->query("SELECT COUNT(*) FROM wwi_email_accounts")->fetchColumn(),
+            'orders_total' => (int)$db->query("SELECT COUNT(*) FROM wwi_orders")->fetchColumn(),
+            'orders_paid' => (int)$db->query("SELECT COUNT(*) FROM wwi_orders WHERE status IN ('PAID','PROVISIONING','READY')")->fetchColumn(),
+            'revenue_total' => round((float)$db->query("SELECT COALESCE(SUM(total),0) FROM wwi_orders WHERE status IN ('PAID','PROVISIONING','READY')")->fetchColumn(), 2),
+            'ai_cost_month' => round((float)$db->query("SELECT COALESCE(SUM(estimated_cost),0) FROM ai_usage WHERE created_at >= '$monthStart'")->fetchColumn(), 4),
+            'pending_jobs' => (int)$db->query("SELECT COUNT(*) FROM wwi_jobs WHERE status IN ('queued','retrying')")->fetchColumn(),
+            'clients' => (int)$db->query("SELECT COUNT(*) FROM users WHERE role = 'client'")->fetchColumn(),
+        ];
+    }
+
+    public function sitesAll(): array
+    {
+        $db = Database::instance();
+        return $db->query("SELECT s.id, s.name, s.domain, s.locale, s.theme, s.status, s.plan_id, s.uuid, s.owner_user_id, s.is_active, s.created_at,
+            (SELECT name FROM wwi_domains d WHERE d.site_id = s.id ORDER BY d.id DESC LIMIT 1) AS active_domain,
+            p.slug AS plan_slug, p.name_es AS plan_name
+            FROM sites s LEFT JOIN wwi_plans p ON p.id = s.plan_id ORDER BY s.id DESC")->fetchAll();
+    }
+
+    public function addSite(array $d): array
+    {
+        $db = Database::instance();
+        $name = trim((string)($d['name'] ?? ''));
+        if ($name === '') return ['ok' => false, 'message' => 'Name is required'];
+        $uuid = isset($d['uuid']) && $d['uuid'] ? (string)$d['uuid'] : bin2hex(random_bytes(18));
+        $stmt = $db->prepare("INSERT INTO sites (name, domain, locale, theme, plan_id, status, uuid, owner_user_id) VALUES (:name, :domain, :locale, :theme, :plan, :status, :uuid, :owner)");
+        $stmt->execute([
+            'name' => $name,
+            'domain' => (string)($d['domain'] ?? ''),
+            'locale' => (string)($d['locale'] ?? 'es'),
+            'theme' => (string)($d['theme'] ?? 'default'),
+            'plan' => (int)($d['plan_id'] ?? 0) ?: null,
+            'status' => (string)($d['status'] ?? 'DRAFT'),
+            'uuid' => $uuid,
+            'owner' => (int)($d['owner_user_id'] ?? 0) ?: null,
+        ]);
+        return ['ok' => true, 'message' => 'Site created', 'id' => (int)$db->lastInsertId()];
+    }
+
+    public function updateSiteStatus(int $id, string $status): array
+    {
+        $allowed = ['DRAFT','GENERATING','READY','PUBLISHED','SUSPENDED','ARCHIVED'];
+        if (!in_array($status, $allowed, true)) return ['ok' => false, 'message' => 'Invalid status'];
+        Database::instance()->prepare("UPDATE sites SET status = :s WHERE id = :id")->execute(['s' => $status, 'id' => $id]);
+        return ['ok' => true, 'message' => 'Site status updated'];
+    }
+
+    public function domainsAll(): array
+    {
+        $db = Database::instance();
+        return $db->query("SELECT d.*, s.name AS site_name FROM wwi_domains d LEFT JOIN sites s ON s.id = d.site_id ORDER BY d.id DESC")->fetchAll();
+    }
+
+    public function addDomain(array $d): array
+    {
+        $db = Database::instance();
+        $name = strtolower(trim((string)($d['name'] ?? '')));
+        if ($name === '') return ['ok' => false, 'message' => 'Domain name is required'];
+        $siteId = (int)($d['site_id'] ?? 0);
+        $tld = str_contains($name, '.') ? substr($name, strrpos($name, '.') + 1) : '';
+        try {
+            $stmt = $db->prepare("INSERT INTO wwi_domains (site_id, name, tld, status, provider, registration_cost, renewal_cost, currency) VALUES (:sid, :name, :tld, :status, :provider, :rc, :rn, 'USD')");
+            $stmt->execute([
+                'sid' => $siteId,
+                'name' => $name,
+                'tld' => $tld,
+                'status' => (string)($d['status'] ?? 'AVAILABLE'),
+                'provider' => (string)($d['provider'] ?? ''),
+                'rc' => (float)($d['registration_cost'] ?? 0),
+                'rn' => (float)($d['renewal_cost'] ?? 0),
+            ]);
+            return ['ok' => true, 'message' => 'Domain added', 'id' => (int)$db->lastInsertId()];
+        } catch (\PDOException $e) {
+            return ['ok' => false, 'message' => $e->getCode() === '23000' ? 'Domain already exists' : 'Database error'];
+        }
+    }
+
+    public function updateDomainStatus(int $id, string $status): array
+    {
+        $allowed = ['SEARCH','AVAILABLE','REGISTERING','REGISTERED','DNS_PENDING','ACTIVE','EXPIRING','EXPIRED'];
+        if (!in_array($status, $allowed, true)) return ['ok' => false, 'message' => 'Invalid status'];
+        Database::instance()->prepare("UPDATE wwi_domains SET status = :s WHERE id = :id")->execute(['s' => $status, 'id' => $id]);
+        return ['ok' => true, 'message' => 'Domain status updated'];
+    }
+
+    public function emailsAll(): array
+    {
+        $db = Database::instance();
+        return $db->query("SELECT e.*, d.name AS domain_name FROM wwi_email_accounts e LEFT JOIN wwi_domains d ON d.id = e.domain_id ORDER BY e.id DESC")->fetchAll();
+    }
+
+    public function addEmail(array $d): array
+    {
+        $db = Database::instance();
+        $mailbox = strtolower(trim((string)($d['mailbox'] ?? '')));
+        if ($mailbox === '') return ['ok' => false, 'message' => 'Mailbox is required'];
+        try {
+            $stmt = $db->prepare("INSERT INTO wwi_email_accounts (site_id, domain_id, mailbox, display_name, status, provider) VALUES (:sid, :did, :mb, :dn, :st, :p)");
+            $stmt->execute([
+                'sid' => (int)($d['site_id'] ?? 0),
+                'did' => (int)($d['domain_id'] ?? 0) ?: null,
+                'mb' => $mailbox,
+                'dn' => (string)($d['display_name'] ?? ''),
+                'st' => (string)($d['status'] ?? 'REQUESTED'),
+                'p' => (string)($d['provider'] ?? ''),
+            ]);
+            return ['ok' => true, 'message' => 'Mailbox added', 'id' => (int)$db->lastInsertId()];
+        } catch (\PDOException $e) {
+            return ['ok' => false, 'message' => $e->getCode() === '23000' ? 'Mailbox already exists' : 'Database error'];
+        }
+    }
+
+    public function updateEmailStatus(int $id, string $status): array
+    {
+        $allowed = ['REQUESTED','PROVISIONING','ACTIVE','SUSPENDED','DELETED'];
+        if (!in_array($status, $allowed, true)) return ['ok' => false, 'message' => 'Invalid status'];
+        Database::instance()->prepare("UPDATE wwi_email_accounts SET status = :s WHERE id = :id")->execute(['s' => $status, 'id' => $id]);
+        return ['ok' => true, 'message' => 'Mailbox status updated'];
+    }
+
+    public function ordersAll(): array
+    {
+        $db = Database::instance();
+        return $db->query("SELECT o.*, s.name AS site_name, p.slug AS plan_slug, p.name_es AS plan_name
+            FROM wwi_orders o
+            LEFT JOIN sites s ON s.id = o.tenant_id
+            LEFT JOIN wwi_plans p ON p.id = o.plan_id
+            ORDER BY o.id DESC LIMIT 200")->fetchAll();
+    }
+
+    public function addOrder(array $d): array
+    {
+        $db = Database::instance();
+        $plan = $this->plan((int)($d['plan_id'] ?? 0));
+        if (!$plan) return ['ok' => false, 'message' => 'Plan not found'];
+        $uuid = isset($d['uuid']) && $d['uuid'] ? (string)$d['uuid'] : bin2hex(random_bytes(16));
+        $stmt = $db->prepare("INSERT INTO wwi_orders (site_id, uuid, customer_name, customer_email, customer_phone, plan_id, domain_name, tenant_id, status, subtotal, total, currency, locale) VALUES (@site_id, :uuid, :cn, :ce, :cp, :plan, :dn, :tid, 'CREATED', :sub, :tot, :cur, :loc)");
+        $stmt->execute([
+            'uuid' => $uuid,
+            'cn' => (string)($d['customer_name'] ?? ''),
+            'ce' => (string)($d['customer_email'] ?? ''),
+            'cp' => (string)($d['customer_phone'] ?? ''),
+            'plan' => (int)$plan['id'],
+            'dn' => (string)($d['domain_name'] ?? ''),
+            'tid' => (int)($d['tenant_id'] ?? 0) ?: null,
+            'sub' => $plan['price_cop'],
+            'tot' => $plan['price_cop'],
+            'cur' => 'COP',
+            'loc' => (string)($d['locale'] ?? 'es'),
+        ]);
+        return ['ok' => true, 'message' => 'Order created', 'id' => (int)$db->lastInsertId(), 'uuid' => $uuid];
+    }
+
+    public function transitionOrder(int $id, string $status): array
+    {
+        $allowed = ['CREATED','PENDING_PAYMENT','PAID','PROVISIONING','READY','FAILED','CANCELLED','REFUNDED'];
+        if (!in_array($status, $allowed, true)) return ['ok' => false, 'message' => 'Invalid status'];
+        $db = Database::instance();
+        $stmt = $db->prepare("SELECT * FROM wwi_orders WHERE id = :id");
+        $stmt->execute(['id' => $id]);
+        $order = $stmt->fetch();
+        if (!$order) return ['ok' => false, 'message' => 'Order not found'];
+        $db->prepare("UPDATE wwi_orders SET status = :s WHERE id = :id")->execute(['s' => $status, 'id' => $id]);
+        if ($status === 'PAID' && $order['status'] !== 'PAID' && $order['tenant_id']) {
+            $this->addLedger(['site_id' => (int)$order['tenant_id'], 'direction' => 'credit', 'amount' => (float)$order['total'], 'reason' => 'Plan payment', 'ref' => 'order:' . $order['uuid']]);
+        }
+        if ($status === 'REFUNDED' && $order['tenant_id']) {
+            $this->addLedger(['site_id' => (int)$order['tenant_id'], 'direction' => 'debit', 'amount' => (float)$order['total'], 'reason' => 'Refund', 'ref' => 'order:' . $order['uuid']]);
+        }
+        return ['ok' => true, 'message' => 'Order status updated'];
+    }
+
+    public function ledgerAll(): array
+    {
+        $db = Database::instance();
+        return $db->query("SELECT l.*, s.name AS site_name FROM wwi_balance_ledger l LEFT JOIN sites s ON s.id = l.site_id ORDER BY l.id DESC LIMIT 200")->fetchAll();
+    }
+
+    public function addLedger(array $d): array
+    {
+        $db = Database::instance();
+        $stmt = $db->prepare("INSERT INTO wwi_balance_ledger (site_id, direction, amount, reason, ref, created_by) VALUES (:sid, :dir, :amt, :reason, :ref, :by)");
+        $stmt->execute([
+            'sid' => (int)($d['site_id'] ?? 0),
+            'dir' => in_array($d['direction'] ?? '', ['credit', 'debit'], true) ? $d['direction'] : 'credit',
+            'amt' => (float)($d['amount'] ?? 0),
+            'reason' => (string)($d['reason'] ?? ''),
+            'ref' => (string)($d['ref'] ?? ''),
+            'by' => null,
+        ]);
+        return ['ok' => true, 'message' => 'Ledger entry added', 'id' => (int)$db->lastInsertId()];
+    }
+
+    public function balanceFor(int $siteId): float
+    {
+        $stmt = Database::instance()->prepare("SELECT COALESCE(SUM(CASE WHEN direction='credit' THEN amount ELSE -amount END),0) FROM wwi_balance_ledger WHERE site_id = :sid");
+        $stmt->execute(['sid' => $siteId]);
+        return round((float)$stmt->fetchColumn(), 2);
+    }
+
+    public function aiUsageBySite(): array
+    {
+        $db = Database::instance();
+        return $db->query("SELECT u.site_id, s.name AS site_name, COUNT(*) AS requests, COALESCE(SUM(u.total_tokens),0) AS tokens, COALESCE(SUM(u.estimated_cost),0) AS cost
+            FROM ai_usage u LEFT JOIN sites s ON s.id = u.site_id
+            WHERE u.created_at >= '" . date('Y-m-01 00:00:00') . "'
+            GROUP BY u.site_id, s.name ORDER BY cost DESC LIMIT 50")->fetchAll();
+    }
+
+    public function myPortal(): array
+    {
+        $db = Database::instance();
+        $siteId = (int)$db->query("SELECT @site_id AS sid")->fetchColumn();
+        $site = $db->prepare("SELECT * FROM sites WHERE id = :sid");
+        $site->execute(['sid' => $siteId]);
+        $siteRow = $site->fetch() ?: null;
+        $plan = null;
+        if ($siteRow && $siteRow['plan_id']) $plan = $this->plan((int)$siteRow['plan_id']);
+        $domains = $db->prepare("SELECT * FROM wwi_domains WHERE site_id = :sid ORDER BY id DESC");
+        $domains->execute(['sid' => $siteId]);
+        $emails = $db->prepare("SELECT e.*, d.name AS domain_name FROM wwi_email_accounts e LEFT JOIN wwi_domains d ON d.id = e.domain_id WHERE e.site_id = :sid ORDER BY e.id DESC");
+        $emails->execute(['sid' => $siteId]);
+        $orders = $db->prepare("SELECT * FROM wwi_orders WHERE tenant_id = :sid ORDER BY id DESC LIMIT 50");
+        $orders->execute(['sid' => $siteId]);
+        $monthStart = date('Y-m-01 00:00:00');
+        $aiStmt = $db->prepare("SELECT COUNT(*) AS requests, COALESCE(SUM(total_tokens),0) AS tokens, COALESCE(SUM(estimated_cost),0) AS cost FROM ai_usage WHERE site_id = :sid AND created_at >= :from");
+        $aiStmt->execute(['sid' => $siteId, 'from' => $monthStart]);
+        return [
+            'site' => $siteRow,
+            'plan' => $plan,
+            'domains' => $domains->fetchAll(),
+            'emails' => $emails->fetchAll(),
+            'orders' => $orders->fetchAll(),
+            'balance' => $this->balanceFor($siteId),
+            'ai_month' => $aiStmt->fetch(),
+        ];
+    }
+
     public function ensureTables(): array
     {
         $db = Database::instance();
@@ -187,6 +434,14 @@ class FactoryService
             "CREATE TABLE IF NOT EXISTS wwi_site_versions (id INT AUTO_INCREMENT PRIMARY KEY, site_id INT NOT NULL DEFAULT 1, label VARCHAR(100), snapshot JSON, created_by INT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, KEY idx_versions_site (site_id, id)) ENGINE=InnoDB",
         ];
         foreach ($ddl as $sql) $db->exec($sql);
+
+        $db->exec("ALTER TABLE sites ADD COLUMN IF NOT EXISTS plan_id INT NULL");
+        $db->exec("ALTER TABLE sites ADD COLUMN IF NOT EXISTS status VARCHAR(30) DEFAULT 'DRAFT'");
+        $db->exec("ALTER TABLE sites ADD COLUMN IF NOT EXISTS uuid CHAR(36) NULL");
+        $db->exec("ALTER TABLE sites ADD COLUMN IF NOT EXISTS owner_user_id INT NULL");
+        $db->exec("ALTER TABLE users MODIFY role ENUM('superadmin','admin','editor','client') DEFAULT 'admin'");
+        $db->exec("ALTER TABLE wwi_orders ADD COLUMN IF NOT EXISTS tenant_id INT NULL");
+        $db->exec("CREATE TABLE IF NOT EXISTS wwi_balance_ledger (id INT AUTO_INCREMENT PRIMARY KEY, site_id INT NOT NULL DEFAULT 1, direction ENUM('credit','debit') NOT NULL, amount DECIMAL(12,2) NOT NULL DEFAULT 0, reason VARCHAR(200), ref VARCHAR(100), created_by INT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, KEY idx_ledger_site (site_id, created_at)) ENGINE=InnoDB");
 
         $seeded = false;
         $planCount = (int)$db->query("SELECT COUNT(*) FROM wwi_plans WHERE site_id = @site_id")->fetchColumn();

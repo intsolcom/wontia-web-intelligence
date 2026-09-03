@@ -3,6 +3,7 @@ namespace App\Controllers\Admin;
 
 use App\Core\Request;
 use App\Core\Response;
+use App\Core\Session;
 use App\Services\FactoryService;
 
 class FactoryController
@@ -12,6 +13,125 @@ class FactoryController
     public function __construct()
     {
         $this->service = new FactoryService();
+    }
+
+    private function requireSuper(): void
+    {
+        if (Session::userRole() !== 'superadmin') Response::error('Forbidden', 403);
+    }
+
+    public function dashboard(): void
+    {
+        $this->requireSuper();
+        Response::json(['ok' => true, 'data' => $this->service->dashboard()]);
+    }
+
+    public function sites(): void
+    {
+        $this->requireSuper();
+        Response::json(['ok' => true, 'data' => $this->service->sitesAll()]);
+    }
+
+    public function addSite(Request $request): void
+    {
+        $this->requireSuper();
+        $result = $this->service->addSite($request->json());
+        $result['ok'] ? Response::success($result, $result['message']) : Response::error($result['message']);
+    }
+
+    public function siteStatus(Request $request, $id): void
+    {
+        $this->requireSuper();
+        $status = (string)($request->json()['status'] ?? '');
+        $result = $this->service->updateSiteStatus((int)$id, $status);
+        $result['ok'] ? Response::success(null, $result['message']) : Response::error($result['message']);
+    }
+
+    public function domains(): void
+    {
+        $this->requireSuper();
+        Response::json(['ok' => true, 'data' => $this->service->domainsAll()]);
+    }
+
+    public function addDomain(Request $request): void
+    {
+        $this->requireSuper();
+        $result = $this->service->addDomain($request->json());
+        $result['ok'] ? Response::success($result, $result['message']) : Response::error($result['message']);
+    }
+
+    public function domainStatus(Request $request, $id): void
+    {
+        $this->requireSuper();
+        $status = (string)($request->json()['status'] ?? '');
+        $result = $this->service->updateDomainStatus((int)$id, $status);
+        $result['ok'] ? Response::success(null, $result['message']) : Response::error($result['message']);
+    }
+
+    public function emails(): void
+    {
+        $this->requireSuper();
+        Response::json(['ok' => true, 'data' => $this->service->emailsAll()]);
+    }
+
+    public function addEmail(Request $request): void
+    {
+        $this->requireSuper();
+        $result = $this->service->addEmail($request->json());
+        $result['ok'] ? Response::success($result, $result['message']) : Response::error($result['message']);
+    }
+
+    public function emailStatus(Request $request, $id): void
+    {
+        $this->requireSuper();
+        $status = (string)($request->json()['status'] ?? '');
+        $result = $this->service->updateEmailStatus((int)$id, $status);
+        $result['ok'] ? Response::success(null, $result['message']) : Response::error($result['message']);
+    }
+
+    public function orders(): void
+    {
+        $this->requireSuper();
+        Response::json(['ok' => true, 'data' => $this->service->ordersAll()]);
+    }
+
+    public function addOrder(Request $request): void
+    {
+        $this->requireSuper();
+        $result = $this->service->addOrder($request->json());
+        $result['ok'] ? Response::success($result, $result['message']) : Response::error($result['message']);
+    }
+
+    public function orderStatus(Request $request, $id): void
+    {
+        $this->requireSuper();
+        $status = (string)($request->json()['status'] ?? '');
+        $result = $this->service->transitionOrder((int)$id, $status);
+        $result['ok'] ? Response::success(null, $result['message']) : Response::error($result['message']);
+    }
+
+    public function ledger(): void
+    {
+        $this->requireSuper();
+        Response::json(['ok' => true, 'data' => $this->service->ledgerAll()]);
+    }
+
+    public function addLedger(Request $request): void
+    {
+        $this->requireSuper();
+        $result = $this->service->addLedger($request->json());
+        $result['ok'] ? Response::success($result, $result['message']) : Response::error($result['message']);
+    }
+
+    public function aiUsageBySite(): void
+    {
+        $this->requireSuper();
+        Response::json(['ok' => true, 'data' => $this->service->aiUsageBySite()]);
+    }
+
+    public function myPortal(): void
+    {
+        Response::json(['ok' => true, 'data' => $this->service->myPortal()]);
     }
 
     public function plans(): void

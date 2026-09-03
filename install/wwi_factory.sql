@@ -303,3 +303,24 @@ INSERT IGNORE INTO wwi_template_categories (site_id, slug, name_es, name_en, sor
 (1, 'pets', 'Veterinarias y Mascotas', 'Vets & Pets', 18),
 (1, 'events', 'Eventos y Bodas', 'Events & Weddings', 19),
 (1, 'cafes', 'Cafeterias y Panaderias', 'Cafes & Bakeries', 20);
+
+-- ── Fase 0.5: Portal (sitios con lifecycle, rol client, órdenes por tenant, saldos) ──
+
+ALTER TABLE sites ADD COLUMN IF NOT EXISTS plan_id INT NULL;
+ALTER TABLE sites ADD COLUMN IF NOT EXISTS status VARCHAR(30) DEFAULT 'DRAFT';
+ALTER TABLE sites ADD COLUMN IF NOT EXISTS uuid CHAR(36) NULL;
+ALTER TABLE sites ADD COLUMN IF NOT EXISTS owner_user_id INT NULL;
+ALTER TABLE users MODIFY role ENUM('superadmin','admin','editor','client') DEFAULT 'admin';
+ALTER TABLE wwi_orders ADD COLUMN IF NOT EXISTS tenant_id INT NULL;
+
+CREATE TABLE IF NOT EXISTS wwi_balance_ledger (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    site_id INT NOT NULL DEFAULT 1,
+    direction ENUM('credit','debit') NOT NULL,
+    amount DECIMAL(12,2) NOT NULL DEFAULT 0,
+    reason VARCHAR(200),
+    ref VARCHAR(100),
+    created_by INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    KEY idx_ledger_site (site_id, created_at)
+) ENGINE=InnoDB;
