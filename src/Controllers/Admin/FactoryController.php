@@ -179,6 +179,30 @@ class FactoryController
         Response::error($result['message'], $result['status'] ?? 503);
     }
 
+    public function publicPaymentMode(): void
+    {
+        Response::json(['ok' => true, 'data' => ['provider' => $this->service->paymentConfig()['provider']]]);
+    }
+
+    public function publicDummyPay(Request $request, $uuid): void
+    {
+        $result = $this->service->dummyPay((string)$uuid);
+        if ($result['ok']) Response::json(['ok' => true, 'message' => $result['message']]);
+        Response::error($result['message'], $result['status'] ?? 503);
+    }
+
+    public function jobsList(): void
+    {
+        $this->requireSuper();
+        Response::json(['ok' => true, 'data' => $this->service->jobsList()]);
+    }
+
+    public function jobsRun(): void
+    {
+        $this->requireSuper();
+        Response::json($this->service->runDueJobs(5));
+    }
+
     public function plans(): void
     {
         Response::json(['ok' => true, 'data' => $this->service->plans()]);

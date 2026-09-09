@@ -1254,7 +1254,7 @@ W.renderFactory=async function(tab){
     tab=tab||m.tab||'inicio';
     m.tab=tab;
     var app=document.getElementById('wontia-app');
-    var tabs=[['inicio','Inicio'],['sitios','Sitios'],['dominios','Dominios'],['emails','Emails'],['pedidos','Pedidos'],['saldos','Saldos'],['ia','Consumo IA'],['planes','Planes'],['config','Config'],['margin','Margin Guard']];
+    var tabs=[['inicio','Inicio'],['sitios','Sitios'],['dominios','Dominios'],['emails','Emails'],['pedidos','Pedidos'],['saldos','Saldos'],['ia','Consumo IA'],['jobs','Jobs'],['planes','Planes'],['config','Config'],['margin','Margin Guard']];
     var bar='<div class="w-brick-tabs">';
     tabs.forEach(function(t){
         bar+='<button class="w-brick-tab'+(tab===t[0]?' active':'')+'" onclick="wontia.factoryGo(\''+t[0]+'\')">'+t[1]+'</button>';
@@ -1271,7 +1271,7 @@ W.renderFactory=async function(tab){
         var dm=await W.api('/api/v1/admin/factory/domains');
         if(dm.data)m.domains=dm.data;
     }catch(e){}
-    var fns={inicio:W.factoryInicio,sitios:W.factorySites,dominios:W.factoryDominios,emails:W.factoryEmails,pedidos:W.factoryPedidos,saldos:W.factorySaldos,ia:W.factoryIA,plans:W.factoryPlans,config:W.factoryConfig,margin:W.factoryMargin};
+    var fns={inicio:W.factoryInicio,sitios:W.factorySites,dominios:W.factoryDominios,emails:W.factoryEmails,pedidos:W.factoryPedidos,saldos:W.factorySaldos,ia:W.factoryIA,jobs:W.factoryJobs,plans:W.factoryPlans,config:W.factoryConfig,margin:W.factoryMargin};
     (fns[tab]||W.factoryInicio)();
 };
 
@@ -1610,6 +1610,28 @@ W.factoryIA=async function(){
     html+='</table>';
     if(!rows.length)html+='<div class="w-empty-state"><p>No AI usage yet this month.</p></div>';
     el.innerHTML=html;
+};
+
+W.factoryJobs=async function(){
+    var el=document.getElementById('factory-content');
+    el.innerHTML='<div style="text-align:center;padding:40px;color:var(--w-muted)">Loading...</div>';
+    var r=await W.api('/api/v1/admin/factory/jobs');
+    var rows=r.data||[];
+    var html='<div class="w-flex-between w-mb"><div style="font-size:12px;color:var(--w-muted)">Job queue — async, idempotent and retryable. Also runs via CLI: <code>php /app/public/job-runner.php</code> (cron).</div><button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.factoryRunJobs()">Run Now</button></div>';
+    html+='<table class="w-table"><tr><th>ID</th><th>Type</th><th>Status</th><th>Attempts</th><th>Error</th><th>Created</th></tr>';
+    rows.forEach(function(j){
+        html+='<tr><td>'+j.id+'</td><td><code style="font-size:11px">'+W.esc(j.type)+'</code></td><td>'+W.fStatus(String(j.status||'').toUpperCase())+'</td><td>'+j.attempts+'/'+j.max_attempts+'</td><td style="font-size:10px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+W.esc(j.error||'')+'</td><td style="font-size:10px">'+W.esc((j.created_at||'').slice(0,16))+'</td></tr>';
+    });
+    html+='</table>';
+    if(!rows.length)html+='<div class="w-empty-state"><p>No jobs yet. Jobs are enqueued when orders are paid.</p></div>';
+    el.innerHTML=html;
+};
+
+W.factoryRunJobs=async function(){
+    W.notify('Running due jobs...','info');
+    var r=await W.api('/api/v1/admin/factory/jobs/run',{method:'POST'});
+    if(r.ok)W.notify(r.message,'success');
+    W.factoryJobs();
 };
 
 W.renderPortal=async function(){

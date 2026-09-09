@@ -105,6 +105,8 @@ $router->get('/api/v1/public/templates', [\App\Controllers\Admin\FactoryControll
 $router->post('/api/v1/public/orders', [\App\Controllers\Admin\FactoryController::class, 'publicCreateOrder']);
 $router->get('/api/v1/public/orders/{uuid}', [\App\Controllers\Admin\FactoryController::class, 'publicOrderStatus']);
 $router->post('/api/v1/public/payments/webhook', [\App\Controllers\Admin\FactoryController::class, 'paymentWebhook']);
+$router->get('/api/v1/public/payment-mode', [\App\Controllers\Admin\FactoryController::class, 'publicPaymentMode']);
+$router->post('/api/v1/public/payments/dummy/{uuid}', [\App\Controllers\Admin\FactoryController::class, 'publicDummyPay']);
 $router->get('/api/v1/public/domain/check', function ($request) {
     $name = (string)($request->get('name', ''));
     Response::json(['ok' => true, 'data' => (new \App\Services\DomainCheckerService())->check($name)]);
@@ -246,6 +248,8 @@ $router->group('/api/v1/admin', function (Router $r) {
     $r->post('/factory/ledger', [\App\Controllers\Admin\FactoryController::class, 'addLedger']);
     $r->get('/factory/ai-usage', [\App\Controllers\Admin\FactoryController::class, 'aiUsageBySite']);
     $r->get('/factory/my-portal', [\App\Controllers\Admin\FactoryController::class, 'myPortal']);
+    $r->get('/factory/jobs', [\App\Controllers\Admin\FactoryController::class, 'jobsList']);
+    $r->post('/factory/jobs/run', [\App\Controllers\Admin\FactoryController::class, 'jobsRun']);
 
     $r->get('/media', [\App\Controllers\Admin\MediaController::class, 'index']);
     $r->post('/media/upload', [\App\Controllers\Admin\MediaController::class, 'upload']);

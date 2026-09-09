@@ -487,6 +487,140 @@ class FactoryService
         return (int)$db->lastInsertId();
     }
 
+    public function dummyPay(string $uuid): array
+    {
+        $pc = $this->paymentConfig();
+        if ($pc['provider'] !== 'dummy') {
+            return ['ok' => false, 'status' => 503, 'message' => 'Demo payment disabled (provider is not dummy)'];
+        }
+        $order = $this->findOrderByUuid($uuid);
+        if (!$order) return ['ok' => false, 'status' => 404, 'message' => 'Order not found'];
+        if ($order['status'] !== 'PENDING_PAYMENT') {
+            return ['ok' => false, 'status' => 400, 'message' => 'Order is not pending payment'];
+        }
+        $db = Database::instance();
+        $stmt = $db->prepare("INSERT IGNORE INTO wwi_payments (site_id, order_id, provider, provider_ref, amount, currency, status, signature_verified, raw_webhook, verified_at)
+            VALUES (@site_id, :oid, 'dummy', :pref, :amt, 'COP', 'approved', 1, '{\"simulated\":true}', NOW())");
+        $stmt->execute(['oid' => (int)$order['id'], 'pref' => 'dummy_' . $uuid, 'amt' => (float)$order['total']]);
+        $this->transitionOrder((int)$order['id'], 'PAID');
+        $this->enqueueJob('provision_site', ['order_id' => (int)$order['id'], 'order_uuid' => $order['uuid'], 'tenant_id' => (int)$order['tenant_id'], 'plan_id' => (int)$order['plan_id'], 'domain_name' => $order['domain_name']]);
+        return ['ok' => true, 'message' => 'Demo payment approved — provisioning queued'];
+    }
+
+    public function jobsList(): array
+    {
+        $db = Database::instance();
+        return $db->query("SELECT j.*, o.uuid AS order_uuid FROM wwi_jobs j LEFT JOIN wwi_orders o ON o.id = JSON_EXTRACT(j.payload, '$.order_id') WHERE j.site_id = @site_id ORDER BY j.id DESC LIMIT 100")->fetchAll();
+    }
+
+    public function runDueJobs(int $limit = 5): array
+    {
+        $db = Database::instance();
+        $stmt = $db->prepare("SELECT * FROM wwi_jobs WHERE site_id = @site_id AND status IN ('queued','retrying') AND attempts < max_attempts ORDER BY id ASC LIMIT :lim");
+        $stmt->bindValue(':lim', $limit, \PDO::PARAM_INT);
+        $stmt->execute();
+        $jobs = $stmt->fetchAll();
+        $ran = 0;
+        foreach ($jobs as $job) {
+            $db->prepare("UPDATE wwi_jobs SET status = 'running', locked_at = NOW() WHERE id = :id")->execute(['id' => $job['id']]);
+            $payload = json_decode((string)$job['payload'], true) ?: [];
+            try {
+                $result = $this->dispatchJob($job['type'], $payload);
+                $db->prepare("UPDATE wwi_jobs SET status = 'done', completed_at = NOW(), error = NULL WHERE id = :id")->execute(['id' => $job['id']]);
+                $ran++;
+            } catch (\Exception $e) {
+                $attempts = (int)$job['attempts'] + 1;
+                $next = date('Y-m-d H:i:s', time() + 300);
+                $status = $attempts >= (int)$job['max_attempts'] ? 'failed' : 'retrying';
+                $db->prepare("UPDATE wwi_jobs SET status = :st, attempts = :at, error = :err, next_retry_at = :nr WHERE id = :id")
+                    ->execute(['st' => $status, 'at' => $attempts, 'err' => mb_substr($e->getMessage(), 0, 900), 'nr' => $next, 'id' => $job['id']]);
+            }
+        }
+        return ['ok' => true, 'message' => "$ran job(s) processed"];
+    }
+
+    private function dispatchJob(string $type, array $payload): array
+    {
+        return match ($type) {
+            'provision_site' => $this->provisionSite($payload),
+            default => ['ok' => true],
+        };
+    }
+
+    public function provisionSite(array $payload): array
+    {
+        $db = Database::instance();
+        $orderId = (int)($payload['order_id'] ?? 0);
+        $stmt = $db->prepare("SELECT * FROM wwi_orders WHERE id = :id AND site_id = @site_id");
+        $stmt->execute(['id' => $orderId]);
+        $order = $stmt->fetch();
+        if (!$order) throw new \RuntimeException('Order not found');
+        if ((int)$order['tenant_id'] > 0) {
+            return ['ok' => true, 'message' => 'Already provisioned'];
+        }
+
+        $plan = $this->plan((int)$order['plan_id']);
+        $tenantName = trim((string)$order['customer_name']) ?: ('Cliente ' . substr($order['uuid'], 0, 6));
+        $stmt = $db->prepare("INSERT INTO sites (name, domain, locale, theme, plan_id, status, uuid) VALUES (:name, :domain, :locale, 'default', :plan, 'GENERATING', :uuid)");
+        $siteUuid = bin2hex(random_bytes(18));
+        $stmt->execute([
+            'name' => $tenantName,
+            'domain' => (string)$order['domain_name'],
+            'locale' => (string)$order['locale'] ?: 'es',
+            'plan' => (int)$order['plan_id'] ?: null,
+            'uuid' => $siteUuid,
+        ]);
+        $tenantId = (int)$db->lastInsertId();
+        $db->prepare("UPDATE wwi_orders SET tenant_id = :tid WHERE id = :id")->execute(['tid' => $tenantId, 'id' => $orderId]);
+
+        $username = preg_replace('/[^a-z0-9]/', '', strtolower(explode('@', (string)$order['customer_email'])[0])) ?: 'cliente' . $tenantId;
+        $password = bin2hex(random_bytes(8));
+        $hash = password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]);
+        $db->prepare("INSERT INTO users (site_id, username, email, password_hash, role) VALUES (:sid, :u, :e, :h, 'client')")
+            ->execute(['sid' => $tenantId, 'u' => $username . '_' . $tenantId, 'e' => (string)$order['customer_email'], 'h' => $hash]);
+
+        if (!empty($order['domain_name'])) {
+            $stmt = $db->prepare("INSERT IGNORE INTO wwi_domains (site_id, name, tld, status, provider, registration_cost, renewal_cost, currency)
+                VALUES (:sid, :name, :tld, 'DNS_PENDING', '', :rc, :rn, 'USD')");
+            $tld = substr($order['domain_name'], strrpos($order['domain_name'], '.') + 1);
+            $costs = $this->domainCosts();
+            $cost = $costs[$tld] ?? ['reg' => 10.97, 'ren' => 10.97];
+            $stmt->execute(['sid' => $tenantId, 'name' => (string)$order['domain_name'], 'tld' => $tld, 'rc' => (float)$cost['reg'], 'rn' => (float)$cost['ren']]);
+            $domainId = (int)$db->lastInsertId();
+            foreach (['contacto', 'info', 'ventas'] as $box) {
+                $db->prepare("INSERT IGNORE INTO wwi_email_accounts (site_id, domain_id, mailbox, status, provider) VALUES (:sid, :did, :box, 'REQUESTED', '')")
+                    ->execute(['sid' => $tenantId, 'did' => $domainId, 'box' => $box]);
+            }
+        }
+
+        $db->prepare("INSERT INTO pages (site_id, title, slug, template, meta_title, meta_description, status, sort_order) VALUES (:sid, :t, 'home', 'default', :mt, :md, 'published', 0)")
+            ->execute(['sid' => $tenantId, 't' => $tenantName, 'mt' => $tenantName, 'md' => 'Sitio generado automáticamente por WWI']);
+        $pageId = (int)$db->lastInsertId();
+        $sections = [
+            ['widget_type' => 'hero', 'title' => 'Bienvenido', 'config' => '{"title":"' . $tenantName . '","subtitle":"Sitio generado por TIA — edita este contenido desde tu panel."}', 'sort' => 0],
+            ['widget_type' => 'features', 'title' => 'Servicios', 'config' => '{}', 'sort' => 1],
+            ['widget_type' => 'cta', 'title' => 'Contáctanos', 'config' => '{}', 'sort' => 2],
+            ['widget_type' => 'footer', 'title' => 'Footer', 'config' => '{}', 'sort' => 3],
+        ];
+        foreach ($sections as $sec) {
+            $db->prepare("INSERT INTO sections (page_id, type, widget_type, title, config, sort_order, is_active) VALUES (:pid, 'widget', :wt, :t, :cfg, :s, 1)")
+                ->execute(['pid' => $pageId, 'wt' => $sec['widget_type'], 't' => $sec['title'], 'cfg' => $sec['config'], 's' => $sec['sort']]);
+        }
+
+        $db->prepare("UPDATE sites SET status = 'READY' WHERE id = :id")->execute(['id' => $tenantId]);
+        $this->transitionOrder($orderId, 'READY');
+        $this->addLedger(['site_id' => $tenantId, 'direction' => 'credit', 'amount' => (float)$order['total'], 'reason' => 'Saldo inicial del plan', 'ref' => 'provision:' . $order['uuid']]);
+
+        return ['ok' => true, 'tenant_id' => $tenantId, 'site_uuid' => $siteUuid];
+    }
+
+    public function domainCosts(): array
+    {
+        $cfg = $this->config();
+        $decoded = json_decode((string)($cfg['wwi.domain_costs'] ?? ''), true);
+        return is_array($decoded) ? $decoded : [];
+    }
+
     public function myPortal(): array
     {
         $db = Database::instance();

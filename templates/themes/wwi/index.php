@@ -193,12 +193,30 @@ async function wwiCheckoutSubmit(){
         var r=await fetch('/api/v1/public/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
         var d=await r.json();
         if(d.ok){
-            res.innerHTML='<div class="panel" style="padding:16px;border-color:rgba(52,211,153,.5)"><div style="color:var(--ok);font-size:13px;font-weight:600">✓ Pedido creado — '+wwiEsc(d.data.plan_name)+'</div><div class="mono" style="font-size:11px;color:var(--muted);margin-top:6px"># '+wwiEsc(d.data.uuid)+' · $'+Number(d.data.total).toLocaleString('es-CO')+' COP · '+wwiEsc(d.data.status)+'</div><div style="font-size:11px;color:var(--muted);margin-top:6px">Te contactaremos con el link de pago seguro.</div></div>';
+            var demoBtn=(wwiPayMode==='dummy')?'<button class="btn btn-primary" style="margin-top:10px" onclick="wwiDummyPay(\''+d.data.uuid+'\')">Pagar (modo demo)</button>':'<div style="font-size:11px;color:var(--muted);margin-top:6px">Te contactaremos con el link de pago seguro.</div>';
+            res.innerHTML='<div class="panel" style="padding:16px;border-color:rgba(52,211,153,.5)"><div style="color:var(--ok);font-size:13px;font-weight:600">✓ Pedido creado — '+wwiEsc(d.data.plan_name)+'</div><div class="mono" style="font-size:11px;color:var(--muted);margin-top:6px"># '+wwiEsc(d.data.uuid)+' · $'+Number(d.data.total).toLocaleString('es-CO')+' COP · '+wwiEsc(d.data.status)+'</div>'+demoBtn+'</div>';
         }else{
             res.innerHTML='<div style="color:var(--bad);font-size:12px">'+wwiEsc(d.message||'Error al crear el pedido')+'</div>';
         }
     }catch(e){res.innerHTML='<div style="color:var(--bad);font-size:12px">Error de conexión</div>'}
     btn.disabled=false;btn.style.opacity=1;btn.textContent='Crear pedido';
+}
+var wwiPayMode='';
+async function wwiLoadPayMode(){
+    try{var r=await fetch('/api/v1/public/payment-mode');var d=await r.json();wwiPayMode=(d.data&&d.data.provider)||''}catch(e){}
+}
+async function wwiDummyPay(uuid){
+    var res=document.getElementById('wwi-co-result');
+    try{
+        var r=await fetch('/api/v1/public/payments/dummy/'+uuid,{method:'POST'});
+        var d=await r.json();
+        if(d.ok){
+            var s=await fetch('/api/v1/public/orders/'+uuid);var sd=await s.json();
+            res.innerHTML='<div class="panel" style="padding:16px;border-color:rgba(52,211,153,.5)"><div style="color:var(--ok);font-size:13px;font-weight:600">✓ Pago demo aprobado — '+wwiEsc((sd.data&&sd.data.status)||'')+'</div><div style="font-size:11px;color:var(--muted);margin-top:6px">El provisioning se ejecuta automáticamente en la cola de jobs.</div></div>';
+        }else{
+            res.innerHTML='<div style="color:var(--bad);font-size:12px">'+wwiEsc(d.message||'Error')+'</div>';
+        }
+    }catch(e){res.innerHTML='<div style="color:var(--bad);font-size:12px">Error de conexión</div>'}
 }
 async function wwiLoadTemplates(){
     var boxes=document.querySelectorAll('[data-wwi-templates]');
@@ -250,6 +268,7 @@ async function wwiCheckDomain(){
 function wwiEsc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
 wwiLoadPlans();
 wwiLoadTemplates();
+wwiLoadPayMode();
 var coBtn=document.getElementById('wwi-co-submit');
 if(coBtn)coBtn.addEventListener('click',wwiCheckoutSubmit);
 </script>
