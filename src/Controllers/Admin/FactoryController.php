@@ -191,6 +191,19 @@ class FactoryController
         Response::error($result['message'], $result['status'] ?? 503);
     }
 
+    public function publicCreateBrief(Request $request): void
+    {
+        $result = $this->service->createBrief($request->json());
+        if ($result['ok']) Response::json(['ok' => true, 'message' => $result['message'], 'data' => ['id' => $result['id']]], 201);
+        Response::error($result['message'], 400);
+    }
+
+    public function briefsList(): void
+    {
+        $this->requireSuper();
+        Response::json(['ok' => true, 'data' => $this->service->briefs()]);
+    }
+
     public function jobsList(): void
     {
         $this->requireSuper();

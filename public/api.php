@@ -107,6 +107,7 @@ $router->get('/api/v1/public/orders/{uuid}', [\App\Controllers\Admin\FactoryCont
 $router->post('/api/v1/public/payments/webhook', [\App\Controllers\Admin\FactoryController::class, 'paymentWebhook']);
 $router->get('/api/v1/public/payment-mode', [\App\Controllers\Admin\FactoryController::class, 'publicPaymentMode']);
 $router->post('/api/v1/public/payments/dummy/{uuid}', [\App\Controllers\Admin\FactoryController::class, 'publicDummyPay']);
+$router->post('/api/v1/public/briefs', [\App\Controllers\Admin\FactoryController::class, 'publicCreateBrief']);
 $router->get('/api/v1/public/domain/check', function ($request) {
     $name = (string)($request->get('name', ''));
     Response::json(['ok' => true, 'data' => (new \App\Services\DomainCheckerService())->check($name)]);
@@ -250,6 +251,7 @@ $router->group('/api/v1/admin', function (Router $r) {
     $r->get('/factory/my-portal', [\App\Controllers\Admin\FactoryController::class, 'myPortal']);
     $r->get('/factory/jobs', [\App\Controllers\Admin\FactoryController::class, 'jobsList']);
     $r->post('/factory/jobs/run', [\App\Controllers\Admin\FactoryController::class, 'jobsRun']);
+    $r->get('/factory/briefs', [\App\Controllers\Admin\FactoryController::class, 'briefsList']);
 
     $r->post('/tia/command', [\App\Controllers\Admin\TiaAgentController::class, 'command']);
     $r->post('/tia/confirm', [\App\Controllers\Admin\TiaAgentController::class, 'confirm']);

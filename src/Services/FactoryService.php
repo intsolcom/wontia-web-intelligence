@@ -539,10 +539,92 @@ class FactoryService
         return ['ok' => true, 'message' => "$ran job(s) processed"];
     }
 
+    public function createBrief(array $d): array
+    {
+        $email = trim((string)($d['customer_email'] ?? ''));
+        $story = trim((string)($d['story'] ?? ''));
+        if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return ['ok' => false, 'message' => 'Email válido requerido'];
+        }
+        if (mb_strlen($story) < 30) {
+            return ['ok' => false, 'message' => 'Cuéntanos un poco más sobre tu negocio (mínimo 30 caracteres)'];
+        }
+        $db = Database::instance();
+        $stmt = $db->prepare("INSERT INTO wwi_briefs (site_id, order_id, customer_email, business_name, story, status) VALUES (@site_id, :oid, :ce, :bn, :story, 'new')");
+        $stmt->execute([
+            'oid' => (int)($d['order_id'] ?? 0) ?: null,
+            'ce' => $email,
+            'bn' => trim((string)($d['business_name'] ?? '')),
+            'story' => $story,
+        ]);
+        $briefId = (int)$db->lastInsertId();
+        $this->enqueueJob('process_brief', ['brief_id' => $briefId]);
+        return ['ok' => true, 'message' => 'Brief recibido — TIA lo está analizando', 'id' => $briefId];
+    }
+
+    public function briefs(): array
+    {
+        return Database::instance()->query("SELECT * FROM wwi_briefs WHERE site_id = @site_id ORDER BY id DESC LIMIT 50")->fetchAll();
+    }
+
+    public function processBrief(int $briefId): array
+    {
+        $db = Database::instance();
+        $stmt = $db->prepare("SELECT * FROM wwi_briefs WHERE id = :id AND site_id = @site_id");
+        $stmt->execute(['id' => $briefId]);
+        $brief = $stmt->fetch();
+        if (!$brief) throw new \RuntimeException('Brief not found');
+
+        $prompt = "Eres TIA, analista de negocios de Wontia. A partir de la descripción del negocio, extrae un perfil estructurado. Responde SOLO con JSON válido, sin markdown:\n"
+            . "{\"historia\":\"...\",\"propuesta_valor\":\"...\",\"servicios\":[\"...\"],\"productos\":[\"...\"],\"clientes\":\"...\",\"ubicacion\":\"...\",\"contacto\":\"...\",\"horarios\":\"...\",\"redes\":\"...\",\"diferenciadores\":[\"...\"],\"pendientes\":[\"datos que faltan\"]}\n"
+            . "Regla: NO inventes datos factuales. Si un dato no aparece en la descripción, déjalo vacío y agrégalo a pendientes.\n\n"
+            . "Negocio: " . ($brief['business_name'] ?: '(sin nombre)') . "\nDescripción del cliente:\n" . mb_substr((string)$brief['story'], 0, 3000);
+
+        $router = new \App\Core\AiBrick\AiRouter();
+        $response = $router->route([
+            'system_id' => 'wontia',
+            'module' => 'agent',
+            'function' => 'brief',
+            'system_prompt' => 'Respondes únicamente con JSON válido.',
+            'messages' => [['role' => 'user', 'content' => $prompt]],
+            'max_tokens' => 900,
+            'temperature' => 0.3,
+        ]);
+        if (empty($response['ok']) || empty($response['content'])) {
+            throw new \RuntimeException('TIA no pudo procesar el brief');
+        }
+        $profile = json_decode((string)$response['content'], true);
+        if (!is_array($profile)) {
+            $clean = preg_replace('/^```(json)?\s*|\s*```$/m', '', (string)$response['content']);
+            $profile = json_decode($clean, true);
+        }
+        if (!is_array($profile)) throw new \RuntimeException('Perfil inválido generado');
+
+        $db->prepare("UPDATE wwi_briefs SET profile = :p, status = 'ready' WHERE id = :id")
+            ->execute(['p' => json_encode($profile, JSON_UNESCAPED_UNICODE), 'id' => $briefId]);
+        return ['ok' => true, 'brief_id' => $briefId, 'profile' => $profile];
+    }
+
+    public function sendWelcomeEmail(array $payload): array
+    {
+        $mail = new EmailService();
+        $to = (string)($payload['to'] ?? '');
+        if ($to === '') return ['ok' => false, 'message' => 'No recipient'];
+        $sent = $mail->send(
+            $to,
+            '¡Tu sitio web está listo! 🚀 Wontia Web Intelligence',
+            'Hola ' . (string)($payload['name'] ?? '') . ",\n\nTu sitio web está listo y publicado:\n"
+            . (string)($payload['site_url'] ?? '') . "\n\nAccede a tu panel para administrarlo y pedir cambios a TIA.\n\n— Wontia Web Intelligence"
+        );
+        return ['ok' => true, 'message' => $sent ? 'Welcome email sent' : 'Mail not configured — skipped', 'sent' => $sent];
+    }
+
     private function dispatchJob(string $type, array $payload): array
     {
         return match ($type) {
             'provision_site' => $this->provisionSite($payload),
+            'process_brief' => $this->processBrief((int)($payload['brief_id'] ?? 0)),
+            'send_email' => $this->sendWelcomeEmail($payload),
             default => ['ok' => true],
         };
     }
@@ -610,6 +692,8 @@ class FactoryService
         $db->prepare("UPDATE sites SET status = 'READY' WHERE id = :id")->execute(['id' => $tenantId]);
         $this->transitionOrder($orderId, 'READY');
         $this->addLedger(['site_id' => $tenantId, 'direction' => 'credit', 'amount' => (float)$order['total'], 'reason' => 'Saldo inicial del plan', 'ref' => 'provision:' . $order['uuid']]);
+        $siteUrl = 'https://' . (!empty($order['domain_name']) ? $order['domain_name'] : ('cliente' . $tenantId . '.wontia.com'));
+        $this->enqueueJob('send_email', ['to' => (string)$order['customer_email'], 'name' => $tenantName, 'site_url' => $siteUrl]);
 
         return ['ok' => true, 'tenant_id' => $tenantId, 'site_uuid' => $siteUuid];
     }
@@ -647,6 +731,7 @@ class FactoryService
             'orders' => $orders->fetchAll(),
             'balance' => $this->balanceFor($siteId),
             'ai_month' => $aiStmt->fetch(),
+            'briefs' => $this->briefs(),
         ];
     }
 
@@ -678,6 +763,7 @@ class FactoryService
         $db->exec("ALTER TABLE users MODIFY role ENUM('superadmin','admin','editor','client') DEFAULT 'admin'");
         $db->exec("ALTER TABLE wwi_orders ADD COLUMN IF NOT EXISTS tenant_id INT NULL");
         $db->exec("CREATE TABLE IF NOT EXISTS wwi_balance_ledger (id INT AUTO_INCREMENT PRIMARY KEY, site_id INT NOT NULL DEFAULT 1, direction ENUM('credit','debit') NOT NULL, amount DECIMAL(12,2) NOT NULL DEFAULT 0, reason VARCHAR(200), ref VARCHAR(100), created_by INT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, KEY idx_ledger_site (site_id, created_at)) ENGINE=InnoDB");
+        $db->exec("CREATE TABLE IF NOT EXISTS wwi_briefs (id INT AUTO_INCREMENT PRIMARY KEY, site_id INT NOT NULL DEFAULT 1, order_id INT NULL, customer_email VARCHAR(255), business_name VARCHAR(255), story TEXT, documents JSON, profile JSON, status ENUM('new','processing','ready','failed') DEFAULT 'new', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, KEY idx_briefs_site (site_id, status)) ENGINE=InnoDB");
 
         $seeded = false;
         $planCount = (int)$db->query("SELECT COUNT(*) FROM wwi_plans WHERE site_id = @site_id")->fetchColumn();

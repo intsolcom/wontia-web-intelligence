@@ -1654,10 +1654,34 @@ W.renderPortal=async function(){
     html+='<div class="w-brick-grid2"><div class="w-card"><h3>Correos</h3>'+(d.emails&&d.emails.length?'<table class="w-table"><tr><th>Buzón</th><th>Estado</th></tr>'+d.emails.map(function(x){return '<tr><td>'+W.esc(x.mailbox)+'</td><td>'+W.fStatus(x.status)+'</td></tr>'}).join('')+'</table>':'<div class="w-empty-state" style="padding:20px"><p>Sin buzones</p></div>')+'</div>';
     html+='<div class="w-card"><h3>Pedidos</h3>'+(d.orders&&d.orders.length?'<table class="w-table"><tr><th>#</th><th>Plan</th><th>Total</th><th>Estado</th></tr>'+d.orders.map(function(o){return '<tr><td>'+W.esc((o.uuid||'').slice(0,8))+'</td><td>'+(o.plan_id||'-')+'</td><td>$'+W.num(o.total)+'</td><td>'+W.fStatus(o.status)+'</td></tr>'}).join('')+'</table>':'<div class="w-empty-state" style="padding:20px"><p>Sin pedidos</p></div>')+'</div></div>';
     html+='<div class="w-card"><h3>TIA — Tu asistente de sitio</h3><div class="w-flex w-gap-sm"><input class="w-input" id="tia-input" placeholder="Ej: cambia el color a #22d3ee · agrega testimonios · muéstrame el estado" style="flex:1" onkeydown="if(event.key===\'Enter\')wontia.tiaSend()"/><button class="w-btn w-btn-primary" onclick="wontia.tiaSend()">Enviar</button></div><div id="tia-result" style="margin-top:12px"></div><div style="font-size:11px;color:var(--w-muted);margin-top:8px">Las acciones destructivas piden confirmación. Todo queda en el AI Audit Log.</div></div>';
+    html+='<div class="w-card"><h3>Brief de negocio — TIA lo analiza</h3><div class="w-form-group" style="margin-bottom:10px"><label class="w-label">Nombre del negocio</label><input class="w-input" id="brief-name" placeholder="Panadería La Esquina"/></div><div class="w-form-group" style="margin-bottom:10px"><label class="w-label">Email</label><input class="w-input" id="brief-email" type="email" placeholder="tu@negocio.com"/></div><div class="w-form-group" style="margin-bottom:10px"><label class="w-label">Cuéntale a TIA sobre tu negocio</label><textarea class="w-textarea" id="brief-story" style="min-height:90px" placeholder="Somos una panadería familiar en Barranquilla. Vendemos pan artesanal, tortas y desayunos. Atendemos de 6am a 7pm..."></textarea></div><button class="w-btn w-btn-primary" onclick="wontia.briefSubmit()">Enviar a TIA</button><div id="brief-result" style="margin-top:10px"></div><div id="brief-list" style="margin-top:14px"></div></div>';
     html+='<div class="w-brick-grid2"><div class="w-card"><h3>Secciones del sitio</h3><div id="tia-sections">Cargando…</div></div><div class="w-card"><h3>AI Audit Log</h3><div id="tia-history">Cargando…</div></div></div>';
     app.innerHTML=html;
     W.tiaLoadSections();
     W.tiaLoadHistory();
+    W.briefLoad();
+};
+
+W.briefSubmit=async function(){
+    var res=document.getElementById('brief-result');
+    if(!res)return;
+    var payload={business_name:document.getElementById('brief-name').value,customer_email:document.getElementById('brief-email').value,story:document.getElementById('brief-story').value};
+    if(!payload.customer_email||!payload.story){res.innerHTML='<div style="color:var(--w-accent);font-size:12px">Completa email y descripción.</div>';return}
+    res.innerHTML='<div style="color:var(--w-muted);font-size:12px">Enviando a TIA…</div>';
+    var r=await W.api('/api/v1/public/briefs',{method:'POST',body:payload});
+    if(r.ok){res.innerHTML='<div style="color:#00B87D;font-size:12px">✓ '+W.esc(r.message)+'</div>';document.getElementById('brief-story').value='';W.briefLoad();}
+    else res.innerHTML='<div style="color:var(--w-accent);font-size:12px">'+W.esc(r.message||'Error')+'</div>';
+};
+
+W.briefLoad=async function(){
+    var el=document.getElementById('brief-list');if(!el)return;
+    var r=await W.api('/api/v1/admin/factory/my-portal');
+    var briefs=(r.data&&r.data.briefs)||[];
+    el.innerHTML=briefs.map(function(b){
+        var p=b.profile?JSON.parse(b.profile):null;
+        var lines=p?('<div style="margin-top:6px;font-size:11px;color:var(--w-muted)">Servicios: '+(p.servicios||[]).join(', ')+'</div><div style="font-size:11px;color:var(--w-muted)">Ubicación: '+W.esc(p.ubicacion||'—')+'</div>'+(p.pendientes&&p.pendientes.length?'<div style="font-size:11px;color:#F5A623;margin-top:4px">Pendiente: '+p.pendientes.join(', ')+'</div>':'')):'';
+        return '<div class="w-card" style="padding:12px;margin-top:8px"><div class="w-flex-between"><strong style="font-size:12px">'+W.esc(b.business_name||b.customer_email)+'</strong>'+W.fStatus(b.status)+'</div>'+lines+'</div>';
+    }).join('')||'<div style="color:var(--w-muted);font-size:11px">Sin briefs aún</div>';
 };
 
 W.tiaSend=async function(){
