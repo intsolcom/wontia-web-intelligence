@@ -142,20 +142,63 @@ endforeach; ?>
 })();
 async function wwiLoadPlans(){
     var boxes=document.querySelectorAll('[data-wwi-plans]');
-    if(!boxes.length)return;
+    var sel=document.getElementById('wwi-co-plan');
+    var planData=[];
     try{
         var r=await fetch('/api/v1/public/plans');
         var d=await r.json();
         var plans=(d.data||[]).filter(function(p){return p.price_cop>0});
+        planData=plans;
         boxes.forEach(function(box){
             var html='';
             plans.forEach(function(p,i){
                 var feats=(p.features||[]).slice(0,8);
-                html+='<div class="card plan-card'+(i===0?' featured':'')+'"><div><div class="plan-name">'+wwiEsc(p.name_es)+' <span style="color:var(--muted)">/ '+wwiEsc(p.name_en)+'</span></div><div class="plan-price" style="margin-top:8px">$'+Number(p.price_cop).toLocaleString('es-CO')+' <small>COP</small>'+(p.price_usd?' <small>· $'+p.price_usd+' USD</small>':'')+'</div>'+(p.billing_type==='one_time'?'<div style="font-size:11px;color:var(--muted);margin-top:2px">pago único · dominio incluido 1er año</div>':'<div style="font-size:11px;color:var(--muted);margin-top:2px">suscripción mensual</div>')+'</div><div class="plan-feats">'+feats.map(function(f){return '<div>'+wwiEsc(String(f).replace(/_/g,' '))+'</div>'}).join('')+'</div><a class="btn '+(i===0?'btn-primary':'btn-outline')+'" style="width:100%" href="#contacto">Elegir '+wwiEsc(p.name_es)+'</a></div>';
+                html+='<div class="card plan-card'+(i===0?' featured':'')+'"><div><div class="plan-name">'+wwiEsc(p.name_es)+' <span style="color:var(--muted)">/ '+wwiEsc(p.name_en)+'</span></div><div class="plan-price" style="margin-top:8px">$'+Number(p.price_cop).toLocaleString('es-CO')+' <small>COP</small>'+(p.price_usd?' <small>· $'+p.price_usd+' USD</small>':'')+'</div>'+(p.billing_type==='one_time'?'<div style="font-size:11px;color:var(--muted);margin-top:2px">pago único · dominio incluido 1er año</div>':'<div style="font-size:11px;color:var(--muted);margin-top:2px">suscripción mensual</div>')+'</div><div class="plan-feats">'+feats.map(function(f){return '<div>'+wwiEsc(String(f).replace(/_/g,' '))+'</div>'}).join('')+'</div><a class="btn '+(i===0?'btn-primary':'btn-outline')+'" style="width:100%" href="#contacto" data-plan="'+p.id+'">Elegir '+wwiEsc(p.name_es)+'</a></div>';
             });
             box.innerHTML=html;
         });
+        if(sel){
+            sel.innerHTML=plans.map(function(p,i){return '<option value="'+p.id+'"'+(i===0?' selected':'')+'>'+wwiEsc(p.name_es)+' — $'+Number(p.price_cop).toLocaleString('es-CO')+' COP</option>'}).join('');
+            window.wwiPlans=plans;
+            wwiUpdateTotal();
+            sel.addEventListener('change',wwiUpdateTotal);
+        }
+        document.querySelectorAll('a[data-plan]').forEach(function(a){
+            a.addEventListener('click',function(){ if(sel){sel.value=a.dataset.plan;wwiUpdateTotal()} });
+        });
     }catch(e){}
+}
+function wwiUpdateTotal(){
+    var sel=document.getElementById('wwi-co-plan');
+    var tot=document.getElementById('wwi-co-total');
+    if(!sel||!tot||!window.wwiPlans)return;
+    var p=window.wwiPlans.find(function(x){return String(x.id)===String(sel.value)});
+    tot.textContent=p?('Total: $'+Number(p.price_cop).toLocaleString('es-CO')+' COP · pago único'):'';
+}
+async function wwiCheckoutSubmit(){
+    var btn=document.getElementById('wwi-co-submit');
+    var res=document.getElementById('wwi-co-result');
+    if(!btn||!res)return;
+    var payload={
+        plan_id:parseInt(document.getElementById('wwi-co-plan').value)||0,
+        customer_name:document.getElementById('wwi-co-name').value,
+        customer_email:document.getElementById('wwi-co-email').value,
+        customer_phone:document.getElementById('wwi-co-phone').value,
+        domain_name:document.getElementById('wwi-co-domain').value,
+        locale:'es'
+    };
+    if(!payload.customer_name||!payload.customer_email){res.innerHTML='<div style="color:var(--bad);font-size:12px">Completa nombre y email.</div>';return}
+    btn.disabled=true;btn.style.opacity=.6;btn.textContent='Creando…';
+    try{
+        var r=await fetch('/api/v1/public/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+        var d=await r.json();
+        if(d.ok){
+            res.innerHTML='<div class="panel" style="padding:16px;border-color:rgba(52,211,153,.5)"><div style="color:var(--ok);font-size:13px;font-weight:600">✓ Pedido creado — '+wwiEsc(d.data.plan_name)+'</div><div class="mono" style="font-size:11px;color:var(--muted);margin-top:6px"># '+wwiEsc(d.data.uuid)+' · $'+Number(d.data.total).toLocaleString('es-CO')+' COP · '+wwiEsc(d.data.status)+'</div><div style="font-size:11px;color:var(--muted);margin-top:6px">Te contactaremos con el link de pago seguro.</div></div>';
+        }else{
+            res.innerHTML='<div style="color:var(--bad);font-size:12px">'+wwiEsc(d.message||'Error al crear el pedido')+'</div>';
+        }
+    }catch(e){res.innerHTML='<div style="color:var(--bad);font-size:12px">Error de conexión</div>'}
+    btn.disabled=false;btn.style.opacity=1;btn.textContent='Crear pedido';
 }
 async function wwiLoadTemplates(){
     var boxes=document.querySelectorAll('[data-wwi-templates]');
@@ -207,6 +250,8 @@ async function wwiCheckDomain(){
 function wwiEsc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
 wwiLoadPlans();
 wwiLoadTemplates();
+var coBtn=document.getElementById('wwi-co-submit');
+if(coBtn)coBtn.addEventListener('click',wwiCheckoutSubmit);
 </script>
 </body>
 </html>

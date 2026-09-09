@@ -22,3 +22,12 @@ INSERT INTO sections (page_id, type, widget_type, title, config, sort_order, is_
 ((SELECT id FROM pages WHERE site_id = 5 AND slug = 'home'), 'widget', 'wwi-faq', 'FAQ', '{}', 5, 1),
 ((SELECT id FROM pages WHERE site_id = 5 AND slug = 'home'), 'widget', 'wwi-cta', 'CTA final', '{}', 6, 1),
 ((SELECT id FROM pages WHERE site_id = 5 AND slug = 'home'), 'widget', 'wwi-footer', 'Footer', '{}', 7, 1);
+-- Checkout (se agrega después del seed inicial; el re-run completo lo incluye)
+DELETE FROM sections WHERE page_id = (SELECT id FROM pages WHERE site_id = 5 AND slug = 'home') AND widget_type = 'wwi-checkout';
+UPDATE sections SET sort_order = 8 WHERE page_id = (SELECT id FROM pages WHERE site_id = 5 AND slug = 'home') AND widget_type = 'wwi-footer';
+INSERT INTO sections (page_id, type, widget_type, title, config, sort_order, is_active)
+VALUES ((SELECT id FROM pages WHERE site_id = 5 AND slug = 'home'), 'widget', 'wwi-checkout', 'Checkout', '{}', 7, 1);
+
+INSERT IGNORE INTO settings (site_id, key, alue) VALUES
+(5, 'wwi.payment_provider', ''),
+(5, 'wwi.wompi_integrity_key', '');

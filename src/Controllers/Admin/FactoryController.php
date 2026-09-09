@@ -141,6 +141,44 @@ class FactoryController
         Response::json(['ok' => true, 'data' => $rows]);
     }
 
+    public function publicCreateOrder(Request $request): void
+    {
+        $result = $this->service->createPublicOrder($request->json());
+        if ($result['ok']) {
+            Response::json(['ok' => true, 'message' => $result['message'], 'data' => [
+                'uuid' => $result['uuid'],
+                'order_id' => $result['id'],
+                'total' => $result['total'],
+                'currency' => $result['currency'],
+                'status' => $result['status'],
+                'plan_name' => $result['plan_name'],
+            ]], 201);
+        }
+        Response::error($result['message'], 400);
+    }
+
+    public function publicOrderStatus(Request $request, $uuid): void
+    {
+        $order = $this->service->findOrderByUuid((string)$uuid);
+        if (!$order) Response::error('Order not found', 404);
+        Response::json(['ok' => true, 'data' => [
+            'uuid' => $order['uuid'],
+            'status' => $order['status'],
+            'total' => (float)$order['total'],
+            'currency' => $order['currency'],
+            'plan_id' => (int)$order['plan_id'],
+            'domain_name' => $order['domain_name'],
+            'created_at' => $order['created_at'],
+        ]]);
+    }
+
+    public function paymentWebhook(Request $request): void
+    {
+        $result = $this->service->processPaymentWebhook($request->json());
+        if ($result['ok']) Response::json(['ok' => true, 'message' => $result['message']]);
+        Response::error($result['message'], $result['status'] ?? 503);
+    }
+
     public function plans(): void
     {
         Response::json(['ok' => true, 'data' => $this->service->plans()]);

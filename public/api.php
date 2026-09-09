@@ -102,6 +102,9 @@ $router->get('/api/v1/public/settings', function () {
 $router->get('/api/v1/public/plans', [\App\Controllers\Admin\FactoryController::class, 'publicPlans']);
 $router->get('/api/v1/public/plans/{slug}', [\App\Controllers\Admin\FactoryController::class, 'publicPlan']);
 $router->get('/api/v1/public/templates', [\App\Controllers\Admin\FactoryController::class, 'publicTemplates']);
+$router->post('/api/v1/public/orders', [\App\Controllers\Admin\FactoryController::class, 'publicCreateOrder']);
+$router->get('/api/v1/public/orders/{uuid}', [\App\Controllers\Admin\FactoryController::class, 'publicOrderStatus']);
+$router->post('/api/v1/public/payments/webhook', [\App\Controllers\Admin\FactoryController::class, 'paymentWebhook']);
 $router->get('/api/v1/public/domain/check', function ($request) {
     $name = (string)($request->get('name', ''));
     Response::json(['ok' => true, 'data' => (new \App\Services\DomainCheckerService())->check($name)]);

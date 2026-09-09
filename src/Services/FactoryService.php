@@ -385,6 +385,108 @@ class FactoryService
             GROUP BY u.site_id, s.name ORDER BY cost DESC LIMIT 50")->fetchAll();
     }
 
+    public function createPublicOrder(array $d): array
+    {
+        $planId = (int)($d['plan_id'] ?? 0);
+        $plan = $this->plan($planId);
+        if (!$plan || (int)$plan['is_active'] !== 1) return ['ok' => false, 'message' => 'Plan no disponible'];
+        $name = trim((string)($d['customer_name'] ?? ''));
+        $email = trim((string)($d['customer_email'] ?? ''));
+        if ($name === '' || $email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return ['ok' => false, 'message' => 'Nombre y email válido son requeridos'];
+        }
+        $uuid = bin2hex(random_bytes(16));
+        $db = Database::instance();
+        $stmt = $db->prepare("INSERT INTO wwi_orders (site_id, uuid, customer_name, customer_email, customer_phone, plan_id, domain_name, status, subtotal, total, currency, locale)
+            VALUES (@site_id, :uuid, :cn, :ce, :cp, :plan, :dn, 'PENDING_PAYMENT', :sub, :tot, 'COP', :loc)");
+        $stmt->execute([
+            'uuid' => $uuid,
+            'cn' => $name,
+            'ce' => $email,
+            'cp' => (string)($d['customer_phone'] ?? ''),
+            'plan' => $planId,
+            'dn' => strtolower(trim((string)($d['domain_name'] ?? ''))),
+            'sub' => $plan['price_cop'],
+            'tot' => $plan['price_cop'],
+            'loc' => (string)($d['locale'] ?? 'es'),
+        ]);
+        return [
+            'ok' => true,
+            'message' => 'Pedido creado',
+            'uuid' => $uuid,
+            'id' => (int)$db->lastInsertId(),
+            'total' => (float)$plan['price_cop'],
+            'currency' => 'COP',
+            'status' => 'PENDING_PAYMENT',
+            'plan_name' => $plan['name_es'],
+        ];
+    }
+
+    public function findOrderByUuid(string $uuid): ?array
+    {
+        $stmt = Database::instance()->prepare("SELECT * FROM wwi_orders WHERE uuid = :uuid AND site_id = @site_id LIMIT 1");
+        $stmt->execute(['uuid' => $uuid]);
+        $row = $stmt->fetch();
+        return $row ?: null;
+    }
+
+    public function paymentConfig(): array
+    {
+        $cfg = $this->config();
+        return [
+            'provider' => (string)($cfg['wwi.payment_provider'] ?? ''),
+            'integrity_key' => (string)($cfg['wwi.wompi_integrity_key'] ?? ''),
+        ];
+    }
+
+    public function processPaymentWebhook(array $payload): array
+    {
+        $pc = $this->paymentConfig();
+        if ($pc['provider'] === '' || $pc['integrity_key'] === '') {
+            return ['ok' => false, 'status' => 503, 'message' => 'Payment provider not configured'];
+        }
+        $data = is_array($payload['data']['transaction'] ?? null) ? $payload['data']['transaction'] : [];
+        $checksum = (string)($payload['signature']['checksum'] ?? '');
+        $reference = (string)($data['reference'] ?? '');
+        $amountCents = (int)($data['amount_in_cents'] ?? 0);
+        $currency = (string)($data['currency'] ?? 'COP');
+        $expected = hash('sha256', $reference . $amountCents . $currency . $pc['integrity_key']);
+        if ($checksum === '' || !hash_equals($expected, $checksum)) {
+            return ['ok' => false, 'status' => 401, 'message' => 'Invalid signature'];
+        }
+        $order = $reference !== '' ? $this->findOrderByUuid($reference) : null;
+        if (!$order) {
+            return ['ok' => false, 'status' => 404, 'message' => 'Order not found'];
+        }
+        $db = Database::instance();
+        $status = strtoupper((string)($data['status'] ?? ''));
+        $providerRef = (string)($data['id'] ?? $reference);
+        $stmt = $db->prepare("INSERT IGNORE INTO wwi_payments (site_id, order_id, provider, provider_ref, amount, currency, status, signature_verified, raw_webhook, verified_at)
+            VALUES (@site_id, :oid, 'wompi', :pref, :amt, :cur, :st, 1, :raw, NOW())");
+        $stmt->execute([
+            'oid' => (int)$order['id'],
+            'pref' => $providerRef,
+            'amt' => $amountCents / 100,
+            'cur' => $currency,
+            'st' => $status === 'APPROVED' ? 'approved' : ($status === 'DECLINED' ? 'declined' : 'pending'),
+            'raw' => json_encode($payload),
+        ]);
+        if ($status === 'APPROVED') {
+            $this->transitionOrder((int)$order['id'], 'PAID');
+            $this->enqueueJob('provision_site', ['order_id' => (int)$order['id'], 'order_uuid' => $order['uuid'], 'tenant_id' => (int)$order['tenant_id'], 'plan_id' => (int)$order['plan_id'], 'domain_name' => $order['domain_name']]);
+            return ['ok' => true, 'message' => 'Payment approved — provisioning queued'];
+        }
+        return ['ok' => true, 'message' => 'Webhook received: ' . $status];
+    }
+
+    public function enqueueJob(string $type, array $payload): int
+    {
+        $db = Database::instance();
+        $stmt = $db->prepare("INSERT INTO wwi_jobs (site_id, type, status, payload, scheduled_at) VALUES (@site_id, :type, 'queued', :payload, NOW())");
+        $stmt->execute(['type' => $type, 'payload' => json_encode($payload)]);
+        return (int)$db->lastInsertId();
+    }
+
     public function myPortal(): array
     {
         $db = Database::instance();
