@@ -251,6 +251,11 @@ $router->group('/api/v1/admin', function (Router $r) {
     $r->get('/factory/jobs', [\App\Controllers\Admin\FactoryController::class, 'jobsList']);
     $r->post('/factory/jobs/run', [\App\Controllers\Admin\FactoryController::class, 'jobsRun']);
 
+    $r->post('/tia/command', [\App\Controllers\Admin\TiaAgentController::class, 'command']);
+    $r->post('/tia/confirm', [\App\Controllers\Admin\TiaAgentController::class, 'confirm']);
+    $r->get('/tia/sections', [\App\Controllers\Admin\TiaAgentController::class, 'sections']);
+    $r->get('/tia/history', [\App\Controllers\Admin\TiaAgentController::class, 'history']);
+
     $r->get('/media', [\App\Controllers\Admin\MediaController::class, 'index']);
     $r->post('/media/upload', [\App\Controllers\Admin\MediaController::class, 'upload']);
     $r->delete('/media/{id}', [\App\Controllers\Admin\MediaController::class, 'destroy']);

@@ -1653,7 +1653,53 @@ W.renderPortal=async function(){
     html+='<div class="w-card"><h3>Dominios</h3>'+(d.domains&&d.domains.length?'<table class="w-table"><tr><th>Dominio</th><th>Estado</th><th>Expira</th></tr>'+d.domains.map(function(x){return '<tr><td>'+W.esc(x.name)+'</td><td>'+W.fStatus(x.status)+'</td><td>'+(x.expires_at||'-')+'</td></tr>'}).join('')+'</table>':'<div class="w-empty-state" style="padding:20px"><p>Sin dominios</p></div>')+'</div></div>';
     html+='<div class="w-brick-grid2"><div class="w-card"><h3>Correos</h3>'+(d.emails&&d.emails.length?'<table class="w-table"><tr><th>Buzón</th><th>Estado</th></tr>'+d.emails.map(function(x){return '<tr><td>'+W.esc(x.mailbox)+'</td><td>'+W.fStatus(x.status)+'</td></tr>'}).join('')+'</table>':'<div class="w-empty-state" style="padding:20px"><p>Sin buzones</p></div>')+'</div>';
     html+='<div class="w-card"><h3>Pedidos</h3>'+(d.orders&&d.orders.length?'<table class="w-table"><tr><th>#</th><th>Plan</th><th>Total</th><th>Estado</th></tr>'+d.orders.map(function(o){return '<tr><td>'+W.esc((o.uuid||'').slice(0,8))+'</td><td>'+(o.plan_id||'-')+'</td><td>$'+W.num(o.total)+'</td><td>'+W.fStatus(o.status)+'</td></tr>'}).join('')+'</table>':'<div class="w-empty-state" style="padding:20px"><p>Sin pedidos</p></div>')+'</div></div>';
+    html+='<div class="w-card"><h3>TIA — Tu asistente de sitio</h3><div class="w-flex w-gap-sm"><input class="w-input" id="tia-input" placeholder="Ej: cambia el color a #22d3ee · agrega testimonios · muéstrame el estado" style="flex:1" onkeydown="if(event.key===\'Enter\')wontia.tiaSend()"/><button class="w-btn w-btn-primary" onclick="wontia.tiaSend()">Enviar</button></div><div id="tia-result" style="margin-top:12px"></div><div style="font-size:11px;color:var(--w-muted);margin-top:8px">Las acciones destructivas piden confirmación. Todo queda en el AI Audit Log.</div></div>';
+    html+='<div class="w-brick-grid2"><div class="w-card"><h3>Secciones del sitio</h3><div id="tia-sections">Cargando…</div></div><div class="w-card"><h3>AI Audit Log</h3><div id="tia-history">Cargando…</div></div></div>';
     app.innerHTML=html;
+    W.tiaLoadSections();
+    W.tiaLoadHistory();
+};
+
+W.tiaSend=async function(){
+    var input=document.getElementById('tia-input');var res=document.getElementById('tia-result');
+    if(!input||!res)return;
+    var cmd=input.value.trim();if(!cmd)return;
+    res.innerHTML='<div style="color:var(--w-muted);font-size:12px">TIA está pensando…</div>';
+    var r=await W.api('/api/v1/admin/tia/command',{method:'POST',body:{command:cmd}});
+    var d=r.data||{};
+    if(d.preview){
+        W.state.tiaToken=d.token;
+        res.innerHTML='<div class="w-card" style="border-color:#F5A623;padding:14px"><div style="font-size:12px;color:#F5A623">⚠ '+W.esc(r.message||'')+'</div><div class="w-flex w-gap-sm" style="margin-top:10px"><button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.tiaConfirm()">Confirmar</button><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.tiaCancel()">Cancelar</button></div></div>';
+    }else if(r.ok){
+        res.innerHTML='<div class="w-card" style="border-color:rgba(0,184,125,.5);padding:14px"><div style="font-size:12px;color:#00B87D">✓ '+W.esc(r.message||'Hecho')+'</div></div>';
+        W.tiaLoadSections();W.tiaLoadHistory();
+    }else{
+        res.innerHTML='<div class="w-card" style="border-color:var(--w-accent);padding:14px"><div style="font-size:12px;color:var(--w-accent)">'+W.esc(r.message||'Error')+'</div></div>';
+    }
+    input.value='';
+};
+
+W.tiaConfirm=async function(){
+    var res=document.getElementById('tia-result');
+    var r=await W.api('/api/v1/admin/tia/confirm',{method:'POST',body:{token:W.state.tiaToken}});
+    if(r.ok){res.innerHTML='<div class="w-card" style="border-color:rgba(0,184,125,.5);padding:14px"><div style="font-size:12px;color:#00B87D">✓ '+W.esc(r.message||'Ejecutado')+'</div></div>';W.tiaLoadSections();W.tiaLoadHistory();}
+    else res.innerHTML='<div style="color:var(--w-accent);font-size:12px">'+W.esc(r.message||'Error')+'</div>';
+};
+
+W.tiaCancel=function(){document.getElementById('tia-result').innerHTML='<div style="color:var(--w-muted);font-size:12px">Acción cancelada.</div>'};
+
+W.tiaLoadSections=async function(){
+    var el=document.getElementById('tia-sections');if(!el)return;
+    var r=await W.api('/api/v1/admin/tia/sections');
+    var rows=r.data||[];
+    el.innerHTML=rows.map(function(s){return '<div class="w-flex-between" style="padding:5px 0;border-bottom:1px solid var(--w-border);font-size:11px"><span><span class="mono" style="color:var(--w-muted)">#'+s.id+'</span> '+W.esc(s.title||s.widget_type||'sección')+' <span class="w-brick-chip">'+W.esc(s.widget_type||'custom')+'</span></span><span style="color:var(--w-muted)">'+(s.is_active==='1'||s.is_active===1?'visible':'oculta')+'</span></div>'}).join('')||'<div style="color:var(--w-muted);font-size:11px">Sin secciones</div>';
+};
+
+W.tiaLoadHistory=async function(){
+    var el=document.getElementById('tia-history');if(!el)return;
+    var r=await W.api('/api/v1/admin/tia/history');
+    var rows=r.data||[];
+    el.innerHTML=rows.map(function(a){return '<div style="padding:5px 0;border-bottom:1px solid var(--w-border);font-size:11px"><span class="w-brick-chip">'+W.esc(a.status)+'</span> <strong>'+W.esc(a.action)+'</strong><div style="color:var(--w-muted);margin-top:2px">'+W.esc((a.command||'').slice(0,80))+'</div></div>'}).join('')||'<div style="color:var(--w-muted);font-size:11px">Sin acciones aún</div>';
 };
 
 W.panels={
