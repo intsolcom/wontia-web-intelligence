@@ -224,11 +224,11 @@ async function wwiLoadTemplates(){
     try{
         var r=await fetch('/api/v1/public/templates');
         var d=await r.json();
-        var cats=(d.data||[]).slice(0,12);
+        var tpls=(d.data&&d.data.templates)||[];
         boxes.forEach(function(box){
-            box.innerHTML=cats.map(function(c){
-                return '<div class="card" style="text-align:center;padding:20px"><div style="font-size:22px;margin-bottom:8px">'+wwiEsc(c.icon||'W')+'</div><div style="font-size:13px;font-weight:600">'+wwiEsc(c.name_es)+'</div><div style="font-size:11px;color:var(--muted);margin-top:3px">'+wwiEsc(c.name_en)+'</div></div>';
-            }).join('');
+            box.innerHTML=tpls.map(function(t){
+                return '<div class="card" style="text-align:center;padding:20px"><div style="font-size:22px;margin-bottom:8px">W</div><div style="font-size:13px;font-weight:600">'+wwiEsc(t.name_es)+'</div><div style="font-size:11px;color:var(--muted);margin-top:3px">'+wwiEsc(t.name_en)+'</div><div style="font-size:10px;color:var(--accent);margin-top:6px;text-transform:uppercase;letter-spacing:.05em">'+wwiEsc(t.category_slug||'')+'</div></div>';
+            }).join('')||'<div style="color:var(--muted);grid-column:1/-1">Sin plantillas aún</div>';
         });
     }catch(e){}
 }
