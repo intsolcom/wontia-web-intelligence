@@ -1,6 +1,7 @@
 <?php
 namespace App\Services;
 
+use App\Core\Config;
 use App\Core\Database;
 
 class FactoryService
@@ -605,6 +606,34 @@ class FactoryService
         return ['ok' => true, 'brief_id' => $briefId, 'profile' => $profile];
     }
 
+    private function requestDeploy(array $tenant, array $order): void
+    {
+        $slug = strtolower(trim((string)preg_replace('/[^a-z0-9]+/i', '-', iconv('UTF-8', 'ASCII//TRANSLIT', $tenant['name'])), '-')) ?: ('cliente' . $tenant['id']);
+        $domain = $slug . '.wontia.com';
+        $key = bin2hex(random_bytes(16));
+        $db = Database::instance();
+        $db->prepare("INSERT INTO settings (site_id, `key`, `value`) VALUES (:sid, 'wwi_brick_key', :k) ON DUPLICATE KEY UPDATE `value` = :k2")
+            ->execute(['sid' => $tenant['id'], 'k' => $key, 'k2' => $key]);
+        $payload = [
+            'site_id' => (int)$tenant['id'],
+            'name' => $tenant['name'],
+            'slug' => $slug,
+            'domain' => $domain,
+            'brick_key' => $key,
+            'app_url' => 'https://' . $domain,
+            'user_email' => (string)$order['customer_email'],
+            'custom_domain' => (string)($order['domain_name'] ?? ''),
+        ];
+        $canonical = implode('|', [
+            $payload['site_id'], $payload['slug'], $payload['domain'], $payload['brick_key'],
+            $payload['name'], $payload['user_email'], $payload['custom_domain'],
+        ]);
+        $payload['sign'] = hash_hmac('sha256', $canonical, (string)Config::get('JWT_SECRET', 'x'));
+        $dir = '/app/deploy-queue';
+        @mkdir($dir, 0777, true);
+        @file_put_contents($dir . '/' . $slug . '-' . $tenant['id'] . '.json', json_encode($payload, JSON_UNESCAPED_UNICODE));
+    }
+
     public function sendWelcomeEmail(array $payload): array
     {
         $mail = new EmailService();
@@ -694,6 +723,7 @@ class FactoryService
         $this->addLedger(['site_id' => $tenantId, 'direction' => 'credit', 'amount' => (float)$order['total'], 'reason' => 'Saldo inicial del plan', 'ref' => 'provision:' . $order['uuid']]);
         $siteUrl = 'https://' . (!empty($order['domain_name']) ? $order['domain_name'] : ('cliente' . $tenantId . '.wontia.com'));
         $this->enqueueJob('send_email', ['to' => (string)$order['customer_email'], 'name' => $tenantName, 'site_url' => $siteUrl]);
+        $this->requestDeploy(['id' => $tenantId, 'name' => $tenantName], $order);
 
         return ['ok' => true, 'tenant_id' => $tenantId, 'site_uuid' => $siteUuid];
     }
