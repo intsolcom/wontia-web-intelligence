@@ -206,7 +206,8 @@ class FactoryController
 
     public function publicCreatePreview(Request $request): void
     {
-        $result = $this->service->createPreview((string)($request->json()['prompt'] ?? ''), $request->ip());
+        $builder = Session::isLoggedIn() && in_array(Session::userRole(), ['superadmin', 'admin', 'editor'], true);
+        $result = $this->service->createPreview((string)($request->json()['prompt'] ?? ''), $request->ip(), $builder);
         if ($result['ok']) Response::json(['ok' => true, 'message' => 'Preview generándose', 'data' => $result], 201);
         Response::json(['ok' => false, 'message' => $result['message'], 'data' => $result], $result['limit_reached'] ?? false ? 429 : 400);
     }

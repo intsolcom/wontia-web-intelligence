@@ -3,6 +3,7 @@ namespace App\Services;
 
 use App\Core\Config;
 use App\Core\Database;
+use App\Core\Session;
 
 class FactoryService
 {
@@ -649,32 +650,42 @@ class FactoryService
 
     public function previewAttempts(string $ip): array
     {
+        if ($this->isBuilder()) return ['unlimited' => true, 'limit' => null];
         $db = Database::instance();
         $hash = md5($ip);
         $stmt = $db->prepare("SELECT attempts FROM wwi_prompt_attempts WHERE site_id = @site_id AND ip_hash = :h AND day = CURDATE()");
         $stmt->execute(['h' => $hash]);
         $used = (int)$stmt->fetchColumn();
-        return ['used' => $used, 'left' => max(0, 2 - $used), 'limit' => 2];
+        return ['used' => $used, 'left' => max(0, 2 - $used), 'limit' => 2, 'unlimited' => false];
     }
 
-    public function createPreview(string $prompt, string $ip): array
+    private function isBuilder(): bool
+    {
+        return Session::isLoggedIn() && in_array(Session::userRole(), ['superadmin', 'admin', 'editor'], true);
+    }
+
+    public function createPreview(string $prompt, string $ip, bool $skipLimit = false): array
     {
         $prompt = trim($prompt);
         if (mb_strlen($prompt) < 10) {
             return ['ok' => false, 'message' => 'Cuéntame un poco más sobre tu negocio (mínimo 10 caracteres)'];
         }
         $db = Database::instance();
-        $hash = md5($ip);
-        $stmt = $db->prepare("INSERT INTO wwi_prompt_attempts (site_id, ip_hash, day, attempts) VALUES (@site_id, :h, CURDATE(), 1) ON DUPLICATE KEY UPDATE attempts = attempts + 1");
-        $stmt->execute(['h' => $hash]);
-        $attempts = $this->previewAttempts($ip);
-        if ($attempts['used'] > 2) {
-            $db->prepare("UPDATE wwi_prompt_attempts SET attempts = 2 WHERE site_id = @site_id AND ip_hash = :h AND day = CURDATE()")->execute(['h' => $hash]);
-            return ['ok' => false, 'limit_reached' => true, 'message' => 'Ya usaste tus 2 intentos de hoy. Explora el catálogo de plantillas o vuelve mañana.'];
+        if (!$skipLimit) {
+            $hash = md5($ip);
+            $stmt = $db->prepare("INSERT INTO wwi_prompt_attempts (site_id, ip_hash, day, attempts) VALUES (@site_id, :h, CURDATE(), 1) ON DUPLICATE KEY UPDATE attempts = attempts + 1");
+            $stmt->execute(['h' => $hash]);
+            $attempts = $this->previewAttempts($ip);
+            if (($attempts['used'] ?? 0) > 2) {
+                $db->prepare("UPDATE wwi_prompt_attempts SET attempts = 2 WHERE site_id = @site_id AND ip_hash = :h AND day = CURDATE()")->execute(['h' => $hash]);
+                return ['ok' => false, 'limit_reached' => true, 'message' => 'Ya usaste tus 2 intentos de hoy. Explora el catálogo de plantillas o vuelve mañana.'];
+            }
+        } else {
+            $attempts = ['unlimited' => true, 'limit' => null];
         }
         $uuid = bin2hex(random_bytes(16));
         $db->prepare("INSERT INTO wwi_previews (site_id, uuid, ip_hash, prompt, status) VALUES (@site_id, :u, :h, :p, 'generating')")
-            ->execute(['u' => $uuid, 'h' => $hash, 'p' => $prompt]);
+            ->execute(['u' => $uuid, 'h' => md5($ip), 'p' => $prompt]);
         $previewId = (int)$db->lastInsertId();
         $this->enqueueJob('generate_preview', ['preview_id' => $previewId]);
         return ['ok' => true, 'uuid' => $uuid, 'attempts' => $attempts];

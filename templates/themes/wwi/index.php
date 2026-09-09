@@ -303,7 +303,12 @@ function wwiFlowChat(who,html){
 }
 async function wwiFlowAttempts(){
     var el=document.getElementById('flow-attempts');
-    try{var r=await fetch('/api/v1/public/previews/attempts');var d=await r.json();wwiFlow.attempts=(d.data&&d.data.used)||0;if(el)el.textContent='Intentos usados hoy: '+wwiFlow.attempts+' de 2.'}catch(e){}
+    try{
+        var r=await fetch('/api/v1/public/previews/attempts');
+        var d=await r.json();
+        if(d.data&&d.data.unlimited){wwiFlow.attempts=0;if(el)el.textContent='Modo constructor: prompts ilimitados.';}
+        else{wwiFlow.attempts=(d.data&&d.data.used)||0;if(el)el.textContent='Intentos usados hoy: '+wwiFlow.attempts+' de 2.';}
+    }catch(e){}
 }
 async function wwiFlowSend(){
     var input=document.getElementById('flow-input');
