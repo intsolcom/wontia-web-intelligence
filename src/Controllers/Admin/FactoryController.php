@@ -224,31 +224,98 @@ class FactoryController
         if (!$preview || $preview['status'] !== 'ready') {
             Response::error('Preview not found or not ready', 404);
         }
-        $structure = $preview['structure'] ?? [];
-        $name = $this->escHtml($structure['business_name'] ?? 'Mi sitio');
-        $tagline = $this->escHtml($structure['tagline'] ?? '');
-        $nav = $structure['nav'] ?? ['Inicio'];
-        $sections = $structure['sections'] ?? [];
+        $s = $preview['structure'] ?? [];
+        $name = $this->escHtml((string)($s['business_name'] ?? 'Mi sitio'));
+        $tagline = $this->escHtml((string)($s['tagline'] ?? ''));
+        $colors = is_array($s['colors'] ?? null) ? $s['colors'] : [];
+        $primary = preg_match('/^#[0-9a-fA-F]{6}$/', (string)($colors['primary'] ?? '')) ? $colors['primary'] : '#2563eb';
+        $secondary = preg_match('/^#[0-9a-fA-F]{6}$/', (string)($colors['secondary'] ?? '')) ? $colors['secondary'] : '#1e3a8a';
+        $nav = is_array($s['nav'] ?? null) ? $s['nav'] : ['Inicio', 'Servicios', 'Contacto'];
+        $hero = is_array($s['hero'] ?? null) ? $s['hero'] : [];
+        $valueProp = is_array($s['value_prop'] ?? null) ? $s['value_prop'] : [];
+        $services = is_array($s['services'] ?? null) ? $s['services'] : [];
+        $benefits = is_array($s['benefits'] ?? null) ? $s['benefits'] : [];
+        $testimonials = is_array($s['testimonials'] ?? null) ? $s['testimonials'] : [];
+        $cta = is_array($s['cta'] ?? null) ? $s['cta'] : [];
+        $contact = is_array($s['contact'] ?? null) ? $s['contact'] : [];
+
         $navHtml = '';
         foreach ($nav as $item) {
-            $navHtml .= '<a href="#sec' . md5((string)$item) . '">' . $this->escHtml((string)$item) . '</a>';
+            $navHtml .= '<a href="#' . $this->escHtml(md5((string)$item)) . '">' . $this->escHtml((string)$item) . '</a>';
         }
-        $sectionsHtml = '';
-        foreach ($sections as $i => $sec) {
-            if (!is_array($sec)) continue;
-            $sectionsHtml .= '<section class="pv-sec" id="sec' . md5((string)($sec['title'] ?? $i)) . '">'
-                . '<h2>' . $this->escHtml((string)($sec['title'] ?? '')) . '</h2>'
-                . ($sec['subtitle'] ? '<p class="pv-sub">' . $this->escHtml((string)$sec['subtitle']) . '</p>' : '')
-                . '<div class="pv-content">' . (string)($sec['content'] ?? '') . '</div></section>';
+        $valueHtml = '';
+        foreach ($valueProp as $v) {
+            $valueHtml .= '<li>' . $this->escHtml((string)$v) . '</li>';
         }
+        $servicesHtml = '';
+        foreach ($services as $sv) {
+            if (!is_array($sv)) continue;
+            $servicesHtml .= '<article class="card"><h3>' . $this->escHtml((string)($sv['title'] ?? '')) . '</h3><p>' . $this->escHtml((string)($sv['desc'] ?? '')) . '</p></article>';
+        }
+        $benefitsHtml = '';
+        foreach ($benefits as $b) {
+            if (!is_array($b)) continue;
+            $benefitsHtml .= '<div class="benefit"><span class="benefit-ic">✓</span><div><strong>' . $this->escHtml((string)($b['title'] ?? '')) . '</strong><p>' . $this->escHtml((string)($b['desc'] ?? '')) . '</p></div></div>';
+        }
+        $testimHtml = '';
+        foreach ($testimonials as $t) {
+            if (!is_array($t)) continue;
+            $testimHtml .= '<blockquote><p>"' . $this->escHtml((string)($t['quote'] ?? '')) . '"</p><footer>— ' . $this->escHtml((string)($t['author'] ?? 'Cliente')) . '</footer></blockquote>';
+        }
+        $css = ":root{--p:$primary;--s:$secondary;--txt:#0f172a;--mut:#5b6b84;--bg:#ffffff;--bg2:#f6f8fb;--bd:#e5e9f2}"
+            . "*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Inter',system-ui,sans-serif;color:var(--txt);background:var(--bg);line-height:1.6}"
+            . ".pv-band{position:sticky;top:0;z-index:60;background:linear-gradient(90deg,var(--s),var(--p));color:#fff;font-size:11px;font-weight:700;text-align:center;padding:7px 10px;letter-spacing:.05em}"
+            . "header.site{display:flex;align-items:center;justify-content:space-between;padding:14px 6%;border-bottom:1px solid var(--bd);position:sticky;top:26px;background:rgba(255,255,255,.95);backdrop-filter:blur(8px)}"
+            . "header.site .logo{font-weight:800;letter-spacing:-.02em}header.site nav{display:flex;gap:18px}header.site nav a{color:var(--mut);text-decoration:none;font-size:13px}header.site nav a:hover{color:var(--p)}"
+            . ".cta-btn{display:inline-block;background:var(--p);color:#fff;padding:9px 18px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none}.cta-btn.alt{background:transparent;border:1px solid var(--p);color:var(--p)}"
+            . "section{padding:56px 6%}.hero{background:linear-gradient(160deg,var(--bg2),#fff);text-align:center;padding:84px 6%}"
+            . ".hero .eyebrow{color:var(--p);font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px}"
+            . ".hero h1{font-size:clamp(28px,4.5vw,46px);font-weight:800;letter-spacing:-.02em;max-width:760px;margin:0 auto 14px}"
+            . ".hero p{color:var(--mut);max-width:620px;margin:0 auto 24px;font-size:16px}.hero .ctas{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}"
+            . "h2.sec{font-size:24px;font-weight:800;letter-spacing:-.01em;text-align:center;margin-bottom:10px}"
+            . ".sec-sub{text-align:center;color:var(--mut);max-width:560px;margin:0 auto 32px;font-size:14px}"
+            . ".value{max-width:640px;margin:0 auto;padding-left:20px}.value li{margin-bottom:8px;color:#334155}"
+            . ".grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}"
+            . ".card{background:#fff;border:1px solid var(--bd);border-radius:12px;padding:22px}.card h3{font-size:16px;margin-bottom:8px}.card p{color:var(--mut);font-size:13.5px}"
+            . ".about{max-width:720px;margin:0 auto;color:#334155;font-size:15px}"
+            . ".benefits{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}"
+            . ".benefit{display:flex;gap:12px;align-items:flex-start;background:var(--bg2);border:1px solid var(--bd);border-radius:12px;padding:16px}"
+            . ".benefit-ic{min-width:26px;height:26px;border-radius:50%;background:var(--p);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700}"
+            . ".benefit strong{font-size:14px}.benefit p{color:var(--mut);font-size:12.5px;margin-top:3px}"
+            . ".testimonials{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}"
+            . "blockquote{background:#fff;border:1px solid var(--bd);border-left:3px solid var(--p);border-radius:10px;padding:18px}blockquote p{font-size:14px;color:#334155}blockquote footer{margin-top:10px;font-size:12px;color:var(--mut);font-weight:600}"
+            . ".cta-banner{background:linear-gradient(120deg,var(--s),var(--p));border-radius:16px;color:#fff;text-align:center;padding:48px 6%}"
+            . ".cta-banner h2{font-size:26px;font-weight:800;margin-bottom:8px}.cta-banner p{opacity:.9;margin-bottom:20px}.cta-banner .cta-btn{background:#fff;color:var(--p)}"
+            . ".contact{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;text-align:center}"
+            . ".contact .ci{background:var(--bg2);border:1px solid var(--bd);border-radius:12px;padding:18px}.contact .ci b{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--p);margin-bottom:6px}.contact .ci span{font-size:13px;color:#334155}"
+            . "footer.site{border-top:1px solid var(--bd);padding:28px 6%;text-align:center;color:var(--mut);font-size:12px}"
+            . "@media(max-width:640px){header.site nav{display:none}}";
+
         Response::html('<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>' . $name . ' — Vista previa</title>'
-            . '<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">'
-            . '<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Inter,sans-serif;background:#fff;color:#1a1a1e}.pv-band{position:sticky;top:0;z-index:50;background:linear-gradient(120deg,#22d3ee,#8b5cf6);color:#041018;font-size:11px;font-weight:700;text-align:center;padding:6px 10px;letter-spacing:.05em}nav{display:flex;gap:18px;align-items:center;padding:14px 28px;border-bottom:1px solid #eee}nav b{font-weight:800}nav a{color:#555;text-decoration:none;font-size:13px}header.pv-hero{padding:70px 28px 50px;text-align:center;background:#f7f9fd}header.pv-hero h1{font-size:36px;font-weight:800;letter-spacing:-.02em}header.pv-hero p{color:#666;margin-top:10px;font-size:15px}.pv-sec{max-width:760px;margin:0 auto;padding:44px 28px}.pv-sec h2{font-size:22px;font-weight:800;margin-bottom:6px}.pv-sub{color:#666;font-size:13px;margin-bottom:14px}.pv-content{font-size:14px;line-height:1.7;color:#333}.pv-content p{margin-bottom:10px}.pv-content ul{padding-left:20px;margin-bottom:10px}footer{border-top:1px solid #eee;padding:24px;text-align:center;font-size:12px;color:#888}</style></head><body>'
-            . '<div class="pv-band">VISTA PREVIA TEMPORAL — expira en 60 minutos · no es tu sitio final</div>'
-            . '<nav><b>' . $name . '</b>' . $navHtml . '</nav>'
-            . '<header class="pv-hero"><h1>' . $name . '</h1>' . ($tagline ? '<p>' . $tagline . '</p>' : '') . '</header>'
-            . $sectionsHtml
-            . '<footer>' . $name . ' · Vista previa generada por TIA — Wontia Web Intelligence</footer></body></html>');
+            . '<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">'
+            . '<style>' . $css . '</style></head><body>'
+            . '<div class="pv-band">VISTA PREVIA TEMPORAL — expira en 60 minutos · contenido de ejemplo · no es tu sitio final</div>'
+            . '<header class="site"><div class="logo">' . $name . '</div><nav>' . $navHtml . '</nav><a href="#contacto" class="cta-btn">Contáctanos</a></header>'
+            . '<main>'
+            . '<section class="hero" id="inicio">'
+            . ($hero['eyebrow'] ?? '' ? '<div class="eyebrow">' . $this->escHtml((string)$hero['eyebrow']) . '</div>' : '')
+            . '<h1>' . $this->escHtml((string)($hero['title'] ?? $name)) . '</h1>'
+            . '<p>' . $this->escHtml((string)($hero['subtitle'] ?? $tagline)) . '</p>'
+            . '<div class="ctas"><a href="#contacto" class="cta-btn">Contáctanos</a><a href="https://wa.me/000" class="cta-btn alt">WhatsApp</a></div></section>'
+            . ($valueProp ? '<section id="valor"><h2 class="sec">¿Por qué elegirnos?</h2><ul class="value">' . $valueHtml . '</ul></section>' : '')
+            . ($services ? '<section id="servicios" style="background:var(--bg2)"><h2 class="sec">Servicios</h2><p class="sec-sub">' . $tagline . '</p><div class="grid">' . $servicesHtml . '</div></section>' : '')
+            . ($s['about'] ?? '' ? '<section id="nosotros"><h2 class="sec">Sobre nosotros</h2><p class="about">' . $this->escHtml((string)$s['about']) . '</p></section>' : '')
+            . ($benefits ? '<section id="beneficios" style="background:var(--bg2)"><h2 class="sec">Beneficios</h2><div class="benefits">' . $benefitsHtml . '</div></section>' : '')
+            . ($testimonials ? '<section id="testimonios"><h2 class="sec">Lo que dicen de nosotros</h2><p class="sec-sub">Testimonios de ejemplo</p><div class="testimonials">' . $testimHtml . '</div></section>' : '')
+            . ($cta ? '<section><div class="cta-banner"><h2>' . $this->escHtml((string)($cta['title'] ?? '¿Listo para empezar?')) . '</h2><p>' . $this->escHtml((string)($cta['subtitle'] ?? '')) . '</p><a href="#contacto" class="cta-btn">Contáctanos</a></div></section>' : '')
+            . '<section id="contacto"><h2 class="sec">Contacto</h2><div class="contact">'
+            . '<div class="ci"><b>Teléfono</b><span>' . $this->escHtml((string)($contact['phone'] ?? '{{TELEFONO}}')) . '</span></div>'
+            . '<div class="ci"><b>Email</b><span>' . $this->escHtml((string)($contact['email'] ?? '{{EMAIL}}')) . '</span></div>'
+            . '<div class="ci"><b>Dirección</b><span>' . $this->escHtml((string)($contact['address'] ?? '{{DIRECCION}}')) . '</span></div>'
+            . '<div class="ci"><b>WhatsApp</b><span>' . $this->escHtml((string)($contact['whatsapp'] ?? '{{WHATSAPP}}')) . '</span></div>'
+            . '</div></section></main>'
+            . '<footer class="site">' . $this->escHtml((string)($s['footer_note'] ?? ($name . ' — sitio generado por TIA · Wontia Web Intelligence'))) . '</footer>'
+            . '</body></html>');
     }
 
     public function publicSuggestDomains(Request $request): void

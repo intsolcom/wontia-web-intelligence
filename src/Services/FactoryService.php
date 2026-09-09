@@ -713,10 +713,20 @@ class FactoryService
         $preview = $stmt->fetch();
         if (!$preview) throw new \RuntimeException('Preview not found');
 
-        $prompt = "Eres TIA, generadora de sitios web de Wontia. A partir del pedido del cliente, diseña la estructura de su sitio. Responde SOLO con JSON válido, sin markdown:\n"
-            . "{\"business_name\":\"...\",\"tagline\":\"frase corta\",\"nav\":[\"Inicio\",\"Servicios\",\"...\"],"
-            . "\"sections\":[{\"title\":\"...\",\"subtitle\":\"...\",\"content\":\"HTML simple con <p> y <ul>\"}]}\n"
-            . "Genera entre 4 y 6 secciones coherentes. NO inventes datos factuales (direcciones, teléfonos, años): usa placeholders como [Tu dirección] cuando falten.\n\n"
+        $prompt = "Eres TIA, generadora de sitios web de Wontia. Sigue la ESTRUCTURA FIJA DE PLANTILLA BÁSICA de Wontia (nivel 1) para generar el sitio del cliente.\n"
+            . "Estructura obligatoria: Header(nav 4-6 items) · Hero(eyebrow,H1,subtitulo,CTA primario 'Contáctanos' + CTA secundario WhatsApp) · Propuesta de valor(3 bullets) · Servicios(3-6 cards) · Sobre nosotros · Beneficios(4 items) · Testimonios(2-3, marcados como ejemplo) · CTA final · Contacto(placeholders) · Footer.\n"
+            . "Responde SOLO con JSON válido, sin markdown, con este contrato:\n"
+            . "{\"business_name\":\"...\",\"tagline\":\"...\",\"nav\":[\"Inicio\",\"Servicios\",\"Sobre mi\",\"Contacto\"],"
+            . "\"colors\":{\"primary\":\"#hex\",\"secondary\":\"#hex\"},"
+            . "\"hero\":{\"eyebrow\":\"...\",\"title\":\"...\",\"subtitle\":\"...\"},"
+            . "\"value_prop\":[\"...\",\"...\",\"...\"],"
+            . "\"services\":[{\"title\":\"...\",\"desc\":\"...\"}],"
+            . "\"about\":\"...\",\"benefits\":[{\"title\":\"...\",\"desc\":\"...\"}],"
+            . "\"testimonials\":[{\"quote\":\"...\",\"author\":\"Cliente (ejemplo)\"}],"
+            . "\"cta\":{\"title\":\"...\",\"subtitle\":\"...\"},"
+            . "\"contact\":{\"phone\":\"{{TELEFONO}}\",\"email\":\"{{EMAIL}}\",\"address\":\"{{DIRECCION}}\",\"whatsapp\":\"{{WHATSAPP}}\"},"
+            . "\"footer_note\":\"...\"}\n"
+            . "Reglas: colores profesionales por sector; copy de conversión en español; placeholders {{CAMPO}} cuando falten datos reales; NUNCA inventes certificaciones, clientes, precios ni años de experiencia.\n\n"
             . "Pedido del cliente:\n" . mb_substr((string)$preview['prompt'], 0, 2000);
 
         $router = new \App\Core\AiBrick\AiRouter();
@@ -724,9 +734,9 @@ class FactoryService
             'system_id' => 'wontia',
             'module' => 'agent',
             'function' => 'preview',
-            'system_prompt' => 'Respondes únicamente con JSON válido.',
+            'system_prompt' => 'Respondes únicamente con JSON válido según el contrato indicado.',
             'messages' => [['role' => 'user', 'content' => $prompt]],
-            'max_tokens' => 1500,
+            'max_tokens' => 2000,
             'temperature' => 0.6,
         ]);
         if (empty($response['ok']) || empty($response['content'])) {
@@ -738,7 +748,7 @@ class FactoryService
             $clean = preg_replace('/^```(json)?\s*|\s*```$/m', '', (string)$response['content']);
             $structure = json_decode($clean, true);
         }
-        if (!is_array($structure) || empty($structure['sections'])) {
+        if (!is_array($structure) || (empty($structure['services']) && empty($structure['sections']) && empty($structure['hero']))) {
             $db->prepare("UPDATE wwi_previews SET status = 'failed' WHERE id = :id")->execute(['id' => $previewId]);
             throw new \RuntimeException('Estructura inválida generada');
         }
