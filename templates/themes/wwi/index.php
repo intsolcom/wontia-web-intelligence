@@ -271,6 +271,276 @@ wwiLoadTemplates();
 wwiLoadPayMode();
 var coBtn=document.getElementById('wwi-co-submit');
 if(coBtn)coBtn.addEventListener('click',wwiCheckoutSubmit);
+var startBtn=document.getElementById('wwi-start');
+if(startBtn)startBtn.addEventListener('click',function(e){e.preventDefault();wwiFlowOpen()});
 </script>
+<script>
+var wwiFlow={idx:0,uuid:null,planId:null,addons:[],domain:null,attempts:0};
+function wwiFlowOpen(){
+    document.getElementById('wwi-flow').classList.add('open');
+    wwiFlowGo(0);
+    wwiFlowAttempts();
+    if(!wwiFlow.booted){
+        wwiFlowChat('tia','¡Hola! Soy TIA. Escribe cómo quieres tu sitio web. Por ejemplo: <em>soy arquitecto y quiero que mi sitio muestre mi trayectoria y los proyectos que he ejecutado</em>.');
+        wwiFlow.booted=true;
+    }
+}
+function wwiFlowClose(){document.getElementById('wwi-flow').classList.remove('open')}
+function wwiFlowGo(i){
+    wwiFlow.idx=i;
+    document.getElementById('wwi-flow-track').style.transform='translateX(-'+(i*100)+'%)';
+    document.querySelectorAll('.flow-head .dot').forEach(function(d){d.classList.toggle('on',+d.dataset.d===i)});
+    if(i===2)wwiFlowLoadTpls();
+    if(i===3)wwiFlowLoadPlans();
+}
+function wwiFlowChat(who,html){
+    var box=document.getElementById('flow-chat');if(!box)return;
+    var d=document.createElement('div');
+    d.className='chat-msg '+who;
+    d.innerHTML=html;
+    box.appendChild(d);
+    box.scrollTop=box.scrollHeight;
+}
+async function wwiFlowAttempts(){
+    var el=document.getElementById('flow-attempts');
+    try{var r=await fetch('/api/v1/public/previews/attempts');var d=await r.json();wwiFlow.attempts=(d.data&&d.data.used)||0;if(el)el.textContent='Intentos usados hoy: '+wwiFlow.attempts+' de 2.'}catch(e){}
+}
+async function wwiFlowSend(){
+    var input=document.getElementById('flow-input');
+    var v=input.value.trim();
+    if(!v)return;
+    wwiFlowChat('user',wwiEsc(v));
+    input.value='';
+    wwiFlowChat('tia','<span class="spin" style="display:inline-block;width:14px;height:14px;border-width:2px"></span> Generando tu sitio…');
+    try{
+        var r=await fetch('/api/v1/public/previews',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:v})});
+        var d=await r.json();
+        if(!d.ok){
+            wwiFlowChat('tia','⚠ '+wwiEsc(d.message||'Error'));
+            wwiFlowAttempts();
+            if(d.data&&d.data.limit_reached){setTimeout(function(){wwiFlowGo(2)},1600);}
+            return;
+        }
+        wwiFlow.uuid=d.data.uuid;
+        wwiFlowAttempts();
+        var ok=false;
+        for(var i=0;i<40;i++){
+            await new Promise(function(res){setTimeout(res,2500)});
+            var s=await fetch('/api/v1/public/previews/'+wwiFlow.uuid);
+            var sd=await s.json();
+            if(sd.data&&sd.data.status==='ready'){ok=true;break}
+            if(sd.data&&sd.data.status==='failed'){wwiFlowChat('tia','Algo falló al generar. Intenta de nuevo o usa el catálogo.');return}
+        }
+        if(ok){
+            wwiFlowChat('tia','¡Listo! Tu vista previa está creada. 👇');
+            document.getElementById('pv-view').onclick=function(){wwiFlowShowPreview(wwiFlow.uuid)};
+            wwiFlowGo(1);
+        }else{
+            wwiFlowChat('tia','Está tardando más de lo normal. Revisa el preview o usa el catálogo.');
+        }
+    }catch(e){wwiFlowChat('tia','Error de conexión. Intenta de nuevo.')}
+}
+function wwiFlowShowPreview(uuid){
+    document.getElementById('wwi-pv-frame').src='/api/v1/public/preview/'+uuid;
+    document.getElementById('wwi-pv-modal').classList.add('open');
+}
+function wwiFlowDiscard(){
+    wwiFlowAttempts();
+    if(wwiFlow.attempts>=2){
+        wwiFlowGo(2);
+        return;
+    }
+    document.getElementById('flow-input').value='';
+    wwiFlowGo(0);
+}
+async function wwiFlowLoadTpls(){
+    var grid=document.getElementById('flow-tpl-grid');
+    try{
+        var r=await fetch('/api/v1/public/templates');
+        var d=await r.json();
+        var tpls=(d.data&&d.data.templates)||[];
+        grid.innerHTML=tpls.map(function(t){return '<div class="tpl-card" onclick="wwiFlowPickTpl(\''+wwiEsc(t.slug)+'\')"><div class="nm">'+wwiEsc(t.name_es)+'</div><div class="cat">'+wwiEsc(t.category_slug||'')+'</div></div>'}).join('')||'Sin plantillas';
+    }catch(e){grid.textContent='Error cargando plantillas'}
+}
+function wwiFlowPickTpl(slug){wwiFlow.template=slug;wwiFlowGo(3)}
+async function wwiFlowLoadPlans(){
+    var grid=document.getElementById('flow-plans-grid');
+    try{
+        var r=await fetch('/api/v1/public/plans');
+        var d=await r.json();
+        var plans=(d.data||[]).filter(function(p){return p.price_cop>0&&p.slug!=='web-master'&&p.slug!=='web-catalog-pro'}).slice(0,3);
+        grid.innerHTML=plans.map(function(p){return '<div class="plan-mini" onclick="wwiFlowPickPlan('+p.id+')"><div class="nm">'+wwiEsc(p.name_es)+'</div><div class="pr">$'+Number(p.price_cop).toLocaleString('es-CO')+'</div><div style="font-size:10px;color:var(--muted)">COP · pago único</div></div>'}).join('')||'Sin planes';
+    }catch(e){grid.textContent='Error cargando planes'}
+}
+function wwiFlowPickPlan(id){
+    wwiFlow.planId=id;
+    document.getElementById('wwi-xs-modal').classList.add('open');
+}
+function wwiXsConfirm(add){
+    document.getElementById('wwi-xs-modal').classList.remove('open');
+    wwiFlow.addons=add?['web-master']:[];
+    wwiFlowGo(4);
+}
+async function wwiFlowCheckDomain(){
+    var input=document.getElementById('flow-dom-input');
+    var res=document.getElementById('flow-dom-result');
+    var name=input.value.trim();
+    if(!name)return;
+    res.textContent='Verificando…';
+    try{
+        var r=await fetch('/api/v1/public/domain/check?name='+encodeURIComponent(name));
+        var d=await r.json();
+        var s=d.data||{};
+        if(s.state==='AVAILABLE'){
+            wwiFlow.domain=name;
+            res.innerHTML='<span style="color:var(--ok)">✓ '+wwiEsc(name)+' está disponible.</span>';
+            document.getElementById('flow-dom-confirm-wrap').style.display='flex';
+        }else{
+            res.innerHTML='<span style="color:var(--bad)">'+wwiEsc(s.state)+' — '+wwiEsc(s.message||'')+'</span>';
+        }
+    }catch(e){res.textContent='No se pudo verificar.'}
+}
+async function wwiFlowSuggestDomains(){
+    var input=document.getElementById('flow-dom-input');
+    var business=input.value.trim()||wwiFlow.bizName||'mi negocio';
+    wwiFlowChat('tia','Sugiriendo dominios…');
+    var res=document.getElementById('flow-dom-sugg');
+    try{
+        var r=await fetch('/api/v1/public/previews/suggest-domains',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({business:business})});
+        var d=await r.json();
+        var list=d.data||[];
+        res.innerHTML=list.map(function(x){return '<button class="dom-chip" onclick="wwiFlowPickDom(\''+wwiEsc(x)+'\')">'+wwiEsc(x)+'</button>'}).join('');
+    }catch(e){res.textContent='No se pudo sugerir.'}
+}
+function wwiFlowPickDom(name){
+    document.getElementById('flow-dom-input').value=name;
+    document.querySelectorAll('#flow-dom-sugg .dom-chip').forEach(function(c){c.classList.toggle('sel',c.textContent===name)});
+    wwiFlowCheckDomain();
+}
+function wwiFlowConfirmDomain(){
+    var wrap=document.getElementById('flow-order-result');
+    wrap.innerHTML='<div style="margin-top:10px"><input class="input" id="fo2-name" placeholder="Tu nombre" style="margin-bottom:8px"/><input class="input" id="fo2-email" type="email" placeholder="tu@email.com" style="margin-bottom:10px"/><button class="btn btn-primary" onclick="wwiFlowCreateOrder()">Crear mi pedido</button></div>';
+}
+async function wwiFlowCreateOrder(){
+    var res=document.getElementById('flow-order-result');
+    var payload={plan_id:wwiFlow.planId,customer_name:document.getElementById('fo2-name').value,customer_email:document.getElementById('fo2-email').value,domain_name:wwiFlow.domain||document.getElementById('flow-dom-input').value,addons:wwiFlow.addons,locale:'es'};
+    if(!payload.customer_name||!payload.customer_email){res.innerHTML='<div style="color:var(--bad);font-size:12px">Completa nombre y email.</div>';return}
+    try{
+        var r=await fetch('/api/v1/public/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+        var d=await r.json();
+        if(d.ok){
+            var demoBtn=(wwiPayMode==='dummy')?'<button class="btn btn-primary" style="margin-top:10px" onclick="wwiDummyPay(\''+d.data.uuid+'\')">Pagar (modo demo)</button>':'';
+            res.innerHTML='<div class="panel" style="padding:16px;border-color:rgba(52,211,153,.5)"><div style="color:var(--ok);font-size:13px;font-weight:600">✓ Pedido creado — '+wwiEsc(d.data.plan_name)+'</div><div class="mono" style="font-size:11px;color:var(--muted);margin-top:6px">Total $'+Number(d.data.total).toLocaleString('es-CO')+' COP'+(wwiFlow.addons.length?' · incluye Web Master':'')+'</div>'+demoBtn+'</div>';
+        }else{res.innerHTML='<div style="color:var(--bad);font-size:12px">'+wwiEsc(d.message||'Error')+'</div>'}
+    }catch(e){res.innerHTML='<div style="color:var(--bad);font-size:12px">Error de conexión</div>'}
+}
+document.addEventListener('DOMContentLoaded',function(){
+    var fc=document.getElementById('flow-dom-confirm');
+    if(fc)fc.addEventListener('click',wwiFlowConfirmDomain);
+});
+</script>
+<style>
+.flow-overlay{position:fixed;inset:0;z-index:999;background:rgba(4,6,10,.92);backdrop-filter:blur(10px);display:none;align-items:center;justify-content:center;padding:20px}
+.flow-overlay.open{display:flex}
+.flow-shell{width:100%;max-width:820px;height:min(620px,90vh);background:var(--panel);border:1px solid var(--border2);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;position:relative}
+.flow-head{display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid var(--border);position:relative}
+.flow-head .dots{display:flex;gap:6px;flex:1}
+.flow-head .dot{height:5px;flex:1;border-radius:3px;background:var(--border2);transition:background .3s}
+.flow-head .dot.on{background:linear-gradient(120deg,#22d3ee,#8b5cf6)}
+.flow-close{background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1}
+.flow-track{flex:1;display:flex;transition:transform .38s cubic-bezier(.4,0,.2,1);will-change:transform}
+.flow-slide{min-width:100%;padding:26px 30px;overflow-y:auto;box-sizing:border-box}
+.flow-h1{font-size:22px;font-weight:800;letter-spacing:-.01em;margin-bottom:8px}
+.flow-sub{font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.6}
+.chat-box{display:flex;flex-direction:column;gap:10px;margin-bottom:14px;max-height:300px;overflow-y:auto}
+.chat-msg{padding:10px 14px;border-radius:12px;font-size:13px;max-width:85%;line-height:1.5}
+.chat-msg.tia{background:rgba(139,92,246,.12);border:1px solid rgba(139,92,246,.3);align-self:flex-start}
+.chat-msg.user{background:rgba(34,211,238,.1);border:1px solid rgba(34,211,238,.35);align-self:flex-end}
+.chat-in{display:flex;gap:8px}
+.chat-in .input{flex:1}
+.flow-actions{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+.flow-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.flow-grid .tpl-card{border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center;cursor:pointer;transition:border .15s;background:var(--panel2)}
+.flow-grid .tpl-card:hover{border-color:var(--accent)}
+.tpl-card .nm{font-size:12px;font-weight:700}
+.tpl-card .cat{font-size:10px;color:var(--muted);margin-top:3px;text-transform:uppercase;letter-spacing:.05em}
+.plan-mini{border:1px solid var(--border);border-radius:12px;padding:18px;text-align:center;cursor:pointer;transition:border .15s}
+.plan-mini:hover{border-color:var(--accent)}
+.plan-mini .pr{font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:600;margin:6px 0}
+.plan-mini .nm{font-size:12px;font-weight:700}
+.dom-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.dom-chip{border:1px solid var(--border2);border-radius:8px;padding:7px 12px;font-family:'JetBrains Mono',monospace;font-size:12px;cursor:pointer}
+.dom-chip:hover{border-color:var(--accent)}
+.dom-chip.sel{border-color:var(--accent);background:rgba(34,211,238,.1)}
+.flow-modal{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.75);display:none;align-items:center;justify-content:center;padding:18px}
+.flow-modal.open{display:flex}
+.flow-modal .box{width:100%;max-width:900px;height:min(85vh,640px);background:var(--panel);border:1px solid var(--border2);border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
+.flow-modal .box iframe{flex:1;border:none;background:#fff}
+@media(max-width:720px){.flow-grid{grid-template-columns:repeat(2,1fr)}}
+</style>
+<div class="flow-overlay" id="wwi-flow">
+  <div class="flow-shell">
+    <div class="flow-head">
+      <div class="dots"><div class="dot on" data-d="0"></div><div class="dot" data-d="1"></div><div class="dot" data-d="2"></div><div class="dot" data-d="3"></div><div class="dot" data-d="4"></div></div>
+      <button class="flow-close" onclick="wwiFlowClose()">&times;</button>
+    </div>
+    <div class="flow-track" id="wwi-flow-track">
+      <div class="flow-slide" id="fs-prompt">
+        <div class="flow-h1">Hablemos de tu sitio web</div>
+        <div class="flow-sub">TIA construirá una vista previa a partir de lo que le cuentes. No necesitas saber de diseño.</div>
+        <div class="chat-box" id="flow-chat"></div>
+        <div class="chat-in"><input class="input" id="flow-input" placeholder="Ej: soy arquitecto y quiero mostrar mi trayectoria y los proyectos que he ejecutado" onkeydown="if(event.key==='Enter')wwiFlowSend()"/><button class="btn btn-primary" onclick="wwiFlowSend()">Enviar</button></div>
+        <div class="flow-sub" id="flow-attempts" style="margin-top:12px"></div>
+        <div class="flow-actions"><button class="btn btn-ghost" onclick="wwiFlowGo(2)">Prefiero ver plantillas</button></div>
+      </div>
+      <div class="flow-slide" id="fs-preview">
+        <div class="flow-h1" id="pv-title">Tu vista previa está lista</div>
+        <div class="flow-sub">Esta es una muestra temporal (expira en 60 min). No es tu sitio final.</div>
+        <div class="flow-actions">
+          <button class="btn btn-primary" id="pv-view">Ver preview</button>
+          <button class="btn btn-ghost" onclick="wwiFlowGo(0)">Editar el prompt</button>
+          <button class="btn btn-ghost" onclick="wwiFlowDiscard()">Descartar, probar otro prompt</button>
+        </div>
+        <div class="flow-sub" style="margin-top:18px" id="pv-note"></div>
+      </div>
+      <div class="flow-slide" id="fs-templates">
+        <div class="flow-h1">O elige una plantilla lista</div>
+        <div class="flow-sub">Diseños por sector listos para usar. TIA los adapta a tu negocio.</div>
+        <div class="flow-grid" id="flow-tpl-grid">Cargando…</div>
+      </div>
+      <div class="flow-slide" id="fs-plans">
+        <div class="flow-h1">Elige tu plan</div>
+        <div class="flow-sub">Todo incluido. Dominio el primer año. Sin sorpresas.</div>
+        <div class="flow-grid" id="flow-plans-grid">Cargando…</div>
+      </div>
+      <div class="flow-slide" id="fs-domain">
+        <div class="flow-h1">¿Qué dominio quieres?</div>
+        <div class="flow-sub">Escríbelo o deja que TIA te sugiera opciones.</div>
+        <div class="chat-in"><input class="input" id="flow-dom-input" placeholder="tunegocio.com" onkeydown="if(event.key==='Enter')wwiFlowCheckDomain()"/><button class="btn btn-primary" onclick="wwiFlowCheckDomain()">Verificar</button></div>
+        <div class="flow-actions"><button class="btn btn-ghost" onclick="wwiFlowSuggestDomains()">Sugerir nombres con TIA</button></div>
+        <div class="dom-row" id="flow-dom-sugg"></div>
+        <div id="flow-dom-result" class="flow-sub" style="margin-top:14px"></div>
+        <div class="flow-actions" id="flow-dom-confirm-wrap" style="display:none"><button class="btn btn-primary" id="flow-dom-confirm">Confirmar dominio y continuar</button></div>
+        <div id="flow-order-result" style="margin-top:14px"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="flow-modal" id="wwi-pv-modal">
+  <div class="box">
+    <div class="flow-head"><div style="flex:1;font-size:12px;font-weight:700;letter-spacing:.06em">VISTA PREVIA TEMPORAL</div><button class="flow-close" onclick="document.getElementById('wwi-pv-modal').classList.remove('open')">&times;</button></div>
+    <iframe id="wwi-pv-frame" src="about:blank"></iframe>
+  </div>
+</div>
+<div class="flow-modal" id="wwi-xs-modal">
+  <div class="box" style="max-width:480px;height:auto;padding:26px">
+    <div class="flow-h1" style="font-size:18px">Venta cruzada — Web Master</div>
+    <div class="flow-sub">Mantenimiento mensual, mejoras continuas, TIA prioritaria y soporte dedicado por solo <strong class="mono">$149.000 COP/mes</strong>.</div>
+    <div class="flow-actions" style="justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="wwiXsConfirm(false)">No, gracias</button>
+      <button class="btn btn-primary" onclick="wwiXsConfirm(true)">Agregar al carrito</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>

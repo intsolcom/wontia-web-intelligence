@@ -398,8 +398,19 @@ class FactoryService
         }
         $uuid = bin2hex(random_bytes(16));
         $db = Database::instance();
-        $stmt = $db->prepare("INSERT INTO wwi_orders (site_id, uuid, customer_name, customer_email, customer_phone, plan_id, domain_name, status, subtotal, total, currency, locale)
-            VALUES (@site_id, :uuid, :cn, :ce, :cp, :plan, :dn, 'PENDING_PAYMENT', :sub, :tot, 'COP', :loc)");
+        $addons = [];
+        foreach ((array)($d['addons'] ?? []) as $slug) {
+            $addonPlan = $this->planBySlug((string)$slug);
+            if ($addonPlan && $addonPlan['slug'] !== $plan['slug']) $addons[] = (string)$slug;
+        }
+        $addonTotal = 0;
+        foreach ($addons as $slug) {
+            $addonPlan = $this->planBySlug($slug);
+            if ($addonPlan) $addonTotal += (float)$addonPlan['price_cop'];
+        }
+        $total = (float)$plan['price_cop'] + $addonTotal;
+        $stmt = $db->prepare("INSERT INTO wwi_orders (site_id, uuid, customer_name, customer_email, customer_phone, plan_id, domain_name, addons, status, subtotal, total, currency, locale)
+            VALUES (@site_id, :uuid, :cn, :ce, :cp, :plan, :dn, :add, 'PENDING_PAYMENT', :sub, :tot, 'COP', :loc)");
         $stmt->execute([
             'uuid' => $uuid,
             'cn' => $name,
@@ -407,8 +418,9 @@ class FactoryService
             'cp' => (string)($d['customer_phone'] ?? ''),
             'plan' => $planId,
             'dn' => strtolower(trim((string)($d['domain_name'] ?? ''))),
+            'add' => json_encode($addons),
             'sub' => $plan['price_cop'],
-            'tot' => $plan['price_cop'],
+            'tot' => $total,
             'loc' => (string)($d['locale'] ?? 'es'),
         ]);
         return [
@@ -416,10 +428,11 @@ class FactoryService
             'message' => 'Pedido creado',
             'uuid' => $uuid,
             'id' => (int)$db->lastInsertId(),
-            'total' => (float)$plan['price_cop'],
+            'total' => $total,
             'currency' => 'COP',
             'status' => 'PENDING_PAYMENT',
             'plan_name' => $plan['name_es'],
+            'addons' => $addons,
         ];
     }
 
@@ -634,6 +647,137 @@ class FactoryService
         @file_put_contents($dir . '/' . $slug . '-' . $tenant['id'] . '.json', json_encode($payload, JSON_UNESCAPED_UNICODE));
     }
 
+    public function previewAttempts(string $ip): array
+    {
+        $db = Database::instance();
+        $hash = md5($ip);
+        $stmt = $db->prepare("SELECT attempts FROM wwi_prompt_attempts WHERE site_id = @site_id AND ip_hash = :h AND day = CURDATE()");
+        $stmt->execute(['h' => $hash]);
+        $used = (int)$stmt->fetchColumn();
+        return ['used' => $used, 'left' => max(0, 2 - $used), 'limit' => 2];
+    }
+
+    public function createPreview(string $prompt, string $ip): array
+    {
+        $prompt = trim($prompt);
+        if (mb_strlen($prompt) < 10) {
+            return ['ok' => false, 'message' => 'Cuéntame un poco más sobre tu negocio (mínimo 10 caracteres)'];
+        }
+        $db = Database::instance();
+        $hash = md5($ip);
+        $stmt = $db->prepare("INSERT INTO wwi_prompt_attempts (site_id, ip_hash, day, attempts) VALUES (@site_id, :h, CURDATE(), 1) ON DUPLICATE KEY UPDATE attempts = attempts + 1");
+        $stmt->execute(['h' => $hash]);
+        $attempts = $this->previewAttempts($ip);
+        if ($attempts['used'] > 2) {
+            $db->prepare("UPDATE wwi_prompt_attempts SET attempts = 2 WHERE site_id = @site_id AND ip_hash = :h AND day = CURDATE()")->execute(['h' => $hash]);
+            return ['ok' => false, 'limit_reached' => true, 'message' => 'Ya usaste tus 2 intentos de hoy. Explora el catálogo de plantillas o vuelve mañana.'];
+        }
+        $uuid = bin2hex(random_bytes(16));
+        $db->prepare("INSERT INTO wwi_previews (site_id, uuid, ip_hash, prompt, status) VALUES (@site_id, :u, :h, :p, 'generating')")
+            ->execute(['u' => $uuid, 'h' => $hash, 'p' => $prompt]);
+        $previewId = (int)$db->lastInsertId();
+        $this->enqueueJob('generate_preview', ['preview_id' => $previewId]);
+        return ['ok' => true, 'uuid' => $uuid, 'attempts' => $attempts];
+    }
+
+    public function previewStatus(string $uuid): array
+    {
+        $stmt = Database::instance()->prepare("SELECT uuid, status, structure, prompt, created_at FROM wwi_previews WHERE uuid = :u AND site_id = @site_id LIMIT 1");
+        $stmt->execute(['u' => $uuid]);
+        $row = $stmt->fetch();
+        if (!$row) return ['ok' => false, 'message' => 'Preview not found'];
+        return ['ok' => true, 'data' => [
+            'uuid' => $row['uuid'],
+            'status' => $row['status'],
+            'prompt' => $row['prompt'],
+            'structure' => json_decode((string)$row['structure'], true) ?: null,
+            'created_at' => $row['created_at'],
+        ]];
+    }
+
+    public function previewByUuid(string $uuid): ?array
+    {
+        $stmt = Database::instance()->prepare("SELECT * FROM wwi_previews WHERE uuid = :u AND site_id = @site_id LIMIT 1");
+        $stmt->execute(['u' => $uuid]);
+        $row = $stmt->fetch();
+        if (!$row) return null;
+        $row['structure'] = json_decode((string)$row['structure'], true) ?: null;
+        return $row;
+    }
+
+    public function generatePreview(int $previewId): array
+    {
+        $db = Database::instance();
+        $stmt = $db->prepare("SELECT * FROM wwi_previews WHERE id = :id AND site_id = @site_id");
+        $stmt->execute(['id' => $previewId]);
+        $preview = $stmt->fetch();
+        if (!$preview) throw new \RuntimeException('Preview not found');
+
+        $prompt = "Eres TIA, generadora de sitios web de Wontia. A partir del pedido del cliente, diseña la estructura de su sitio. Responde SOLO con JSON válido, sin markdown:\n"
+            . "{\"business_name\":\"...\",\"tagline\":\"frase corta\",\"nav\":[\"Inicio\",\"Servicios\",\"...\"],"
+            . "\"sections\":[{\"title\":\"...\",\"subtitle\":\"...\",\"content\":\"HTML simple con <p> y <ul>\"}]}\n"
+            . "Genera entre 4 y 6 secciones coherentes. NO inventes datos factuales (direcciones, teléfonos, años): usa placeholders como [Tu dirección] cuando falten.\n\n"
+            . "Pedido del cliente:\n" . mb_substr((string)$preview['prompt'], 0, 2000);
+
+        $router = new \App\Core\AiBrick\AiRouter();
+        $response = $router->route([
+            'system_id' => 'wontia',
+            'module' => 'agent',
+            'function' => 'preview',
+            'system_prompt' => 'Respondes únicamente con JSON válido.',
+            'messages' => [['role' => 'user', 'content' => $prompt]],
+            'max_tokens' => 1500,
+            'temperature' => 0.6,
+        ]);
+        if (empty($response['ok']) || empty($response['content'])) {
+            $db->prepare("UPDATE wwi_previews SET status = 'failed' WHERE id = :id")->execute(['id' => $previewId]);
+            throw new \RuntimeException('TIA no pudo generar el preview');
+        }
+        $structure = json_decode((string)$response['content'], true);
+        if (!is_array($structure)) {
+            $clean = preg_replace('/^```(json)?\s*|\s*```$/m', '', (string)$response['content']);
+            $structure = json_decode($clean, true);
+        }
+        if (!is_array($structure) || empty($structure['sections'])) {
+            $db->prepare("UPDATE wwi_previews SET status = 'failed' WHERE id = :id")->execute(['id' => $previewId]);
+            throw new \RuntimeException('Estructura inválida generada');
+        }
+        $db->prepare("UPDATE wwi_previews SET structure = :s, status = 'ready' WHERE id = :id")
+            ->execute(['s' => json_encode($structure, JSON_UNESCAPED_UNICODE), 'id' => $previewId]);
+        return ['ok' => true, 'preview_id' => $previewId];
+    }
+
+    public function cleanupPreviews(): int
+    {
+        return (int)Database::instance()->exec("DELETE FROM wwi_previews WHERE created_at < NOW() - INTERVAL 60 MINUTE");
+    }
+
+    public function suggestDomains(string $business): array
+    {
+        $business = trim($business);
+        if ($business === '') return ['ok' => false, 'message' => 'Dime el nombre de tu negocio'];
+        $router = new \App\Core\AiBrick\AiRouter();
+        $response = $router->route([
+            'system_id' => 'wontia',
+            'module' => 'agent',
+            'function' => 'domains',
+            'system_prompt' => 'Respondes únicamente con JSON válido.',
+            'messages' => [['role' => 'user', 'content' => "Sugiere 5 nombres de dominio .com cortos y memorables para el negocio: \"$business\". Responde SOLO JSON: {\"domains\":[\"nombre1.com\",\"nombre2.com\",...]}. Sin tildes ni espacios."]],
+            'max_tokens' => 300,
+            'temperature' => 0.7,
+        ]);
+        $data = json_decode((string)($response['content'] ?? ''), true);
+        if (!is_array($data)) {
+            $clean = preg_replace('/^```(json)?\s*|\s*```$/m', '', (string)($response['content'] ?? ''));
+            $data = json_decode($clean, true);
+        }
+        $domains = is_array($data) && isset($data['domains']) ? $data['domains'] : [];
+        return ['ok' => true, 'domains' => array_values(array_filter(array_map(function ($d) {
+            $d = strtolower(trim((string)$d));
+            return preg_match('/^(?!-)[a-z0-9-]{1,63}(?<!-)\.[a-z]{2,24}$/', $d) ? $d : null;
+        }, $domains)))];
+    }
+
     public function sendWelcomeEmail(array $payload): array
     {
         $mail = new EmailService();
@@ -653,6 +797,7 @@ class FactoryService
         return match ($type) {
             'provision_site' => $this->provisionSite($payload),
             'process_brief' => $this->processBrief((int)($payload['brief_id'] ?? 0)),
+            'generate_preview' => $this->generatePreview((int)($payload['preview_id'] ?? 0)),
             'send_email' => $this->sendWelcomeEmail($payload),
             default => ['ok' => true],
         };
@@ -728,6 +873,18 @@ class FactoryService
         return ['ok' => true, 'tenant_id' => $tenantId, 'site_uuid' => $siteUuid];
     }
 
+    public function planBySlug(string $slug): ?array
+    {
+        $stmt = Database::instance()->prepare("SELECT * FROM wwi_plans WHERE slug = :s AND site_id = @site_id LIMIT 1");
+        $stmt->execute(['s' => $slug]);
+        $row = $stmt->fetch();
+        if (!$row) return null;
+        $row['features'] = $this->safeJson($row['features'] ?? '');
+        $row['limits'] = $this->safeJson($row['limits'] ?? '');
+        $row['margin_cost_items'] = $this->safeJson($row['margin_cost_items'] ?? '');
+        return $row;
+    }
+
     public function domainCosts(): array
     {
         $cfg = $this->config();
@@ -794,6 +951,9 @@ class FactoryService
         $db->exec("ALTER TABLE wwi_orders ADD COLUMN IF NOT EXISTS tenant_id INT NULL");
         $db->exec("CREATE TABLE IF NOT EXISTS wwi_balance_ledger (id INT AUTO_INCREMENT PRIMARY KEY, site_id INT NOT NULL DEFAULT 1, direction ENUM('credit','debit') NOT NULL, amount DECIMAL(12,2) NOT NULL DEFAULT 0, reason VARCHAR(200), ref VARCHAR(100), created_by INT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, KEY idx_ledger_site (site_id, created_at)) ENGINE=InnoDB");
         $db->exec("CREATE TABLE IF NOT EXISTS wwi_briefs (id INT AUTO_INCREMENT PRIMARY KEY, site_id INT NOT NULL DEFAULT 1, order_id INT NULL, customer_email VARCHAR(255), business_name VARCHAR(255), story TEXT, documents JSON, profile JSON, status ENUM('new','processing','ready','failed') DEFAULT 'new', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, KEY idx_briefs_site (site_id, status)) ENGINE=InnoDB");
+        $db->exec("CREATE TABLE IF NOT EXISTS wwi_previews (id INT AUTO_INCREMENT PRIMARY KEY, site_id INT NOT NULL DEFAULT 1, uuid CHAR(32) NOT NULL, ip_hash VARCHAR(64), prompt TEXT, structure JSON, status ENUM('generating','ready','failed') DEFAULT 'generating', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, UNIQUE KEY site_preview (site_id, uuid), KEY idx_previews_exp (created_at)) ENGINE=InnoDB");
+        $db->exec("CREATE TABLE IF NOT EXISTS wwi_prompt_attempts (id INT AUTO_INCREMENT PRIMARY KEY, site_id INT NOT NULL DEFAULT 1, ip_hash VARCHAR(64) NOT NULL, day DATE NOT NULL, attempts INT DEFAULT 0, UNIQUE KEY site_ip_day (site_id, ip_hash, day)) ENGINE=InnoDB");
+        $db->exec("ALTER TABLE wwi_orders ADD COLUMN IF NOT EXISTS addons JSON NULL");
 
         $seeded = false;
         $planCount = (int)$db->query("SELECT COUNT(*) FROM wwi_plans WHERE site_id = @site_id")->fetchColumn();

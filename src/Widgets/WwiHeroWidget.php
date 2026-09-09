@@ -34,7 +34,7 @@ class WwiHeroWidget extends Widget
         $html .= '<h1 style="font-size:clamp(30px,5vw,50px);font-weight:800;letter-spacing:-.02em;line-height:1.12;max-width:780px;margin:0 auto 18px">' . $t1 . ($t2 ? ' <span class="gradient-text">' . $t2 . '</span>' : '') . '</h1>';
         $html .= '<p style="font-size:15px;color:var(--muted);max-width:620px;margin:0 auto 26px;line-height:1.7">' . $this->esc($c['subtitle']) . '</p>';
         $html .= '<div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:14px">';
-        $html .= '<a class="btn btn-primary" style="padding:11px 22px;font-size:14px" href="' . $this->esc($c['cta_primary_url']) . '">' . $this->esc($c['cta_primary']) . '</a>';
+        $html .= '<a class="btn btn-primary" id="wwi-start" style="padding:11px 22px;font-size:14px" href="' . $this->esc($c['cta_primary_url']) . '">' . $this->esc($c['cta_primary']) . '</a>';
         if ($c['cta_secondary']) $html .= '<a class="btn btn-ghost" style="padding:11px 22px;font-size:14px" href="#domain">' . $this->esc($c['cta_secondary']) . '</a>';
         $html .= '</div>';
         if ($c['price_note']) $html .= '<div class="mono" style="font-size:12px;color:var(--muted)">' . $this->esc($c['price_note']) . '</div>';

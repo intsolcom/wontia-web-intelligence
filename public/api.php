@@ -108,6 +108,11 @@ $router->post('/api/v1/public/payments/webhook', [\App\Controllers\Admin\Factory
 $router->get('/api/v1/public/payment-mode', [\App\Controllers\Admin\FactoryController::class, 'publicPaymentMode']);
 $router->post('/api/v1/public/payments/dummy/{uuid}', [\App\Controllers\Admin\FactoryController::class, 'publicDummyPay']);
 $router->post('/api/v1/public/briefs', [\App\Controllers\Admin\FactoryController::class, 'publicCreateBrief']);
+$router->get('/api/v1/public/previews/attempts', [\App\Controllers\Admin\FactoryController::class, 'publicPreviewAttempts']);
+$router->post('/api/v1/public/previews', [\App\Controllers\Admin\FactoryController::class, 'publicCreatePreview']);
+$router->get('/api/v1/public/previews/{uuid}', [\App\Controllers\Admin\FactoryController::class, 'publicPreviewStatus']);
+$router->get('/api/v1/public/preview/{uuid}', [\App\Controllers\Admin\FactoryController::class, 'publicPreviewRender']);
+$router->post('/api/v1/public/previews/suggest-domains', [\App\Controllers\Admin\FactoryController::class, 'publicSuggestDomains']);
 $router->get('/api/v1/public/domain/check', function ($request) {
     $name = (string)($request->get('name', ''));
     Response::json(['ok' => true, 'data' => (new \App\Services\DomainCheckerService())->check($name)]);

@@ -199,6 +199,70 @@ class FactoryController
         Response::error($result['message'], 400);
     }
 
+    public function publicPreviewAttempts(Request $request): void
+    {
+        Response::json(['ok' => true, 'data' => $this->service->previewAttempts($request->ip())]);
+    }
+
+    public function publicCreatePreview(Request $request): void
+    {
+        $result = $this->service->createPreview((string)($request->json()['prompt'] ?? ''), $request->ip());
+        if ($result['ok']) Response::json(['ok' => true, 'message' => 'Preview generándose', 'data' => $result], 201);
+        Response::json(['ok' => false, 'message' => $result['message'], 'data' => $result], $result['limit_reached'] ?? false ? 429 : 400);
+    }
+
+    public function publicPreviewStatus(Request $request, $uuid): void
+    {
+        $result = $this->service->previewStatus((string)$uuid);
+        if (!$result['ok']) Response::error($result['message'], 404);
+        Response::json(['ok' => true, 'data' => $result['data']]);
+    }
+
+    public function publicPreviewRender(Request $request, $uuid): void
+    {
+        $preview = $this->service->previewByUuid((string)$uuid);
+        if (!$preview || $preview['status'] !== 'ready') {
+            Response::error('Preview not found or not ready', 404);
+        }
+        $structure = $preview['structure'] ?? [];
+        $name = $this->escHtml($structure['business_name'] ?? 'Mi sitio');
+        $tagline = $this->escHtml($structure['tagline'] ?? '');
+        $nav = $structure['nav'] ?? ['Inicio'];
+        $sections = $structure['sections'] ?? [];
+        $navHtml = '';
+        foreach ($nav as $item) {
+            $navHtml .= '<a href="#sec' . md5((string)$item) . '">' . $this->escHtml((string)$item) . '</a>';
+        }
+        $sectionsHtml = '';
+        foreach ($sections as $i => $sec) {
+            if (!is_array($sec)) continue;
+            $sectionsHtml .= '<section class="pv-sec" id="sec' . md5((string)($sec['title'] ?? $i)) . '">'
+                . '<h2>' . $this->escHtml((string)($sec['title'] ?? '')) . '</h2>'
+                . ($sec['subtitle'] ? '<p class="pv-sub">' . $this->escHtml((string)$sec['subtitle']) . '</p>' : '')
+                . '<div class="pv-content">' . (string)($sec['content'] ?? '') . '</div></section>';
+        }
+        Response::html('<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>' . $name . ' — Vista previa</title>'
+            . '<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">'
+            . '<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Inter,sans-serif;background:#fff;color:#1a1a1e}.pv-band{position:sticky;top:0;z-index:50;background:linear-gradient(120deg,#22d3ee,#8b5cf6);color:#041018;font-size:11px;font-weight:700;text-align:center;padding:6px 10px;letter-spacing:.05em}nav{display:flex;gap:18px;align-items:center;padding:14px 28px;border-bottom:1px solid #eee}nav b{font-weight:800}nav a{color:#555;text-decoration:none;font-size:13px}header.pv-hero{padding:70px 28px 50px;text-align:center;background:#f7f9fd}header.pv-hero h1{font-size:36px;font-weight:800;letter-spacing:-.02em}header.pv-hero p{color:#666;margin-top:10px;font-size:15px}.pv-sec{max-width:760px;margin:0 auto;padding:44px 28px}.pv-sec h2{font-size:22px;font-weight:800;margin-bottom:6px}.pv-sub{color:#666;font-size:13px;margin-bottom:14px}.pv-content{font-size:14px;line-height:1.7;color:#333}.pv-content p{margin-bottom:10px}.pv-content ul{padding-left:20px;margin-bottom:10px}footer{border-top:1px solid #eee;padding:24px;text-align:center;font-size:12px;color:#888}</style></head><body>'
+            . '<div class="pv-band">VISTA PREVIA TEMPORAL — expira en 60 minutos · no es tu sitio final</div>'
+            . '<nav><b>' . $name . '</b>' . $navHtml . '</nav>'
+            . '<header class="pv-hero"><h1>' . $name . '</h1>' . ($tagline ? '<p>' . $tagline . '</p>' : '') . '</header>'
+            . $sectionsHtml
+            . '<footer>' . $name . ' · Vista previa generada por TIA — Wontia Web Intelligence</footer></body></html>');
+    }
+
+    public function publicSuggestDomains(Request $request): void
+    {
+        $result = $this->service->suggestDomains((string)($request->json()['business'] ?? ''));
+        if ($result['ok']) Response::json(['ok' => true, 'data' => $result['domains']]);
+        Response::error($result['message'], 400);
+    }
+
+    private function escHtml(string $s): string
+    {
+        return htmlspecialchars($s, ENT_QUOTES, 'UTF-8');
+    }
+
     public function briefsList(): void
     {
         $this->requireSuper();
