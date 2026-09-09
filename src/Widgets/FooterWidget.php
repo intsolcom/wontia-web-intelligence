@@ -17,6 +17,17 @@ class FooterWidget extends Widget
             ['key' => 'address_co', 'label' => 'CO Address', 'type' => 'text', 'default' => 'Cra 53 # 80 - 192, Barranquilla, Colombia'],
             ['key' => 'phone_co', 'label' => 'CO Phone', 'type' => 'text', 'default' => '+57 311 602 0005'],
             ['key' => 'email_co', 'label' => 'CO Email', 'type' => 'text', 'default' => 'cliente@intsolcom.com'],
+            ['key' => 'solutions', 'label' => 'Solutions (JSON)', 'type' => 'code', 'default' => json_encode([
+                ['name' => 'Wontia Business', 'url' => '#business', 'status' => 'available'],
+                ['name' => 'Wontia AIP', 'url' => 'https://app.wontia.com/login', 'status' => 'available', 'child' => true],
+                ['name' => 'Wontia Web Intelligence', 'url' => '#domain-arch', 'status' => 'available', 'child' => true],
+                ['name' => 'Wontia Food Security', 'url' => '#food-security', 'status' => 'development'],
+                ['name' => 'Wontia Health', 'url' => '#domain-arch', 'status' => 'future'],
+                ['name' => 'Wontia Agriculture', 'url' => '#domain-arch', 'status' => 'future'],
+                ['name' => 'Wontia Industry', 'url' => '#domain-arch', 'status' => 'future'],
+                ['name' => 'Wontia Logistics', 'url' => '#domain-arch', 'status' => 'future'],
+                ['name' => 'Wontia Education', 'url' => '#domain-arch', 'status' => 'future'],
+            ])],
         ];
     }
 
@@ -29,6 +40,16 @@ class FooterWidget extends Widget
     {
         $c = $this->mergeConfig($config);
         $year = date('Y');
+        $solutions = $this->safeJson($c['solutions']);
+        $solMap = ['available' => ['dot' => '#4A9E6E', 'label' => 'AVAILABLE'], 'development' => ['dot' => '#D4A54A', 'label' => 'IN DEVELOPMENT'], 'future' => ['dot' => '#7C3AED', 'label' => 'FUTURE']];
+        $solHtml = '<div style="display:flex;flex-direction:column;gap:8px;min-width:240px">
+      <div style="font-size:10px;font-weight:700;color:#9A9A9A;text-transform:uppercase">Soluciones</div>';
+        foreach ($solutions as $s) {
+            $st = $solMap[$s['status'] ?? 'future'] ?? $solMap['future'];
+            $isChild = !empty($s['child']);
+            $solHtml .= '<a href="' . $this->esc($s['url'] ?? '#domain-arch') . '" style="font-size:' . ($isChild ? '11px' : '12px') . ';color:#4A4A4A;text-decoration:none;font-weight:' . ($isChild ? '400' : '600') . ';' . ($isChild ? 'padding-left:14px' : '') . '">' . $this->esc($s['name']) . ' <span style="color:' . $st['dot'] . ';font-size:8px;font-weight:700;letter-spacing:.04em">' . $st['label'] . '</span></a>';
+        }
+        $solHtml .= '</div>';
         return '
 <footer class="footer">
   <div style="max-width:1100px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px">
@@ -45,6 +66,7 @@ class FooterWidget extends Widget
 </footer>
 <div style="padding:32px 40px;background:#F3F3EF;border-top:1px solid rgba(80,80,80,0.04)">
   <div style="max-width:1100px;margin:0 auto;display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:32px">
+    ' . $solHtml . '
     <div style="display:flex;flex-direction:column;gap:8px;min-width:240px">
       <div style="font-size:10px;font-weight:700;color:#9A9A9A;text-transform:uppercase">&#x1f1fa;&#x1f1f8; Intsolcom, LLC</div>
       <div style="font-size:12px;color:#4A4A4A">&#x1f4cd; ' . $this->esc($c['address_us']) . '</div>

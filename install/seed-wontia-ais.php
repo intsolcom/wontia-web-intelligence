@@ -154,6 +154,17 @@ $bricks = [
         'address_co' => 'Cra 53 # 80 - 192, Barranquilla, Colombia',
         'phone_co' => '+57 311 602 0005',
         'email_co' => 'cliente@intsolcom.com',
+        'solutions' => [
+            ['name' => 'Wontia Business', 'url' => '#business', 'status' => 'available'],
+            ['name' => 'Wontia AIP', 'url' => 'https://app.wontia.com/login', 'status' => 'available', 'child' => true],
+            ['name' => 'Wontia Web Intelligence', 'url' => '#domain-arch', 'status' => 'available', 'child' => true],
+            ['name' => 'Wontia Food Security', 'url' => '#food-security', 'status' => 'development'],
+            ['name' => 'Wontia Health', 'url' => '#domain-arch', 'status' => 'future'],
+            ['name' => 'Wontia Agriculture', 'url' => '#domain-arch', 'status' => 'future'],
+            ['name' => 'Wontia Industry', 'url' => '#domain-arch', 'status' => 'future'],
+            ['name' => 'Wontia Logistics', 'url' => '#domain-arch', 'status' => 'future'],
+            ['name' => 'Wontia Education', 'url' => '#domain-arch', 'status' => 'future'],
+        ],
     ])],
 ];
 
