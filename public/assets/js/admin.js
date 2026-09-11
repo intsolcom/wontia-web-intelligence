@@ -193,7 +193,7 @@ W.loadSections=async function(pageId){
     }else{
         W.state.currentPage.sections.forEach(function(s,i){
             html+='<div class="w-card w-mb" draggable="true" data-sid="'+s.id+'" style="cursor:grab">';
-            html+='<div class="w-flex-between w-mb"><div class="w-flex w-gap-sm"><span style="font-size:10px;color:var(--w-muted);background:var(--w-bg);padding:2px 8px;border-radius:4px">'+W.esc(W.sectionLabel(s))+'</span><strong style="font-size:13px">'+W.esc(s.title||'Sin título')+'</strong>'+(s.is_active==1||s.is_active==='1'?'':'<span class="w-brick-chip" style="color:#F5A623">oculta</span>')+'</div><div class="w-flex w-gap-sm"><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.editSection('+s.id+')">Editar</button><button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.deleteSection('+s.id+','+pageId+')">Eliminar</button></div></div>';
+            html+='<div class="w-flex-between w-mb"><div class="w-flex w-gap-sm"><span style="font-size:10px;color:var(--w-muted);background:var(--w-bg);padding:2px 8px;border-radius:4px">'+W.esc(W.sectionLabel(s))+'</span><strong style="font-size:13px">'+W.esc(s.title||'Sin título')+'</strong>'+(s.is_active==1||s.is_active==='1'?'':'<span class="w-brick-chip" style="color:#fbbf24">oculta</span>')+'</div><div class="w-flex w-gap-sm"><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.editSection('+s.id+')">Editar</button><button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.deleteSection('+s.id+','+pageId+')">Eliminar</button></div></div>';
             if(s.subtitle)html+='<p style="font-size:12px;color:var(--w-muted);margin-bottom:6px">'+W.esc(s.subtitle)+'</p>';
             html+='</div>';
         });
@@ -761,7 +761,7 @@ W.bhRegisteredSites=async function(){
     var sites=d.data||[];
     var html='<div class="w-flex-between w-mb-lg"><div><strong style="font-size:13px">'+sites.length+' registered site(s)</strong></div><div class="w-flex w-gap-sm"><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.bhRegisteredSites()">Refresh</button></div></div>';
     if(!sites.length){
-        html+='<div class="w-empty-state"><h3>No registered sites</h3><p>Child WWI installations will appear here when they register with this mother installation.</p><div style="margin-top:16px;font-size:11px;color:var(--w-muted);background:var(--w-bg);padding:12px;border-radius:8px;text-align:left"><strong>How to connect a child site:</strong><br><br>1. On the child site admin, go to Settings<br>2. Set <code>BRICKHUB_MOTHER_URL</code> to <code id="bh-current-url" style="color:#B89EFF">'+window.location.origin+'</code><br>3. The child will auto-register on next admin login</div></div>'}
+        html+='<div class="w-empty-state"><h3>No registered sites</h3><p>Child WWI installations will appear here when they register with this mother installation.</p><div style="margin-top:16px;font-size:11px;color:var(--w-muted);background:var(--w-bg);padding:12px;border-radius:8px;text-align:left"><strong>How to connect a child site:</strong><br><br>1. On the child site admin, go to Settings<br>2. Set <code>BRICKHUB_MOTHER_URL</code> to <code id="bh-current-url" style="color:#22d3ee">'+window.location.origin+'</code><br>3. The child will auto-register on next admin login</div></div>'}
     else{
         html+='<table class="w-table"><thead><tr><th>Site</th><th>URL</th><th>Key</th><th>Last Seen</th><th>Status</th></tr></thead><tbody>';
         sites.forEach(function(s){
@@ -1000,8 +1000,8 @@ W.bCap=function(list){
 };
 
 W.bStatus=function(s){
-    var map={success:['#00B87D','SUCCESS'],error:['#BE1341','ERROR'],fallback:['#B89EFF','FALLBACK'],budget_blocked:['#F5A623','BUDGET'],enabled:['#00B87D','ENABLED'],draft:['#8b8fa3','DISABLED'],active:['#00B87D','ACTIVE']};
-    var c=map[s]||['#8b8fa3',(s||'')];
+    var map={success:['#34d399','SUCCESS'],error:['#f87171','ERROR'],fallback:['#22d3ee','FALLBACK'],budget_blocked:['#fbbf24','BUDGET'],enabled:['#34d399','ENABLED'],draft:['#8593ab','DISABLED'],active:['#34d399','ACTIVE']};
+    var c=map[s]||['#8593ab',(s||'')];
     return '<span class="w-badge" style="background:'+c[0]+'22;color:'+c[0]+'">'+c[1]+'</span>';
 };
 
@@ -1013,7 +1013,7 @@ W.brickBars=function(rows){
     var html='';
     rows.forEach(function(r){
         var pct=Math.max(1,Math.round(r.cost/max*100));
-        html+='<div style="margin-bottom:10px"><div class="w-flex-between" style="font-size:11px"><span><span class="w-dot" style="background:'+W.esc(r.color||'#B89EFF')+'"></span>'+W.esc(r.label)+'</span><span style="color:var(--w-muted)">'+W.bMoney(r.cost)+' &middot; '+W.num(r.tokens)+' tokens &middot; '+r.requests+' req</span></div><div class="w-brick-bar"><i style="width:'+pct+'%;background:'+W.esc(r.color||'#B89EFF')+'"></i></div></div>';
+        html+='<div style="margin-bottom:10px"><div class="w-flex-between" style="font-size:11px"><span><span class="w-dot" style="background:'+W.esc(r.color||'#22d3ee')+'"></span>'+W.esc(r.label)+'</span><span style="color:var(--w-muted)">'+W.bMoney(r.cost)+' &middot; '+W.num(r.tokens)+' tokens &middot; '+r.requests+' req</span></div><div class="w-brick-bar"><i style="width:'+pct+'%;background:'+W.esc(r.color||'#22d3ee')+'"></i></div></div>';
     });
     return html;
 };
@@ -1032,7 +1032,7 @@ W.brickSuggHtml=function(list){
     if(!list||!list.length)return '<div class="w-empty-state" style="padding:24px"><p>All systems nominal. No suggestions needed.</p></div>';
     var html='';
     list.forEach(function(s){
-        var color=s.severity==='critical'?'#BE1341':s.severity==='warning'?'#F5A623':'#B89EFF';
+        var color=s.severity==='critical'?'#f87171':s.severity==='warning'?'#fbbf24':'#22d3ee';
         html+='<div class="w-brick-sugg" style="border-color:'+color+'"><div class="w-flex-between"><strong style="font-size:12px">'+W.esc(s.title)+'</strong><span style="font-size:9px;color:'+color+';font-weight:700">'+W.esc((s.severity||'').toUpperCase())+'</span></div><div style="font-size:11px;color:var(--w-muted);margin-top:4px">'+W.esc(s.detail)+'</div><button class="w-btn w-btn-secondary w-btn-sm" style="margin-top:8px" onclick="wontia.brickSuggAction(\''+W.esc(s.type)+'\')">'+W.esc(s.action)+'</button></div>';
     });
     return html;
@@ -1050,7 +1050,7 @@ W.brickOverview=async function(){
     var r=await W.api('/api/v1/admin/brick/overview?range=30d');
     if(!r.ok||!r.data){el.innerHTML='<div class="w-empty-state"><h3>BRICK is not initialized</h3><p>Create the AI infrastructure tables and seed data.</p><button class="w-btn w-btn-primary" onclick="wontia.brickEnsure()">Setup BRICK Tables</button></div>';return}
     var d=r.data,s=d.stats,b=d.budget;
-    var budgetColor=b.status==='limit'?'#BE1341':b.status==='warning'?'#F5A623':'#00B87D';
+    var budgetColor=b.status==='limit'?'#f87171':b.status==='warning'?'#fbbf24':'#34d399';
     var kpis=[['Active Providers',s.active_providers],['Active Models',s.active_models+' / '+s.total_models],['Requests (30d)',W.num(s.requests_range)],['Tokens (30d)',W.num(s.tokens_range)],['Cost (30d)',W.bMoney(s.cost_range)],['Cost Today',W.bMoney(s.cost_today)],['Error Rate',s.error_rate+'%'],['Avg Latency',s.avg_latency_ms+' ms']];
     var html='<div class="w-stats">';
     kpis.forEach(function(k){html+='<div class="w-stat-card"><div class="w-stat-value">'+k[1]+'</div><div class="w-stat-label">'+W.esc(k[0])+'</div></div>'});
@@ -1086,7 +1086,7 @@ W.brickProviders=function(){
     if(!rows.length){el.innerHTML=html+'<div class="w-empty-state"><p>No providers</p></div>';return}
     html+='<table class="w-table"><tr><th>Provider</th><th>Adapter</th><th>Key</th><th>Models</th><th>Status</th><th>Actions</th></tr>';
     rows.forEach(function(p){
-        html+='<tr><td><span class="w-brick-chip" style="background:'+W.esc(p.color)+';color:#fff">'+W.esc(p.badge||'AI')+'</span> <strong>'+W.esc(p.name)+'</strong> <span style="font-size:10px;color:var(--w-muted)">'+W.esc(p.slug)+'</span></td><td style="font-size:10px">'+W.esc(p.adapter)+'</td><td>'+(p.has_key?'<span style="color:#00B87D">Configured</span>':'<span style="color:#F5A623">Missing</span>')+'</td><td>'+p.enabled_models+'</td><td>'+W.bStatus(p.status)+'</td><td><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.brickProviderForm('+p.id+')">Edit</button> <button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.brickToggleProvider('+p.id+')">Toggle</button> <button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.brickDeleteProvider('+p.id+')">Del</button></td></tr>';
+        html+='<tr><td><span class="w-brick-chip" style="background:'+W.esc(p.color)+';color:#fff">'+W.esc(p.badge||'AI')+'</span> <strong>'+W.esc(p.name)+'</strong> <span style="font-size:10px;color:var(--w-muted)">'+W.esc(p.slug)+'</span></td><td style="font-size:10px">'+W.esc(p.adapter)+'</td><td>'+(p.has_key?'<span style="color:#34d399">Configured</span>':'<span style="color:#fbbf24">Missing</span>')+'</td><td>'+p.enabled_models+'</td><td>'+W.bStatus(p.status)+'</td><td><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.brickProviderForm('+p.id+')">Edit</button> <button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.brickToggleProvider('+p.id+')">Toggle</button> <button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.brickDeleteProvider('+p.id+')">Del</button></td></tr>';
     });
     html+='</table>';
     html+='<div style="font-size:11px;color:var(--w-muted);margin-top:12px">Set credentials with the referenced env variable (e.g. BRICK_OPENAI_API_KEY) in .env or the container environment. DeepSeek falls back to DEEPSEEK_API_KEY.</div>';
@@ -1106,7 +1106,7 @@ W.brickProviderForm=function(id){
     body+='<div class="w-form-group"><label class="w-label">API Base URL</label><input class="w-input" id="bp-base" value="'+W.esc(p?p.api_base_url:'')+'"/></div>';
     body+='<div class="w-form-group"><label class="w-label">Auth Method</label><select class="w-select" id="bp-auth"><option value="bearer"'+(p&&p.auth_method==='bearer'?' selected':'')+'>Bearer Token</option><option value="api-key"'+(p&&p.auth_method==='api-key'?' selected':'')+'>API Key Header</option><option value="azure"'+(p&&p.auth_method==='azure'?' selected':'')+'>Azure</option></select></div>';
     body+='<div class="w-form-group"><label class="w-label">API Key Env Var (reference only — never the key itself)</label><input class="w-input" id="bp-env" value="'+W.esc(p?p.api_key_env:'')+'" placeholder="BRICK_PROVIDER_API_KEY"/></div>';
-    body+='<div class="w-flex" style="gap:12px"><div class="w-form-group" style="flex:1"><label class="w-label">Badge (2 letters)</label><input class="w-input" id="bp-badge" value="'+W.esc(p?p.badge:'AI')+'"/></div><div class="w-form-group" style="flex:1"><label class="w-label">Color</label><input class="w-input" id="bp-color" value="'+W.esc(p?p.color:'#9B8CDE')+'"/></div></div>';
+    body+='<div class="w-flex" style="gap:12px"><div class="w-form-group" style="flex:1"><label class="w-label">Badge (2 letters)</label><input class="w-input" id="bp-badge" value="'+W.esc(p?p.badge:'AI')+'"/></div><div class="w-form-group" style="flex:1"><label class="w-label">Color</label><input class="w-input" id="bp-color" value="'+W.esc(p?p.color:'#8b5cf6')+'"/></div></div>';
     body+='<div class="w-form-group"><label class="w-label">Status</label><select class="w-select" id="bp-status"><option value="enabled"'+(p&&p.status==='enabled'?' selected':'')+'>Enabled</option><option value="disabled"'+(p&&p.status!=='enabled'?' selected':'')+'>Disabled</option></select></div>';
     W.modal(p?'Edit Provider':'New Provider',body,'<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cancel</button><button class="w-btn w-btn-primary" onclick="wontia.brickSaveProvider('+(p?p.id:'null')+')">Save</button>');
 };
@@ -1142,7 +1142,7 @@ W.brickModels=function(){
     html+='<table class="w-table"><tr><th>Model</th><th>Identifier</th><th>Context</th><th>Input $/M</th><th>Output $/M</th><th>Capabilities</th><th>Priority</th><th>Enabled</th><th>Actions</th></tr>';
     rows.forEach(function(m){
         if(W.state.brick.modelFilter&&m.provider_id!==W.state.brick.modelFilter)return;
-        html+='<tr><td><span class="w-brick-chip" style="background:'+W.esc(m.color)+';color:#fff">'+W.esc(m.badge||'AI')+'</span> '+W.esc(m.display_name||m.name)+'</td><td style="font-size:10px">'+W.esc(m.model_identifier)+'</td><td>'+W.num(m.context_window)+'</td><td>'+m.input_cost+'</td><td>'+m.output_cost+'</td><td style="max-width:260px">'+W.bCap(m.capabilities)+'</td><td>'+m.priority+'</td><td>'+(m.enabled===1||m.enabled==='1'?'<span style="color:#00B87D">ON</span>':'<span style="color:var(--w-muted)">OFF</span>')+'</td><td><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.brickModelForm('+m.id+')">Edit</button> <button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.brickToggleModel('+m.id+')">Toggle</button> <button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.brickDeleteModel('+m.id+')">Del</button></td></tr>';
+        html+='<tr><td><span class="w-brick-chip" style="background:'+W.esc(m.color)+';color:#fff">'+W.esc(m.badge||'AI')+'</span> '+W.esc(m.display_name||m.name)+'</td><td style="font-size:10px">'+W.esc(m.model_identifier)+'</td><td>'+W.num(m.context_window)+'</td><td>'+m.input_cost+'</td><td>'+m.output_cost+'</td><td style="max-width:260px">'+W.bCap(m.capabilities)+'</td><td>'+m.priority+'</td><td>'+(m.enabled===1||m.enabled==='1'?'<span style="color:#34d399">ON</span>':'<span style="color:var(--w-muted)">OFF</span>')+'</td><td><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.brickModelForm('+m.id+')">Edit</button> <button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.brickToggleModel('+m.id+')">Toggle</button> <button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.brickDeleteModel('+m.id+')">Del</button></td></tr>';
     });
     html+='</table>';
     html+='<div style="font-size:11px;color:var(--w-muted);margin-top:12px">Costs are USD per 1M tokens. Only enabled models with an enabled provider participate in routing.</div>';
@@ -1189,7 +1189,7 @@ W.brickModelForm=function(id){
     var sel=m?(m.capabilities||[]):[];
     for(var c in caps){
         var on=sel.indexOf(c)>-1;
-        body+='<label style="font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid '+(on?'#B89EFF':'var(--w-border)')+';cursor:pointer;background:'+(on?'rgba(155,140,222,.12)':'transparent')+'"><input type="checkbox" class="bmf-cap" value="'+W.esc(c)+'" '+(on?'checked':'')+' style="margin-right:4px;width:auto"/>'+W.esc(caps[c])+'</label>';
+        body+='<label style="font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid '+(on?'#22d3ee':'var(--w-border)')+';cursor:pointer;background:'+(on?'rgba(155,140,222,.12)':'transparent')+'"><input type="checkbox" class="bmf-cap" value="'+W.esc(c)+'" '+(on?'checked':'')+' style="margin-right:4px;width:auto"/>'+W.esc(caps[c])+'</label>';
     }
     body+='</div></div>';
     body+='<div class="w-form-group"><label class="w-label">Status</label><select class="w-select" id="bmf-status"><option value="active"'+(m&&m.status==='active'?' selected':'')+'>Active</option><option value="deprecated"'+(m&&m.status==='deprecated'?' selected':'')+'>Deprecated</option><option value="retired"'+(m&&m.status==='retired'?' selected':'')+'>Retired</option></select></div>';
@@ -1212,7 +1212,7 @@ W.brickPolicies=function(){
     if(!rows.length){el.innerHTML=html+'<div class="w-empty-state"><p>No policies</p></div>';return}
     html+='<table class="w-table"><tr><th>System / Module / Function</th><th>Strategy</th><th>Primary → Fallback</th><th>Capabilities</th><th>Budget</th><th>Active</th><th>Actions</th></tr>';
     rows.forEach(function(p){
-        html+='<tr><td><strong>'+W.esc(p.system_id)+'</strong><span style="color:var(--w-muted)"> / '+W.esc(p.module)+' / '+W.esc(p.function_key)+'</span></td><td><span class="w-brick-chip">'+W.esc(p.strategy)+'</span></td><td style="font-size:10px">'+W.esc(p.primary_name||'-')+' → '+W.esc(p.fallback_name||'-')+(p.fallback2_name?' → '+W.esc(p.fallback2_name):'')+'</td><td>'+W.bCap(p.required_capabilities)+'</td><td>$'+p.monthly_budget+'</td><td>'+(p.is_active===1||p.is_active==='1'?'<span style="color:#00B87D">ON</span>':'<span style="color:var(--w-muted)">OFF</span>')+'</td><td><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.brickPolicyForm('+p.id+')">Edit</button> <button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.brickDeletePolicy('+p.id+')">Del</button></td></tr>';
+        html+='<tr><td><strong>'+W.esc(p.system_id)+'</strong><span style="color:var(--w-muted)"> / '+W.esc(p.module)+' / '+W.esc(p.function_key)+'</span></td><td><span class="w-brick-chip">'+W.esc(p.strategy)+'</span></td><td style="font-size:10px">'+W.esc(p.primary_name||'-')+' → '+W.esc(p.fallback_name||'-')+(p.fallback2_name?' → '+W.esc(p.fallback2_name):'')+'</td><td>'+W.bCap(p.required_capabilities)+'</td><td>$'+p.monthly_budget+'</td><td>'+(p.is_active===1||p.is_active==='1'?'<span style="color:#34d399">ON</span>':'<span style="color:var(--w-muted)">OFF</span>')+'</td><td><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.brickPolicyForm('+p.id+')">Edit</button> <button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.brickDeletePolicy('+p.id+')">Del</button></td></tr>';
     });
     html+='</table>';
     el.innerHTML=html;
@@ -1249,7 +1249,7 @@ W.brickPolicyForm=function(id){
     var sel=p?(p.required_capabilities||[]):[];
     for(var c in caps){
         var on=sel.indexOf(c)>-1;
-        body+='<label style="font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid '+(on?'#B89EFF':'var(--w-border)')+';cursor:pointer;background:'+(on?'rgba(155,140,222,.12)':'transparent')+'"><input type="checkbox" class="bpf-cap" value="'+W.esc(c)+'" '+(on?'checked':'')+' style="margin-right:4px;width:auto"/>'+W.esc(caps[c])+'</label>';
+        body+='<label style="font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid '+(on?'#22d3ee':'var(--w-border)')+';cursor:pointer;background:'+(on?'rgba(155,140,222,.12)':'transparent')+'"><input type="checkbox" class="bpf-cap" value="'+W.esc(c)+'" '+(on?'checked':'')+' style="margin-right:4px;width:auto"/>'+W.esc(caps[c])+'</label>';
     }
     body+='</div></div>';
     body+='<div class="w-flex" style="gap:12px"><div class="w-form-group" style="flex:1"><label class="w-label">Monthly Budget $</label><input class="w-input" id="bpf-budget" value="'+(p?p.monthly_budget:0)+'" type="number" step="1"/></div><div class="w-form-group" style="flex:1"><label class="w-label">Warning %</label><input class="w-input" id="bpf-warn" value="'+(p?p.budget_warning_pct:80)+'" type="number"/></div><div class="w-form-group" style="flex:1"><label class="w-label">Hard Limit %</label><input class="w-input" id="bpf-hard" value="'+(p?p.budget_hard_limit_pct:100)+'" type="number"/></div></div>';
@@ -1273,7 +1273,7 @@ W.brickSystems=function(){
     if(!rows.length){el.innerHTML=html+'<div class="w-empty-state"><p>No systems registered</p></div>';return}
     html+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px">';
     rows.forEach(function(i){
-        html+='<div class="w-card" style="padding:16px"><div class="w-flex-between"><strong style="font-size:13px">'+W.esc(i.name)+'</strong><span class="w-brick-chip">'+W.esc(i.system_id)+'</span></div><div style="font-size:11px;color:var(--w-muted);margin-top:6px">'+W.esc(i.description||'')+'</div><div style="font-size:11px;margin-top:10px;color:#B89EFF">'+i.policy_count+' policies</div></div>';
+        html+='<div class="w-card" style="padding:16px"><div class="w-flex-between"><strong style="font-size:13px">'+W.esc(i.name)+'</strong><span class="w-brick-chip">'+W.esc(i.system_id)+'</span></div><div style="font-size:11px;color:var(--w-muted);margin-top:6px">'+W.esc(i.description||'')+'</div><div style="font-size:11px;margin-top:10px;color:#22d3ee">'+i.policy_count+' policies</div></div>';
     });
     html+='</div>';
     html+='<div style="font-size:11px;color:var(--w-muted);margin-top:14px">Reusable across WONTIA, TIA System, IA Annotation, Websites, Landing Pages, Agents, Automations and future products. Ecosystem apps call <code>POST /api/v1/brick/request</code> with header <code>X-Brick-Key</code> (env BRICK_API_KEY); TIA controls BRICK via <code>POST /api/v1/brick/command</code>. Health: <code>GET /api/v1/brick/health</code>.</div>';
@@ -1382,8 +1382,8 @@ W.factoryPlans=function(){
     html+='<table class="w-table"><tr><th>Plan</th><th>Price COP</th><th>Price USD</th><th>Billing</th><th>Margin</th><th>Active</th><th>Actions</th></tr>';
     rows.forEach(function(p){
         var m=p.margin||{};
-        var mc=m.status==='critical'?'#BE1341':m.status==='warning'?'#F5A623':'#00B87D';
-        html+='<tr><td><strong>'+W.esc(p.name_es)+'</strong> <span style="color:var(--w-muted)">/ '+W.esc(p.name_en)+'</span><div style="font-size:10px;color:var(--w-muted)">'+W.esc(p.slug)+'</div></td><td>$'+W.num(p.price_cop)+'</td><td>$'+p.price_usd+'</td><td><span class="w-brick-chip">'+W.esc(p.billing_type)+'</span></td><td style="color:'+mc+'">'+(m.margin_pct!=null?m.margin_pct+'%':'—')+'</td><td>'+(p.is_active===1?'<span style="color:#00B87D">ON</span>':'<span style="color:var(--w-muted)">OFF</span>')+'</td><td><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.factoryPlanForm('+p.id+')">Edit</button> <button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.factoryDeletePlan('+p.id+')">Del</button></td></tr>';
+        var mc=m.status==='critical'?'#f87171':m.status==='warning'?'#fbbf24':'#34d399';
+        html+='<tr><td><strong>'+W.esc(p.name_es)+'</strong> <span style="color:var(--w-muted)">/ '+W.esc(p.name_en)+'</span><div style="font-size:10px;color:var(--w-muted)">'+W.esc(p.slug)+'</div></td><td>$'+W.num(p.price_cop)+'</td><td>$'+p.price_usd+'</td><td><span class="w-brick-chip">'+W.esc(p.billing_type)+'</span></td><td style="color:'+mc+'">'+(m.margin_pct!=null?m.margin_pct+'%':'—')+'</td><td>'+(p.is_active===1?'<span style="color:#34d399">ON</span>':'<span style="color:var(--w-muted)">OFF</span>')+'</td><td><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.factoryPlanForm('+p.id+')">Edit</button> <button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.factoryDeletePlan('+p.id+')">Del</button></td></tr>';
     });
     html+='</table>';
     html+='<div style="font-size:11px;color:var(--w-muted);margin-top:12px">Margin is computed live: price − internal costs (USD items × wwi.usd_cop_rate + % items) vs min_margin_pct.</div>';
@@ -1462,7 +1462,7 @@ W.factoryMargin=async function(){
     var html='<div style="font-size:12px;color:var(--w-muted);margin-bottom:16px">Margin Guard — computed live at USD rate '+rows[0].usd_rate+' COP (editable: wwi.usd_cop_rate). Alerts when margin &lt; min_margin_pct.</div>';
     html+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px">';
     rows.forEach(function(m){
-        var color=m.status==='critical'?'#BE1341':m.status==='warning'?'#F5A623':'#00B87D';
+        var color=m.status==='critical'?'#f87171':m.status==='warning'?'#fbbf24':'#34d399';
         html+='<div class="w-card" style="padding:16px;border-left:3px solid '+color+'"><div class="w-flex-between"><strong style="font-size:13px">'+W.esc(m.plan)+'</strong><span class="w-badge" style="background:'+color+'22;color:'+color+'">'+(m.status==='critical'?'CRITICAL':m.status==='warning'?'WARNING':'OK')+'</span></div>';
         html+='<div style="font-size:11px;color:var(--w-muted);margin-top:4px">'+W.esc(m.billing)+' &middot; '+(m.slug||'')+'</div>';
         html+='<div style="margin-top:10px;font-size:12px"><div class="w-flex-between" style="padding:3px 0"><span>Price</span><strong>$'+W.num(m.price_cop)+'</strong></div>';
@@ -1478,8 +1478,8 @@ W.factoryMargin=async function(){
 };
 
 W.fStatus=function(s){
-    var map={PUBLISHED:['#00B87D'],ACTIVE:['#00B87D'],PAID:['#00B87D'],READY:['#00B87D'],DRAFT:['#8b8fa3'],CREATED:['#8b8fa3'],PENDING_PAYMENT:['#F5A623'],PROVISIONING:['#B89EFF'],REGISTERED:['#B89EFF'],DNS_PENDING:['#B89EFF'],GENERATING:['#B89EFF'],REQUESTED:['#F5A623'],EXPIRING:['#F5A623'],AVAILABLE:['#B89EFF'],SUSPENDED:['#BE1341'],FAILED:['#BE1341'],EXPIRED:['#BE1341'],CANCELLED:['#BE1341'],REFUNDED:['#BE1341'],ARCHIVED:['#8b8fa3'],DELETED:['#8b8fa3']};
-    var c=map[s]||['#8b8fa3'];
+    var map={PUBLISHED:['#34d399'],ACTIVE:['#34d399'],PAID:['#34d399'],READY:['#34d399'],DRAFT:['#8593ab'],CREATED:['#8593ab'],PENDING_PAYMENT:['#fbbf24'],PROVISIONING:['#22d3ee'],REGISTERED:['#22d3ee'],DNS_PENDING:['#22d3ee'],GENERATING:['#22d3ee'],REQUESTED:['#fbbf24'],EXPIRING:['#fbbf24'],AVAILABLE:['#22d3ee'],SUSPENDED:['#f87171'],FAILED:['#f87171'],EXPIRED:['#f87171'],CANCELLED:['#f87171'],REFUNDED:['#f87171'],ARCHIVED:['#8593ab'],DELETED:['#8593ab']};
+    var c=map[s]||['#8593ab'];
     return '<span class="w-badge" style="background:'+c[0]+'22;color:'+c[0]+'">'+W.esc(s||'')+'</span>';
 };
 
@@ -1510,7 +1510,7 @@ W.factoryInicio=async function(){
     var m=await W.api('/api/v1/admin/factory/margin');
     var mini='';
     (m.data||[]).forEach(function(x){
-        var color=x.status==='critical'?'#BE1341':x.status==='warning'?'#F5A623':'#00B87D';
+        var color=x.status==='critical'?'#f87171':x.status==='warning'?'#fbbf24':'#34d399';
         mini+='<div class="w-flex-between" style="padding:6px 0;border-bottom:1px solid var(--w-border)"><span>'+W.esc(x.plan)+' ('+W.esc(x.billing)+')</span><strong style="color:'+color+'">'+x.margin_pct+'%</strong></div>';
     });
     document.getElementById('fg-margin-mini').innerHTML=mini||'No plans';
@@ -1674,7 +1674,7 @@ W.factorySaldos=async function(){
     var html='<div class="w-flex-between w-mb"><div style="font-size:12px;color:var(--w-muted)">Balance ledger — credits and debits per tenant. Auto-credited when orders are PAID.</div><button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.factoryLedgerForm()">+ Entry</button></div>';
     html+='<table class="w-table"><tr><th>Site</th><th>Type</th><th>Amount</th><th>Reason</th><th>Ref</th><th>When</th></tr>';
     rows.forEach(function(l){
-        html+='<tr><td style="font-size:11px">'+W.esc(l.site_name||('#'+l.site_id))+'</td><td>'+(l.direction==='credit'?'<span style="color:#00B87D">CREDIT</span>':'<span style="color:#BE1341">DEBIT</span>')+'</td><td><strong>$'+W.num(l.amount)+'</strong></td><td style="font-size:11px">'+W.esc(l.reason||'')+'</td><td style="font-size:10px">'+W.esc(l.ref||'')+'</td><td style="font-size:10px">'+W.esc((l.created_at||'').slice(0,16))+'</td></tr>';
+        html+='<tr><td style="font-size:11px">'+W.esc(l.site_name||('#'+l.site_id))+'</td><td>'+(l.direction==='credit'?'<span style="color:#34d399">CREDIT</span>':'<span style="color:#f87171">DEBIT</span>')+'</td><td><strong>$'+W.num(l.amount)+'</strong></td><td style="font-size:11px">'+W.esc(l.reason||'')+'</td><td style="font-size:10px">'+W.esc(l.ref||'')+'</td><td style="font-size:10px">'+W.esc((l.created_at||'').slice(0,16))+'</td></tr>';
     });
     html+='</table>';
     el.innerHTML=html;
@@ -1769,7 +1769,7 @@ W.factorySystem=async function(){
     var pendingBricks=(bh.data&&bh.data.pending)||0;
     var pendingSystem=rows.filter(function(u){return u.status==='pending'}).length;
     var available=pendingBricks+pendingSystem;
-    var titleColor=available>0?'#B89EFF':'#00B87D';
+    var titleColor=available>0?'#22d3ee':'#34d399';
     var html='<div style="margin-bottom:16px;padding:16px 18px;border:1px solid var(--w-border);border-left:3px solid '+titleColor+';border-radius:10px;background:var(--w-surface)"><div style="font-size:20px;font-weight:800;letter-spacing:-.01em">'+available+' actualizaci&oacute;n'+(available===1?'':'es')+' disponible'+(available===1?'':'s')+'</div><div style="font-size:12px;color:var(--w-muted);margin-top:4px">'+(available>0?'Hay mejoras listas. Los sitios reciben aviso por correo y se actualizan autom&aacute;ticamente.':'Sistema al d&iacute;a — no hay actualizaciones pendientes.')+'</div></div>';
     html+='<div class="w-card"><h3>Actualización desde Git</h3>';
 
@@ -1780,9 +1780,9 @@ W.factorySystem=async function(){
         var stepsHtml='';
         steps.forEach(function(x,i){
             var on=i<stepIdx, cur=i===stepIdx;
-            stepsHtml+='<span class="mono" style="font-size:10px;padding:3px 8px;border-radius:6px;'+(cur?'background:rgba(34,211,238,.15);color:#B89EFF;font-weight:700':'color:var(--w-muted)')+'">'+(on?'✓ ':'')+W.esc(x[1])+'</span>';
+            stepsHtml+='<span class="mono" style="font-size:10px;padding:3px 8px;border-radius:6px;'+(cur?'background:rgba(34,211,238,.15);color:#22d3ee;font-weight:700':'color:var(--w-muted)')+'">'+(on?'✓ ':'')+W.esc(x[1])+'</span>';
         });
-        html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><span style="font-size:11px;font-weight:700;letter-spacing:.06em;color:#B89EFF">ACTUALIZANDO SISTEMA</span><span class="mono" style="font-size:18px;font-weight:700">'+pct+'%</span></div>';
+        html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><span style="font-size:11px;font-weight:700;letter-spacing:.06em;color:#22d3ee">ACTUALIZANDO SISTEMA</span><span class="mono" style="font-size:18px;font-weight:700">'+pct+'%</span></div>';
         html+='<div style="height:8px;background:var(--w-border);border-radius:4px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,#22d3ee,#8b5cf6);transition:width .5s ease"></div></div>';
         html+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">'+stepsHtml+'</div>';
         html+='<div class="mono" style="font-size:11px;color:var(--w-muted);margin-top:10px">'+W.esc(st.message||'')+' &middot; '+W.num(st.elapsed_s||0)+'s transcurridos'+(st.eta_s?' &middot; ~'+W.num(st.eta_s)+'s restantes':'')+(st.containers_total?' &middot; contenedores '+W.num(st.containers_done||0)+'/'+W.num(st.containers_total):'')+'</div>';
@@ -1790,8 +1790,8 @@ W.factorySystem=async function(){
         html+='</div>';
     }else if(st.status==='success'){
         html+='<div style="background:rgba(0,184,125,.08);border:1px solid rgba(0,184,125,.4);border-radius:10px;padding:18px;display:flex;gap:14px;align-items:center;margin-bottom:14px">'
-            +'<div style="width:38px;height:38px;border-radius:10px;background:#00B87D;color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700">✓</div>'
-            +'<div><div style="font-size:14px;font-weight:800;color:#00B87D;letter-spacing:.05em">SISTEMA ACTUALIZADO</div>'
+            +'<div style="width:38px;height:38px;border-radius:10px;background:#34d399;color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700">✓</div>'
+            +'<div><div style="font-size:14px;font-weight:800;color:#34d399;letter-spacing:.05em">SISTEMA ACTUALIZADO</div>'
             +'<div class="mono" style="font-size:11px;color:var(--w-muted);margin-top:2px">commit '+W.esc(st.commit||'-')+(st.containers_total?' · '+W.num(st.containers_total)+' contenedores':'')+(st.elapsed_s?' · '+W.num(st.elapsed_s)+'s':'')+'</div></div></div>';
         html+='<div style="font-size:12px;color:var(--w-muted);line-height:1.7;margin-bottom:14px">Todos los componentes están en la última versión del repositorio. Los sitios ya fueron notificados por correo.</div>';
         html+='<button class="w-btn w-btn-primary" onclick="wontia.factoryRunUpdate()">Actualizar de nuevo desde Git</button>';
@@ -1879,7 +1879,7 @@ W.briefSubmit=async function(){
     if(!payload.customer_email||!payload.story){res.innerHTML='<div style="color:var(--w-accent);font-size:12px">Completa email y descripción.</div>';return}
     res.innerHTML='<div style="color:var(--w-muted);font-size:12px">Enviando a TIA…</div>';
     var r=await W.api('/api/v1/public/briefs',{method:'POST',body:payload});
-    if(r.ok){res.innerHTML='<div style="color:#00B87D;font-size:12px">✓ '+W.esc(r.message)+'</div>';document.getElementById('brief-story').value='';W.briefLoad();}
+    if(r.ok){res.innerHTML='<div style="color:#34d399;font-size:12px">✓ '+W.esc(r.message)+'</div>';document.getElementById('brief-story').value='';W.briefLoad();}
     else res.innerHTML='<div style="color:var(--w-accent);font-size:12px">'+W.esc(r.message||'Error')+'</div>';
 };
 
@@ -1889,7 +1889,7 @@ W.briefLoad=async function(){
     var briefs=(r.data&&r.data.briefs)||[];
     el.innerHTML=briefs.map(function(b){
         var p=b.profile?JSON.parse(b.profile):null;
-        var lines=p?('<div style="margin-top:6px;font-size:11px;color:var(--w-muted)">Servicios: '+(p.servicios||[]).join(', ')+'</div><div style="font-size:11px;color:var(--w-muted)">Ubicación: '+W.esc(p.ubicacion||'—')+'</div>'+(p.pendientes&&p.pendientes.length?'<div style="font-size:11px;color:#F5A623;margin-top:4px">Pendiente: '+p.pendientes.join(', ')+'</div>':'')):'';
+        var lines=p?('<div style="margin-top:6px;font-size:11px;color:var(--w-muted)">Servicios: '+(p.servicios||[]).join(', ')+'</div><div style="font-size:11px;color:var(--w-muted)">Ubicación: '+W.esc(p.ubicacion||'—')+'</div>'+(p.pendientes&&p.pendientes.length?'<div style="font-size:11px;color:#fbbf24;margin-top:4px">Pendiente: '+p.pendientes.join(', ')+'</div>':'')):'';
         return '<div class="w-card" style="padding:12px;margin-top:8px"><div class="w-flex-between"><strong style="font-size:12px">'+W.esc(b.business_name||b.customer_email)+'</strong>'+W.fStatus(b.status)+'</div>'+lines+'</div>';
     }).join('')||'<div style="color:var(--w-muted);font-size:11px">Sin briefs aún</div>';
 };
@@ -1903,9 +1903,9 @@ W.tiaSend=async function(){
     var d=r.data||{};
     if(d.preview){
         W.state.tiaToken=d.token;
-        res.innerHTML='<div class="w-card" style="border-color:#F5A623;padding:14px"><div style="font-size:12px;color:#F5A623">⚠ '+W.esc(r.message||'')+'</div><div class="w-flex w-gap-sm" style="margin-top:10px"><button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.tiaConfirm()">Confirmar</button><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.tiaCancel()">Cancelar</button></div></div>';
+        res.innerHTML='<div class="w-card" style="border-color:#fbbf24;padding:14px"><div style="font-size:12px;color:#fbbf24">⚠ '+W.esc(r.message||'')+'</div><div class="w-flex w-gap-sm" style="margin-top:10px"><button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.tiaConfirm()">Confirmar</button><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.tiaCancel()">Cancelar</button></div></div>';
     }else if(r.ok){
-        res.innerHTML='<div class="w-card" style="border-color:rgba(0,184,125,.5);padding:14px"><div style="font-size:12px;color:#00B87D">✓ '+W.esc(r.message||'Hecho')+'</div></div>';
+        res.innerHTML='<div class="w-card" style="border-color:rgba(52,211,153,.5);padding:14px"><div style="font-size:12px;color:#34d399">✓ '+W.esc(r.message||'Hecho')+'</div></div>';
         W.tiaLoadSections();W.tiaLoadHistory();
     }else{
         res.innerHTML='<div class="w-card" style="border-color:var(--w-accent);padding:14px"><div style="font-size:12px;color:var(--w-accent)">'+W.esc(r.message||'Error')+'</div></div>';
@@ -1916,7 +1916,7 @@ W.tiaSend=async function(){
 W.tiaConfirm=async function(){
     var res=document.getElementById('tia-result');
     var r=await W.api('/api/v1/admin/tia/confirm',{method:'POST',body:{token:W.state.tiaToken}});
-    if(r.ok){res.innerHTML='<div class="w-card" style="border-color:rgba(0,184,125,.5);padding:14px"><div style="font-size:12px;color:#00B87D">✓ '+W.esc(r.message||'Ejecutado')+'</div></div>';W.tiaLoadSections();W.tiaLoadHistory();}
+    if(r.ok){res.innerHTML='<div class="w-card" style="border-color:rgba(52,211,153,.5);padding:14px"><div style="font-size:12px;color:#34d399">✓ '+W.esc(r.message||'Ejecutado')+'</div></div>';W.tiaLoadSections();W.tiaLoadHistory();}
     else res.innerHTML='<div style="color:var(--w-accent);font-size:12px">'+W.esc(r.message||'Error')+'</div>';
 };
 
@@ -1944,7 +1944,7 @@ W.renderWWI=async function(){
     var fd=(await W.api('/api/v1/admin/factory/dashboard')).data||{};
     var bh=(await W.api('/api/v1/admin/brickhub/notifications')).data||{};
     var s=br.stats||{};
-    var color=st.status==='success'?'#00B87D':(st.status==='running'?'#B89EFF':(st.status==='rolled_back'?'#BE1341':'#8b8fa3'));
+    var color=st.status==='success'?'#34d399':(st.status==='running'?'#22d3ee':(st.status==='rolled_back'?'#f87171':'#8593ab'));
     var statusTxt=st.status==='running'?('Actualizando — '+(st.pct||0)+'%'):(st.status==='success'?'Sistema al día':(st.status==='rolled_back'?'Rollback aplicado':'Listo'));
     var html='<div style="margin-bottom:18px"><div style="font-size:20px;font-weight:800;letter-spacing:-.01em">WWI — Centro de Administración</div><div style="font-size:12px;color:var(--w-muted);margin-top:4px">Administra el SISTEMA completo (motor CMS, bricks, IA, sitios). Esto es distinto del contenido de tu landing.</div></div>';
     html+='<div class="w-stats">'
@@ -2003,14 +2003,14 @@ W.wwiSetup=async function(kind){
     if(el)el.innerHTML='<div style="font-size:11px;color:var(--w-muted)">Preparando…</div>';
     var url=kind==='brick'?'/api/v1/admin/brick/ensure-tables':'/api/v1/admin/brickhub/ensure-tables';
     var r=await W.api(url,{method:'POST'});
-    if(el)el.innerHTML='<div style="font-size:11px;color:'+(r.ok?'#00B87D':'#BE1341')+'">'+W.esc(r.message||(r.ok?'Listo':'Error'))+'</div>';
+    if(el)el.innerHTML='<div style="font-size:11px;color:'+(r.ok?'#34d399':'#f87171')+'">'+W.esc(r.message||(r.ok?'Listo':'Error'))+'</div>';
 };
 
 W.wwiRunJobs=async function(){
     var el=document.getElementById('wwi-action-result');
     if(el)el.innerHTML='<div style="font-size:11px;color:var(--w-muted)">Ejecutando…</div>';
     var r=await W.api('/api/v1/admin/factory/jobs/run',{method:'POST'});
-    if(el)el.innerHTML='<div style="font-size:11px;color:'+(r.ok?'#00B87D':'#BE1341')+'">'+W.esc(r.message||(r.ok?'Listo':'Error'))+'</div>';
+    if(el)el.innerHTML='<div style="font-size:11px;color:'+(r.ok?'#34d399':'#f87171')+'">'+W.esc(r.message||(r.ok?'Listo':'Error'))+'</div>';
 };
 
 // ════════════════════════════════════════════════

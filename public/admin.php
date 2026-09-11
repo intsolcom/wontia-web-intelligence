@@ -20,21 +20,22 @@ if (!$loggedIn):
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
     <title>WWI Wontia Web Intelligence — Login</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
     <style>
         *{margin:0;padding:0;box-sizing:border-box}
-        body{font-family:'Inter',sans-serif;background:#0f1117;color:#e1e4ed;display:flex;align-items:center;justify-content:center;min-height:100vh}
-        .login-box{background:#1a1d27;padding:48px 40px;border-radius:16px;border:1px solid #2a2d3a;width:100%;max-width:400px}
-        .login-box h1{font-size:22px;font-weight:700;margin-bottom:8px}
-        .login-box p{font-size:13px;color:#8b8fa3;margin-bottom:28px}
-        .login-box label{font-size:12px;color:#8b8fa3;display:block;margin-bottom:6px;font-weight:500}
-        .login-box input{width:100%;padding:12px 14px;border-radius:8px;border:1px solid #2a2d3a;background:#0f1117;color:#e1e4ed;font-size:14px;margin-bottom:16px;outline:none;transition:border .2s}
-        .login-box input:focus{border-color:#B89EFF}
-        .login-box button{width:100%;padding:12px;border-radius:8px;border:none;background:linear-gradient(135deg,#9B8CDE,#B89EFF);color:#fff;font-size:14px;font-weight:600;cursor:pointer;transition:opacity .2s}
-        .login-box button:hover{opacity:.9}
-        .login-error{color:#ef4444;font-size:12px;margin-bottom:12px;display:none}
+        body{font-family:'Inter',sans-serif;background:#06080f;color:#e6edf7;display:flex;align-items:center;justify-content:center;min-height:100vh;-webkit-font-smoothing:antialiased}
+        body::before{content:'';position:fixed;inset:0;pointer-events:none;background:radial-gradient(42% 50% at 15% 0%,rgba(34,211,238,.08),transparent 60%),radial-gradient(45% 45% at 88% 10%,rgba(139,92,246,.1),transparent 60%)}
+        .login-box{position:relative;background:#0d1220;padding:48px 40px;border-radius:16px;border:1px solid rgba(148,163,184,.18);width:100%;max-width:400px;box-shadow:0 30px 90px rgba(0,0,0,.55)}
+        .login-box h1{font-size:22px;font-weight:800;margin-bottom:8px;letter-spacing:-.01em}
+        .login-box p{font-size:13px;color:#8593ab;margin-bottom:28px}
+        .login-box label{font-size:12px;color:#8593ab;display:block;margin-bottom:6px;font-weight:500}
+        .login-box input{width:100%;padding:12px 14px;border-radius:8px;border:1px solid rgba(148,163,184,.22);background:#0a0e18;color:#e6edf7;font-size:14px;margin-bottom:16px;outline:none;transition:border .2s,box-shadow .2s}
+        .login-box input:focus{border-color:#22d3ee;box-shadow:0 0 0 3px rgba(34,211,238,.12)}
+        .login-box button{width:100%;padding:12px;border-radius:8px;border:none;background:linear-gradient(120deg,#22d3ee,#8b5cf6);color:#041018;font-size:14px;font-weight:700;cursor:pointer;transition:filter .2s}
+        .login-box button:hover{filter:brightness(1.1)}
+        .login-error{color:#f87171;font-size:12px;margin-bottom:12px;display:none}
         .logo{display:flex;align-items:center;gap:8px;margin-bottom:24px}
-        .logo-icon{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#9B8CDE,#B89EFF);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#fff}
+        .logo-icon{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#22d3ee,#8b5cf6);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;color:#041018}
     </style>
 </head>
 <body>
@@ -74,7 +75,7 @@ endif;
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
     <title>WWI Wontia Web Intelligence</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
     <link rel="stylesheet" href="/assets/css/admin.css?v=<?= filemtime(__DIR__ . '/assets/css/admin.css') ?>"/>
 </head>
 <body>
@@ -110,7 +111,7 @@ endif;
         <a href="#brickhub" class="w-nav-item" data-panel="brickhub">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
             BrickHub
-            <span id="bh-badge" class="w-badge w-badge-published" style="display:none;margin-left:auto;font-size:10px;padding:2px 8px;border-radius:10px;background:var(--w-accent);color:#fff">0</span>
+            <span id="bh-badge" class="w-badge w-badge-published" style="display:none;margin-left:auto;font-size:10px;padding:2px 8px;border-radius:10px;background:linear-gradient(120deg,#22d3ee,#8b5cf6);color:#041018;font-weight:700">0</span>
         </a>
         <a href="#brick" class="w-nav-item" data-panel="brick">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
@@ -158,8 +159,8 @@ endif;
         <?php endif; ?>
     </nav>
     <div class="w-sidebar-footer">
-        <div style="font-size:11px;color:#8b8fa3"><?= htmlspecialchars($user['username'] ?? '') ?> <span style="color:#9B8CDE">(<?= $user['role'] ?? '' ?>)</span></div>
-        <a href="#" onclick="wontia.logout();return false" style="font-size:11px;color:#8b8fa3;text-decoration:none">Logout</a>
+        <div style="font-size:11px;color:#8593ab"><?= htmlspecialchars($user['username'] ?? '') ?> <span style="color:#67e8f9">(<?= $user['role'] ?? '' ?>)</span></div>
+        <a href="#" onclick="wontia.logout();return false" style="font-size:11px;color:#8593ab;text-decoration:none">Logout</a>
     </div>
 </aside>
 
@@ -168,7 +169,7 @@ endif;
         <button class="w-mobile-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">&#9776;</button>
         <h1 id="panel-title">Dashboard</h1>
         <div style="flex:1"></div>
-        <a href="/" target="_blank" style="font-size:12px;color:#B89EFF;text-decoration:none">View Site &#8599;</a>
+        <a href="/" target="_blank" style="font-size:12px;color:#67e8f9;text-decoration:none">View Site &#8599;</a>
     </header>
     <div class="w-content" id="wontia-app"></div>
 </main>
