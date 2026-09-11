@@ -111,9 +111,10 @@ class AutoDiscoveryService
         }
 
         $sql = file_get_contents($schemaPath);
+        $sql = preg_replace('/^\s*--.*$/m', '', $sql);
         $statements = array_filter(
             array_map('trim', explode(';', $sql)),
-            fn($s) => !empty($s) && !str_starts_with($s, '--')
+            fn($s) => $s !== ''
         );
 
         $created = 0;
