@@ -12,6 +12,7 @@ git log --oneline -1
 echo "== 2. env de producción =="
 if [ -f /root/wwi-secrets/.env ]; then
     cp /root/wwi-secrets/.env "$SRC/.env"
+    chmod 644 "$SRC/.env"
 else
     echo "WARN: /root/wwi-secrets/.env no existe — se usará .env.example"
 fi
@@ -31,14 +32,18 @@ while IFS='|' read -r name port site app_url app_name keyfile volume extra; do
     printf -- "-- %s (port %s, site %s)\n" "$name" "$port" "$site"
     KEY=""
     if [ -n "$keyfile" ] && [ -f "$keyfile" ]; then KEY=$(cat "$keyfile"); fi
-    ARGS="-d --name $name --network intsolcom -p $port:80 -e SITE_ID=$site"
-    [ -n "$app_url" ] && ARGS="$ARGS -e APP_URL=$app_url"
-    [ -n "$app_name" ] && ARGS="$ARGS -e APP_NAME=$app_name"
-    [ -n "$KEY" ] && ARGS="$ARGS -e BRICK_API_KEY=$KEY"
-    [ -n "$volume" ] && ARGS="$ARGS -v $volume:/app/public/assets/uploads"
-    [ -n "$extra" ] && ARGS="$ARGS $extra"
+    ARGS=(-d --name "$name" --network intsolcom -p "$port:80" -e "SITE_ID=$site")
+    [ -n "$app_url" ] && ARGS+=(-e "APP_URL=$app_url")
+    [ -n "$app_name" ] && ARGS+=(-e "APP_NAME=$app_name")
+    [ -n "$KEY" ] && ARGS+=(-e "BRICK_API_KEY=$KEY")
+    [ -n "$volume" ] && ARGS+=(-v "$volume:/app/public/assets/uploads")
+    if [ -n "$extra" ]; then
+        # shellcheck disable=SC2206
+        EXTRA_ARR=($extra)
+        ARGS+=("${EXTRA_ARR[@]}")
+    fi
     docker rm -f "$name" >/dev/null 2>&1 || true
-    docker run $ARGS --restart unless-stopped wontia-web-intelligence:latest >/dev/null
+    docker run "${ARGS[@]}" --restart unless-stopped wontia-web-intelligence:latest >/dev/null
 done < "$SRC/deploy/containers.conf"
 
 echo "== 6. smoke test =="
