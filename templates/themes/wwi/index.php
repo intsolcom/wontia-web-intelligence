@@ -11,6 +11,7 @@ $sections = $sections ?? [];
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<script>try{if(localStorage.getItem('wwi_theme')==='light')document.documentElement.setAttribute('data-theme','light')}catch(e){}</script>
 <title><?= htmlspecialchars($page['meta_title'] ?: $page['title']) ?></title>
 <meta name="description" content="<?= htmlspecialchars($page['meta_description'] ?? '') ?>"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
@@ -23,6 +24,7 @@ $sections = $sections ?? [];
     --accent:#22d3ee;--accent2:#8b5cf6;
     --ok:#34d399;--warn:#fbbf24;--bad:#f87171;
     --glow:rgba(34,211,238,.08);--radius:10px;color-scheme:dark;
+    --nav-bg:rgba(6,8,15,.82);--soft:rgba(255,255,255,.015);--overlay:rgba(4,6,10,.94);
 }
 :root[data-theme='light']{
     --bg:#f4f6fb;--bg2:#eef1f8;--panel:#ffffff;--panel2:#f7f9fd;
@@ -30,14 +32,18 @@ $sections = $sections ?? [];
     --text:#0f172a;--muted:#5b6b84;
     --accent:#0891b2;--accent2:#7c3aed;
     --ok:#059669;--warn:#d97706;--bad:#dc2626;
+    --glow:rgba(8,145,178,.08);--radius:10px;color-scheme:light;
+    --nav-bg:rgba(244,246,251,.85);--soft:rgba(15,23,42,.02);--overlay:rgba(244,246,251,.95);
 }
+:root[data-theme='light'] .orbs i{opacity:.16}
+:root[data-theme='light'] .aurora{opacity:.45}
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Inter',Segoe UI,system-ui;font-size:14px;line-height:1.45;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
 .mono,.num,.metric{font-family:'JetBrains Mono',Consolas,monospace;font-variant-numeric:tabular-nums}
 a{color:inherit;text-decoration:none}
 .grid-bg{position:fixed;inset:0;z-index:0;pointer-events:none;background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);background-size:42px 42px;-webkit-mask-image:radial-gradient(ellipse 90% 60% at 50% 0%,#000 30%,transparent 75%);mask-image:radial-gradient(ellipse 90% 60% at 50% 0%,#000 30%,transparent 75%);opacity:.35}
 main{position:relative;z-index:1}
-.w-nav{position:fixed;top:0;left:0;right:0;z-index:100;height:60px;display:flex;align-items:center;justify-content:space-between;padding:0 28px;background:rgba(6,8,15,.82);backdrop-filter:blur(14px);border-bottom:1px solid var(--border)}
+.w-nav{position:fixed;top:0;left:0;right:0;z-index:100;height:60px;display:flex;align-items:center;justify-content:space-between;padding:0 28px;background:var(--nav-bg);backdrop-filter:blur(14px);border-bottom:1px solid var(--border)}
 .w-nav-brand{display:flex;align-items:center;gap:10px}
 .w-nav-logo{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#22d3ee,#8b5cf6);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;color:#041018}
 .w-nav-brand span{font-size:13px;font-weight:700;letter-spacing:.08em}
@@ -118,7 +124,10 @@ section{position:relative}
     <a href="#plantillas">Plantillas</a>
     <a href="#faq">FAQ</a>
   </div>
-  <a href="#planes" class="btn btn-primary">Crear mi sitio</a>
+  <div style="display:flex;align-items:center;gap:10px">
+    <button class="btn btn-ghost" id="wwi-theme-toggle" title="Cambiar tema" aria-label="Cambiar tema" style="width:36px;padding:8px 0;justify-content:center">☾</button>
+    <a href="#planes" class="btn btn-primary">Crear mi sitio</a>
+  </div>
 </nav>
 <main>
 <?php foreach ($sections as $section):
@@ -154,6 +163,49 @@ endforeach; ?>
             if(Math.abs(tx-cx)>.5||Math.abs(ty-cy)>.5){requestAnimationFrame(step)}else{anim=false}
         };
         document.addEventListener('mousemove',function(e){tx=e.clientX;ty=e.clientY;if(!anim){anim=true;glow.classList.add('on');requestAnimationFrame(step)}},{passive:true});
+    }
+    var counters=document.querySelectorAll('[data-count]');
+    if(counters.length){
+        var runCount=function(el){
+            var target=parseFloat(el.getAttribute('data-count'))||0;
+            var suffix=el.getAttribute('data-suffix')||'';
+            if(calm){el.textContent=target+suffix;return}
+            var t0=null;
+            var stepCount=function(ts){
+                if(!t0)t0=ts;
+                var p=Math.min((ts-t0)/900,1);
+                el.textContent=Math.round(target*(1-Math.pow(1-p,3)))+suffix;
+                if(p<1)requestAnimationFrame(stepCount);
+            };
+            requestAnimationFrame(stepCount);
+        };
+        if('IntersectionObserver' in window){
+            var cio=new IntersectionObserver(function(entries){
+                entries.forEach(function(en){if(en.isIntersecting){runCount(en.target);cio.unobserve(en.target)}});
+            },{threshold:.4});
+            counters.forEach(function(el){cio.observe(el)});
+        }else{counters.forEach(runCount)}
+    }
+    var themeBtn=document.getElementById('wwi-theme-toggle');
+    if(themeBtn){
+        var isLight=function(){return document.documentElement.getAttribute('data-theme')==='light'};
+        themeBtn.textContent=isLight()?'☀':'☾';
+        themeBtn.addEventListener('click',function(e){
+            var to=isLight()?'dark':'light';
+            var apply=function(){
+                document.documentElement.setAttribute('data-theme',to);
+                try{localStorage.setItem('wwi_theme',to)}catch(err){}
+                themeBtn.textContent=to==='light'?'☀':'☾';
+            };
+            if(document.startViewTransition&&!calm){
+                var x=e.clientX||window.innerWidth-40,y=e.clientY||40;
+                var rad=Math.hypot(Math.max(x,window.innerWidth-x),Math.max(y,window.innerHeight-y));
+                var tr=document.startViewTransition(apply);
+                tr.ready.then(function(){
+                    document.documentElement.animate({clipPath:['circle(0px at '+x+'px '+y+'px)','circle('+rad+'px at '+x+'px '+y+'px)']},{duration:520,easing:'cubic-bezier(.22,1,.36,1)',pseudoElement:'::view-transition-new(root)'});
+                });
+            }else{apply()}
+        });
     }
 })();
 async function wwiLoadPlans(){
@@ -518,10 +570,10 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 </script>
 <style>
-.flow-overlay{position:fixed;inset:0;z-index:999;background:rgba(4,6,10,.94);backdrop-filter:blur(14px);display:none;align-items:center;justify-content:center;padding:20px}
+.flow-overlay{position:fixed;inset:0;z-index:999;background:var(--overlay);backdrop-filter:blur(14px);display:none;align-items:center;justify-content:center;padding:20px}
 .flow-overlay.open{display:flex}
 .flow-shell{width:100%;max-width:860px;height:min(640px,92vh);background:linear-gradient(var(--panel),var(--panel)) padding-box,linear-gradient(135deg,rgba(34,211,238,.5),rgba(139,92,246,.5)) border-box;border:1px solid transparent;border-radius:18px;overflow:hidden;display:flex;flex-direction:column;position:relative;box-shadow:0 30px 90px rgba(0,0,0,.6)}
-.flow-head{display:flex;align-items:center;gap:14px;padding:16px 22px;border-bottom:1px solid var(--border);position:relative;background:rgba(255,255,255,.015)}
+.flow-head{display:flex;align-items:center;gap:14px;padding:16px 22px;border-bottom:1px solid var(--border);position:relative;background:var(--soft)}
 .flow-head .step-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--accent)}
 .flow-head .dots{display:flex;gap:6px;flex:1}
 .flow-head .dot{height:5px;flex:1;border-radius:3px;background:var(--border2);transition:background .3s}
@@ -588,7 +640,7 @@ document.addEventListener('DOMContentLoaded',function(){
 .btn-primary{position:relative;overflow:hidden}
 .btn-primary::after{content:'';position:absolute;top:0;left:-120%;width:60%;height:100%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.4),transparent);transform:skewX(-20deg);animation:shine 3.4s ease-in-out infinite}
 @keyframes shine{0%,55%{left:-120%}80%,100%{left:140%}}
-.marquee{overflow:hidden;border-top:1px solid var(--border);border-bottom:1px solid var(--border);background:rgba(255,255,255,.015);padding:14px 0;margin-top:38px}
+.marquee{overflow:hidden;border-top:1px solid var(--border);border-bottom:1px solid var(--border);background:var(--soft);padding:14px 0;margin-top:38px}
 .marquee .track{display:flex;gap:36px;white-space:nowrap;animation:mq 30s linear infinite;width:max-content}
 .marquee span{font-size:12px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
 .marquee span b{color:var(--accent)}
@@ -616,6 +668,7 @@ document.addEventListener('DOMContentLoaded',function(){
         @keyframes wwi-reveal{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
     }
 }
+::view-transition-old(root),::view-transition-new(root){animation:none;mix-blend-mode:normal}
 @media(prefers-reduced-motion:reduce){.aurora,.orbs i,.gradient-text,.btn-primary::after,.marquee .track,.chat-ava::after{animation:none}}
 </style>
 <div class="flow-overlay" id="wwi-flow">

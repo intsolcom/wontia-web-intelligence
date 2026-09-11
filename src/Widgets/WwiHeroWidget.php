@@ -37,7 +37,7 @@ class WwiHeroWidget extends Widget
         if ($c['price_note']) $html .= '<div class="mono" style="font-size:12px;color:var(--muted)">' . $this->esc($c['price_note']) . '</div>';
         $html .= '<div class="trust-row" style="margin-top:14px"><span>Vista previa gratis</span><span>Sin tarjeta</span><span>Sin programador</span></div>';
         $html .= '<div class="wwi-grid-3 wrap" style="margin-top:44px">';
-        $html .= '<div class="panel stat"><div class="v">24h</div><div class="l">o antes, online</div></div>';
+        $html .= '<div class="panel stat"><div class="v" data-count="24" data-suffix="h">24h</div><div class="l">o antes, online</div></div>';
         $html .= '<div class="panel stat"><div class="v">0</div><div class="l">programadores necesarios</div></div>';
         $html .= '<div class="panel stat"><div class="v">TIA</div><div class="l">construye por ti</div></div>';
         $html .= '</div>';
