@@ -41,6 +41,7 @@ W.router=function(){
     var panel=parts[0];
     var id=parts[1];
     var action=parts[2];
+    if(panel==='brickhub'){window.location.replace(window.location.pathname+window.location.search+'#bricks/extensiones');return}
     document.querySelectorAll('.w-nav-item').forEach(function(a){a.classList.toggle('active',a.dataset.panel===panel)});
     var title=document.getElementById('panel-title');
     var titles={dashboard:'Dashboard',wwi:'WWI — Sistema',pages:'Pages',sections:'Sections',bricks:'Bricks',brickhub:'BrickHub',brick:'AI BRICK',factory:'Factory',portal:'Mi Portal',blog:'Blog',media:'Media',seo:'SEO','seo-global-launch':'SEO Global Launch',analytics:'Analytics',settings:'Settings',users:'Users'};
@@ -556,19 +557,153 @@ W.renderDashboard=async function(){
     W.autoCheckBrickHub();
 };
 
-W.renderBricks=async function(){
+W.renderBricks=async function(tab){
+    tab=tab||'biblioteca';
+    W.state.bricksTab=tab;
     var app=document.getElementById('wontia-app');
-    app.innerHTML='<div class="w-card" style="padding:14px 18px;margin-bottom:16px"><div style="font-size:13px;font-weight:700">Bricks — bloques funcionales de página</div><div style="font-size:11px;color:var(--w-muted);margin-top:4px;line-height:1.7">Cada brick es un módulo reutilizable (hero, planes, FAQ, testimonios…) que se coloca dentro de una página como <strong>Section</strong>. Aquí ves todos los bricks disponibles en el sistema. Para usar uno: <strong>Pages → página → Sections → + Add Section</strong>. Los bricks de código abierto/instalables se gestionan en <strong>BrickHub</strong>.</div></div><div id="brick-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px"></div>';
-    var d=await W.api('/api/v1/admin/bricks');
-    var bricks=d.data||{};
-    var grid=document.getElementById('brick-grid');
-    var html='';
-    for(var id in bricks){
-        var b=bricks[id];
-        html+='<div class="w-card" style="padding:20px"><div style="display:flex;align-items:center;gap:10px;margin-bottom:12px"><span style="font-size:20px">&#x1F9F1;</span><div><div style="font-size:14px;font-weight:600">'+W.esc(b.name)+'</div><div style="font-size:10px;color:var(--w-muted);text-transform:uppercase">'+W.esc(b.category||'general')+' v'+W.esc(b.version||'1.0')+'</div></div></div><div style="margin-bottom:12px;min-height:60px">'+b.adminPreview+'</div><div style="display:flex;gap:6px"><button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.showBrickConfig(\''+W.esc(id)+'\')">Config</button><span style="font-size:10px;color:var(--w-muted);align-self:center">ID: '+W.esc(id)+'</span></div></div>';
+    var tabs=[
+        {id:'biblioteca',label:'Biblioteca'},
+        {id:'extensiones',label:'Extensiones'},
+        {id:'incubadora',label:'Incubadora'}
+    ];
+    var bar='<div class="w-card" style="padding:14px 18px;margin-bottom:14px"><div style="font-size:13px;font-weight:700">Bricks — bloques funcionales</div><div style="font-size:11px;color:var(--w-muted);margin-top:4px;line-height:1.7">Biblioteca de bloques de página (hero, planes, FAQ…): previsualízalos en vivo y añádelos a una página en un clic. <strong>Extensiones</strong> gestiona los bricks instalables (repos GitHub, updates) y <strong>Incubadora</strong> los bricks del ecosistema listos para activar.</div></div>';
+    bar+='<div class="w-toolbar w-mb-lg" style="border-bottom:1px solid var(--w-border);padding-bottom:12px">';
+    tabs.forEach(function(t){
+        bar+='<button class="w-btn '+(tab===t.id?'w-btn-primary':'w-btn-secondary')+'" onclick="wontia.bricksGo(\''+t.id+'\')">'+t.label+'</button>';
+    });
+    bar+='</div><div id="bs-content"></div>';
+    app.innerHTML=bar;
+    if(tab==='extensiones'){
+        W.state.bhHost=document.getElementById('bs-content');
+        W.renderBrickHubInto(W.state.bhHost,true);
+        return;
     }
-    if(!html)html='<div class="w-empty-state" style="grid-column:1/-1"><h3>No BRICKs found</h3><p>Install widgets in src/Widgets/</p></div>';
+    if(tab==='incubadora'){W.bsIncubator();return}
+    W.bsLibrary();
+};
+
+W.bricksGo=function(tab){
+    window.location.hash=tab==='biblioteca'?'#bricks':'#bricks/'+tab;
+};
+
+W._bricks=null;
+W.state.bsCat='';
+
+W.bsLibrary=async function(){
+    var el=document.getElementById('bs-content');
+    if(!el)return;
+    el.innerHTML='<div style="text-align:center;padding:40px;color:var(--w-muted)">Cargando biblioteca...</div>';
+    var d=await W.api('/api/v1/admin/bricks');
+    W._bricks=d.data||{};
+    var cats={};
+    for(var id in W._bricks){var b=W._bricks[id];var c=b.category||'general';(cats[c]=cats[c]||[]).push(id)}
+    var html='<div class="w-flex-between w-mb" style="gap:12px;flex-wrap:wrap">'
+        +'<input class="w-input" id="bs-search" placeholder="Buscar brick…" style="max-width:260px"/>'
+        +'<div class="w-toolbar" id="bs-cats"><button class="w-btn w-btn-primary w-btn-sm" data-cat="">Todos</button>';
+    for(var c in cats)html+='<button class="w-btn w-btn-secondary w-btn-sm" data-cat="'+W.esc(c)+'">'+W.esc(c)+' ('+cats[c].length+')</button>';
+    html+='</div></div><div id="bs-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px"></div>';
+    el.innerHTML=html;
+    W.bsRenderGrid();
+    document.getElementById('bs-search').addEventListener('input',W.bsRenderGrid);
+    document.querySelectorAll('#bs-cats button').forEach(function(btn){
+        btn.addEventListener('click',function(){
+            document.querySelectorAll('#bs-cats button').forEach(function(x){x.classList.remove('w-btn-primary');x.classList.add('w-btn-secondary')});
+            btn.classList.remove('w-btn-secondary');btn.classList.add('w-btn-primary');
+            W.state.bsCat=btn.dataset.cat||'';
+            W.bsRenderGrid();
+        });
+    });
+};
+
+W.bsRenderGrid=function(){
+    var grid=document.getElementById('bs-grid');
+    if(!grid||!W._bricks)return;
+    var q=(document.getElementById('bs-search')?document.getElementById('bs-search').value:'').toLowerCase();
+    var cat=W.state.bsCat||'';
+    var html='';
+    for(var id in W._bricks){
+        var b=W._bricks[id];
+        if(cat&&(b.category||'general')!==cat)continue;
+        if(q&&(id+' '+b.name+' '+(b.category||'')).toLowerCase().indexOf(q)===-1)continue;
+        var badges='<span class="w-brick-chip">v'+W.esc(b.version||'1.0')+'</span>';
+        if(b.uses_ai)badges+='<span class="w-brick-chip" style="color:#67e8f9;border:1px solid rgba(34,211,238,.35)">✦ IA</span>';
+        if(b.usage_count>0)badges+='<span class="w-brick-chip" style="color:#34d399">En '+b.usage_count+' página'+(b.usage_count===1?'':'s')+'</span>';
+        html+='<div class="w-card" style="padding:18px"><div style="display:flex;justify-content:space-between;gap:10px;margin-bottom:8px"><div><div style="font-size:13px;font-weight:700">'+W.esc(b.name)+'</div><div style="font-size:10px;color:var(--w-muted);text-transform:uppercase">'+W.esc(b.category||'general')+'</div></div><span style="font-size:18px">&#x1F9F1;</span></div>'
+            +'<div style="margin-bottom:10px;min-height:56px">'+b.adminPreview+'</div><div style="margin-bottom:10px">'+badges+'</div>'
+            +'<div class="w-flex w-gap-sm" style="flex-wrap:wrap"><button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.brickPreview(\''+W.esc(id)+'\')">Preview</button><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.brickAddToPage(\''+W.esc(id)+'\',\''+W.esc(b.name)+'\')">Añadir a página</button><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.showBrickConfig(\''+W.esc(id)+'\')">Esquema</button></div></div>';
+    }
+    if(!html)html='<div class="w-empty-state" style="grid-column:1/-1"><h3>Sin resultados</h3><p>Prueba otra categoría u otra búsqueda.</p></div>';
     grid.innerHTML=html;
+};
+
+W.bsIncubator=function(){
+    var el=document.getElementById('bs-content');
+    if(!el)return;
+    el.innerHTML='<div class="w-card" style="margin-bottom:14px"><div style="font-size:13px;font-weight:700">&#x1F9EA; Incubadora de Bricks</div><div style="font-size:11px;color:var(--w-muted);margin-top:4px">Bricks del ecosistema en desarrollo o listos para activar en este sitio.</div></div><div id="bs-incubator" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px"><div style="font-size:12px;color:var(--w-muted)">Cargando...</div></div>';
+    W.wwiLoadBricks('bs-incubator');
+};
+
+W.brickPreview=async function(type){
+    var existing=document.getElementById('w-pv-overlay');
+    if(existing)existing.remove();
+    var ov=document.createElement('div');
+    ov.className='w-pv-overlay';
+    ov.id='w-pv-overlay';
+    ov.innerHTML='<div class="w-pv-box" id="w-pv-box"><div class="w-pv-head"><div style="font-size:12px;font-weight:700">Preview — '+W.esc(type)+'</div><div class="w-flex" style="gap:4px"><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.pvDevice(900)">Desktop</button><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.pvDevice(700)">Tablet</button><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.pvDevice(390)">Mobile</button><button class="w-btn w-btn-secondary w-btn-sm" onclick="document.getElementById(\'w-pv-overlay\').remove()">&#x2715;</button></div></div><iframe id="w-pv-frame" sandbox="allow-scripts allow-same-origin" style="width:100%;flex:1;border:none;background:#06080f"></iframe></div>';
+    document.body.appendChild(ov);
+    ov.addEventListener('mousedown',function(e){if(e.target===ov)ov.remove()});
+    var frame=document.getElementById('w-pv-frame');
+    frame.srcdoc='<div style="padding:40px;color:#8593ab;font-family:Inter,sans-serif">Cargando preview…</div>';
+    try{
+        var r=await fetch('/api/v1/admin/bricks/'+encodeURIComponent(type)+'/preview',{headers:{Authorization:'Bearer '+W.token}});
+        var html=await r.text();
+        frame.srcdoc=html;
+    }catch(e){
+        frame.srcdoc='<div style="padding:40px;color:#f87171;font-family:Inter,sans-serif">No se pudo cargar el preview.</div>';
+    }
+};
+
+W.pvDevice=function(w){
+    var b=document.getElementById('w-pv-box');
+    if(b)b.style.maxWidth=w+'px';
+};
+
+W.brickAddToPage=async function(type,name){
+    var d=await W.api('/api/v1/admin/pages');
+    var pages=d.data||[];
+    if(!pages.length){W.notify('No hay páginas todavía','error');return}
+    var html='<div style="font-size:11px;color:var(--w-muted);margin-bottom:10px">Elige la página donde añadir <strong>'+W.esc(name)+'</strong> como nueva sección (al final).</div><div style="display:flex;flex-direction:column;gap:6px">';
+    pages.forEach(function(p){
+        html+='<button class="w-btn w-btn-secondary" style="justify-content:space-between" onclick="wontia.brickAddConfirm('+p.id+',\''+W.esc(type)+'\',\''+W.esc(name)+'\')"><span>'+W.esc(p.title)+'</span><span style="font-size:10px;color:var(--w-muted)">/'+W.esc(p.slug)+'</span></button>';
+    });
+    html+='</div>';
+    W.modal('Añadir brick a página',html,'<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cancelar</button>');
+};
+
+W.brickAddConfirm=async function(pageId,type,name){
+    var r=await W.api('/api/v1/admin/pages/'+pageId+'/sections',{method:'POST',body:{type:'widget',widget_type:type,title:name,config:{}}});
+    if(r.ok){
+        W.closeModal();
+        W.confetti();
+        W.notify('"'+name+'" añadido a la página','success');
+        setTimeout(function(){window.location.hash='#sections/'+pageId},450);
+    }else if(r.message)W.notify(r.message,'error');
+};
+
+W.confetti=function(){
+    try{if(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches)return}catch(e){}
+    var colors=['#22d3ee','#8b5cf6','#ec4899','#fbbf24','#34d399'];
+    for(var i=0;i<24;i++){
+        var d=document.createElement('div');
+        d.className='w-confetti';
+        d.style.background=colors[i%colors.length];
+        d.style.left=(window.innerWidth/2)+'px';
+        d.style.top=(window.innerHeight/2)+'px';
+        d.style.setProperty('--dx',(Math.random()*520-260)+'px');
+        d.style.setProperty('--dy',(Math.random()*-380-60)+'px');
+        document.body.appendChild(d);
+        setTimeout((function(el){return function(){el.remove()}})(d),1700);
+    }
 };
 
 W.showBrickConfig=async function(type){
@@ -634,10 +769,11 @@ W.handleCodeTab=function(e,ta){
     if(e.key==='Tab'){e.preventDefault();var s=ta.selectionStart;ta.value=ta.value.substring(0,s)+'  '+ta.value.substring(ta.selectionEnd);ta.selectionStart=ta.selectionEnd=s+2}
 };
 
-W.renderBrickHub=function(){
+W.renderBrickHub=function(){W.state.bhHost=null;W.renderBrickHubInto(document.getElementById('wontia-app'),false)};
+
+W.renderBrickHubInto=function(app,compact){
     var tab=W.state.bhTab||'marketplace';
     W.state.bhTab=tab;
-    var app=document.getElementById('wontia-app');
     var tabs=[
         {id:'marketplace',label:'Marketplace'},
         {id:'sources',label:'Sources'},
@@ -646,7 +782,8 @@ W.renderBrickHub=function(){
         {id:'sites',label:'Sites'},
         {id:'history',label:'History'}
     ];
-    var tabBar='<div class="w-card" style="padding:14px 18px;margin-bottom:14px"><div style="font-size:13px;font-weight:700">BrickHub — tienda y actualizador de extensiones</div><div style="font-size:11px;color:var(--w-muted);margin-top:4px;line-height:1.7">Conecta repositorios de GitHub (<strong>Sources</strong>) que publican bricks. Desde aquí puedes <strong>descubrir</strong> nuevos bricks, <strong>instalarlos</strong> en este sitio (<strong>Marketplace/Installed</strong>), y recibir <strong>Updates</strong> cuando los repos publican versiones nuevas. Cuando haya una actualización pendiente verás un aviso en el sidebar. Todo se instala con validación de seguridad y registro de historial.</div></div>';
+    var tabBar='';
+    if(!compact)tabBar+='<div class="w-card" style="padding:14px 18px;margin-bottom:14px"><div style="font-size:13px;font-weight:700">BrickHub — tienda y actualizador de extensiones</div><div style="font-size:11px;color:var(--w-muted);margin-top:4px;line-height:1.7">Conecta repositorios de GitHub (<strong>Sources</strong>) que publican bricks. Desde aquí puedes <strong>descubrir</strong> nuevos bricks, <strong>instalarlos</strong> en este sitio (<strong>Marketplace/Installed</strong>), y recibir <strong>Updates</strong> cuando los repos publican versiones nuevas. Cuando haya una actualización pendiente verás un aviso en el sidebar. Todo se instala con validación de seguridad y registro de historial.</div></div>';
     tabBar+='<div class="w-toolbar w-mb-lg" style="border-bottom:1px solid var(--w-border);padding-bottom:12px">';
     tabs.forEach(function(t){
         tabBar+='<button class="w-btn '+(tab===t.id?'w-btn-primary':'w-btn-secondary')+'" onclick="wontia.switchBHTab(\''+t.id+'\')">'+t.label+'</button>';
@@ -657,7 +794,7 @@ W.renderBrickHub=function(){
     (fns[tab]||W.bhMarketplace)();
 };
 
-W.switchBHTab=function(t){W.state.bhTab=t;W.renderBrickHub()};
+W.switchBHTab=function(t){W.state.bhTab=t;W.renderBrickHubInto(W.state.bhHost||document.getElementById('wontia-app'),!!W.state.bhHost)};
 
 W.bhMarketplace=async function(){
     var el=document.getElementById('bh-content');
@@ -1981,8 +2118,8 @@ W.renderWWI=async function(){
     W.wwiLoadBricks();
 };
 
-W.wwiLoadBricks=async function(){
-    var el=document.getElementById('wwi-bricks-slot'); if(!el)return;
+W.wwiLoadBricks=async function(slotId){
+    var el=document.getElementById(slotId||'wwi-bricks-slot'); if(!el)return;
     try{
         var r=await W.api('/api/v1/admin/seo-global-launch');
         var b=(r.data&&r.data.brick)||{};
@@ -2184,6 +2321,9 @@ W.palette=function(){
         {label:'AI BRICK · Overview',hash:'#brick/overview',sub:'KPIs y presupuesto de IA',need:'brick'},
         {label:'AI BRICK · Policies',hash:'#brick/policies',sub:'Estrategias y fallback',need:'brick'},
         {label:'AI BRICK · Test',hash:'#brick/test',sub:'Probar un modelo',need:'brick'},
+        {label:'Bricks · Biblioteca',hash:'#bricks',sub:'Bloques de página: preview y añadir',need:'bricks'},
+        {label:'Bricks · Extensiones',hash:'#bricks/extensiones',sub:'Repos GitHub, instalar, updates',need:'bricks'},
+        {label:'Bricks · Incubadora',hash:'#bricks/incubadora',sub:'Bricks del ecosistema',need:'bricks'},
         {label:'WWI · Sistema',hash:'#wwi',sub:'Estado y configuración',need:'wwi'}
     ].filter(function(a){return document.querySelector('.w-nav-item[data-panel="'+a.need+'"]')});
     var items=[];
@@ -2194,6 +2334,13 @@ W.palette=function(){
         items.push({label:t.textContent.trim(),hash:a.getAttribute('href'),sub:'Panel'});
     });
     items=items.concat(actions);
+    if(W._bricks){
+        for(var bid in W._bricks){
+            (function(id,name){
+                items.push({label:'Brick · '+name,sub:'Añadir a página…',action:function(){W.brickAddToPage(id,name)}});
+            })(bid,W._bricks[bid].name);
+        }
+    }
     var ov=document.createElement('div');
     ov.className='w-palette-overlay';
     ov.id='w-palette-overlay';
@@ -2221,6 +2368,7 @@ W.palette=function(){
         var it=cur[i];
         if(!it)return;
         ov.remove();
+        if(it.action){it.action();return}
         window.location.hash=it.hash;
     }
     function filter(){

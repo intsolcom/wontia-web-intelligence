@@ -135,6 +135,11 @@ table.w-table{width:100%;border-collapse:collapse}
 .w-palette-empty{padding:18px;font-size:12px;color:var(--w-muted);text-align:center}
 .w-palette-foot{display:flex;gap:14px;padding:10px 16px;border-top:1px solid var(--w-border);font-size:10px;color:var(--w-muted)}
 .w-palette-foot kbd{font-size:10px;color:var(--w-muted);border:1px solid var(--w-border2);border-radius:5px;padding:1px 5px;margin-right:3px;font-family:var(--w-font-mono)}
+.w-pv-overlay{position:fixed;inset:0;background:rgba(4,6,10,.8);backdrop-filter:blur(6px);z-index:100000;display:flex;align-items:center;justify-content:center;padding:18px}
+.w-pv-box{width:100%;max-width:1100px;height:min(88vh,760px);background:var(--w-surface);border:1px solid var(--w-border2);border-radius:14px;overflow:hidden;display:flex;flex-direction:column;transition:max-width .3s var(--w-ease);box-shadow:0 30px 90px rgba(0,0,0,.6);animation:wModalIn .2s var(--w-ease)}
+.w-pv-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border-bottom:1px solid var(--w-border);background:var(--w-bg2)}
+.w-confetti{position:fixed;z-index:100001;pointer-events:none;width:8px;height:8px;border-radius:2px;animation:wConf 1.6s ease-out forwards}
+@keyframes wConf{0%{opacity:1;transform:translate(0,0) rotate(0)}100%{opacity:0;transform:translate(var(--dx),var(--dy)) rotate(540deg)}}
 #wontia-app{view-transition-name:w-panel}
 ::view-transition-old(w-panel){animation:wVtOut .16s ease both}
 ::view-transition-new(w-panel){animation:wVtIn .24s var(--w-ease) both}
@@ -155,7 +160,8 @@ body.w-compact .w-stat-value{font-size:22px}
 body.w-compact .w-input,body.w-compact .w-select,body.w-compact .w-textarea{padding:7px 10px}
 body.w-compact .w-btn{padding:6px 12px}
 @media(prefers-reduced-motion:reduce){
-    .w-panel-enter,.w-jobs-badge::before,.w-modal{animation:none}
+    .w-panel-enter,.w-jobs-badge::before,.w-modal,.w-pv-box{animation:none}
+    .w-confetti{display:none}
     ::view-transition-old(w-panel),::view-transition-new(w-panel){animation:none}
     .w-card,.w-stat-card,.w-btn,.w-input,.w-select,.w-textarea,.w-nav-item,.w-page-list-item{transition:none}
 }

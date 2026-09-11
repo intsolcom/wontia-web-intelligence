@@ -177,7 +177,9 @@ $router->group('/api/v1/admin', function (Router $r) {
     $r->put('/sections/reorder', [\App\Controllers\Admin\SectionController::class, 'reorder']);
 
     $r->get('/bricks', [\App\Controllers\Admin\BrickController::class, 'index']);
+    $r->get('/bricks/usage', [\App\Controllers\Admin\BrickController::class, 'usage']);
     $r->get('/bricks/{type}', [\App\Controllers\Admin\BrickController::class, 'show']);
+    $r->get('/bricks/{type}/preview', [\App\Controllers\Admin\BrickController::class, 'preview']);
 
     $r->get('/brickhub', [\App\Controllers\Admin\BrickHubController::class, 'marketplace']);
     $r->get('/brickhub/sources', [\App\Controllers\Admin\BrickHubController::class, 'sources']);

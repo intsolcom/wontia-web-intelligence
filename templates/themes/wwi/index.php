@@ -144,17 +144,20 @@ endforeach; ?>
 <?= CookieConsentService::render() ?>
 <script>
 (function(){
+    var wwiPrev=!!window.__WWI_PREVIEW__;
     var r=document.querySelectorAll('.reveal');
     var o=new IntersectionObserver(function(e){e.forEach(function(el){if(el.isIntersecting)el.classList.add('visible')})},{threshold:0.08});
     r.forEach(function(el){o.observe(el)});
     document.querySelectorAll('.faq-q').forEach(function(q){
         q.addEventListener('click',function(){q.parentElement.classList.toggle('open')});
     });
-    var glow=document.createElement('div');glow.className='cursor-glow';document.body.appendChild(glow);
-    var progress=document.createElement('div');progress.className='scroll-progress';progress.setAttribute('aria-hidden','true');document.body.appendChild(progress);
+    var glow=wwiPrev?null:document.createElement('div');
+    if(glow){glow.className='cursor-glow';document.body.appendChild(glow)}
+    var progress=wwiPrev?null:document.createElement('div');
+    if(progress){progress.className='scroll-progress';progress.setAttribute('aria-hidden','true');document.body.appendChild(progress)}
     var fine=window.matchMedia&&window.matchMedia('(pointer:fine)').matches;
     var calm=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if(fine&&!calm){
+    if(glow&&fine&&!calm){
         var tx=window.innerWidth/2,ty=140,cx=tx,cy=ty,anim=false;
         var step=function(){
             cx+=(tx-cx)*.14;cy+=(ty-cy)*.14;
@@ -165,7 +168,7 @@ endforeach; ?>
         document.addEventListener('mousemove',function(e){tx=e.clientX;ty=e.clientY;if(!anim){anim=true;glow.classList.add('on');requestAnimationFrame(step)}},{passive:true});
     }
     var counters=document.querySelectorAll('[data-count]');
-    if(counters.length){
+    if(!wwiPrev&&counters.length){
         var runCount=function(el){
             var target=parseFloat(el.getAttribute('data-count'))||0;
             var suffix=el.getAttribute('data-suffix')||'';
@@ -187,7 +190,7 @@ endforeach; ?>
         }else{counters.forEach(runCount)}
     }
     var themeBtn=document.getElementById('wwi-theme-toggle');
-    if(themeBtn){
+    if(themeBtn&&!wwiPrev){
         var isLight=function(){return document.documentElement.getAttribute('data-theme')==='light'};
         themeBtn.textContent=isLight()?'☀':'☾';
         themeBtn.addEventListener('click',function(e){
@@ -569,6 +572,7 @@ document.addEventListener('DOMContentLoaded',function(){
     }else if(mic){mic.style.display='none'}
 });
 async function wwiHeroGpu(){
+    if(window.__WWI_PREVIEW__)return;
     var cv=document.getElementById('wwi-hero-gpu');
     if(!cv||!navigator.gpu)return;
     if(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;

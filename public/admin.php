@@ -107,10 +107,6 @@ endif;
         <a href="#bricks" class="w-nav-item" data-panel="bricks">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
             Bricks
-        </a>
-        <a href="#brickhub" class="w-nav-item" data-panel="brickhub">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
-            BrickHub
             <span id="bh-badge" class="w-badge w-badge-published" style="display:none;margin-left:auto;font-size:10px;padding:2px 8px;border-radius:10px;background:linear-gradient(120deg,#22d3ee,#8b5cf6);color:#041018;font-weight:700">0</span>
         </a>
         <a href="#brick" class="w-nav-item" data-panel="brick">
