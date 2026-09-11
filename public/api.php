@@ -294,6 +294,20 @@ $router->group('/api/v1/admin', function (Router $r) {
     $r->get('/seo', [\App\Controllers\Admin\SeoController::class, 'index']);
     $r->post('/seo/audit', [\App\Controllers\Admin\SeoController::class, 'audit']);
 
+    // SEO Global Launch brick
+    $r->get('/seo-global-launch', [\App\Controllers\Admin\SeoGlobalLaunchController::class, 'overview']);
+    $r->post('/seo-global-launch/activate', [\App\Controllers\Admin\SeoGlobalLaunchController::class, 'activate']);
+    $r->post('/seo-global-launch/deactivate', [\App\Controllers\Admin\SeoGlobalLaunchController::class, 'deactivate']);
+    $r->post('/seo-global-launch/install-tables', [\App\Controllers\Admin\SeoGlobalLaunchController::class, 'installTables']);
+    $r->post('/seo-global-launch/scan', [\App\Controllers\Admin\SeoGlobalLaunchController::class, 'scan']);
+    $r->post('/seo-global-launch/generate', [\App\Controllers\Admin\SeoGlobalLaunchController::class, 'generate']);
+    $r->post('/seo-global-launch/autofix', [\App\Controllers\Admin\SeoGlobalLaunchController::class, 'autofix']);
+    $r->post('/seo-global-launch/deepfix', [\App\Controllers\Admin\SeoGlobalLaunchController::class, 'deepfix']);
+    $r->get('/seo-global-launch/pages', [\App\Controllers\Admin\SeoGlobalLaunchController::class, 'pages']);
+    $r->get('/seo-global-launch/issues', [\App\Controllers\Admin\SeoGlobalLaunchController::class, 'issues']);
+    $r->get('/seo-global-launch/scores', [\App\Controllers\Admin\SeoGlobalLaunchController::class, 'scores']);
+    $r->get('/seo-global-launch/bots', [\App\Controllers\Admin\SeoGlobalLaunchController::class, 'bots']);
+
     $r->get('/analytics', [\App\Controllers\Admin\AnalyticsController::class, 'index']);
     $r->put('/analytics/ga4', [\App\Controllers\Admin\AnalyticsController::class, 'updateGa4']);
 

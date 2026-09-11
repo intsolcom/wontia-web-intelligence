@@ -43,7 +43,7 @@ W.router=function(){
     var action=parts[2];
     document.querySelectorAll('.w-nav-item').forEach(function(a){a.classList.toggle('active',a.dataset.panel===panel)});
     var title=document.getElementById('panel-title');
-    var titles={dashboard:'Dashboard',wwi:'WWI — Sistema',pages:'Pages',sections:'Sections',bricks:'Bricks',brickhub:'BrickHub',brick:'AI BRICK',factory:'Factory',portal:'Mi Portal',blog:'Blog',media:'Media',seo:'SEO',analytics:'Analytics',settings:'Settings',users:'Users'};
+    var titles={dashboard:'Dashboard',wwi:'WWI — Sistema',pages:'Pages',sections:'Sections',bricks:'Bricks',brickhub:'BrickHub',brick:'AI BRICK',factory:'Factory',portal:'Mi Portal',blog:'Blog',media:'Media',seo:'SEO','seo-global-launch':'SEO Global Launch',analytics:'Analytics',settings:'Settings',users:'Users'};
     if(title)title.textContent=titles[panel]||panel;
     var app=document.getElementById('wontia-app');
     if(!app)return;
@@ -1974,7 +1974,28 @@ W.renderWWI=async function(){
         +'<div><strong style="color:var(--w-text)">Settings / Users</strong> — configuración del sitio y cuentas con acceso.</div>'
         +'</div></div>';
     html+='</div>';
+    html+='<div class="w-card" style="margin-top:14px"><h3>🧱 Incubadora de Bricks</h3>'
+        +'<div style="font-size:11px;color:var(--w-muted);margin-bottom:10px">Bricks instalables del ecosistema. Actívalos y adminístralos desde aquí.</div>'
+        +'<div id="wwi-bricks-slot" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px"><div style="font-size:12px;color:var(--w-muted)">Cargando bricks...</div></div></div>';
     app.innerHTML=html;
+    W.wwiLoadBricks();
+};
+
+W.wwiLoadBricks=async function(){
+    var el=document.getElementById('wwi-bricks-slot'); if(!el)return;
+    try{
+        var r=await W.api('/api/v1/admin/seo-global-launch');
+        var b=(r.data&&r.data.brick)||{};
+        var html='<div style="background:var(--w-surface);border:1px solid var(--w-border);border-radius:10px;padding:14px">'
+            +'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div><strong style="font-size:13px">🚀 SEO Global Launch</strong> <span style="font-size:10px;color:var(--w-muted);background:var(--w-bg);padding:2px 8px;border-radius:10px">v'+W.esc(b.version||'1.0.0')+'</span></div>'
+            +'<span style="font-size:10px;padding:2px 8px;border-radius:10px;background:'+(b.installed?'rgba(0,184,125,.12)':'rgba(245,158,11,.12)')+';color:'+(b.installed?'#00B87D':'#f59e0b')+'">'+(b.installed?'ACTIVO':'NO INSTALADO')+'</span></div>'
+            +'<div style="font-size:11px;color:var(--w-muted);margin-top:6px;line-height:1.6">Motor SEO full-site: scan, generación IA de metadatos, autofix, deepfix, JSON-LD, auditoría y tracker de bots. Multi-tenant.</div>'
+            +'<div style="display:flex;gap:8px;margin-top:10px">'
+            +'<button class="w-btn '+(b.installed?'w-btn-secondary':'w-btn-primary')+' w-btn-sm" onclick="wontia.sglActivate()">'+(b.installed?'Reinstalar tablas':'Activar en este sitio')+'</button>'
+            +'<button class="w-btn w-btn-secondary w-btn-sm" onclick="location.hash=\'#seo-global-launch\'">Abrir panel</button>'
+            +'</div></div>';
+        el.innerHTML=html;
+    }catch(e){el.innerHTML='<div style="font-size:12px;color:#BE1341">No se pudo cargar la incubadora.</div>'}
 };
 
 W.wwiSetup=async function(kind){
@@ -1991,6 +2012,102 @@ W.wwiRunJobs=async function(){
     var r=await W.api('/api/v1/admin/factory/jobs/run',{method:'POST'});
     if(el)el.innerHTML='<div style="font-size:11px;color:'+(r.ok?'#00B87D':'#BE1341')+'">'+W.esc(r.message||(r.ok?'Listo':'Error'))+'</div>';
 };
+
+// ════════════════════════════════════════════════
+// SEO GLOBAL LAUNCH — brick panel
+// ════════════════════════════════════════════════
+W.renderSeoGlobalLaunch=async function(){
+    var app=document.getElementById('wontia-app');
+    app.innerHTML='<div style="text-align:center;padding:50px;color:var(--w-muted)">Cargando SEO Global Launch...</div>';
+    var ov=(await W.api('/api/v1/admin/seo-global-launch')).data||{};
+    var b=ov.brick||{}; var st=ov.stats||{};
+    var html='<div style="margin-bottom:18px"><div style="font-size:20px;font-weight:800;letter-spacing:-.01em">🚀 SEO Global Launch</div>'
+        +'<div style="font-size:12px;color:var(--w-muted);margin-top:4px">Motor SEO full-site de un clic: meta tags, JSON-LD, Open Graph, auditoría y auto-fix con IA. Brick v'+W.esc(b.version||'1.0.0')+' · <strong style="color:var(--w-text)">'+W.esc(st.site_url||'')+'</strong></div></div>';
+    html+='<div class="w-stats">'
+        +'<div class="w-stat-card"><div class="w-stat-value" style="color:'+(st.last_score>=80?'#00B87D':(st.last_score>=50?'#f59e0b':'#BE1341'))+'">'+(st.last_score||'—')+'</div><div class="w-stat-label">Último score</div></div>'
+        +'<div class="w-stat-card"><div class="w-stat-value">'+W.num(st.seo_pages||0)+'</div><div class="w-stat-label">Páginas optimizadas</div></div>'
+        +'<div class="w-stat-card"><div class="w-stat-value">'+W.num(st.posts_total||0)+'</div><div class="w-stat-label">Posts publicados</div></div>'
+        +'<div class="w-stat-card"><div class="w-stat-value" style="color:'+((st.posts_without_meta||0)>0?'#f59e0b':'#00B87D')+'">'+W.num(st.posts_without_meta||0)+'</div><div class="w-stat-label">Posts sin metadata</div></div>'
+        +'</div>';
+    if(!b.installed){
+        html+='<div class="w-card" style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap"><div><strong style="font-size:13px">Brick no instalado en este sitio</strong><div style="font-size:11px;color:var(--w-muted);margin-top:4px">Actívalo para crear las tablas y comenzar a optimizar este sitio.</div></div><button class="w-btn w-btn-primary" onclick="wontia.sglActivate()">Activar Brick</button></div>';
+    }
+    html+='<div class="w-card" style="margin-bottom:14px"><h3>Acciones</h3>'
+        +'<div style="display:flex;gap:8px;flex-wrap:wrap">'
+        +'<button class="w-btn w-btn-primary" onclick="wontia.sglAction(\'scan\',this)">🔍 Scan completo</button>'
+        +'<button class="w-btn w-btn-secondary" onclick="wontia.sglAction(\'generate\',this)">✨ Generar metadatos IA</button>'
+        +'<button class="w-btn w-btn-secondary" onclick="wontia.sglAction(\'autofix\',this)">🩹 Auto-fix posts sin meta</button>'
+        +'<button class="w-btn w-btn-secondary" onclick="wontia.sglAction(\'deepfix\',this)">🧠 Deep-fix contenido</button>'
+        +'</div><div id="sgl-result" style="margin-top:12px"></div></div>';
+    html+='<div class="w-brick-grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">'
+        +'<div class="w-card"><h3>Problemas detectados</h3><div id="sgl-issues">Cargando...</div></div>'
+        +'<div class="w-card"><h3>Historial de scores</h3><div id="sgl-scores">Cargando...</div></div>'
+        +'</div>'
+        +'<div class="w-card" style="margin-top:14px"><h3>🤖 Bots que visitan el sitio</h3><div id="sgl-bots">Cargando...</div></div>';
+    app.innerHTML=html;
+    W.sglLoad('issues','sgl-issues');
+    W.sglLoad('scores','sgl-scores');
+    W.sglLoad('bots','sgl-bots');
+};
+
+W.sglActivate=async function(){
+    var r=await W.api('/api/v1/admin/seo-global-launch/activate',{method:'POST'});
+    W.notify(r.message||(r.ok?'Brick activado':'Error'),r.ok?'success':'error');
+    W.renderSeoGlobalLaunch();
+};
+
+W.sglAction=async function(what,btn){
+    if(btn){btn.disabled=true;btn.style.opacity=.5}
+    var el=document.getElementById('sgl-result');
+    if(el)el.innerHTML='<div style="font-size:11px;color:var(--w-muted)">Ejecutando '+W.esc(what)+'... (puede tardar con IA)</div>';
+    var r=await W.api('/api/v1/admin/seo-global-launch/'+what,{method:'POST'});
+    if(btn){btn.disabled=false;btn.style.opacity=1}
+    var msg='';
+    if(what==='scan'&&r.ok)msg='Score total: <strong>'+r.total_score+'</strong> · '+r.pages_count+' páginas · '+r.issues_count+' issues · posts: '+r.posts_count;
+    else if(what==='generate'&&r.ok)msg='Páginas optimizadas: <strong>'+r.pages_optimized+'</strong> · tokens: '+(r.tokens_used||0)+(r.ai_model?' · modelo: '+W.esc(r.ai_model)+' via '+W.esc(r.ai_provider||''):'');
+    else if(what==='autofix'&&r.ok)msg='Posts corregidos: <strong>'+r.fixed+'</strong> de '+r.total+(r.ai_model?' · modelo: '+W.esc(r.ai_model):'');
+    else if(what==='deepfix'&&r.ok)msg='Correcciones aplicadas: <strong>'+r.fixed+'</strong> · tokens: '+(r.tokens||0);
+    else msg=(r.message||r.error||'Error desconocido');
+    var color=r.ok?'#00B87D':'#BE1341';
+    if(el)el.innerHTML='<div style="font-size:12px;color:'+color+'">'+msg+'</div>';
+    if(r.ok){W.sglLoad('issues','sgl-issues');W.sglLoad('scores','sgl-scores');W.renderSeoGlobalLaunchStatsOnly&&setTimeout(function(){location.hash='#seo-global-launch'},800)}
+};
+
+W.sglLoad=async function(kind,elId){
+    var el=document.getElementById(elId); if(!el)return;
+    try{
+        var r=await W.api('/api/v1/admin/seo-global-launch/'+kind);
+        var d=r.data||r;
+        if(kind==='issues'){
+            var issues=d.issues||[];
+            if(!issues.length){el.innerHTML='<div class="w-empty-state" style="padding:12px"><p>Sin problemas detectados 🎉</p></div>';return}
+            var html='<div style="font-size:11px;color:var(--w-muted);margin-bottom:8px">'+issues.length+' problemas · '+d.high+' altos · '+d.medium+' medios</div>';
+            issues.slice(0,12).forEach(function(i){
+                var sev=i.severity==='high'?'#BE1341':(i.severity==='medium'?'#f59e0b':'#8b8fa3');
+                html+='<div style="display:flex;gap:8px;align-items:flex-start;padding:6px 0;border-bottom:1px solid var(--w-border)"><span style="width:8px;height:8px;border-radius:50%;background:'+sev+';margin-top:4px;flex-shrink:0"></span><div style="font-size:12px"><div>'+W.esc(i.issue)+'</div><div style="font-size:11px;color:var(--w-muted)">'+W.esc(i.title||'')+'</div></div></div>';
+            });
+            el.innerHTML=html;
+        }else if(kind==='scores'){
+            var scores=d.scores||[];
+            if(!scores.length){el.innerHTML='<div class="w-empty-state" style="padding:12px"><p>Aún no hay scans.</p></div>';return}
+            var html='';
+            scores.slice(0,10).forEach(function(s){
+                var c=s.total_score>=80?'#00B87D':(s.total_score>=50?'#f59e0b':'#BE1341');
+                html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--w-border);font-size:12px"><span>'+W.esc(s.scan_date||'')+'</span><strong style="color:'+c+'">'+s.total_score+'</strong></div>';
+            });
+            el.innerHTML=html;
+        }else if(kind==='bots'){
+            var bots=d.bots||[];
+            if(!bots.length){el.innerHTML='<div style="font-size:12px;color:var(--w-muted)">'+(d.note||'Sin visitas de bots recientes.')+'</div>';return}
+            var html='<div style="display:flex;gap:8px;flex-wrap:wrap">';
+            bots.forEach(function(bt){
+                html+='<div style="background:var(--w-surface);border:1px solid var(--w-border);border-radius:8px;padding:8px 12px;font-size:12px"><span>'+bt.icon+'</span> <strong>'+W.esc(bt.name)+'</strong> <span style="color:var(--w-muted)">· '+bt.visits+' visitas'+(bt.last?' · '+W.esc(bt.last):'')+'</span></div>';
+            });
+            el.innerHTML=html+'</div>';
+        }
+    }catch(e){el.innerHTML='<div style="font-size:12px;color:#BE1341">Error cargando datos</div>'}
+};
+
 
 W.refreshJobsBadge=async function(){
     var b=document.getElementById('w-jobs-badge');
@@ -2148,6 +2265,7 @@ W.panels={
     blogEditor:W.renderBlogEditor,
     media:W.renderMediaManager,
     seo:W.renderSeo,
+    'seo-global-launch':W.renderSeoGlobalLaunch,
     analytics:W.renderAnalytics,
     settings:W.renderSettings,
     users:W.renderUsers

@@ -1,0 +1,40 @@
+{
+    "name": "SEO Global Launch",
+    "slug": "seo-global-launch",
+    "version": "1.0.0",
+    "description": "Motor SEO full-site de un clic: meta tags, JSON-LD, Open Graph, Twitter Cards, sitemap, robots, canonical, breadcrumbs, alt text, auditoria de contenido y auto-fix con IA. Extraido de marcasbpo.com y convertido en brick instalable en cualquier sitio del ecosistema WWI.",
+    "author": "Wontia",
+    "category": "seo",
+    "brick_class": "App\\Bricks\\SeoGlobalLaunch\\SeoGlobalLaunchBrick",
+    "requires": {
+        "php": ">=8.1",
+        "extensions": ["pdo_mysql", "json", "curl"]
+    },
+    "config": {
+        "ai_enabled": true,
+        "ai_fallback_deepseek": true,
+        "auto_save_scores": true,
+        "scan_static_pages": true,
+        "scan_blog_posts": true,
+        "audit_alt_text": true,
+        "audit_word_count": true,
+        "audit_headings": true
+    },
+    "features": [
+        "Scan SEO full-site con score 0-100 (meta, schema, OG, tecnico, contenido)",
+        "Generacion IA de meta titles/descriptions/keywords/OG para todas las paginas",
+        "Auto-fix IA de posts sin metadata (batch)",
+        "Deep-fix IA: expande contenido corto, genera alt text, estructura H2",
+        "JSON-LD: Organization, BreadcrumbList, WebPage",
+        "Head tags renderizables (title, meta, OG, Twitter, canonical)",
+        "Auditoria de contenido: alt text, word count, headings",
+        "Tracker de bots (Googlebot, Bingbot, GPTBot, etc.) via access log",
+        "Historial de scores por scan",
+        "Multi-tenant: cada sitio WWI tiene su propio set de datos",
+        "IA via capa BRICK de WWI (proveedores, politicas, costos) con fallback a DeepSeek"
+    ],
+    "tags": ["seo", "meta", "schema", "json-ld", "sitemap", "robots", "open-graph", "twitter-card", "audit", "ai", "autofix"],
+    "changelog": {
+        "1.0.0": "Extraccion desde marcasbpo.com: scan, generate, autofix, deepfix, auditoria, bots tracker, multi-tenant, IA via BRICK"
+    }
+}
