@@ -1,5 +1,7 @@
 (function(){
 var W={};
+W.token=null;
+try{W.token=localStorage.getItem('wwi_token')||null}catch(e){}
 
 W.api=async function(url,options){
     options=options||{};
@@ -9,6 +11,15 @@ W.api=async function(url,options){
     if(!(options.body instanceof FormData))options.body=JSON.stringify(options.body);
     var r=await fetch(url,Object.assign({},options,{headers:headers}));
     var d=await r.json();
+    if(r.status===401){
+        try{localStorage.removeItem('wwi_token')}catch(e){}
+        W.token=null;
+        if(!W._authRedirected){
+            W._authRedirected=true;
+            W.notify('Sesión expirada — redirigiendo al login','error');
+            setTimeout(function(){window.location.href='/admin.php'},800);
+        }
+    }
     if(!r.ok&&d.message)W.notify(d.message,'error');
     return d;
 };
@@ -21,7 +32,7 @@ W.router=function(){
     var action=parts[2];
     document.querySelectorAll('.w-nav-item').forEach(function(a){a.classList.toggle('active',a.dataset.panel===panel)});
     var title=document.getElementById('panel-title');
-    var titles={dashboard:'Dashboard',pages:'Pages',sections:'Sections',bricks:'Bricks',brickhub:'BrickHub',brick:'AI BRICK',factory:'Factory',portal:'Mi Portal',blog:'Blog',media:'Media',seo:'SEO',analytics:'Analytics',settings:'Settings',users:'Users'};
+    var titles={dashboard:'Dashboard',wwi:'WWI — Sistema',pages:'Pages',sections:'Sections',bricks:'Bricks',brickhub:'BrickHub',brick:'AI BRICK',factory:'Factory',portal:'Mi Portal',blog:'Blog',media:'Media',seo:'SEO',analytics:'Analytics',settings:'Settings',users:'Users'};
     if(title)title.textContent=titles[panel]||panel;
     var app=document.getElementById('wontia-app');
     if(!app)return;
@@ -68,6 +79,7 @@ W.confirm=function(msg,cb){
 
 W.logout=async function(){
     await W.api('/api/v1/admin/auth/logout',{method:'POST'});
+    try{localStorage.removeItem('wwi_token')}catch(e){}
     window.location.reload();
 };
 
@@ -469,7 +481,7 @@ W.renderDashboard=async function(){
 
 W.renderBricks=async function(){
     var app=document.getElementById('wontia-app');
-    app.innerHTML='<div class="w-flex-between w-mb-lg"><h3>BRICK Hub — Widget Marketplace</h3></div><div id="brick-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px"></div>';
+    app.innerHTML='<div class="w-card" style="padding:14px 18px;margin-bottom:16px"><div style="font-size:13px;font-weight:700">Bricks — bloques funcionales de página</div><div style="font-size:11px;color:var(--w-muted);margin-top:4px;line-height:1.7">Cada brick es un módulo reutilizable (hero, planes, FAQ, testimonios…) que se coloca dentro de una página como <strong>Section</strong>. Aquí ves todos los bricks disponibles en el sistema. Para usar uno: <strong>Pages → página → Sections → + Add Section</strong>. Los bricks de código abierto/instalables se gestionan en <strong>BrickHub</strong>.</div></div><div id="brick-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px"></div>';
     var d=await W.api('/api/v1/admin/bricks');
     var bricks=d.data||{};
     var grid=document.getElementById('brick-grid');
@@ -557,7 +569,8 @@ W.renderBrickHub=function(){
         {id:'sites',label:'Sites'},
         {id:'history',label:'History'}
     ];
-    var tabBar='<div class="w-toolbar w-mb-lg" style="border-bottom:1px solid var(--w-border);padding-bottom:12px">';
+    var tabBar='<div class="w-card" style="padding:14px 18px;margin-bottom:14px"><div style="font-size:13px;font-weight:700">BrickHub — tienda y actualizador de extensiones</div><div style="font-size:11px;color:var(--w-muted);margin-top:4px;line-height:1.7">Conecta repositorios de GitHub (<strong>Sources</strong>) que publican bricks. Desde aquí puedes <strong>descubrir</strong> nuevos bricks, <strong>instalarlos</strong> en este sitio (<strong>Marketplace/Installed</strong>), y recibir <strong>Updates</strong> cuando los repos publican versiones nuevas. Cuando haya una actualización pendiente verás un aviso en el sidebar. Todo se instala con validación de seguridad y registro de historial.</div></div>';
+    tabBar+='<div class="w-toolbar w-mb-lg" style="border-bottom:1px solid var(--w-border);padding-bottom:12px">';
     tabs.forEach(function(t){
         tabBar+='<button class="w-btn '+(tab===t.id?'w-btn-primary':'w-btn-secondary')+'" onclick="wontia.switchBHTab(\''+t.id+'\')">'+t.label+'</button>';
     });
@@ -1830,8 +1843,65 @@ W.tiaLoadHistory=async function(){
     el.innerHTML=rows.map(function(a){return '<div style="padding:5px 0;border-bottom:1px solid var(--w-border);font-size:11px"><span class="w-brick-chip">'+W.esc(a.status)+'</span> <strong>'+W.esc(a.action)+'</strong><div style="color:var(--w-muted);margin-top:2px">'+W.esc((a.command||'').slice(0,80))+'</div></div>'}).join('')||'<div style="color:var(--w-muted);font-size:11px">Sin acciones aún</div>';
 };
 
+W.renderWWI=async function(){
+    var app=document.getElementById('wontia-app');
+    app.innerHTML='<div style="text-align:center;padding:50px;color:var(--w-muted)">Cargando sistema WWI...</div>';
+    var st=(await W.api('/api/v1/admin/system/status')).data||{};
+    var br=(await W.api('/api/v1/brick/overview')).data||{};
+    var fd=(await W.api('/api/v1/admin/factory/dashboard')).data||{};
+    var bh=(await W.api('/api/v1/admin/brickhub/notifications')).data||{};
+    var s=br.stats||{};
+    var color=st.status==='success'?'#00B87D':(st.status==='running'?'#B89EFF':(st.status==='rolled_back'?'#BE1341':'#8b8fa3'));
+    var statusTxt=st.status==='running'?('Actualizando — '+(st.pct||0)+'%'):(st.status==='success'?'Sistema al día':(st.status==='rolled_back'?'Rollback aplicado':'Listo'));
+    var html='<div style="margin-bottom:18px"><div style="font-size:20px;font-weight:800;letter-spacing:-.01em">WWI — Centro de Administración</div><div style="font-size:12px;color:var(--w-muted);margin-top:4px">Administra el SISTEMA completo (motor CMS, bricks, IA, sitios). Esto es distinto del contenido de tu landing.</div></div>';
+    html+='<div class="w-stats">'
+        +'<div class="w-stat-card"><div class="w-stat-value" style="color:'+color+'">'+W.esc(statusTxt)+'</div><div class="w-stat-label">Estado del sistema</div></div>'
+        +'<div class="w-stat-card"><div class="w-stat-value">'+W.esc(st.commit||'—')+'</div><div class="w-stat-label">Versión desplegada</div></div>'
+        +'<div class="w-stat-card"><div class="w-stat-value">'+(s.active_providers||0)+'</div><div class="w-stat-label">Proveedores IA activos</div></div>'
+        +'<div class="w-stat-card"><div class="w-stat-value">'+(fd.sites_total||0)+'</div><div class="w-stat-label">Sitios en el ecosistema</div></div>'
+        +'<div class="w-stat-card"><div class="w-stat-value">'+(bh.pending||0)+'</div><div class="w-stat-label">Actualizaciones de bricks</div></div>'
+        +'</div>';
+    html+='<div class="w-brick-grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">';
+    html+='<div class="w-card"><h3>Acciones del sistema</h3>'
+        +'<div style="display:flex;flex-direction:column;gap:8px">'
+        +'<button class="w-btn w-btn-primary" onclick="location.hash=\'#factory/system\'">Actualizar sistema desde Git</button>'
+        +'<button class="w-btn w-btn-secondary" onclick="wontia.wwiSetup(\'brick\')">Preparar tablas de IA (BRICK)</button>'
+        +'<button class="w-btn w-btn-secondary" onclick="wontia.wwiSetup(\'brickhub\')">Preparar tablas de BrickHub</button>'
+        +'<button class="w-btn w-btn-secondary" onclick="wontia.wwiRunJobs()">Ejecutar trabajos pendientes (jobs)</button>'
+        +'<button class="w-btn w-btn-secondary" onclick="location.hash=\'#factory/jobs\'">Ver cola de trabajos</button>'
+        +'</div><div id="wwi-action-result" style="margin-top:10px"></div></div>';
+    html+='<div class="w-card"><h3>¿Qué es cada menú?</h3><div style="font-size:12px;color:var(--w-muted);line-height:1.9">'
+        +'<div><strong style="color:var(--w-text)">Pages</strong> — las páginas del sitio (ej. Home) y su contenido.</div>'
+        +'<div><strong style="color:var(--w-text)">Sections</strong> — las secciones dentro de una página (hero, planes, FAQ…).</div>'
+        +'<div><strong style="color:var(--w-text)">Bricks</strong> — bloques funcionales reutilizables para las páginas (widgets).</div>'
+        +'<div><strong style="color:var(--w-text)">BrickHub</strong> — tienda de extensiones: conecta repos de GitHub y actualiza bricks instalados.</div>'
+        +'<div><strong style="color:var(--w-text)">AI BRICK</strong> — la capa de IA del ecosistema: proveedores, modelos, políticas y costos.</div>'
+        +'<div><strong style="color:var(--w-text)">Factory</strong> — el negocio: planes, pedidos, sitios de clientes, dominios, saldos.</div>'
+        +'<div><strong style="color:var(--w-text)">Blog / Media / SEO / Analytics</strong> — contenido, imágenes, posicionamiento y métricas.</div>'
+        +'<div><strong style="color:var(--w-text)">Settings / Users</strong> — configuración del sitio y cuentas con acceso.</div>'
+        +'</div></div>';
+    html+='</div>';
+    app.innerHTML=html;
+};
+
+W.wwiSetup=async function(kind){
+    var el=document.getElementById('wwi-action-result');
+    if(el)el.innerHTML='<div style="font-size:11px;color:var(--w-muted)">Preparando…</div>';
+    var url=kind==='brick'?'/api/v1/admin/brick/ensure-tables':'/api/v1/admin/brickhub/ensure-tables';
+    var r=await W.api(url,{method:'POST'});
+    if(el)el.innerHTML='<div style="font-size:11px;color:'+(r.ok?'#00B87D':'#BE1341')+'">'+W.esc(r.message||(r.ok?'Listo':'Error'))+'</div>';
+};
+
+W.wwiRunJobs=async function(){
+    var el=document.getElementById('wwi-action-result');
+    if(el)el.innerHTML='<div style="font-size:11px;color:var(--w-muted)">Ejecutando…</div>';
+    var r=await W.api('/api/v1/admin/factory/jobs/run',{method:'POST'});
+    if(el)el.innerHTML='<div style="font-size:11px;color:'+(r.ok?'#00B87D':'#BE1341')+'">'+W.esc(r.message||(r.ok?'Listo':'Error'))+'</div>';
+};
+
 W.panels={
     dashboard:W.renderDashboard,
+    wwi:W.renderWWI,
     pageEditor:W.renderPageEditor,
     sections:W.renderSectionManager,
     pageSections:W.renderSectionManager,

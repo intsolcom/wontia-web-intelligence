@@ -58,7 +58,7 @@ document.getElementById('login-form').addEventListener('submit',async function(e
     try{
         var r=await fetch('/api/v1/admin/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,password:p})});
         var d=await r.json();
-        if(d.ok){window.location.reload()}else{e.textContent=d.message||'Invalid credentials';e.style.display='block'}
+        if(d.ok){try{localStorage.setItem('wwi_token',d.token||'')}catch(x){}window.location.reload()}else{e.textContent=d.message||'Invalid credentials';e.style.display='block'}
     }catch(x){e.textContent='Connection error';e.style.display='block'}
 });
 </script>
@@ -75,7 +75,7 @@ endif;
     <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
     <title>WWI Wontia Web Intelligence</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
-    <link rel="stylesheet" href="/assets/css/admin.css"/>
+    <link rel="stylesheet" href="/assets/css/admin.css?v=<?= filemtime(__DIR__ . '/assets/css/admin.css') ?>"/>
 </head>
 <body>
 
@@ -89,6 +89,12 @@ endif;
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
             Dashboard
         </a>
+        <?php if (($user['role'] ?? '') === 'superadmin'): ?>
+        <a href="#wwi" class="w-nav-item" data-panel="wwi">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+            WWI — Sistema
+        </a>
+        <?php endif; ?>
         <a href="#pages" class="w-nav-item" data-panel="pages">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
             Pages
@@ -166,6 +172,6 @@ endif;
 <div id="w-toast-container" style="position:fixed;top:20px;right:20px;z-index:99999;display:flex;flex-direction:column;gap:8px"></div>
 <div class="w-modal-overlay" id="w-modal" style="display:none" onclick="if(event.target===this)wontia.closeModal()"><div class="w-modal" id="w-modal-content"></div></div>
 
-<script src="/assets/js/admin.js"></script>
+<script src="/assets/js/admin.js?v=<?= filemtime(__DIR__ . '/assets/js/admin.js') ?>"></script>
 </body>
 </html>

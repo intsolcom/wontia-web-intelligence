@@ -122,3 +122,25 @@ El monitor es un paso de PEDS: **ningún cambio se considera terminado sin pasar
 28. Firma de quién solicitó cada actualización (auditoría).
 29. Estado del agente (online/offline) visible en el panel.
 30. Export del reporte de actualización (JSON/PDF) para auditoría.
+
+## 7. 20 INNOVACIONES — ROBUSTEZ Y SEGURIDAD DE COMPONENTES
+1. **Sesión JWT persistente**: el token se guarda en localStorage; sobrevive a reinicios de contenedores (las sesiones PHP no).
+2. **Auto-redirección a login** ante 401 con aviso claro (sin pantallas vacías).
+3. **Menú WWI de sistema**: consola superadmin separada del contenido (estado, versión, setup, salud, guía).
+4. **Auto-setup de tablas** por módulo al primer uso (BRICK, BrickHub) sin botones manuales.
+5. **Smoke test automático de los 13 menús** tras cada actualización; si un endpoint falla, alerta.
+6. **Guía integrada en cada menú** (qué es y para qué sirve) — cero confusión.
+7. **Refresh token rotativo** (access 24h + refresh 7d) con revocación por usuario.
+8. **2FA opcional para superadmin** (TOTP).
+9. **Registro de sesiones activas** por usuario con cierre remoto.
+10. **Rate-limit por usuario** además de por IP (evita abuso autenticado).
+11. **CSRF token** para operaciones mutantes del admin (doble protección con SameSite).
+12. **Cifrado en reposo** de secretos de integraciones (llaves de registrador, SMTP).
+13. **Verificación de integridad de bricks** (hash SHA256 del paquete descargado antes de instalar).
+14. **Sandbox de evaluación de bricks** (lint + smoke antes de activar).
+15. **Auditoría completa de acciones admin** (quién, qué, cuándo, desde dónde).
+16. **Alertas de salud al operador** (email/Telegram) cuando un sitio cae o un update falla.
+17. **Panel de salud del ecosistema** (todos los sitios: versión, estado, último update).
+18. **Backup automático pre-actualización** (DB + snapshot de configuración).
+19. **Modo mantenimiento** por sitio durante operaciones críticas.
+20. **Bloqueo de actualizaciones concurrentes** con lock distribuido en la cola.
