@@ -24,6 +24,17 @@ W.api=async function(url,options){
     return d;
 };
 
+W.calm=function(){
+    try{return window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches}catch(e){return false}
+};
+
+W.vt=function(fn){
+    if(document.startViewTransition&&!W.calm()){
+        try{document.startViewTransition(fn);return}catch(e){}
+    }
+    fn();
+};
+
 W.router=function(){
     var hash=window.location.hash.slice(1)||'dashboard';
     var parts=hash.split('/');
@@ -36,15 +47,17 @@ W.router=function(){
     if(title)title.textContent=titles[panel]||panel;
     var app=document.getElementById('wontia-app');
     if(!app)return;
-    app.innerHTML='<div style="text-align:center;padding:60px;color:var(--w-muted)">Loading...</div>';
-    try{
-        var fn=W.panels[panel];
-        if(fn)fn(id,action,parts);
-        else if(panel==='pages'&&id&&!action)W.panels.pageEditor(id);
-        else if(panel==='blog'&&id&&!action)W.panels.blogEditor(id);
-        else if(panel==='sections'&&id)W.panels.pageSections(id);
-        else W.notify('Panel not found','error');
-    }catch(e){app.innerHTML='<div class="w-empty-state"><h3>Error</h3><p>'+e.message+'</p></div>';}
+    W.vt(function(){
+        app.innerHTML='<div style="text-align:center;padding:60px;color:var(--w-muted)">Loading...</div>';
+        try{
+            var fn=W.panels[panel];
+            if(fn)fn(id,action,parts);
+            else if(panel==='pages'&&id&&!action)W.panels.pageEditor(id);
+            else if(panel==='blog'&&id&&!action)W.panels.blogEditor(id);
+            else if(panel==='sections'&&id)W.panels.pageSections(id);
+            else W.notify('Panel not found','error');
+        }catch(e){app.innerHTML='<div class="w-empty-state"><h3>Error</h3><p>'+e.message+'</p></div>';}
+    });
 };
 
 W.state={pages:[],posts:[],categories:[],tags:[],currentPage:null,currentPost:null};
@@ -1978,6 +1991,69 @@ W.wwiRunJobs=async function(){
     if(el)el.innerHTML='<div style="font-size:11px;color:'+(r.ok?'#00B87D':'#BE1341')+'">'+W.esc(r.message||(r.ok?'Listo':'Error'))+'</div>';
 };
 
+W.refreshJobsBadge=async function(){
+    var b=document.getElementById('w-jobs-badge');
+    if(!b)return;
+    try{
+        var r=await fetch('/api/v1/admin/factory/jobs',{headers:{Authorization:'Bearer '+W.token}});
+        if(!r.ok)return;
+        var d=await r.json();
+        var rows=d.data||[];
+        var n=rows.filter(function(j){return ['queued','retrying','processing','running'].indexOf(String(j.status))>-1}).length;
+        if(n>0){b.style.display='';b.textContent=n+' job'+(n===1?'':'s')}
+        else{b.style.display='none'}
+    }catch(e){}
+};
+
+W.toggleDensity=function(){
+    var on=document.body.classList.toggle('w-compact');
+    try{localStorage.setItem('wwi_density',on?'compact':'comfort')}catch(e){}
+    W.notify(on?'Modo compacto activado':'Modo cómodo activado','info');
+};
+
+W.mountTopbar=function(){
+    var bar=document.querySelector('.w-topbar');
+    if(!bar)return;
+    if(document.querySelector('.w-nav-item[data-panel="factory"]')&&!document.getElementById('w-jobs-badge')){
+        var b=document.createElement('a');
+        b.id='w-jobs-badge';
+        b.className='w-jobs-badge';
+        b.href='#factory/jobs';
+        b.title='Trabajos pendientes';
+        b.style.display='none';
+        bar.insertBefore(b,bar.lastElementChild);
+        W.refreshJobsBadge();
+        setInterval(W.refreshJobsBadge,60000);
+    }
+    if(!document.getElementById('w-density')){
+        var d=document.createElement('button');
+        d.id='w-density';
+        d.className='w-density-btn';
+        d.title='Densidad compacta';
+        d.textContent='⇕';
+        d.addEventListener('click',W.toggleDensity);
+        bar.insertBefore(d,bar.lastElementChild);
+    }
+    try{if(localStorage.getItem('wwi_density')==='compact')document.body.classList.add('w-compact')}catch(e){}
+};
+
+(function(){
+    var app=document.getElementById('wontia-app');
+    if(!app||!window.MutationObserver)return;
+    var t=null;
+    var obs=new MutationObserver(function(){
+        if(W.calm())return;
+        if(t)clearTimeout(t);
+        t=setTimeout(function(){
+            t=null;
+            app.classList.remove('w-panel-enter');
+            void app.offsetWidth;
+            app.classList.add('w-panel-enter');
+        },40);
+    });
+    obs.observe(app,{childList:true});
+})();
+
 W.palette=function(){
     var existing=document.getElementById('w-palette-overlay');
     if(existing){existing.remove();return}
@@ -2087,6 +2163,6 @@ W.num=function(n){return n!=null?n.toLocaleString():'0'};
 W.slugify=function(t){return t.toLowerCase().replace(/[^a-z0-9\s-]/g,'').replace(/[\s_]+/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'')};
 
 window.addEventListener('hashchange',function(){W.router()});
-window.addEventListener('load',function(){W.router();W.updateBHBadge();setInterval(W.updateBHBadge,300000)});
+window.addEventListener('load',function(){W.mountTopbar();W.router();W.updateBHBadge();setInterval(W.updateBHBadge,300000)});
 window.wontia=W;
 })();

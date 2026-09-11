@@ -113,3 +113,23 @@ table.w-table{width:100%;border-collapse:collapse}
 .w-palette-foot{display:flex;gap:14px;padding:10px 16px;border-top:1px solid var(--w-border);font-size:10px;color:var(--w-muted)}
 .w-palette-foot kbd{font-size:10px;color:var(--w-muted);border:1px solid var(--w-border);border-radius:5px;padding:1px 5px;margin-right:3px}
 @media(prefers-reduced-motion:reduce){.w-palette{animation:none}}
+#wontia-app{view-transition-name:w-panel}
+::view-transition-old(w-panel){animation:wVtOut .16s ease both}
+::view-transition-new(w-panel){animation:wVtIn .24s cubic-bezier(.22,1,.36,1) both}
+@keyframes wVtOut{to{opacity:0;transform:translateY(6px)}}
+@keyframes wVtIn{from{opacity:0;transform:translateY(10px)}}
+.w-panel-enter{animation:wPanelIn .3s cubic-bezier(.22,1,.36,1)}
+@keyframes wPanelIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.w-jobs-badge{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:#B89EFF;background:rgba(155,140,222,.12);border:1px solid rgba(155,140,222,.3);border-radius:999px;padding:4px 10px;text-decoration:none;margin-right:12px}
+.w-jobs-badge::before{content:'';width:6px;height:6px;border-radius:50%;background:#B89EFF;animation:wPulse 1.6s ease-in-out infinite}
+@keyframes wPulse{0%,100%{opacity:.4}50%{opacity:1}}
+.w-density-btn{background:none;border:1px solid var(--w-border);color:var(--w-muted);border-radius:6px;width:30px;height:30px;cursor:pointer;font-size:14px;line-height:1;margin-right:12px}
+.w-density-btn:hover{color:var(--w-text);border-color:#B89EFF}
+body.w-compact .w-content{padding:14px}
+body.w-compact .w-card{padding:14px;margin-bottom:10px}
+body.w-compact .w-table th,body.w-compact .w-table td{padding:6px 10px}
+body.w-compact .w-stat-card{padding:12px}
+body.w-compact .w-stat-value{font-size:22px}
+body.w-compact .w-input,body.w-compact .w-select,body.w-compact .w-textarea{padding:7px 10px}
+body.w-compact .w-btn{padding:6px 12px}
+@media(prefers-reduced-motion:reduce){.w-panel-enter,.w-jobs-badge::before{animation:none}::view-transition-old(w-panel),::view-transition-new(w-panel){animation:none}}
