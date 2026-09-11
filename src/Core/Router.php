@@ -78,13 +78,14 @@ class Router
                     }
                 }
                 $handler = $route['handler'];
+                $args = array_values($params);
                 if (is_array($handler) && count($handler) === 2) {
                     [$class, $action] = $handler;
                     if (is_string($class) && class_exists($class)) {
-                        (new $class())->{$action}($request, ...$params);
+                        (new $class())->{$action}($request, ...$args);
                     }
                 } elseif (is_callable($handler)) {
-                    $handler($request, ...$params);
+                    $handler($request, ...$args);
                 }
                 return;
             }

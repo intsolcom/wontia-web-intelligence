@@ -1,6 +1,7 @@
 <?php
 namespace App\Controllers\Admin;
 
+use App\Core\Request;
 use App\Core\Response;
 use App\Widgets\WidgetRegistry;
 
@@ -11,7 +12,7 @@ class BrickController
         Response::json(['ok' => true, 'data' => WidgetRegistry::all(), 'total' => WidgetRegistry::count()]);
     }
 
-    public function show(string $type): void
+    public function show(Request $request, string $type = ''): void
     {
         $class = WidgetRegistry::get($type);
         if (!$class) Response::error('BRICK not found', 404);

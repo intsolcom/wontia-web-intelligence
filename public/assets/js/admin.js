@@ -262,7 +262,8 @@ W.editSection=async function(sectionId){
     body+='<div class="w-form-group"><label class="w-label">Título de la sección</label><input class="w-input" id="es-title" value="'+W.esc(s.title||'')+'"/></div>';
     body+='<div class="w-form-group"><label class="w-label">Subtítulo / descripción</label><textarea class="w-textarea" id="es-subtitle">'+W.esc(s.subtitle||'')+'</textarea></div>';
     if(s.widget_type){
-        var d2=await W.api('/api/v1/admin/bricks/'+s.widget_type);
+        var d2={};
+        try{d2=await W.api('/api/v1/admin/bricks/'+s.widget_type)}catch(e){d2={}}
         var b=d2.data||{};
         var schema=b.configSchema||[];
         var values={};
