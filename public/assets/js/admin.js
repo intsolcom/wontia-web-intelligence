@@ -1918,6 +1918,7 @@ W.wwiRunJobs=async function(){
 W.panels={
     dashboard:W.renderDashboard,
     wwi:W.renderWWI,
+    pages:W.renderPageList,
     pageEditor:W.renderPageEditor,
     sections:W.renderSectionManager,
     pageSections:W.renderSectionManager,
@@ -1934,6 +1935,12 @@ W.panels={
     settings:W.renderSettings,
     users:W.renderUsers
 };
+
+(function(){
+    var required=['dashboard','wwi','pages','sections','bricks','brickhub','brick','factory','blog','media','seo','analytics','settings','users'];
+    var missing=required.filter(function(k){return !W.panels[k]});
+    if(missing.length)console.error('WWI ADMIN ERROR - paneles faltantes:',missing);
+})();
 
 W.esc=function(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')};
 W.num=function(n){return n!=null?n.toLocaleString():'0'};
