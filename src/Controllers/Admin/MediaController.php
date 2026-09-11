@@ -20,8 +20,12 @@ class MediaController
             $where .= " AND mime LIKE :type";
             $params['type'] = "$type%";
         }
-        $count = $db->prepare("SELECT COUNT(*) FROM media $where")->execute($params)->fetchColumn();
-        $media = $db->prepare("SELECT * FROM media $where ORDER BY created_at DESC LIMIT $limit OFFSET $offset")->execute($params)->fetchAll();
+        $countStmt = $db->prepare("SELECT COUNT(*) FROM media $where");
+        $countStmt->execute($params);
+        $count = $countStmt->fetchColumn();
+        $mediaStmt = $db->prepare("SELECT * FROM media $where ORDER BY created_at DESC LIMIT $limit OFFSET $offset");
+        $mediaStmt->execute($params);
+        $media = $mediaStmt->fetchAll();
         Response::json(['ok' => true, 'data' => $media, 'total' => (int)$count, 'page' => $page]);
     }
 

@@ -168,6 +168,8 @@ def main():
         log("NO SECRET — skipping")
         return
     for path in sorted(glob.glob(QUEUE + "/*.json")):
+        if os.path.basename(path).startswith("update-"):
+            continue
         try:
             process(path)
         except Exception as e:

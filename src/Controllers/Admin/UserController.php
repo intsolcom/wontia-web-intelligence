@@ -12,7 +12,7 @@ class UserController
     {
         if (Session::userRole() !== 'superadmin') Response::error('Forbidden', 403);
         $db = Database::instance();
-        $users = $db->query("SELECT id, site_id, username, email, role, last_login, is_active, created_at FROM users WHERE site_id = @site_id ORDER BY created_at ASC")->fetchAll();
+        $users = $db->query("SELECT u.id, u.site_id, s.name AS site_name, s.domain AS site_domain, u.username, u.email, u.role, u.last_login, u.is_active, u.created_at FROM users u LEFT JOIN sites s ON s.id = u.site_id ORDER BY u.created_at ASC")->fetchAll();
         Response::json(['ok' => true, 'data' => $users]);
     }
 

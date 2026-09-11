@@ -40,10 +40,13 @@ def verify(req):
     return hmac.compare_digest(expect, req.get("sign", ""))
 
 def container_configs():
-    out = sh(f"docker ps --filter ancestor={IMAGE} --format '{{{{.Names}}}}'")
-    names = [l.strip() for l in out.stdout.splitlines() if l.strip()]
+    out = sh("docker ps --format '{{.Names}}'")
+    names = [l.strip() for l in out.stdout.splitlines() if l.strip().startswith("wontia-")]
     configs = []
     for n in names:
+        img = sh(f"docker inspect -f '{{{{.Config.Image}}}}' {n}").stdout.strip()
+        if not img.startswith("wontia-web-intelligence"):
+            continue
         env = json.loads(sh(f"docker inspect -f '{{{{json .Config.Env}}}}' {n}").stdout or "[]")
         binds = json.loads(sh(f"docker inspect -f '{{{{json .HostConfig.Binds}}}}' {n}").stdout or "[]") or []
         ports = json.loads(sh(f"docker inspect -f '{{{{json .HostConfig.PortBindings}}}}' {n}").stdout or "{{}}") or {}

@@ -19,8 +19,12 @@ class BlogController
         $where = "WHERE p.site_id = @site_id";
         if ($search) { $where .= " AND (p.title LIKE :search OR p.excerpt LIKE :search2)"; $params['search'] = "%$search%"; $params['search2'] = "%$search%"; }
         if ($status && in_array($status, ['draft', 'published'])) { $where .= " AND p.status = :status"; $params['status'] = $status; }
-        $count = $db->prepare("SELECT COUNT(*) FROM blog_posts p $where")->execute($params)->fetchColumn();
-        $posts = $db->prepare("SELECT p.*, c.name as category_name FROM blog_posts p LEFT JOIN blog_categories c ON p.category_id = c.id $where ORDER BY p.created_at DESC LIMIT $limit OFFSET $offset")->execute($params)->fetchAll();
+        $countStmt = $db->prepare("SELECT COUNT(*) FROM blog_posts p $where");
+        $countStmt->execute($params);
+        $count = $countStmt->fetchColumn();
+        $postsStmt = $db->prepare("SELECT p.*, c.name as category_name FROM blog_posts p LEFT JOIN blog_categories c ON p.category_id = c.id $where ORDER BY p.created_at DESC LIMIT $limit OFFSET $offset");
+        $postsStmt->execute($params);
+        $posts = $postsStmt->fetchAll();
         Response::json(['ok' => true, 'data' => $posts, 'total' => (int)$count, 'page' => $page]);
     }
 

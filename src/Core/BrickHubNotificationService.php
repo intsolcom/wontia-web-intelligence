@@ -7,7 +7,7 @@ class BrickHubNotificationService
     {
         try {
             $db = Database::instance();
-            $stmt = $db->prepare('SELECT COUNT(*) as cnt FROM brick_updates WHERE site_id = 1 AND status = ?');
+            $stmt = $db->prepare('SELECT COUNT(*) as cnt FROM brick_updates WHERE site_id = @site_id AND status = ?');
             $stmt->execute(['pending']);
             return (int) ($stmt->fetch()['cnt'] ?? 0);
         } catch (\Exception $e) {
@@ -24,7 +24,7 @@ class BrickHubNotificationService
                  FROM brick_updates u
                  LEFT JOIN bricks b ON u.brick_id = b.id
                  LEFT JOIN brick_sources s ON u.source_id = s.id
-                 WHERE u.site_id = 1 AND u.status = ?
+                 WHERE u.site_id = @site_id AND u.status = ?
                  ORDER BY u.created_at DESC'
             );
             $stmt->execute(['pending']);
@@ -58,8 +58,8 @@ class BrickHubNotificationService
                                 $existing->execute([$brick['id'], $check['latest_version'], 'pending']);
                                 if (!$existing->fetch()) {
                                     $db->prepare('INSERT INTO brick_updates (site_id, brick_id, source_id, from_version, to_version, release_notes, release_url, status)
-                                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)')->execute([
-                                        1, $brick['id'], $brick['source_id'],
+                                        VALUES (@site_id, ?, ?, ?, ?, ?, ?, ?)')->execute([
+                                        $brick['id'], $brick['source_id'],
                                         $check['current_version'], $check['latest_version'],
                                         $check['release_notes'] ?? '', $check['release_url'] ?? '',
                                         'pending',
@@ -124,13 +124,12 @@ class BrickHubNotificationService
         $imported = 0;
 
         foreach ($data['updates'] as $update) {
-            $existing = $db->prepare('SELECT id FROM brick_updates WHERE site_id = 1 AND brick_id = ? AND to_version = ?');
+            $existing = $db->prepare('SELECT id FROM brick_updates WHERE site_id = @site_id AND brick_id = ? AND to_version = ?');
             $existing->execute([$update['brick_id'] ?? 0, $update['to_version']]);
             if ($existing->fetch()) continue;
 
             $db->prepare('INSERT INTO brick_updates (site_id, brick_id, source_id, from_version, to_version, release_notes, release_url, status)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)')->execute([
-                1,
+                VALUES (@site_id, ?, ?, ?, ?, ?, ?, ?)')->execute([
                 $update['brick_id'] ?? null,
                 $update['source_id'] ?? null,
                 $update['from_version'] ?? '0.0.0',
@@ -158,7 +157,7 @@ class BrickHubNotificationService
         }
 
         $db->prepare('INSERT INTO brickhub_registry (site_id, child_url, child_name, site_key, is_active)
-            VALUES (?, ?, ?, ?, ?)')->execute([1, $childUrl, $childName, $childKey, 1]);
+            VALUES (@site_id, ?, ?, ?, ?)')->execute([$childUrl, $childName, $childKey, 1]);
 
         return ['ok' => true, 'message' => 'Site registered', 'id' => (int) $db->lastInsertId()];
     }
