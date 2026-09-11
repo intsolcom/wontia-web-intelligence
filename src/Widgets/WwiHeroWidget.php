@@ -50,6 +50,12 @@ class WwiHeroWidget extends Widget
         $html .= '<div class="panel stat"><div class="v">0</div><div class="l">programadores necesarios</div></div>';
         $html .= '<div class="panel stat"><div class="v">TIA</div><div class="l">construye por ti</div></div>';
         $html .= '</div>';
+        $sectors = ['Restaurantes', 'Abogados', 'Medicos', 'Inmobiliarias', 'Hoteles', 'Gimnasios', 'Consultores', 'Tiendas', 'Cafeterias', 'Veterinarias', 'Arquitectos', 'Transporte', 'Educacion', 'Eventos', 'Moda', 'Tecnologia', 'Agricultura', 'Belleza'];
+        $html .= '<div class="marquee" style="max-width:1120px;margin:38px auto 0;border-radius:12px"><div class="track">';
+        foreach (array_merge($sectors, $sectors) as $s) {
+            $html .= '<span><b>◆</b> ' . $this->esc($s) . '</span>';
+        }
+        $html .= '</div></div>';
         $html .= '</div></section>';
         return $html;
     }

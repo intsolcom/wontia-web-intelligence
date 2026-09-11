@@ -107,6 +107,8 @@ section{position:relative}
 </style>
 </head>
 <body>
+<div class="aurora"></div>
+<div class="orbs"><i></i><i></i><i></i></div>
 <div class="grid-bg"></div>
 <nav class="w-nav">
   <div class="w-nav-brand"><div class="w-nav-logo">W</div><span>WWI</span></div>
@@ -266,6 +268,21 @@ async function wwiCheckDomain(){
     }catch(e){res.textContent='Could not check right now.'}
 }
 function wwiEsc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function wwiConfetti(){
+    if(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+    var colors=['#22d3ee','#8b5cf6','#ec4899','#f59e0b','#34d399'];
+    for(var i=0;i<26;i++){
+        var d=document.createElement('div');
+        d.className='confetti';
+        d.style.background=colors[i%colors.length];
+        d.style.left=(window.innerWidth/2)+'px';
+        d.style.top=(window.innerHeight/2)+'px';
+        d.style.setProperty('--dx',(Math.random()*560-280)+'px');
+        d.style.setProperty('--dy',(Math.random()*-420-80)+'px');
+        document.body.appendChild(d);
+        setTimeout((function(el){return function(){el.remove()}})(d),1700);
+    }
+}
 wwiLoadPlans();
 wwiLoadTemplates();
 wwiLoadPayMode();
@@ -347,6 +364,7 @@ async function wwiFlowSend(){
         }
         if(ok){
             if(tr)tr.querySelector('.chat-msg').innerHTML='¡Listo! Tu vista previa está creada. 👇';
+            wwiConfetti();
             document.getElementById('pv-view').onclick=function(){wwiFlowShowPreview(wwiFlow.uuid)};
             wwiFlowGo(1);
         }else{
@@ -542,6 +560,36 @@ document.addEventListener('DOMContentLoaded',function(){
 .chip:focus-visible,.dom-chip:focus-visible,.btn:focus-visible,.flow-close:focus-visible,.input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 @media(prefers-reduced-motion:reduce){.flow-track{transition:none}.btn-pulse{animation:none}.typing i{animation:none}.chip:hover,.tpl-card:hover,.plan-mini:hover{transform:none}}
 @media(max-width:720px){.flow-grid{grid-template-columns:repeat(2,1fr)}.flow-slide{padding:22px 18px}.chat-msg{max-width:88%}}
+.aurora{position:fixed;inset:-20%;z-index:0;pointer-events:none;background:radial-gradient(40% 50% at 20% 20%,rgba(34,211,238,.22),transparent 60%),radial-gradient(45% 55% at 80% 15%,rgba(139,92,246,.25),transparent 60%),radial-gradient(40% 45% at 65% 80%,rgba(236,72,153,.16),transparent 60%),radial-gradient(35% 40% at 15% 75%,rgba(52,211,153,.14),transparent 60%);filter:blur(42px);animation:aurora 18s ease-in-out infinite alternate}
+@keyframes aurora{0%{transform:translate3d(0,0,0) scale(1)}50%{transform:translate3d(2%,-2%,0) scale(1.06)}100%{transform:translate3d(-2%,1%,0) scale(1.03)}}
+.orbs i{position:fixed;border-radius:50%;filter:blur(64px);opacity:.42;z-index:0;pointer-events:none}
+.orbs i:nth-child(1){width:340px;height:340px;background:#22d3ee;top:12%;left:6%;animation:orb1 14s ease-in-out infinite}
+.orbs i:nth-child(2){width:280px;height:280px;background:#8b5cf6;top:30%;right:8%;animation:orb2 17s ease-in-out infinite}
+.orbs i:nth-child(3){width:240px;height:240px;background:#ec4899;bottom:12%;left:35%;animation:orb3 20s ease-in-out infinite}
+@keyframes orb1{0%,100%{transform:translate(0,0)}50%{transform:translate(40px,-30px)}}
+@keyframes orb2{0%,100%{transform:translate(0,0)}50%{transform:translate(-50px,40px)}}
+@keyframes orb3{0%,100%{transform:translate(0,0)}50%{transform:translate(30px,-50px)}}
+.gradient-text{background:linear-gradient(120deg,#22d3ee,#8b5cf6,#ec4899,#22d3ee);background-size:300% 300%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:gtext 8s ease infinite}
+@keyframes gtext{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+.btn-primary{position:relative;overflow:hidden}
+.btn-primary::after{content:'';position:absolute;top:0;left:-120%;width:60%;height:100%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.4),transparent);transform:skewX(-20deg);animation:shine 3.4s ease-in-out infinite}
+@keyframes shine{0%,55%{left:-120%}80%,100%{left:140%}}
+.marquee{overflow:hidden;border-top:1px solid var(--border);border-bottom:1px solid var(--border);background:rgba(255,255,255,.015);padding:14px 0;margin-top:38px}
+.marquee .track{display:flex;gap:36px;white-space:nowrap;animation:mq 30s linear infinite;width:max-content}
+.marquee span{font-size:12px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.marquee span b{color:var(--accent)}
+@keyframes mq{to{transform:translateX(-50%)}}
+.card .ic{background:linear-gradient(135deg,rgba(34,211,238,.14),rgba(139,92,246,.14));border-color:rgba(139,92,246,.3)}
+.card:hover{transform:translateY(-3px);box-shadow:0 14px 40px rgba(34,211,238,.08)}
+.step-num{background:linear-gradient(135deg,rgba(34,211,238,.16),rgba(139,92,246,.18));box-shadow:0 0 18px rgba(34,211,238,.15)}
+.chat-ava{position:relative}
+.chat-ava::after{content:'';position:absolute;inset:-3px;border-radius:12px;border:2px solid rgba(34,211,238,.5);animation:ring 2.2s ease-out infinite}
+@keyframes ring{0%{opacity:.7;transform:scale(.9)}100%{opacity:0;transform:scale(1.25)}}
+.chip{background:linear-gradient(var(--panel2),var(--panel2)) padding-box,linear-gradient(120deg,rgba(34,211,238,.35),rgba(139,92,246,.35)) border-box;border:1px solid transparent}
+.chip:hover{background:linear-gradient(120deg,rgba(34,211,238,.12),rgba(139,92,246,.14));color:var(--text)}
+.confetti{position:fixed;z-index:1200;pointer-events:none;width:8px;height:8px;border-radius:2px;animation:conf 1.6s ease-out forwards}
+@keyframes conf{0%{opacity:1;transform:translate(0,0) rotate(0)}100%{opacity:0;transform:translate(var(--dx),var(--dy)) rotate(540deg)}}
+@media(prefers-reduced-motion:reduce){.aurora,.orbs i,.gradient-text,.btn-primary::after,.marquee .track,.chat-ava::after{animation:none}}
 </style>
 <div class="flow-overlay" id="wwi-flow">
   <div class="flow-shell">
