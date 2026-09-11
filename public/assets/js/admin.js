@@ -42,6 +42,8 @@ W.router=function(){
     var id=parts[1];
     var action=parts[2];
     if(panel==='brickhub'){window.location.replace(window.location.pathname+window.location.search+'#bricks/extensiones');return}
+    if(panel==='brick'){window.location.replace(window.location.pathname+window.location.search+'#bricks/ia');return}
+    if(panel!=='bricks'){W.state.brickHost=null;W.state.bhHost=null}
     document.querySelectorAll('.w-nav-item').forEach(function(a){a.classList.toggle('active',a.dataset.panel===panel)});
     var title=document.getElementById('panel-title');
     var titles={dashboard:'Dashboard',wwi:'WWI — Sistema',pages:'Pages',sections:'Sections',bricks:'Bricks',brickhub:'BrickHub',brick:'AI BRICK',factory:'Factory',portal:'Mi Portal',blog:'Blog',media:'Media',seo:'SEO','seo-global-launch':'SEO Global Launch',analytics:'Analytics',settings:'Settings',users:'Users'};
@@ -557,16 +559,17 @@ W.renderDashboard=async function(){
     W.autoCheckBrickHub();
 };
 
-W.renderBricks=async function(tab){
+W.renderBricks=async function(tab,action){
     tab=tab||'biblioteca';
     W.state.bricksTab=tab;
     var app=document.getElementById('wontia-app');
     var tabs=[
         {id:'biblioteca',label:'Biblioteca'},
         {id:'extensiones',label:'Extensiones'},
+        {id:'ia',label:'IA (BRICK)'},
         {id:'incubadora',label:'Incubadora'}
     ];
-    var bar='<div class="w-card" style="padding:14px 18px;margin-bottom:14px"><div style="font-size:13px;font-weight:700">Bricks — bloques funcionales</div><div style="font-size:11px;color:var(--w-muted);margin-top:4px;line-height:1.7">Biblioteca de bloques de página (hero, planes, FAQ…): previsualízalos en vivo y añádelos a una página en un clic. <strong>Extensiones</strong> gestiona los bricks instalables (repos GitHub, updates) y <strong>Incubadora</strong> los bricks del ecosistema listos para activar.</div></div>';
+    var bar='<div class="w-card" style="padding:14px 18px;margin-bottom:14px"><div style="font-size:13px;font-weight:700">Bricks — bloques funcionales</div><div style="font-size:11px;color:var(--w-muted);margin-top:4px;line-height:1.7">Biblioteca de bloques de página (hero, planes, FAQ…): previsualízalos en vivo y añádelos a una página en un clic. <strong>Extensiones</strong> gestiona los bricks instalables (repos GitHub, updates), <strong>IA (BRICK)</strong> la capa de inteligencia (proveedores, modelos, costos) y <strong>Incubadora</strong> los bricks del ecosistema listos para activar.</div></div>';
     bar+='<div class="w-toolbar w-mb-lg" style="border-bottom:1px solid var(--w-border);padding-bottom:12px">';
     tabs.forEach(function(t){
         bar+='<button class="w-btn '+(tab===t.id?'w-btn-primary':'w-btn-secondary')+'" onclick="wontia.bricksGo(\''+t.id+'\')">'+t.label+'</button>';
@@ -576,6 +579,11 @@ W.renderBricks=async function(tab){
     if(tab==='extensiones'){
         W.state.bhHost=document.getElementById('bs-content');
         W.renderBrickHubInto(W.state.bhHost,true);
+        return;
+    }
+    if(tab==='ia'){
+        W.state.brickHost=document.getElementById('bs-content');
+        W.renderBrickInto(W.state.brickHost,true,action||W.state.brick.tab||'overview');
         return;
     }
     if(tab==='incubadora'){W.bsIncubator();return}
@@ -1101,13 +1109,17 @@ W.brickLoad=async function(){
     if(all[4].data)m.instances=all[4].data;
 };
 
-W.renderBrick=async function(tab){
+W.renderBrick=async function(tab){W.state.brickHost=null;await W.renderBrickInto(document.getElementById('wontia-app'),false,tab)};
+
+W.renderBrickInto=async function(app,compact,tab){
+    if(!app)return;
     var m=W.state.brick;
     tab=tab||m.tab||'overview';
     m.tab=tab;
-    var app=document.getElementById('wontia-app');
     var tabs=[['overview','Overview'],['providers','Providers'],['models','Models'],['policies','Policies'],['systems','Systems'],['usage','Usage & Cost'],['test','Test Model']];
-    var bar='<div class="w-brick-tabs">';
+    var bar='';
+    if(!compact)bar+='<div class="w-card" style="padding:14px 18px;margin-bottom:14px"><div style="font-size:13px;font-weight:700">AI BRICK — capa de inteligencia</div><div style="font-size:11px;color:var(--w-muted);margin-top:4px;line-height:1.7">Proveedores, modelos, políticas, presupuesto, uso y salud de la IA del ecosistema. BRICK decide <strong>qué modelo, dónde y a qué costo</strong> para cada tarea (TIA, previews, agentes…).</div></div>';
+    bar+='<div class="w-brick-tabs">';
     tabs.forEach(function(t){
         bar+='<button class="w-brick-tab'+(tab===t[0]?' active':'')+'" onclick="wontia.brickGo(\''+t[0]+'\')">'+t[1]+'</button>';
     });
@@ -1118,13 +1130,17 @@ W.renderBrick=async function(tab){
     (fns[tab]||W.brickOverview)();
 };
 
-W.brickGo=function(t){location.hash='#brick/'+t};
+W.brickGo=function(t){
+    if(W.state.brickHost){W.renderBrickInto(W.state.brickHost,true,t);return}
+    location.hash='#brick/'+t;
+};
 
 W.brickEnsure=async function(){
     W.notify('Ensuring BRICK tables...','info');
     var r=await W.api('/api/v1/admin/brick/ensure-tables',{method:'POST'});
     if(r.ok)W.notify(r.message,'success');
-    W.renderBrick();
+    if(W.state.brickHost)W.renderBrickInto(W.state.brickHost,true,W.state.brick.tab);
+    else W.renderBrick(W.state.brick.tab);
 };
 
 W.bMoney=function(n){return '$'+Number(n||0).toFixed(4)};
@@ -1176,9 +1192,9 @@ W.brickSuggHtml=function(list){
 };
 
 W.brickSuggAction=function(type){
-    if(type==='budget'||type==='fallback'||type==='cost')location.hash='#brick/policies';
-    else if(type==='error')location.hash='#brick/test';
-    else location.hash='#brick/models';
+        if(type==='budget'||type==='fallback'||type==='cost')location.hash='#bricks/ia/policies';
+        else if(type==='error')location.hash='#bricks/ia/test';
+        else location.hash='#bricks/ia/models';
 };
 
 W.brickOverview=async function(){
@@ -2103,9 +2119,7 @@ W.renderWWI=async function(){
     html+='<div class="w-card"><h3>¿Qué es cada menú?</h3><div style="font-size:12px;color:var(--w-muted);line-height:1.9">'
         +'<div><strong style="color:var(--w-text)">Pages</strong> — las páginas del sitio (ej. Home) y su contenido.</div>'
         +'<div><strong style="color:var(--w-text)">Sections</strong> — las secciones dentro de una página (hero, planes, FAQ…).</div>'
-        +'<div><strong style="color:var(--w-text)">Bricks</strong> — bloques funcionales reutilizables para las páginas (widgets).</div>'
-        +'<div><strong style="color:var(--w-text)">BrickHub</strong> — tienda de extensiones: conecta repos de GitHub y actualiza bricks instalados.</div>'
-        +'<div><strong style="color:var(--w-text)">AI BRICK</strong> — la capa de IA del ecosistema: proveedores, modelos, políticas y costos.</div>'
+        +'<div><strong style="color:var(--w-text)">Bricks</strong> — hub con pestañas: Biblioteca (widgets), Extensiones (repos/updates), IA (BRICK) e Incubadora.</div>'
         +'<div><strong style="color:var(--w-text)">Factory</strong> — el negocio: planes, pedidos, sitios de clientes, dominios, saldos.</div>'
         +'<div><strong style="color:var(--w-text)">Blog / Media / SEO / Analytics</strong> — contenido, imágenes, posicionamiento y métricas.</div>'
         +'<div><strong style="color:var(--w-text)">Settings / Users</strong> — configuración del sitio y cuentas con acceso.</div>'
@@ -2318,9 +2332,9 @@ W.palette=function(){
         {label:'Factory · Sitios',hash:'#factory/sites',sub:'Lifecycle de sitios',need:'factory'},
         {label:'Factory · Dominios',hash:'#factory/domains',sub:'Estados de dominio',need:'factory'},
         {label:'Factory · Config',hash:'#factory/config',sub:'Planes, márgenes y pagos',need:'factory'},
-        {label:'AI BRICK · Overview',hash:'#brick/overview',sub:'KPIs y presupuesto de IA',need:'brick'},
-        {label:'AI BRICK · Policies',hash:'#brick/policies',sub:'Estrategias y fallback',need:'brick'},
-        {label:'AI BRICK · Test',hash:'#brick/test',sub:'Probar un modelo',need:'brick'},
+        {label:'IA (BRICK) · Overview',hash:'#bricks/ia/overview',sub:'KPIs y presupuesto de IA',need:'bricks'},
+        {label:'IA (BRICK) · Policies',hash:'#bricks/ia/policies',sub:'Estrategias y fallback',need:'bricks'},
+        {label:'IA (BRICK) · Test',hash:'#bricks/ia/test',sub:'Probar un modelo',need:'bricks'},
         {label:'Bricks · Biblioteca',hash:'#bricks',sub:'Bloques de página: preview y añadir',need:'bricks'},
         {label:'Bricks · Extensiones',hash:'#bricks/extensiones',sub:'Repos GitHub, instalar, updates',need:'bricks'},
         {label:'Bricks · Incubadora',hash:'#bricks/incubadora',sub:'Bricks del ecosistema',need:'bricks'},
