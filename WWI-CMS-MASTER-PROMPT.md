@@ -144,3 +144,25 @@ El monitor es un paso de PEDS: **ningún cambio se considera terminado sin pasar
 18. **Backup automático pre-actualización** (DB + snapshot de configuración).
 19. **Modo mantenimiento** por sitio durante operaciones críticas.
 20. **Bloqueo de actualizaciones concurrentes** con lock distribuido en la cola.
+
+## 8. 20 INNOVACIONES — NOTIFICACIONES DE ACTUALIZACIÓN
+1. Contador permanente de actualizaciones disponibles en la pestaña (bricks + sistema).
+2. Email automático a todos los sitios al iniciar una actualización del sistema.
+3. Botón de notificación manual a todos los sitios.
+4. Cola de correos vía jobs (reintentos, sin bloquear la request).
+5. Plantilla de correo bilingüe ES/EN por locale del sitio.
+6. Preferencias de notificación por sitio (opt-in/opt-out granular).
+7. Digest semanal opcional de novedades y mejoras.
+8. Correo de "actualización completada" tras el deploy exitoso.
+9. Enlace directo al panel del sitio en cada correo.
+10. Registro de entregas por sitio (enviado/fallido/skipped) visible en Factory.
+11. Reintento con backoff para SMTP caído (3 intentos).
+12. Verificación de dominio de correo (SPF/DKIM checklist al operador).
+13. Unsubscribe seguro con token firmado.
+14. Aviso en el panel del cliente (banner) cuando su sitio fue actualizado.
+15. Badge de novedades en el sidebar del cliente (no solo del operador).
+16. Notificación por WhatsApp (futuro) con el mismo payload de la cola.
+17. Segmentación: notificar solo a sitios afectados por el cambio (por archivos modificados).
+18. Priorización de correos (transaccionales primero, marketing después).
+19. Métricas: tasa de apertura/entrega por campaña de actualización.
+20. Historial de notificaciones por sitio (auditoría de comunicaciones).

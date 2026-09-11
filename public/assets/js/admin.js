@@ -1688,7 +1688,13 @@ W.factorySystem=async function(){
     var s=await W.api('/api/v1/admin/system/status');
     var st=(s.data)||{status:'idle'};
     var running=st.status==='running';
-    var html='<div class="w-card"><h3>Actualización desde Git</h3>';
+    var bh=await W.api('/api/v1/admin/brickhub/notifications');
+    var pendingBricks=(bh.data&&bh.data.pending)||0;
+    var pendingSystem=rows.filter(function(u){return u.status==='pending'}).length;
+    var available=pendingBricks+pendingSystem;
+    var titleColor=available>0?'#B89EFF':'#00B87D';
+    var html='<div style="margin-bottom:16px;padding:16px 18px;border:1px solid var(--w-border);border-left:3px solid '+titleColor+';border-radius:10px;background:var(--w-surface)"><div style="font-size:20px;font-weight:800;letter-spacing:-.01em">'+available+' actualizaci&oacute;n'+(available===1?'':'es')+' disponible'+(available===1?'':'s')+'</div><div style="font-size:12px;color:var(--w-muted);margin-top:4px">'+(available>0?'Hay mejoras listas. Los sitios reciben aviso por correo y se actualizan autom&aacute;ticamente.':'Sistema al d&iacute;a — no hay actualizaciones pendientes.')+'</div></div>';
+    html+='<div class="w-card"><h3>Actualización desde Git</h3>';
 
     if(running){
         var pct=Math.max(0,Math.min(100,parseInt(st.pct)||0));
@@ -1710,15 +1716,17 @@ W.factorySystem=async function(){
             +'<div style="width:38px;height:38px;border-radius:10px;background:#00B87D;color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700">✓</div>'
             +'<div><div style="font-size:14px;font-weight:800;color:#00B87D;letter-spacing:.05em">SISTEMA ACTUALIZADO</div>'
             +'<div class="mono" style="font-size:11px;color:var(--w-muted);margin-top:2px">commit '+W.esc(st.commit||'-')+(st.containers_total?' · '+W.num(st.containers_total)+' contenedores':'')+(st.elapsed_s?' · '+W.num(st.elapsed_s)+'s':'')+'</div></div></div>';
-        html+='<div style="font-size:12px;color:var(--w-muted);line-height:1.7;margin-bottom:14px">Todos los componentes están en la última versión del repositorio.</div>';
+        html+='<div style="font-size:12px;color:var(--w-muted);line-height:1.7;margin-bottom:14px">Todos los componentes están en la última versión del repositorio. Los sitios ya fueron notificados por correo.</div>';
         html+='<button class="w-btn w-btn-primary" onclick="wontia.factoryRunUpdate()">Actualizar de nuevo desde Git</button>';
+        html+=' <button class="w-btn w-btn-secondary" onclick="wontia.factoryNotifySites()">Notificar a los sitios</button>';
     }else if(st.status==='rolled_back'){
         html+='<div style="background:rgba(190,19,65,.08);border:1px solid rgba(190,19,65,.4);border-radius:10px;padding:18px;margin-bottom:14px"><div style="font-size:13px;font-weight:800;color:var(--w-accent);letter-spacing:.05em">ROLLBACK APLICADO</div><div class="mono" style="font-size:11px;color:var(--w-muted);margin-top:4px">La actualización falló la verificación y se restauró la versión anterior. Revisa el log del servidor.</div></div>';
         html+='<button class="w-btn w-btn-primary" onclick="wontia.factoryRunUpdate()">Reintentar actualización</button>';
     }else{
         html+='<div style="font-size:12px;color:var(--w-muted);line-height:1.7;margin-bottom:14px">Actualiza TODOS los componentes del sistema (sitios, factory, temas, módulos) desde el repositorio oficial <code>intsolcom/wontia-web-intelligence</code>. El agente del servidor descarga el último commit, reconstruye la imagen, recrea los contenedores y verifica salud; si algo falla, hace rollback automático. Tarda ~1-2 minutos.</div>';
         html+='<button class="w-btn w-btn-primary" onclick="wontia.factoryRunUpdate()">Actualizar sistema desde Git</button>';
-        html+='<div style="font-size:11px;color:var(--w-muted);margin-top:10px">Se ejecuta vía cron del servidor en menos de 1 minuto.</div>';
+        html+=' <button class="w-btn w-btn-secondary" onclick="wontia.factoryNotifySites()">Notificar a los sitios</button>';
+        html+='<div style="font-size:11px;color:var(--w-muted);margin-top:10px">Se ejecuta vía cron del servidor en menos de 1 minuto. Al actualizar se envía correo automático a todos los sitios.</div>';
     }
     html+='</div>';
     html+='<div class="w-card"><h3>Historial de actualizaciones</h3>';
@@ -1743,11 +1751,19 @@ W.factorySystem=async function(){
 };
 
 W.factoryRunUpdate=function(){
-    W.confirm('¿Actualizar TODO el sistema desde Git? Los sitios se reinician brevemente (~1-2 min).',async function(){
+    W.confirm('¿Actualizar TODO el sistema desde Git? Los sitios se reinician brevemente (~1-2 min) y recibirán aviso por correo.',async function(){
         W.notify('Encolando actualización...','info');
         var r=await W.api('/api/v1/admin/system/update',{method:'POST'});
         if(r.ok){W.notify(r.message,'success');setTimeout(W.factorySystem,2500)}
         else if(r.message)W.notify(r.message,'error');
+    });
+};
+
+W.factoryNotifySites=function(){
+    W.confirm('¿Enviar correo a todos los sitios notificando la actualización disponible?',async function(){
+        W.notify('Encolando notificaciones...','info');
+        var r=await W.api('/api/v1/admin/system/notify-sites',{method:'POST',body:{}});
+        if(r.ok)W.notify(r.message,'success');
     });
 };
 

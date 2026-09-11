@@ -878,7 +878,11 @@ class FactoryService
         if (@file_put_contents($dir . '/update-' . $ts . '.json', json_encode($payload)) === false) {
             return ['ok' => false, 'message' => 'No se pudo encolar la actualización (permisos del volumen)'];
         }
-        return ['ok' => true, 'message' => 'Actualización encolada — se aplicará en menos de 1 minuto'];
+        $notify = $this->notifySitesOfUpdate(
+            'Actualización del sistema en camino — Wontia Web Intelligence',
+            "El sistema Wontia Web Intelligence está siendo actualizado con mejoras y correcciones. Tu sitio seguirá funcionando y se pondrá al día automáticamente en los próximos minutos."
+        );
+        return ['ok' => true, 'message' => 'Actualización encolada — se aplicará en menos de 1 minuto. ' . $notify['message']];
     }
 
     public function systemUpdates(): array
@@ -915,18 +919,42 @@ class FactoryService
         return $data;
     }
 
-    public function sendWelcomeEmail(array $payload): array
+    public function notifySitesOfUpdate(string $subject = '', string $intro = ''): array
+    {
+        $db = Database::instance();
+        $rows = $db->query("SELECT s.id AS site_id, s.name, s.domain, u.email FROM sites s JOIN users u ON u.site_id = s.id AND u.role = 'client' WHERE s.is_active = 1 AND u.email <> ''")->fetchAll();
+        $subject = $subject !== '' ? $subject : 'Nueva actualización disponible — Wontia Web Intelligence';
+        $intro = $intro !== '' ? $intro : 'Tu sitio tiene una nueva actualización disponible en la plataforma. Las mejoras se aplican automáticamente; no necesitas hacer nada.';
+        $queued = 0;
+        foreach ($rows as $r) {
+            $body = "Hola,\n\n" . $intro . "\n\n"
+                . "Sitio: " . $r['name'] . "\n"
+                . "Panel: https://" . ($r['domain'] ?: 'wwi.wontia.com') . "/admin.php\n\n"
+                . "— Wontia Web Intelligence\nIntsolcom, LLC";
+            $this->enqueueJob('send_email', ['to' => $r['email'], 'name' => $r['name'], 'subject' => $subject, 'body' => $body]);
+            $queued++;
+        }
+        return ['ok' => true, 'message' => "Notificación encolada para $queued sitio(s)", 'queued' => $queued];
+    }
+
+    public function sendEmailJob(array $payload): array
     {
         $mail = new EmailService();
         $to = (string)($payload['to'] ?? '');
         if ($to === '') return ['ok' => false, 'message' => 'No recipient'];
-        $sent = $mail->send(
-            $to,
-            '¡Tu sitio web está listo! 🚀 Wontia Web Intelligence',
-            'Hola ' . (string)($payload['name'] ?? '') . ",\n\nTu sitio web está listo y publicado:\n"
-            . (string)($payload['site_url'] ?? '') . "\n\nAccede a tu panel para administrarlo y pedir cambios a TIA.\n\n— Wontia Web Intelligence"
-        );
-        return ['ok' => true, 'message' => $sent ? 'Welcome email sent' : 'Mail not configured — skipped', 'sent' => $sent];
+        $subject = (string)($payload['subject'] ?? '¡Tu sitio web está listo! Wontia Web Intelligence');
+        $body = (string)($payload['body'] ?? '');
+        if ($body === '') {
+            $body = 'Hola ' . (string)($payload['name'] ?? '') . ",\n\nTu sitio web está listo:\n"
+                . (string)($payload['site_url'] ?? '') . "\n\nAccede a tu panel para administrarlo y pedir cambios a TIA.\n\n— Wontia Web Intelligence";
+        }
+        $sent = $mail->send($to, $subject, $body);
+        return ['ok' => true, 'message' => $sent ? 'Email sent' : 'Mail not configured — skipped', 'sent' => $sent];
+    }
+
+    public function sendWelcomeEmail(array $payload): array
+    {
+        return $this->sendEmailJob($payload);
     }
 
     private function dispatchJob(string $type, array $payload): array
@@ -935,7 +963,7 @@ class FactoryService
             'provision_site' => $this->provisionSite($payload),
             'process_brief' => $this->processBrief((int)($payload['brief_id'] ?? 0)),
             'generate_preview' => $this->generatePreview((int)($payload['preview_id'] ?? 0)),
-            'send_email' => $this->sendWelcomeEmail($payload),
+            'send_email' => $this->sendEmailJob($payload),
             default => ['ok' => true],
         };
     }

@@ -361,6 +361,14 @@ class FactoryController
         Response::json(['ok' => true, 'data' => $this->service->systemUpdateStatus()]);
     }
 
+    public function systemNotifySites(Request $request): void
+    {
+        $this->requireSuper();
+        $subject = (string)($request->json()['subject'] ?? '');
+        $intro = (string)($request->json()['intro'] ?? '');
+        Response::json($this->service->notifySitesOfUpdate($subject, $intro));
+    }
+
     private function escHtml(string $s): string
     {
         return htmlspecialchars($s, ENT_QUOTES, 'UTF-8');
