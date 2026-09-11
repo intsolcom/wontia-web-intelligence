@@ -632,6 +632,7 @@ W.bmLoad=async function(force){
         items.push({slug:id,name:b.name,category:b.category||'general',version:b.version||'1.0.0',launched_at:b.launched_at||'',origin:'core',installed:true,installed_version:b.version||'1.0.0',installed_id:null,source_id:0,source_name:'Core',desc:(b.configSchema&&b.configSchema.length?b.configSchema.length+' campos configurables':'Bloque del sistema'),uses_ai:!!b.uses_ai,usage_count:b.usage_count||0,update_available:false});
     }
     (bhList||[]).forEach(function(b){
+        if(sgl&&b.slug===sgl.slug)return;
         items.push({slug:b.slug,name:b.name,category:b.category||'general',version:b.version||'1.0.0',launched_at:b.created_at||b.installed_at||'',origin:'brickhub',installed:!!b.installed,installed_version:b.installed_version||'',installed_id:b.installed_id||null,source_id:b.source_id||0,source_name:b.source_name||'Repo',desc:b.description||'Brick instalable desde repositorio',uses_ai:false,usage_count:0,update_available:false});
     });
     if(sgl)items.push({slug:'seo-global-launch',name:'SEO Global Launch',category:'system',version:sgl.version||'1.0.0',launched_at:'',origin:'incubator',installed:!!sgl.installed,installed_version:sgl.version||'1.0.0',installed_id:null,source_id:0,source_name:'Incubadora',desc:'Motor SEO full-site: scan, IA de metadatos, autofix, JSON-LD, auditoría y tracker de bots.',uses_ai:true,usage_count:0,update_available:false});
@@ -680,8 +681,10 @@ W.bmCard=function(it){
             actions+='<button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.bmInstall(this,'+it.source_id+',\''+W.esc(it.slug)+'\',\''+W.esc(it.name)+'\')">Acoplar</button>';
         }
     }else if(it.origin==='incubator'){
-        if(it.installed)actions+='<button class="w-btn w-btn-secondary w-btn-sm" onclick="location.hash=\'#seo-global-launch\'">Abrir panel</button>';
-        else actions+='<button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.bmActivate(this)">Acoplar</button>';
+        if(it.installed){
+            actions+='<button class="w-btn w-btn-secondary w-btn-sm" onclick="location.hash=\'#seo-global-launch\'">Abrir panel</button>';
+            actions+='<button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.sglDeactivate(this,\''+W.esc(it.name)+'\')">Desacoplar</button>';
+        }else actions+='<button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.bmActivate(this)">Acoplar</button>';
     }
     var updateBadge=it.update_available?'<span class="w-bm-update" title="Actualización disponible">🔄</span>':'';
     var stateLabel=it.installed?'<span class="w-bm-installed-label">✓ Acoplado</span>':'<span class="w-bm-decoupled-label">○ Desacoplado</span>';
@@ -697,9 +700,13 @@ W.bmCard=function(it){
         +'<div class="w-bm-actions">'+actions+'</div></div>';
 };
 
+W.bmSetState=function(slug,installed){
+    (W._bm.items||[]).forEach(function(it){if(it.slug===slug)it.installed=installed});
+};
+
 W.bmRender=function(){
-    var grid=document.getElementById('bs-grid');
-    if(!grid||!W._bm.items)return;
+    var wrap=document.getElementById('bs-grid');
+    if(!wrap||!W._bm.items)return;
     var q=W._bm.q||'',cat=W._bm.cat||'';
     var items=W._bm.items.filter(function(it){
         if(cat&&it.category!==cat)return false;
@@ -707,7 +714,13 @@ W.bmRender=function(){
         return true;
     });
     items=W.bmSortItems(items);
-    grid.innerHTML=items.map(W.bmCard).join('')||'<div class="w-empty-state" style="grid-column:1/-1"><h3>Sin resultados</h3><p>Prueba otra categoría u otra búsqueda.</p></div>';
+    var coupled=items.filter(function(it){return it.installed});
+    var decoupled=items.filter(function(it){return !it.installed});
+    var html='';
+    if(coupled.length)html+='<div class="w-bm-section"><div class="w-bm-section-head"><span class="w-bm-section-title">✓ Acoplados</span><span class="w-bm-section-count">'+coupled.length+'</span></div><div class="w-bm-grid">'+coupled.map(W.bmCard).join('')+'</div></div>';
+    if(decoupled.length)html+='<div class="w-bm-section'+(coupled.length?' w-bm-section-sep':'')+'"><div class="w-bm-section-head"><span class="w-bm-section-title off">○ Desacoplados</span><span class="w-bm-section-count">'+decoupled.length+'</span></div><div class="w-bm-grid">'+decoupled.map(W.bmCard).join('')+'</div></div>';
+    if(!items.length)html='<div class="w-empty-state"><h3>Sin resultados</h3><p>Prueba otra categoría u otra búsqueda.</p></div>';
+    wrap.innerHTML=html;
 };
 
 W.bmRefreshMetrics=async function(){
@@ -763,20 +776,29 @@ W.bmBlocks=function(rect,color,mode){
     }
 };
 
+W.bmRefreshViews=function(){
+    W._bm.loaded=false;
+    if(W.state.bricksTab==='instalados'){W.bsInstalled();return}
+    if(W.state.bricksTab==='marketplace'){W.bsMarketplace();return}
+    W.bhRefresh();
+};
+
 W.bmInstall=function(btn,sourceId,slug,name){
     var card=btn?btn.closest('.w-bm-card'):null;
     var rect=card?card.getBoundingClientRect():{left:innerWidth/2-60,top:innerHeight/2-60,width:120,height:120};
     W.bmBlocks(rect,'#34d399','assemble');
     setTimeout(async function(){
-        var r=await W.api('/api/v1/admin/brickhub/install',{method:'POST',body:{source_id:sourceId,slug:slug,name:name}});
-        if(r.ok){
-            W.api('/api/v1/admin/bricks/'+encodeURIComponent(slug)+'/event',{method:'POST',body:{event:'install'}}).catch(function(){});
-            W.notify('"'+name+'" acoplado ✓','success');
-            W.confetti();
-            W._bm.loaded=false;
-            W.state.bmHighlight=slug;
-            window.location.hash='#bricks/instalados';
-        }else if(r.message)W.notify(r.message,'error');
+        try{
+            var r=await W.api('/api/v1/admin/brickhub/install',{method:'POST',body:{source_id:sourceId,slug:slug,name:name}});
+            if(r.ok){
+                W.api('/api/v1/admin/bricks/'+encodeURIComponent(slug)+'/event',{method:'POST',body:{event:'install'}}).catch(function(){});
+                W.notify('"'+name+'" acoplado ✓','success');
+                W.confetti();
+                W.state.bmHighlight=slug;
+                W._bm.loaded=false;
+                window.location.hash='#bricks/instalados';
+            }else W.notify(r.message||'No se pudo acoplar','error');
+        }catch(e){W.notify('Error de conexión al acoplar','error')}
     },660);
 };
 
@@ -785,16 +807,48 @@ W.bmUninstall=function(btn,id,name,slug){
     var rect=card?card.getBoundingClientRect():{left:innerWidth/2-60,top:innerHeight/2-60,width:120,height:120};
     W.confirm('¿Desacoplar "'+name+'"? Volverá al Brick Marketplace.',function(){
         W.bmBlocks(rect,'#f87171','crumble');
-        W.api('/api/v1/admin/bricks/'+encodeURIComponent(slug)+'/event',{method:'POST',body:{event:'uninstall'}}).catch(function(){});
+        setTimeout(function(){W.bmSetState(slug,false);W.bmRender()},420);
         setTimeout(async function(){
-            var r=await W.api('/api/v1/admin/brickhub/uninstall/'+id,{method:'DELETE'});
-            if(r.ok){
-                W.notify('"'+name+'" desacoplado — devuelto al Marketplace','success');
-                W._bm.loaded=false;
-                if(W.state.bricksTab==='instalados')W.bsInstalled();
-                else W.bhRefresh();
-            }else if(r.message)W.notify(r.message,'error');
-        },760);
+            try{
+                var r=await W.api('/api/v1/admin/brickhub/uninstall/'+id,{method:'DELETE'});
+                if(r.ok){
+                    W.api('/api/v1/admin/bricks/'+encodeURIComponent(slug)+'/event',{method:'POST',body:{event:'uninstall'}}).catch(function(){});
+                    W.notify('"'+name+'" desacoplado — devuelto al Marketplace','success');
+                    W.bmRefreshViews();
+                }else{
+                    W.bmSetState(slug,true);W.bmRender();
+                    W.notify(r.message||'No se pudo desacoplar — restaurado','error');
+                }
+            }catch(e){
+                W.bmSetState(slug,true);W.bmRender();
+                W.notify('Error de conexión — brick restaurado','error');
+            }
+        },780);
+    });
+};
+
+W.sglDeactivate=function(btn,name){
+    var card=btn?btn.closest('.w-bm-card'):null;
+    var rect=card?card.getBoundingClientRect():{left:innerWidth/2-60,top:innerHeight/2-60,width:120,height:120};
+    W.confirm('¿Desacoplar "'+name+'"? Volverá al Brick Marketplace.',function(){
+        W.bmBlocks(rect,'#f87171','crumble');
+        setTimeout(function(){W.bmSetState('seo-global-launch',false);W.bmRender()},420);
+        setTimeout(async function(){
+            try{
+                var r=await W.api('/api/v1/admin/seo-global-launch/deactivate',{method:'POST'});
+                if(r.ok){
+                    W.api('/api/v1/admin/bricks/seo-global-launch/event',{method:'POST',body:{event:'uninstall'}}).catch(function(){});
+                    W.notify('"'+name+'" desacoplado — devuelto al Marketplace','success');
+                    W.bmRefreshViews();
+                }else{
+                    W.bmSetState('seo-global-launch',true);W.bmRender();
+                    W.notify(r.message||'No se pudo desacoplar — restaurado','error');
+                }
+            }catch(e){
+                W.bmSetState('seo-global-launch',true);W.bmRender();
+                W.notify('Error de conexión — brick restaurado','error');
+            }
+        },780);
     });
 };
 
@@ -802,7 +856,18 @@ W.bmActivate=function(btn){
     var card=btn?btn.closest('.w-bm-card'):null;
     var rect=card?card.getBoundingClientRect():{left:innerWidth/2-60,top:innerHeight/2-60,width:120,height:120};
     W.bmBlocks(rect,'#34d399','assemble');
-    setTimeout(function(){W.sglActivate()},620);
+    setTimeout(async function(){
+        try{
+            var r=await W.api('/api/v1/admin/seo-global-launch/activate',{method:'POST'});
+            if(r.ok){
+                W.notify('SEO Global Launch acoplado ✓','success');
+                W.confetti();
+                W.state.bmHighlight='seo-global-launch';
+                W._bm.loaded=false;
+                window.location.hash='#bricks/instalados';
+            }else W.notify(r.message||'No se pudo acoplar','error');
+        }catch(e){W.notify('Error de conexión al acoplar','error')}
+    },620);
 };
 
 W.bmUpdate=function(id,slug){
@@ -883,7 +948,7 @@ W.bsMarketplace=async function(){
         +'<option value="version">Versión (mayor primero)</option>'
         +'<option value="categoria">Por categoría</option>'
         +'</select></div>';
-    html+='<div id="bs-grid" class="w-bm-grid"></div>';
+    html+='<div id="bs-grid"></div>';
     el.innerHTML=html;
     document.getElementById('bs-sort').value=W._bm.sort;
     document.getElementById('bs-sort').addEventListener('change',function(){W._bm.sort=this.value;W.bmRender()});

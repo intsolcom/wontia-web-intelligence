@@ -91,6 +91,18 @@
 10. **Motivo de desacople**: selector (no lo uso / lento / faltan funciones / otro) que alimenta el ranking de causas y alertas de producto.
 - Bonus: modo "obra" (barra de progreso con bloques apilándose durante la instalación) y confetti 100% cuadrado para coherencia con el concepto de bloques.
 
+## 3b. ROBUSTEZ DE ACOPLE — MEJORAS 11-20 (sep 2026)
+11. ✅ **Secciones separadas** en el Marketplace: "✓ Acoplados" arriba y "○ Desacoplados" abajo con contadores y divisor punteado — distinción visual inmediata.
+12. ✅ **Estado optimista con rollback**: la ficha se mueve a Desacoplados en cuanto arranca la animación; si la API falla, vuelve a Acoplados con toast de error (nunca queda inconsistente).
+13. ✅ **Errores visibles**: `try/catch` en todas las operaciones de acople/desacople; conexión caída, 4xx/5xx y respuestas no-JSON se notifican y revierten.
+14. ✅ **Origen autoritativo**: si un brick existe en repo y en incubadora (ej. SEO Global Launch), se unifica por slug y se usa el estado de la incubadora (sin duplicados ni botones incoherentes).
+15. ✅ **Blindaje de archivos**: `BrickSystem::uninstall` ya no borra rutas del repositorio (solo bricks descargados fuera de git), con verificación de path dentro de `ROOT_DIR` (anti path-traversal).
+16. Zona de desacople por arrastre (drop zone "Suelta aquí para desacoplar").
+17. Desacople/acople en lote con selección múltiple y barra de acciones.
+18. Filtro rápido "Solo acoplados / Solo desacoplados" (además de las secciones).
+19. Badges de conteo en las pestañas (Acoplados N · Desacoplados N) en tiempo real.
+20. Timeline por brick: historial de acoples/desacoples con usuario, fecha y motivo; reintento automático con backoff para fallos transitorios.
+
 ## 4. GOBERNANZA (PEDS)
 - Toda query nueva con `@site_id` cuando aplique; las agregaciones globales del marketplace son intencionales (feedback de producto cross-tenant) y guardan `site_id` de trazabilidad.
 - Escape de salida en frontend (`W.esc`); slugs validados con regex; eventos con whitelist.

@@ -39,8 +39,12 @@ class BrickSystem
         if (!$brick) return ['ok' => false, 'message' => 'Brick not found'];
 
         if ($brick['installed_path']) {
-            $fullPath = ROOT_DIR . '/' . ltrim($brick['installed_path'], '/');
-            if (file_exists($fullPath)) {
+            $rel = ltrim($brick['installed_path'], '/');
+            $fullPath = ROOT_DIR . '/' . $rel;
+            $real = realpath($fullPath);
+            $root = realpath(ROOT_DIR);
+            $insideRoot = $real && $root && str_starts_with($real, $root . DIRECTORY_SEPARATOR);
+            if ($insideRoot && !self::isRepoPath($rel)) {
                 self::recursiveDelete($fullPath);
             }
         }
@@ -48,6 +52,16 @@ class BrickSystem
         $stmt = $db->prepare('DELETE FROM bricks WHERE id = ?');
         $stmt->execute([$brickId]);
         return ['ok' => true, 'message' => 'Brick uninstalled'];
+    }
+
+    private static function isRepoPath(string $rel): bool
+    {
+        $rel = trim($rel, '/');
+        if ($rel === '') return true;
+        if (!is_dir(ROOT_DIR . '/.git')) return true;
+        if (!function_exists('shell_exec')) return true;
+        $out = @shell_exec('git -C ' . escapeshellarg(ROOT_DIR) . ' ls-files -- ' . escapeshellarg($rel) . ' 2>/dev/null');
+        return is_string($out) && trim($out) !== '';
     }
 
     public static function find(int $id): ?array
