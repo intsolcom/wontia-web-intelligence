@@ -746,7 +746,7 @@ W.bhHistory=async function(){
     if(!history.length){el.innerHTML='<div class="w-empty-state"><h3>No update history</h3><p>Updates applied will appear here</p></div>';return}
     var html='<div class="w-flex-between w-mb-lg"><strong style="font-size:13px">'+history.length+' record(s)</strong></div>';
     history.forEach(function(h){
-        var statusColor=h.status==='applied'?'var(--w-primary)':h.status==='failed'?'var(--w-accent)':h.status==='pending'?'var(--w-muted)':'#f59e0b';
+        var statusColor=h.status==='applied'?'var(--w-primary)':h.status==='failed'?'var(--w-accent)':h.status==='pending'?'var(--w-muted)':'#fbbf24';
         html+='<div class="w-card" style="padding:12px"><div class="w-flex-between"><div><div style="font-size:12px;font-weight:600">'+W.esc(h.brick_name)+'</div><div style="font-size:10px;color:var(--w-muted)">'+W.esc(h.from_version)+' \u2192 '+W.esc(h.to_version)+'</div></div><div style="text-align:right"><span style="font-size:10px;color:'+statusColor+';font-weight:600">'+h.status+'</span><div style="font-size:9px;color:var(--w-muted)">'+W.esc(h.created_at||'')+'</div></div></div>';
         if(h.release_notes)html+='<div style="font-size:10px;color:var(--w-muted);margin-top:6px;white-space:pre-wrap;max-height:60px;overflow:hidden">'+W.esc(h.release_notes.substring(0,200))+'</div>';
         html+='</div>';
@@ -1988,14 +1988,14 @@ W.wwiLoadBricks=async function(){
         var b=(r.data&&r.data.brick)||{};
         var html='<div style="background:var(--w-surface);border:1px solid var(--w-border);border-radius:10px;padding:14px">'
             +'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div><strong style="font-size:13px">🚀 SEO Global Launch</strong> <span style="font-size:10px;color:var(--w-muted);background:var(--w-bg);padding:2px 8px;border-radius:10px">v'+W.esc(b.version||'1.0.0')+'</span></div>'
-            +'<span style="font-size:10px;padding:2px 8px;border-radius:10px;background:'+(b.installed?'rgba(0,184,125,.12)':'rgba(245,158,11,.12)')+';color:'+(b.installed?'#00B87D':'#f59e0b')+'">'+(b.installed?'ACTIVO':'NO INSTALADO')+'</span></div>'
+            +'<span style="font-size:10px;padding:2px 8px;border-radius:10px;background:'+(b.installed?'rgba(52,211,153,.12)':'rgba(245,158,11,.12)')+';color:'+(b.installed?'#34d399':'#fbbf24')+'">'+(b.installed?'ACTIVO':'NO INSTALADO')+'</span></div>'
             +'<div style="font-size:11px;color:var(--w-muted);margin-top:6px;line-height:1.6">Motor SEO full-site: scan, generación IA de metadatos, autofix, deepfix, JSON-LD, auditoría y tracker de bots. Multi-tenant.</div>'
             +'<div style="display:flex;gap:8px;margin-top:10px">'
             +'<button class="w-btn '+(b.installed?'w-btn-secondary':'w-btn-primary')+' w-btn-sm" onclick="wontia.sglActivate()">'+(b.installed?'Reinstalar tablas':'Activar en este sitio')+'</button>'
             +'<button class="w-btn w-btn-secondary w-btn-sm" onclick="location.hash=\'#seo-global-launch\'">Abrir panel</button>'
             +'</div></div>';
         el.innerHTML=html;
-    }catch(e){el.innerHTML='<div style="font-size:12px;color:#BE1341">No se pudo cargar la incubadora.</div>'}
+    }catch(e){el.innerHTML='<div style="font-size:12px;color:#f87171">No se pudo cargar la incubadora.</div>'}
 };
 
 W.wwiSetup=async function(kind){
@@ -2024,10 +2024,10 @@ W.renderSeoGlobalLaunch=async function(){
     var html='<div style="margin-bottom:18px"><div style="font-size:20px;font-weight:800;letter-spacing:-.01em">🚀 SEO Global Launch</div>'
         +'<div style="font-size:12px;color:var(--w-muted);margin-top:4px">Motor SEO full-site de un clic: meta tags, JSON-LD, Open Graph, auditoría y auto-fix con IA. Brick v'+W.esc(b.version||'1.0.0')+' · <strong style="color:var(--w-text)">'+W.esc(st.site_url||'')+'</strong></div></div>';
     html+='<div class="w-stats">'
-        +'<div class="w-stat-card"><div class="w-stat-value" style="color:'+(st.last_score>=80?'#00B87D':(st.last_score>=50?'#f59e0b':'#BE1341'))+'">'+(st.last_score||'—')+'</div><div class="w-stat-label">Último score</div></div>'
+        +'<div class="w-stat-card"><div class="w-stat-value" style="color:'+(st.last_score>=80?'#34d399':(st.last_score>=50?'#fbbf24':'#f87171'))+'">'+(st.last_score||'—')+'</div><div class="w-stat-label">Último score</div></div>'
         +'<div class="w-stat-card"><div class="w-stat-value">'+W.num(st.seo_pages||0)+'</div><div class="w-stat-label">Páginas optimizadas</div></div>'
         +'<div class="w-stat-card"><div class="w-stat-value">'+W.num(st.posts_total||0)+'</div><div class="w-stat-label">Posts publicados</div></div>'
-        +'<div class="w-stat-card"><div class="w-stat-value" style="color:'+((st.posts_without_meta||0)>0?'#f59e0b':'#00B87D')+'">'+W.num(st.posts_without_meta||0)+'</div><div class="w-stat-label">Posts sin metadata</div></div>'
+        +'<div class="w-stat-card"><div class="w-stat-value" style="color:'+((st.posts_without_meta||0)>0?'#fbbf24':'#34d399')+'">'+W.num(st.posts_without_meta||0)+'</div><div class="w-stat-label">Posts sin metadata</div></div>'
         +'</div>';
     if(!b.installed){
         html+='<div class="w-card" style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap"><div><strong style="font-size:13px">Brick no instalado en este sitio</strong><div style="font-size:11px;color:var(--w-muted);margin-top:4px">Actívalo para crear las tablas y comenzar a optimizar este sitio.</div></div><button class="w-btn w-btn-primary" onclick="wontia.sglActivate()">Activar Brick</button></div>';
@@ -2068,7 +2068,7 @@ W.sglAction=async function(what,btn){
     else if(what==='autofix'&&r.ok)msg='Posts corregidos: <strong>'+r.fixed+'</strong> de '+r.total+(r.ai_model?' · modelo: '+W.esc(r.ai_model):'');
     else if(what==='deepfix'&&r.ok)msg='Correcciones aplicadas: <strong>'+r.fixed+'</strong> · tokens: '+(r.tokens||0);
     else msg=(r.message||r.error||'Error desconocido');
-    var color=r.ok?'#00B87D':'#BE1341';
+    var color=r.ok?'#34d399':'#f87171';
     if(el)el.innerHTML='<div style="font-size:12px;color:'+color+'">'+msg+'</div>';
     if(r.ok){W.sglLoad('issues','sgl-issues');W.sglLoad('scores','sgl-scores');W.renderSeoGlobalLaunchStatsOnly&&setTimeout(function(){location.hash='#seo-global-launch'},800)}
 };
@@ -2083,7 +2083,7 @@ W.sglLoad=async function(kind,elId){
             if(!issues.length){el.innerHTML='<div class="w-empty-state" style="padding:12px"><p>Sin problemas detectados 🎉</p></div>';return}
             var html='<div style="font-size:11px;color:var(--w-muted);margin-bottom:8px">'+issues.length+' problemas · '+d.high+' altos · '+d.medium+' medios</div>';
             issues.slice(0,12).forEach(function(i){
-                var sev=i.severity==='high'?'#BE1341':(i.severity==='medium'?'#f59e0b':'#8b8fa3');
+                var sev=i.severity==='high'?'#f87171':(i.severity==='medium'?'#fbbf24':'#8593ab');
                 html+='<div style="display:flex;gap:8px;align-items:flex-start;padding:6px 0;border-bottom:1px solid var(--w-border)"><span style="width:8px;height:8px;border-radius:50%;background:'+sev+';margin-top:4px;flex-shrink:0"></span><div style="font-size:12px"><div>'+W.esc(i.issue)+'</div><div style="font-size:11px;color:var(--w-muted)">'+W.esc(i.title||'')+'</div></div></div>';
             });
             el.innerHTML=html;
@@ -2092,7 +2092,7 @@ W.sglLoad=async function(kind,elId){
             if(!scores.length){el.innerHTML='<div class="w-empty-state" style="padding:12px"><p>Aún no hay scans.</p></div>';return}
             var html='';
             scores.slice(0,10).forEach(function(s){
-                var c=s.total_score>=80?'#00B87D':(s.total_score>=50?'#f59e0b':'#BE1341');
+                var c=s.total_score>=80?'#34d399':(s.total_score>=50?'#fbbf24':'#f87171');
                 html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--w-border);font-size:12px"><span>'+W.esc(s.scan_date||'')+'</span><strong style="color:'+c+'">'+s.total_score+'</strong></div>';
             });
             el.innerHTML=html;
@@ -2105,7 +2105,7 @@ W.sglLoad=async function(kind,elId){
             });
             el.innerHTML=html+'</div>';
         }
-    }catch(e){el.innerHTML='<div style="font-size:12px;color:#BE1341">Error cargando datos</div>'}
+    }catch(e){el.innerHTML='<div style="font-size:12px;color:#f87171">Error cargando datos</div>'}
 };
 
 
