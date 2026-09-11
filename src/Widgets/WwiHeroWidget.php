@@ -27,6 +27,7 @@ class WwiHeroWidget extends Widget
         $t1 = $this->esc($titleParts[0] ?? '');
         $t2 = $this->esc($titleParts[1] ?? '');
         $html = '<section style="padding:170px 0 90px">';
+        $html .= '<canvas id="wwi-hero-gpu" aria-hidden="true"></canvas>';
         $html .= '<div class="wrap" style="text-align:center">';
         if ($c['badge']) $html .= '<div class="badge" style="margin-bottom:18px">' . $this->esc($c['badge']) . '</div>';
         $html .= '<h1 style="font-size:clamp(30px,5vw,50px);font-weight:800;letter-spacing:-.02em;line-height:1.12;max-width:780px;margin:0 auto 18px">' . $t1 . ($t2 ? ' <span class="gradient-text">' . $t2 . '</span>' : '') . '</h1>';

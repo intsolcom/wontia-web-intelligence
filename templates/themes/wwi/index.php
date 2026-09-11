@@ -568,6 +568,112 @@ document.addEventListener('DOMContentLoaded',function(){
         rec.onend=function(){mic.style.borderColor=''};
     }else if(mic){mic.style.display='none'}
 });
+async function wwiHeroGpu(){
+    var cv=document.getElementById('wwi-hero-gpu');
+    if(!cv||!navigator.gpu)return;
+    if(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+    if(navigator.connection&&navigator.connection.saveData)return;
+    try{
+        if(navigator.getBattery){
+            var bat=await navigator.getBattery();
+            if(bat&&bat.level<0.2&&!bat.charging)return;
+        }
+    }catch(e){}
+    try{
+        var adapter=await navigator.gpu.requestAdapter();
+        if(!adapter)return;
+        var device=await adapter.requestDevice();
+        device.lost.then(function(){cv.classList.remove('on')});
+        var ctx=cv.getContext('webgpu');
+        if(!ctx)return;
+        var format=navigator.gpu.getPreferredCanvasFormat();
+        ctx.configure({device:device,format:format,alphaMode:'premultiplied'});
+        var wgsl=[
+'struct U { time: f32, mx: f32, my: f32, pad: f32, res: vec2<f32>, pad2: vec2<f32> };',
+'@group(0) @binding(0) var<uniform> u: U;',
+'fn hash(p: vec2<f32>) -> f32 { return fract(sin(dot(p, vec2<f32>(127.1, 311.7))) * 43758.5453); }',
+'fn vnoise(p: vec2<f32>) -> f32 {',
+'  let i = floor(p); let f = fract(p);',
+'  let a = hash(i); let b = hash(i + vec2<f32>(1.0, 0.0));',
+'  let c = hash(i + vec2<f32>(0.0, 1.0)); let d = hash(i + vec2<f32>(1.0, 1.0));',
+'  let uu = f * f * (3.0 - 2.0 * f);',
+'  return mix(mix(a, b, uu.x), mix(c, d, uu.x), uu.y);',
+'}',
+'@vertex fn vs(@builtin(vertex_index) vi: u32) -> @builtin(position) vec4<f32> {',
+'  var p = array<vec2<f32>, 3>(vec2<f32>(-1.0, -1.0), vec2<f32>(3.0, -1.0), vec2<f32>(-1.0, 3.0));',
+'  return vec4<f32>(p[vi], 0.0, 1.0);',
+'}',
+'@fragment fn fs(@builtin(position) pos: vec4<f32>) -> @location(0) vec4<f32> {',
+'  let uv = pos.xy / u.res;',
+'  var p = vec2<f32>(uv.x * (u.res.x / u.res.y), uv.y) * 2.6;',
+'  let t = u.time * 0.10;',
+'  var v = 0.0; var q = p;',
+'  for (var i = 0; i < 4; i = i + 1) {',
+'    q = q + vec2<f32>(vnoise(q + t), vnoise(q.yx - t)) * 0.75;',
+'    v = v + 0.5 / (1.0 + length(q - p));',
+'  }',
+'  let muv = vec2<f32>(u.mx / u.res.x, u.my / u.res.y);',
+'  let glow = smoothstep(0.6, 0.0, distance(uv, muv)) * 0.25;',
+'  let col = mix(vec3<f32>(0.13, 0.83, 0.93), vec3<f32>(0.55, 0.36, 0.96), clamp(v * 0.30, 0.0, 1.0));',
+'  let fade = (1.0 - smoothstep(0.35, 1.0, uv.y)) * smoothstep(0.0, 0.15, uv.y);',
+'  let amp = (0.10 + v * 0.10 + glow) * fade;',
+'  return vec4<f32>(col * amp, amp);',
+'}'
+        ].join('\n');
+        var module=device.createShaderModule({code:wgsl});
+        if(module.getCompilationInfo){
+            var info=await module.getCompilationInfo();
+            if(info.messages.some(function(m){return m.type==='error'}))return;
+        }
+        var pipeline=device.createRenderPipeline({
+            layout:'auto',
+            vertex:{module:module,entryPoint:'vs'},
+            fragment:{module:module,entryPoint:'fs',targets:[{format:format}]},
+            primitive:{topology:'triangle-list'}
+        });
+        var ub=device.createBuffer({size:32,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST});
+        var bg=device.createBindGroup({layout:pipeline.getBindGroupLayout(0),entries:[{binding:0,resource:{buffer:ub}}]});
+        var data=new Float32Array(8);
+        var mx=0,my=0,visible=false,running=false;
+        document.addEventListener('mousemove',function(e){
+            var r=cv.getBoundingClientRect();
+            if(!r.width||!r.height)return;
+            mx=(e.clientX-r.left)*(cv.width/r.width);
+            my=(e.clientY-r.top)*(cv.height/r.height);
+        },{passive:true});
+        var resize=function(){
+            var r=cv.getBoundingClientRect();
+            var dpr=Math.min(window.devicePixelRatio||1,1.5);
+            cv.width=Math.max(2,Math.round(r.width*dpr));
+            cv.height=Math.max(2,Math.round(r.height*dpr));
+        };
+        resize();
+        window.addEventListener('resize',resize);
+        var t0=performance.now();
+        var frame=function(){
+            if(!visible||document.hidden){running=false;return}
+            data[0]=(performance.now()-t0)/1000;data[1]=mx;data[2]=my;data[3]=0;
+            data[4]=cv.width;data[5]=cv.height;data[6]=0;data[7]=0;
+            device.queue.writeBuffer(ub,0,data);
+            var enc=device.createCommandEncoder();
+            var pass=enc.beginRenderPass({colorAttachments:[{view:ctx.getCurrentTexture().createView(),clearValue:{r:0,g:0,b:0,a:0},loadOp:'clear',storeOp:'store'}]});
+            pass.setPipeline(pipeline);
+            pass.setBindGroup(0,bg);
+            pass.draw(3);
+            pass.end();
+            device.queue.submit([enc.finish()]);
+            requestAnimationFrame(frame);
+        };
+        var start=function(){if(!running&&visible&&!document.hidden){running=true;requestAnimationFrame(frame)}};
+        if('IntersectionObserver' in window){
+            var io=new IntersectionObserver(function(es){es.forEach(function(en){visible=en.isIntersecting;if(visible)start()})},{threshold:0});
+            io.observe(cv);
+        }else{visible=true;start()}
+        document.addEventListener('visibilitychange',function(){if(!document.hidden)start()});
+        cv.classList.add('on');
+    }catch(e){cv.classList.remove('on')}
+}
+if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('load',wwiHeroGpu);
 </script>
 <style>
 .flow-overlay{position:fixed;inset:0;z-index:999;background:var(--overlay);backdrop-filter:blur(14px);display:none;align-items:center;justify-content:center;padding:20px}
@@ -669,6 +775,10 @@ document.addEventListener('DOMContentLoaded',function(){
     }
 }
 ::view-transition-old(root),::view-transition-new(root){animation:none;mix-blend-mode:normal}
+#wwi-hero-gpu{position:absolute;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;opacity:0;transition:opacity 1.2s ease}
+#wwi-hero-gpu.on{opacity:1}
+#wwi-hero-gpu ~ .wrap{position:relative;z-index:1}
+:root[data-theme='light'] #wwi-hero-gpu{display:none}
 @media(prefers-reduced-motion:reduce){.aurora,.orbs i,.gradient-text,.btn-primary::after,.marquee .track,.chat-ava::after{animation:none}}
 </style>
 <div class="flow-overlay" id="wwi-flow">
