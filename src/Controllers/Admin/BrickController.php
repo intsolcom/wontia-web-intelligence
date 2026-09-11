@@ -4,6 +4,8 @@ namespace App\Controllers\Admin;
 use App\Core\Database;
 use App\Core\Request;
 use App\Core\Response;
+use App\Core\Session;
+use App\Services\BrickMarketService;
 use App\Widgets\WidgetRegistry;
 
 class BrickController
@@ -15,6 +17,7 @@ class BrickController
         foreach ($bricks as $id => &$b) {
             $b['uses_ai'] = $this->widgetUsesAi($id);
             $b['usage_count'] = $usage[$id] ?? 0;
+            $b['launched_at'] = $this->widgetLaunchedAt($id);
         }
         unset($b);
         Response::json(['ok' => true, 'data' => $bricks, 'total' => WidgetRegistry::count()]);
@@ -35,6 +38,46 @@ class BrickController
     public function usage(): void
     {
         Response::json(['ok' => true, 'data' => $this->usageCounts()]);
+    }
+
+    public function metrics(): void
+    {
+        $user = Session::user();
+        $data = (new BrickMarketService())->summary((int)($user['id'] ?? 0));
+        Response::json(['ok' => true, 'data' => $data]);
+    }
+
+    public function rate(Request $request, string $type = ''): void
+    {
+        if (!$this->brickExists($type)) Response::error('BRICK not found', 404);
+        $user = Session::user();
+        $result = (new BrickMarketService())->rate(
+            $type,
+            (int)($user['id'] ?? 0),
+            (int)($user['site_id'] ?? 1),
+            (int)$request->input('rating', 0),
+            (string)$request->input('comment', '')
+        );
+        $result['ok'] ? Response::success(null, $result['message']) : Response::error($result['message'], 400);
+    }
+
+    public function event(Request $request, string $type = ''): void
+    {
+        if (!$this->brickExists($type)) Response::error('BRICK not found', 404);
+        $user = Session::user();
+        (new BrickMarketService())->track(
+            $type,
+            (string)$request->input('event', ''),
+            (int)($user['id'] ?? 0),
+            (int)($user['site_id'] ?? 1)
+        );
+        Response::success(null, 'ok');
+    }
+
+    public function ratings(Request $request, string $type = ''): void
+    {
+        $user = Session::user();
+        Response::json(['ok' => true, 'data' => (new BrickMarketService())->ratingsFor($type, (int)($user['id'] ?? 0))]);
     }
 
     public function preview(Request $request, string $type = ''): void
@@ -85,6 +128,31 @@ class BrickController
             return $out;
         } catch (\Throwable $e) {
             return [];
+        }
+    }
+
+    private function brickExists(string $slug): bool
+    {
+        if ($slug === '' || !preg_match('/^[a-z0-9][a-z0-9-]{1,119}$/', $slug)) return false;
+        if (WidgetRegistry::get($slug)) return true;
+        try {
+            $stmt = Database::instance()->prepare("SELECT 1 FROM bricks WHERE slug = :s LIMIT 1");
+            $stmt->execute(['s' => $slug]);
+            if ($stmt->fetchColumn()) return true;
+        } catch (\Throwable $e) {
+        }
+        return $slug === 'seo-global-launch';
+    }
+
+    private function widgetLaunchedAt(string $type): string
+    {
+        $class = WidgetRegistry::get($type);
+        if (!$class) return '';
+        try {
+            $file = (new \ReflectionClass($class))->getFileName();
+            return $file && is_file($file) ? date('Y-m-d', (int)filemtime($file)) : '';
+        } catch (\Throwable $e) {
+            return '';
         }
     }
 

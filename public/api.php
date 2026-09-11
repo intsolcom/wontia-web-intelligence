@@ -178,8 +178,12 @@ $router->group('/api/v1/admin', function (Router $r) {
 
     $r->get('/bricks', [\App\Controllers\Admin\BrickController::class, 'index']);
     $r->get('/bricks/usage', [\App\Controllers\Admin\BrickController::class, 'usage']);
+    $r->get('/bricks/metrics', [\App\Controllers\Admin\BrickController::class, 'metrics']);
     $r->get('/bricks/{type}', [\App\Controllers\Admin\BrickController::class, 'show']);
     $r->get('/bricks/{type}/preview', [\App\Controllers\Admin\BrickController::class, 'preview']);
+    $r->get('/bricks/{type}/ratings', [\App\Controllers\Admin\BrickController::class, 'ratings']);
+    $r->post('/bricks/{type}/rate', [\App\Controllers\Admin\BrickController::class, 'rate']);
+    $r->post('/bricks/{type}/event', [\App\Controllers\Admin\BrickController::class, 'event']);
 
     $r->get('/brickhub', [\App\Controllers\Admin\BrickHubController::class, 'marketplace']);
     $r->get('/brickhub/sources', [\App\Controllers\Admin\BrickHubController::class, 'sources']);

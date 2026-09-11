@@ -560,88 +560,295 @@ W.renderDashboard=async function(){
 };
 
 W.renderBricks=async function(tab,action){
-    tab=tab||'biblioteca';
+    if(tab==='biblioteca')tab='marketplace';
+    if(tab==='extensiones')tab='instalados';
+    tab=tab||'marketplace';
     W.state.bricksTab=tab;
     var app=document.getElementById('wontia-app');
     var tabs=[
-        {id:'biblioteca',label:'Biblioteca'},
-        {id:'extensiones',label:'Extensiones'},
+        {id:'marketplace',label:'Brick Marketplace'},
+        {id:'instalados',label:'Bricks Instalados'},
         {id:'ia',label:'IA (BRICK)'},
+        {id:'repos',label:'Repos & Sync'},
         {id:'incubadora',label:'Incubadora'}
     ];
-    var bar='<div class="w-card" style="padding:14px 18px;margin-bottom:14px"><div style="font-size:13px;font-weight:700">Bricks — bloques funcionales</div><div style="font-size:11px;color:var(--w-muted);margin-top:4px;line-height:1.7">Biblioteca de bloques de página (hero, planes, FAQ…): previsualízalos en vivo y añádelos a una página en un clic. <strong>Extensiones</strong> gestiona los bricks instalables (repos GitHub, updates), <strong>IA (BRICK)</strong> la capa de inteligencia (proveedores, modelos, costos) y <strong>Incubadora</strong> los bricks del ecosistema listos para activar.</div></div>';
+    var bar='<div class="w-card" style="padding:14px 18px;margin-bottom:14px"><div style="font-size:13px;font-weight:700">Bricks — centro de bloques</div><div style="font-size:11px;color:var(--w-muted);margin-top:4px;line-height:1.7"><strong>Brick Marketplace</strong> reúne todos los bricks disponibles (core, repositorios e incubadora) con valoraciones, instalaciones y métricas. <strong>Bricks Instalados</strong> gestiona los activos, <strong>IA (BRICK)</strong> la capa de inteligencia y <strong>Repos & Sync</strong> las fuentes GitHub.</div></div>';
     bar+='<div class="w-toolbar w-mb-lg" style="border-bottom:1px solid var(--w-border);padding-bottom:12px">';
     tabs.forEach(function(t){
         bar+='<button class="w-btn '+(tab===t.id?'w-btn-primary':'w-btn-secondary')+'" onclick="wontia.bricksGo(\''+t.id+'\')">'+t.label+'</button>';
     });
     bar+='</div><div id="bs-content"></div>';
     app.innerHTML=bar;
-    if(tab==='extensiones'){
-        W.state.bhHost=document.getElementById('bs-content');
-        W.renderBrickHubInto(W.state.bhHost,true);
-        return;
-    }
-    if(tab==='ia'){
-        W.state.brickHost=document.getElementById('bs-content');
-        W.renderBrickInto(W.state.brickHost,true,action||W.state.brick.tab||'overview');
-        return;
-    }
+    if(tab==='ia'){W.state.brickHost=document.getElementById('bs-content');W.renderBrickInto(W.state.brickHost,true,action||W.state.brick.tab||'overview');return}
+    if(tab==='repos'){W.state.bhHost=document.getElementById('bs-content');W.renderBrickHubInto(W.state.bhHost,true);return}
     if(tab==='incubadora'){W.bsIncubator();return}
-    W.bsLibrary();
+    if(tab==='instalados'){W.bsInstalled();return}
+    W.bsMarketplace();
 };
 
 W.bricksGo=function(tab){
-    window.location.hash=tab==='biblioteca'?'#bricks':'#bricks/'+tab;
+    window.location.hash=tab==='marketplace'?'#bricks':'#bricks/'+tab;
 };
 
-W._bricks=null;
-W.state.bsCat='';
+W.bhRefresh=function(){
+    W._bm.loaded=false;
+    if(W.state.bricksTab==='instalados'){W.bsInstalled();return}
+    if(W.state.bricksTab==='marketplace'){W.bsMarketplace();return}
+    if(W.state.bhHost)W.renderBrickHubInto(W.state.bhHost,true);
+    else W.renderBrickHub();
+};
 
-W.bsLibrary=async function(){
+W._bm={items:null,metrics:null,loaded:false,cat:'',sort:'recientes',q:''};
+
+W.bmLevels=[
+    {n:1,emoji:'🤔',label:'Nada popular'},
+    {n:2,emoji:'🙈',label:'Empieza su aventura'},
+    {n:3,emoji:'🏍️💨',label:'Tomando velocidad'},
+    {n:4,emoji:'🏎️🔥😄',label:'¡Vamos funcional! A los usuarios les gusta'},
+    {n:5,emoji:'🚀😄👏🎉',label:'¡Fuera de órbita! Muy popular'}
+];
+
+W.bmLevel=function(n){return W.bmLevels[Math.max(1,Math.min(5,Math.round(n||1)))-1]};
+
+W.bmMetrics=function(slug){
+    return (W._bm.metrics&&W._bm.metrics.summary&&W._bm.metrics.summary[slug])||{rating_avg:0,rating_count:0,dist:[0,0,0,0,0],installs:0,views:0,previews:0,uninstalls:0,add_to_page:0,updates:0};
+};
+
+W.bmLoad=async function(force){
+    if(W._bm.loaded&&!force)return;
+    var res=await Promise.all([
+        W.api('/api/v1/admin/bricks').catch(function(){return{}}),
+        W.api('/api/v1/admin/brickhub').catch(function(){return{}}),
+        W.api('/api/v1/admin/seo-global-launch').catch(function(){return{}}),
+        W.api('/api/v1/admin/bricks/metrics').catch(function(){return{}})
+    ]);
+    var core=res[0].data||{};
+    var bhList=res[1].data||[];
+    var sgl=(res[2].data&&res[2].data.brick)||null;
+    W._bm.metrics=res[3].data||{summary:{},my_ratings:{},insights:{}};
+    var items=[];
+    for(var id in core){
+        var b=core[id];
+        items.push({slug:id,name:b.name,category:b.category||'general',version:b.version||'1.0.0',launched_at:b.launched_at||'',origin:'core',installed:true,installed_version:b.version||'1.0.0',installed_id:null,source_id:0,source_name:'Core',desc:(b.configSchema&&b.configSchema.length?b.configSchema.length+' campos configurables':'Bloque del sistema'),uses_ai:!!b.uses_ai,usage_count:b.usage_count||0,update_available:false});
+    }
+    (bhList||[]).forEach(function(b){
+        items.push({slug:b.slug,name:b.name,category:b.category||'general',version:b.version||'1.0.0',launched_at:b.created_at||b.installed_at||'',origin:'brickhub',installed:!!b.installed,installed_version:b.installed_version||'',installed_id:b.installed_id||null,source_id:b.source_id||0,source_name:b.source_name||'Repo',desc:b.description||'Brick instalable desde repositorio',uses_ai:false,usage_count:0,update_available:false});
+    });
+    if(sgl)items.push({slug:'seo-global-launch',name:'SEO Global Launch',category:'system',version:sgl.version||'1.0.0',launched_at:'',origin:'incubator',installed:!!sgl.installed,installed_version:sgl.version||'1.0.0',installed_id:null,source_id:0,source_name:'Incubadora',desc:'Motor SEO full-site: scan, IA de metadatos, autofix, JSON-LD, auditoría y tracker de bots.',uses_ai:true,usage_count:0,update_available:false});
+    var seen={},uniq=[];
+    items.forEach(function(it){if(seen[it.slug])return;seen[it.slug]=1;uniq.push(it)});
+    W._bm.items=uniq;
+    W._bm.loaded=true;
+};
+
+W.bmSortItems=function(items){
+    var s=W._bm.sort,arr=items.slice();
+    if(s==='instalados')arr.sort(function(a,b){return W.bmMetrics(b.slug).installs-W.bmMetrics(a.slug).installs});
+    else if(s==='rating')arr.sort(function(a,b){return W.bmMetrics(b.slug).rating_avg-W.bmMetrics(a.slug).rating_avg});
+    else if(s==='usados')arr.sort(function(a,b){return (b.usage_count||0)-(a.usage_count||0)});
+    else if(s==='version')arr.sort(function(a,b){return String(b.version).localeCompare(String(a.version),undefined,{numeric:true})});
+    else if(s==='categoria')arr.sort(function(a,b){return (a.category||'').localeCompare(b.category||'')||a.name.localeCompare(b.name)});
+    else arr.sort(function(a,b){return String(b.launched_at||'').localeCompare(String(a.launched_at||''))||a.name.localeCompare(b.name)});
+    return arr;
+};
+
+W.bmCard=function(it){
+    var mm=W.bmMetrics(it.slug);
+    var my=(W._bm.metrics&&W._bm.metrics.my_ratings&&W._bm.metrics.my_ratings[it.slug])||0;
+    var avg=mm.rating_avg||0;
+    var shown=my||Math.round(avg);
+    var stars='';
+    for(var i=1;i<=5;i++){
+        var lv=W.bmLevels[i-1];
+        stars+='<button class="w-bm-star'+(i<=shown?' on':'')+'" title="'+lv.emoji+' '+W.esc(lv.label)+'" onclick="event.stopPropagation();wontia.bmRate(\''+W.esc(it.slug)+'\','+i+')">'+(i<=shown?'★':'☆')+'</button>';
+    }
+    var lvl=avg>0?W.bmLevel(avg):null;
+    var origin=it.origin==='core'?'Core':(it.origin==='brickhub'?'Repo':(it.origin==='incubator'?'Incubadora':''));
+    var metrics='<span title="Instalaciones">⬇ '+W.num(mm.installs)+'</span>';
+    if(it.origin==='core')metrics+='<span title="Usos en páginas">📄 '+W.num(it.usage_count||0)+'</span>';
+    metrics+='<span title="Previews">👁 '+W.num(mm.previews)+'</span>';
+    var actions='<button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.bmPreview(\''+W.esc(it.slug)+'\')">Preview</button>';
+    if(it.origin==='core'){
+        actions+='<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.brickAddToPage(\''+W.esc(it.slug)+'\',\''+W.esc(it.name)+'\')">Añadir a página</button>';
+        actions+='<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.showBrickConfig(\''+W.esc(it.slug)+'\')">Esquema</button>';
+    }else if(it.origin==='brickhub'){
+        if(it.installed){
+            if(it.update_available)actions+='<button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.bmUpdate('+it.installed_id+',\''+W.esc(it.slug)+'\')">🔄 Actualizar</button>';
+            else actions+='<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.bhCheckUpdate('+it.installed_id+')">Check Update</button>';
+            actions+='<button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.bmUninstall('+it.installed_id+',\''+W.esc(it.name)+'\')">Desinstalar</button>';
+        }else{
+            actions+='<button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.bmInstall('+it.source_id+',\''+W.esc(it.slug)+'\',\''+W.esc(it.name)+'\')">Instalar</button>';
+        }
+    }else if(it.origin==='incubator'){
+        if(it.installed)actions+='<button class="w-btn w-btn-secondary w-btn-sm" onclick="location.hash=\'#seo-global-launch\'">Abrir panel</button>';
+        else actions+='<button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.sglActivate()">Activar</button>';
+    }
+    var updateBadge=it.update_available?'<span class="w-bm-update" title="Actualización disponible">🔄</span>':'';
+    return '<div class="w-bm-card'+(it.installed?' w-bm-installed':'')+'">'
+        +(it.installed?'<span class="w-bm-live" title="Funcionando"></span>':'')
+        +'<div class="w-bm-top"><span class="w-bm-chip">'+W.esc(origin)+'</span><span class="w-bm-chip">'+W.esc(it.category)+'</span>'+(it.installed?'<span class="w-bm-installed-label">✓ Instalado</span>':'')+updateBadge+'</div>'
+        +'<div class="w-bm-name">'+W.esc(it.name)+'</div>'
+        +'<div class="w-bm-desc">'+W.esc(it.desc)+'</div>'
+        +'<div class="w-bm-meta"><span>v'+W.esc(it.version)+'</span>'+(it.launched_at?'<span>'+W.esc(String(it.launched_at).slice(0,10))+'</span>':'')+(it.uses_ai?'<span class="w-bm-ia">✦ IA</span>':'')+'</div>'
+        +'<div class="w-bm-metrics">'+metrics+'</div>'
+        +'<div class="w-bm-rating"><div class="w-bm-stars">'+stars+'</div><div class="w-bm-emoji">'+(lvl?lvl.emoji+' '+W.esc(lvl.label)+' · '+avg.toFixed(1)+' ('+mm.rating_count+')':'Sin valoraciones — sé el primero')+'</div></div>'
+        +'<div class="w-bm-actions">'+actions+'</div></div>';
+};
+
+W.bmRender=function(){
+    var grid=document.getElementById('bs-grid');
+    if(!grid||!W._bm.items)return;
+    var q=W._bm.q||'',cat=W._bm.cat||'';
+    var items=W._bm.items.filter(function(it){
+        if(cat&&it.category!==cat)return false;
+        if(q&&(it.slug+' '+it.name+' '+(it.category||'')+' '+(it.desc||'')).toLowerCase().indexOf(q)===-1)return false;
+        return true;
+    });
+    items=W.bmSortItems(items);
+    grid.innerHTML=items.map(W.bmCard).join('')||'<div class="w-empty-state" style="grid-column:1/-1"><h3>Sin resultados</h3><p>Prueba otra categoría u otra búsqueda.</p></div>';
+};
+
+W.bmRefreshMetrics=async function(){
+    var d=await W.api('/api/v1/admin/bricks/metrics');
+    if(d.ok)W._bm.metrics=d.data;
+};
+
+W.bmRate=async function(slug,n){
+    var r=await W.api('/api/v1/admin/bricks/'+encodeURIComponent(slug)+'/rate',{method:'POST',body:{rating:n}});
+    if(r.ok){
+        var lv=W.bmLevels[n-1];
+        W.notify('Valoración: '+lv.emoji+' '+lv.label,'success');
+        if(n>=4)W.confetti();
+        await W.bmRefreshMetrics();
+        W.bmRender();
+    }
+};
+
+W.bmPreview=function(slug){
+    W.api('/api/v1/admin/bricks/'+encodeURIComponent(slug)+'/event',{method:'POST',body:{event:'preview'}}).catch(function(){});
+    W.brickPreview(slug);
+};
+
+W.bmInstall=function(sourceId,slug,name){
+    W.api('/api/v1/admin/bricks/'+encodeURIComponent(slug)+'/event',{method:'POST',body:{event:'install'}}).catch(function(){});
+    W.bhInstall(sourceId,slug,name);
+};
+
+W.bmUninstall=function(id,name){
+    W.bhUninstall(id,name);
+};
+
+W.bmUpdate=function(id,slug){
+    W.api('/api/v1/admin/bricks/'+encodeURIComponent(slug)+'/event',{method:'POST',body:{event:'update'}}).catch(function(){});
+    W.bhApplyUpdate(id);
+};
+
+W.bmInsights=async function(){
+    await W.bmLoad();
+    var ins=(W._bm.metrics&&W._bm.metrics.insights)||{};
+    var tot=ins.totals||{};
+    var ev=tot.events||{};
+    var dist=tot.dist||[0,0,0,0,0];
+    var max=Math.max.apply(null,dist.concat([1]));
+    var bars='';
+    for(var i=5;i>=1;i--){
+        var lv=W.bmLevels[i-1];
+        bars+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="width:150px;font-size:11px">'+lv.emoji+' '+W.esc(lv.label)+'</span><div class="w-brick-bar" style="flex:1"><i style="width:'+Math.round(dist[i-1]/max*100)+'%"></i></div><span style="width:40px;text-align:right;font-size:11px">'+dist[i-1]+'</span></div>';
+    }
+    var rank=function(list,key){
+        return (list||[]).map(function(x){return '<div style="display:flex;justify-content:space-between;font-size:11px;padding:4px 0;border-bottom:1px solid var(--w-border)"><span>'+W.esc(x.slug||x.name||'')+'</span><span style="color:var(--w-muted)">'+x[key]+'</span></div>'}).join('')||'<div style="font-size:11px;color:var(--w-muted)">Sin datos</div>';
+    };
+    var html='<div class="w-stats">'
+        +'<div class="w-stat-card"><div class="w-stat-value">'+W.num(tot.ratings||0)+'</div><div class="w-stat-label">Valoraciones</div></div>'
+        +'<div class="w-stat-card"><div class="w-stat-value">'+(tot.avg||0)+' ★</div><div class="w-stat-label">Promedio</div></div>'
+        +'<div class="w-stat-card"><div class="w-stat-value">'+W.num(tot.five||0)+'</div><div class="w-stat-label">5 estrellas 🚀</div></div>'
+        +'<div class="w-stat-card"><div class="w-stat-value">'+W.num(tot.low||0)+'</div><div class="w-stat-label">≤2 estrellas</div></div>'
+        +'</div>';
+    html+='<div class="w-brick-grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">'
+        +'<div class="w-card"><h3>Distribución de estrellas</h3>'+bars+'</div>'
+        +'<div class="w-card"><h3>Embudo medible</h3>'
+        +'<div style="font-size:12px;line-height:2">👁 Previews: <strong>'+W.num(ev.preview||0)+'</strong></div>'
+        +'<div style="font-size:12px;line-height:2">⬇ Instalaciones: <strong>'+W.num(ev.install||0)+'</strong></div>'
+        +'<div style="font-size:12px;line-height:2">📄 Añadidos a página: <strong>'+W.num(ev.add_to_page||0)+'</strong></div>'
+        +'<div style="font-size:12px;line-height:2">🔄 Actualizaciones: <strong>'+W.num(ev.update||0)+'</strong></div>'
+        +'<div style="font-size:12px;line-height:2">🗑 Desinstalaciones: <strong>'+W.num(ev.uninstall||0)+'</strong></div>'
+        +'</div></div>';
+    html+='<div class="w-brick-grid2" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-top:14px">'
+        +'<div class="w-card"><h3>🏆 Mejor valorados</h3>'+rank(ins.top_rated,'rating_avg')+'</div>'
+        +'<div class="w-card"><h3>⚠ Menos gustados</h3>'+rank(ins.worst_rated,'rating_avg')+'</div>'
+        +'<div class="w-card"><h3>⬇ Más instalados</h3>'+rank(ins.most_installed,'installs')+'</div>'
+        +'</div>';
+    var rec=(ins.recent||[]).map(function(r){var lv=W.bmLevels[(r.rating||1)-1];return '<div style="font-size:11px;padding:4px 0;border-bottom:1px solid var(--w-border)">'+lv.emoji+' <strong>'+W.esc(r.brick_slug)+'</strong> — '+W.esc(r.comment||'')+' <span style="color:var(--w-muted)">'+W.esc(r.username||'')+'</span></div>'}).join('')||'<div style="font-size:11px;color:var(--w-muted)">Sin comentarios aún</div>';
+    html+='<div class="w-card" style="margin-top:14px"><h3>Últimas opiniones</h3>'+rec+'</div>';
+    W.modal('Métricas de gusto — Brick Marketplace',html,'<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cerrar</button>');
+};
+
+W.bsMarketplace=async function(){
     var el=document.getElementById('bs-content');
     if(!el)return;
-    el.innerHTML='<div style="text-align:center;padding:40px;color:var(--w-muted)">Cargando biblioteca...</div>';
-    var d=await W.api('/api/v1/admin/bricks');
-    W._bricks=d.data||{};
+    el.innerHTML='<div style="text-align:center;padding:40px;color:var(--w-muted)">Cargando Brick Marketplace...</div>';
+    await W.bmLoad();
+    var items=W._bm.items||[];
     var cats={};
-    for(var id in W._bricks){var b=W._bricks[id];var c=b.category||'general';(cats[c]=cats[c]||[]).push(id)}
-    var html='<div class="w-flex-between w-mb" style="gap:12px;flex-wrap:wrap">'
-        +'<input class="w-input" id="bs-search" placeholder="Buscar brick…" style="max-width:260px"/>'
-        +'<div class="w-toolbar" id="bs-cats"><button class="w-btn w-btn-primary w-btn-sm" data-cat="">Todos</button>';
-    for(var c in cats)html+='<button class="w-btn w-btn-secondary w-btn-sm" data-cat="'+W.esc(c)+'">'+W.esc(c)+' ('+cats[c].length+')</button>';
-    html+='</div></div><div id="bs-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px"></div>';
+    items.forEach(function(it){cats[it.category]=1});
+    var ins=(W._bm.metrics&&W._bm.metrics.insights)||{};
+    var tot=ins.totals||{};
+    var top=(ins.top_rated&&ins.top_rated[0])||null;
+    var worst=(ins.worst_rated&&ins.worst_rated[0])||null;
+    var ev=tot.events||{};
+    var html='<div class="w-bm-insights">'
+        +'<div class="w-bm-ins"><b>'+W.num(tot.ratings||0)+'</b><span>Valoraciones</span></div>'
+        +'<div class="w-bm-ins"><b>'+(tot.avg||0)+' ★ '+(tot.ratings?W.bmLevel(tot.avg).emoji:'')+'</b><span>Promedio global</span></div>'
+        +'<div class="w-bm-ins"><b>'+(top?W.esc(top.slug):'—')+'</b><span>Mejor valorado'+(top?' · '+top.rating_avg+'★':'')+'</span></div>'
+        +'<div class="w-bm-ins"><b>'+(worst?W.esc(worst.slug):'—')+'</b><span>Menos gustado'+(worst?' · '+worst.rating_avg+'★':'')+'</span></div>'
+        +'<div class="w-bm-ins"><b>'+(ev.preview||0)+' → '+(ev.install||0)+'</b><span>Previews → Instalaciones</span></div>'
+        +'<div class="w-bm-ins" style="display:flex;align-items:center"><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.bmInsights()">Ver métricas de gusto</button></div>'
+        +'</div>';
+    html+='<div class="w-flex-between w-mb" style="gap:12px;flex-wrap:wrap">'
+        +'<input class="w-input" id="bs-search" placeholder="Buscar brick…" style="max-width:240px"/>'
+        +'<div class="w-toolbar" id="bs-cats"><button class="w-btn w-btn-primary w-btn-sm" data-cat="">Todas ('+items.length+')</button>';
+    Object.keys(cats).sort().forEach(function(c){html+='<button class="w-btn w-btn-secondary w-btn-sm" data-cat="'+W.esc(c)+'">'+W.esc(c)+'</button>'});
+    html+='</div><select class="w-select" id="bs-sort" style="max-width:220px">'
+        +'<option value="recientes">Más recientes</option>'
+        +'<option value="instalados">Más instalados</option>'
+        +'<option value="rating">Mejor valorados</option>'
+        +'<option value="usados">Más usados en páginas</option>'
+        +'<option value="version">Versión (mayor primero)</option>'
+        +'<option value="categoria">Por categoría</option>'
+        +'</select></div>';
+    html+='<div id="bs-grid" class="w-bm-grid"></div>';
     el.innerHTML=html;
-    W.bsRenderGrid();
-    document.getElementById('bs-search').addEventListener('input',W.bsRenderGrid);
+    document.getElementById('bs-sort').value=W._bm.sort;
+    document.getElementById('bs-sort').addEventListener('change',function(){W._bm.sort=this.value;W.bmRender()});
+    document.getElementById('bs-search').addEventListener('input',function(){W._bm.q=this.value.toLowerCase();W.bmRender()});
     document.querySelectorAll('#bs-cats button').forEach(function(btn){
         btn.addEventListener('click',function(){
             document.querySelectorAll('#bs-cats button').forEach(function(x){x.classList.remove('w-btn-primary');x.classList.add('w-btn-secondary')});
             btn.classList.remove('w-btn-secondary');btn.classList.add('w-btn-primary');
-            W.state.bsCat=btn.dataset.cat||'';
-            W.bsRenderGrid();
+            W._bm.cat=btn.dataset.cat||'';
+            W.bmRender();
         });
     });
+    W.bmRender();
 };
 
-W.bsRenderGrid=function(){
+W.bsInstalled=async function(){
+    var el=document.getElementById('bs-content');
+    if(!el)return;
+    el.innerHTML='<div style="text-align:center;padding:40px;color:var(--w-muted)">Cargando bricks instalados...</div>';
+    await W.bmLoad();
+    var upd={};
+    try{
+        var u=await W.api('/api/v1/admin/brickhub/updates');
+        (u.updates||[]).forEach(function(x){upd[x.slug||x.brick_slug||'']=x});
+    }catch(e){}
+    var items=(W._bm.items||[]).filter(function(it){return it.installed});
+    items.forEach(function(it){it.update_available=!!upd[it.slug]});
+    var html='<div class="w-card" style="padding:14px 18px;margin-bottom:14px"><div style="font-size:13px;font-weight:700">Bricks Instalados</div><div style="font-size:11px;color:var(--w-muted);margin-top:4px;line-height:1.7">Bricks activos en este sitio. El <span style="color:var(--w-primary)">punto verde palpitante</span> indica funcionamiento correcto; el resplandor verde marca los instalados y 🔄 avisa actualizaciones disponibles.</div></div>';
+    html+='<div class="w-bm-grid" id="bs-grid"></div>';
+    el.innerHTML=html;
     var grid=document.getElementById('bs-grid');
-    if(!grid||!W._bricks)return;
-    var q=(document.getElementById('bs-search')?document.getElementById('bs-search').value:'').toLowerCase();
-    var cat=W.state.bsCat||'';
-    var html='';
-    for(var id in W._bricks){
-        var b=W._bricks[id];
-        if(cat&&(b.category||'general')!==cat)continue;
-        if(q&&(id+' '+b.name+' '+(b.category||'')).toLowerCase().indexOf(q)===-1)continue;
-        var badges='<span class="w-brick-chip">v'+W.esc(b.version||'1.0')+'</span>';
-        if(b.uses_ai)badges+='<span class="w-brick-chip" style="color:#67e8f9;border:1px solid rgba(34,211,238,.35)">✦ IA</span>';
-        if(b.usage_count>0)badges+='<span class="w-brick-chip" style="color:#34d399">En '+b.usage_count+' página'+(b.usage_count===1?'':'s')+'</span>';
-        html+='<div class="w-card" style="padding:18px"><div style="display:flex;justify-content:space-between;gap:10px;margin-bottom:8px"><div><div style="font-size:13px;font-weight:700">'+W.esc(b.name)+'</div><div style="font-size:10px;color:var(--w-muted);text-transform:uppercase">'+W.esc(b.category||'general')+'</div></div><span style="font-size:18px">&#x1F9F1;</span></div>'
-            +'<div style="margin-bottom:10px;min-height:56px">'+b.adminPreview+'</div><div style="margin-bottom:10px">'+badges+'</div>'
-            +'<div class="w-flex w-gap-sm" style="flex-wrap:wrap"><button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.brickPreview(\''+W.esc(id)+'\')">Preview</button><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.brickAddToPage(\''+W.esc(id)+'\',\''+W.esc(b.name)+'\')">Añadir a página</button><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.showBrickConfig(\''+W.esc(id)+'\')">Esquema</button></div></div>';
-    }
-    if(!html)html='<div class="w-empty-state" style="grid-column:1/-1"><h3>Sin resultados</h3><p>Prueba otra categoría u otra búsqueda.</p></div>';
-    grid.innerHTML=html;
+    grid.innerHTML=items.map(W.bmCard).join('')||'<div class="w-empty-state" style="grid-column:1/-1"><h3>Sin bricks instalados</h3><p>Explora el Brick Marketplace para instalar.</p></div>';
 };
 
 W.bsIncubator=function(){
@@ -965,7 +1172,7 @@ W.bhSyncSource=async function(id){
 W.bhSyncAll=async function(){
     W.notify('Syncing all sources...','info');
     var r=await W.api('/api/v1/admin/brickhub/sync',{method:'POST',body:{}});
-    if(r.ok){W.notify('Sync complete','success');W.renderBrickHub()}
+    if(r.ok){W.notify('Sync complete','success');W.bhRefresh()}
 };
 
 W.bhDiscoverSource=async function(id){
@@ -980,13 +1187,13 @@ W.bhDiscoverSource=async function(id){
 
 W.bhInstall=async function(sourceId,slug,name){
     var r=await W.api('/api/v1/admin/brickhub/install',{method:'POST',body:{source_id:sourceId,slug:slug,name:name}});
-    if(r.ok){W.notify('Installed: '+name,'success');W.renderBrickHub()}
+    if(r.ok){W.notify('Installed: '+name,'success');W.bhRefresh()}
 };
 
 W.bhUninstall=function(id,name){
     W.confirm('Uninstall "'+name+'"?',async function(){
         var r=await W.api('/api/v1/admin/brickhub/uninstall/'+id,{method:'DELETE'});
-        if(r.ok){W.notify('Uninstalled: '+name,'success');W.renderBrickHub()}
+        if(r.ok){W.notify('Uninstalled: '+name,'success');W.bhRefresh()}
     });
 };
 
@@ -1084,7 +1291,7 @@ W.bhCheckUpdate=async function(brickId){
 W.bhApplyUpdate=async function(brickId){
     W.notify('Applying update...','info');
     var r=await W.api('/api/v1/admin/brickhub/updates/apply/'+brickId,{method:'POST'});
-    if(r.ok){W.notify('Updated!','success');W.renderBrickHub()}
+    if(r.ok){W.notify('Updated!','success');W.bhRefresh()}
 };
 
 W.bhApplyAllUpdates=function(){
@@ -1092,7 +1299,7 @@ W.bhApplyAllUpdates=function(){
         W.notify('Applying all updates...','info');
         var r=await W.api('/api/v1/admin/brickhub/updates/apply-all',{method:'POST'});
         if(r.ok)W.notify(r.applied+' updated, '+r.failed+' failed','success');
-        W.renderBrickHub();
+        W.bhRefresh();
     });
 };
 
@@ -2335,8 +2542,9 @@ W.palette=function(){
         {label:'IA (BRICK) · Overview',hash:'#bricks/ia/overview',sub:'KPIs y presupuesto de IA',need:'bricks'},
         {label:'IA (BRICK) · Policies',hash:'#bricks/ia/policies',sub:'Estrategias y fallback',need:'bricks'},
         {label:'IA (BRICK) · Test',hash:'#bricks/ia/test',sub:'Probar un modelo',need:'bricks'},
-        {label:'Bricks · Biblioteca',hash:'#bricks',sub:'Bloques de página: preview y añadir',need:'bricks'},
-        {label:'Bricks · Extensiones',hash:'#bricks/extensiones',sub:'Repos GitHub, instalar, updates',need:'bricks'},
+        {label:'Brick Marketplace',hash:'#bricks',sub:'Todos los bricks, valoraciones y métricas',need:'bricks'},
+        {label:'Bricks Instalados',hash:'#bricks/instalados',sub:'Gestionar bricks activos',need:'bricks'},
+        {label:'Bricks · Repos & Sync',hash:'#bricks/repos',sub:'Fuentes GitHub, sync y updates',need:'bricks'},
         {label:'Bricks · Incubadora',hash:'#bricks/incubadora',sub:'Bricks del ecosistema',need:'bricks'},
         {label:'WWI · Sistema',hash:'#wwi',sub:'Estado y configuración',need:'wwi'}
     ].filter(function(a){return document.querySelector('.w-nav-item[data-panel="'+a.need+'"]')});
@@ -2348,12 +2556,11 @@ W.palette=function(){
         items.push({label:t.textContent.trim(),hash:a.getAttribute('href'),sub:'Panel'});
     });
     items=items.concat(actions);
-    if(W._bricks){
-        for(var bid in W._bricks){
-            (function(id,name){
-                items.push({label:'Brick · '+name,sub:'Añadir a página…',action:function(){W.brickAddToPage(id,name)}});
-            })(bid,W._bricks[bid].name);
-        }
+    if(W._bm&&W._bm.items){
+        W._bm.items.forEach(function(it){
+            if(it.origin!=='core')return;
+            items.push({label:'Brick · '+it.name,sub:'Añadir a página…',action:function(){W.brickAddToPage(it.slug,it.name)}});
+        });
     }
     var ov=document.createElement('div');
     ov.className='w-palette-overlay';
