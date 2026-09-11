@@ -18,6 +18,7 @@ class BrickController
             $b['uses_ai'] = $this->widgetUsesAi($id);
             $b['usage_count'] = $usage[$id] ?? 0;
             $b['launched_at'] = $this->widgetLaunchedAt($id);
+            $b['functional'] = $this->widgetFunctional($id);
         }
         unset($b);
         Response::json(['ok' => true, 'data' => $bricks, 'total' => WidgetRegistry::count()]);
@@ -153,6 +154,15 @@ class BrickController
             return $file && is_file($file) ? date('Y-m-d', (int)filemtime($file)) : '';
         } catch (\Throwable $e) {
             return '';
+        }
+    }
+
+    private function widgetFunctional(string $type): bool
+    {
+        try {
+            return strlen(WidgetRegistry::render($type, [])) >= 200;
+        } catch (\Throwable $e) {
+            return false;
         }
     }
 

@@ -572,7 +572,7 @@ W.renderBricks=async function(tab,action){
         {id:'repos',label:'Repos & Sync'},
         {id:'incubadora',label:'Incubadora'}
     ];
-    var bar='<div class="w-card" style="padding:14px 18px;margin-bottom:14px"><div style="font-size:13px;font-weight:700">Bricks — centro de bloques</div><div style="font-size:11px;color:var(--w-muted);margin-top:4px;line-height:1.7"><strong>Brick Marketplace</strong> reúne todos los bricks disponibles (core, repositorios e incubadora) con valoraciones, instalaciones y métricas. <strong>Bricks Instalados</strong> gestiona los activos, <strong>IA (BRICK)</strong> la capa de inteligencia y <strong>Repos & Sync</strong> las fuentes GitHub.</div></div>';
+    var bar='<div class="w-card" style="padding:14px 18px;margin-bottom:14px"><div style="font-size:13px;font-weight:700">Bricks — centro de bloques</div><div style="font-size:11px;color:var(--w-muted);margin-top:4px;line-height:1.7"><strong>Brick Marketplace</strong> reúne todos los bricks disponibles (Core, repositorios e incubadora) con valoraciones, instalaciones y métricas. Solo las <strong style="color:var(--w-primary)">extensiones acopladas</strong> cuentan como instaladas; los bricks <strong>Core</strong> están disponibles para añadir a páginas. <strong>Bricks Acoplados</strong> gestiona lo instalado, <strong>IA (BRICK)</strong> la capa de inteligencia y <strong>Repos & Sync</strong> las fuentes GitHub.</div></div>';
     bar+='<div class="w-toolbar w-mb-lg" style="border-bottom:1px solid var(--w-border);padding-bottom:12px">';
     tabs.forEach(function(t){
         bar+='<button class="w-btn '+(tab===t.id?'w-btn-primary':'w-btn-secondary')+'" onclick="wontia.bricksGo(\''+t.id+'\')">'+t.label+'</button>';
@@ -629,7 +629,7 @@ W.bmLoad=async function(force){
     var items=[];
     for(var id in core){
         var b=core[id];
-        items.push({slug:id,name:b.name,category:b.category||'general',version:b.version||'1.0.0',launched_at:b.launched_at||'',origin:'core',installed:true,installed_version:b.version||'1.0.0',installed_id:null,source_id:0,source_name:'Core',desc:(b.configSchema&&b.configSchema.length?b.configSchema.length+' campos configurables':'Bloque del sistema'),uses_ai:!!b.uses_ai,usage_count:b.usage_count||0,update_available:false});
+        items.push({slug:id,name:b.name,category:b.category||'general',version:b.version||'1.0.0',launched_at:b.launched_at||'',origin:'core',core:true,installed:false,functional:b.functional!==false,installed_version:'',installed_id:null,source_id:0,source_name:'Core',desc:(b.configSchema&&b.configSchema.length?b.configSchema.length+' campos configurables':'Bloque del sistema'),uses_ai:!!b.uses_ai,usage_count:b.usage_count||0,update_available:false});
     }
     (bhList||[]).forEach(function(b){
         if(sgl&&b.slug===sgl.slug)return;
@@ -670,7 +670,7 @@ W.bmCard=function(it){
     metrics+='<span title="Previews">👁 '+W.num(mm.previews)+'</span>';
     var actions='<button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.bmPreview(\''+W.esc(it.slug)+'\')">Preview</button>';
     if(it.origin==='core'){
-        actions+='<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.brickAddToPage(\''+W.esc(it.slug)+'\',\''+W.esc(it.name)+'\')">Añadir a página</button>';
+        if(it.functional!==false)actions+='<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.brickAddToPage(\''+W.esc(it.slug)+'\',\''+W.esc(it.name)+'\')">Añadir a página</button>';
         actions+='<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.showBrickConfig(\''+W.esc(it.slug)+'\')">Esquema</button>';
     }else if(it.origin==='brickhub'){
         if(it.installed){
@@ -687,11 +687,12 @@ W.bmCard=function(it){
         }else actions+='<button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.bmActivate(this)">Acoplar</button>';
     }
     var updateBadge=it.update_available?'<span class="w-bm-update" title="Actualización disponible">🔄</span>':'';
-    var stateLabel=it.installed?'<span class="w-bm-installed-label">✓ Acoplado</span>':'<span class="w-bm-decoupled-label">○ Desacoplado</span>';
+    var stateLabel=it.installed?'<span class="w-bm-installed-label">✓ Acoplado</span>':'<span class="w-bm-decoupled-label"'+(it.core?' title="Los bricks Core están disponibles sin necesidad de acople"':'')+'>○ Desacoplado</span>';
+    var devChip=(it.origin==='core'&&it.functional===false)?'<span class="w-bm-dev" title="Widget en desarrollo — aún no renderiza contenido">🧪 En desarrollo</span>':'';
     return '<div class="w-bm-card'+(it.installed?' w-bm-installed':'')+'" data-slug="'+W.esc(it.slug)+'">'
         +'<span class="w-bm-blocks'+(it.installed?' on':' off')+'" aria-hidden="true"></span>'
         +(it.installed?'<span class="w-bm-live" title="Funcionando"></span>':'')
-        +'<div class="w-bm-top"><span class="w-bm-chip">'+W.esc(origin)+'</span><span class="w-bm-chip">'+W.esc(it.category)+'</span>'+stateLabel+updateBadge+'</div>'
+        +'<div class="w-bm-top"><span class="w-bm-chip">'+W.esc(origin)+'</span><span class="w-bm-chip">'+W.esc(it.category)+'</span>'+stateLabel+devChip+updateBadge+'</div>'
         +'<div class="w-bm-name">'+W.esc(it.name)+'</div>'
         +'<div class="w-bm-desc">'+W.esc(it.desc)+'</div>'
         +'<div class="w-bm-meta"><span>v'+W.esc(it.version)+'</span>'+(it.launched_at?'<span>'+W.esc(String(it.launched_at).slice(0,10))+'</span>':'')+(it.uses_ai?'<span class="w-bm-ia">✦ IA</span>':'')+'</div>'
