@@ -1254,7 +1254,7 @@ W.renderFactory=async function(tab){
     tab=tab||m.tab||'inicio';
     m.tab=tab;
     var app=document.getElementById('wontia-app');
-    var tabs=[['inicio','Inicio'],['sitios','Sitios'],['dominios','Dominios'],['emails','Emails'],['pedidos','Pedidos'],['saldos','Saldos'],['ia','Consumo IA'],['jobs','Jobs'],['planes','Planes'],['config','Config'],['margin','Margin Guard'],['system','System']];
+    var tabs=[['inicio','Inicio'],['sitios','Sitios'],['dominios','Dominios'],['emails','Emails'],['pedidos','Pedidos'],['saldos','Saldos'],['ia','Consumo IA'],['jobs','Jobs'],['planes','Planes'],['config','Config'],['margin','Margin Guard'],['system','Actualizaciones']];
     var bar='<div class="w-brick-tabs">';
     tabs.forEach(function(t){
         bar+='<button class="w-brick-tab'+(tab===t[0]?' active':'')+'" onclick="wontia.factoryGo(\''+t[0]+'\')">'+t[1]+'</button>';
@@ -1411,7 +1411,7 @@ W.factoryInicio=async function(){
     kpis.forEach(function(k){html+='<div class="w-stat-card"><div class="w-stat-value">'+k[1]+'</div><div class="w-stat-label">'+W.esc(k[0])+'</div></div>'});
     html+='</div>';
     html+='<div class="w-card"><h3>Servicios del ecosistema</h3><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px">';
-    [['Sitios web','#sitios','Gestionar sitios de clientes','fabrik'],['Dominios','#dominios','Registro y ciclo de vida','dom'],['Emails','#emails','Buzones corporativos','mail'],['Pedidos y Pagos','#pedidos','Órdenes y transiciones','ord'],['Saldos','#saldos','Créditos y consumos','sal'],['Consumo IA','#ia','Tokens y costos por cliente','ia']].forEach(function(s){
+    [['Sitios web','#sitios','Gestionar sitios de clientes','fabrik'],['Dominios','#dominios','Registro y ciclo de vida','dom'],['Emails','#emails','Buzones corporativos','mail'],['Pedidos y Pagos','#pedidos','Órdenes y transiciones','ord'],['Saldos','#saldos','Créditos y consumos','sal'],['Consumo IA','#ia','Tokens y costos por cliente','ia'],['Actualizaciones','#system','Actualizar el sistema desde Git','sys']].forEach(function(s){
         html+='<div class="w-card" style="padding:16px;cursor:pointer" onclick="wontia.factoryGo(\''+s[1].slice(1)+'\')"><div style="font-size:13px;font-weight:600">'+s[0]+'</div><div style="font-size:11px;color:var(--w-muted);margin-top:4px">'+s[2]+'</div></div>';
     });
     html+='</div></div>';
