@@ -1644,13 +1644,45 @@ W.factoryRunJobs=async function(){
 
 W.factorySystem=async function(){
     var el=document.getElementById('factory-content');
-    el.innerHTML='<div style="text-align:center;padding:40px;color:var(--w-muted)">Loading...</div>';
+    if(!el)return;
     var r=await W.api('/api/v1/admin/system/updates');
     var rows=r.data||[];
+    var s=await W.api('/api/v1/admin/system/status');
+    var st=(s.data)||{status:'idle'};
+    var running=st.status==='running';
     var html='<div class="w-card"><h3>Actualización desde Git</h3>';
-    html+='<div style="font-size:12px;color:var(--w-muted);line-height:1.7;margin-bottom:14px">Actualiza TODOS los componentes del sistema (sitios, factory, temas, módulos) desde el repositorio oficial <code>intsolcom/wontia-web-intelligence</code>. El agente del servidor descarga el último commit, reconstruye la imagen, recrea los contenedores y verifica salud; si algo falla, hace rollback automático. Tarda ~1-2 minutos.</div>';
-    html+='<button class="w-btn w-btn-primary" onclick="wontia.factoryRunUpdate()">Actualizar sistema desde Git</button>';
-    html+='<div style="font-size:11px;color:var(--w-muted);margin-top:10px">Se ejecuta vía cron del servidor en menos de 1 minuto.</div></div>';
+
+    if(running){
+        var pct=Math.max(0,Math.min(100,parseInt(st.pct)||0));
+        var steps=[['clone','Descarga'],['sync','Sincronización'],['build','Build'],['recreate','Contenedores'],['health','Salud']];
+        var stepIdx=0;steps.forEach(function(x,i){if(x[0]===st.step)stepIdx=i});
+        var stepsHtml='';
+        steps.forEach(function(x,i){
+            var on=i<stepIdx, cur=i===stepIdx;
+            stepsHtml+='<span class="mono" style="font-size:10px;padding:3px 8px;border-radius:6px;'+(cur?'background:rgba(34,211,238,.15);color:#B89EFF;font-weight:700':'color:var(--w-muted)')+'">'+(on?'✓ ':'')+W.esc(x[1])+'</span>';
+        });
+        html+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><span style="font-size:11px;font-weight:700;letter-spacing:.06em;color:#B89EFF">ACTUALIZANDO SISTEMA</span><span class="mono" style="font-size:18px;font-weight:700">'+pct+'%</span></div>';
+        html+='<div style="height:8px;background:var(--w-border);border-radius:4px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:linear-gradient(90deg,#22d3ee,#8b5cf6);transition:width .5s ease"></div></div>';
+        html+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">'+stepsHtml+'</div>';
+        html+='<div class="mono" style="font-size:11px;color:var(--w-muted);margin-top:10px">'+W.esc(st.message||'')+' &middot; '+W.num(st.elapsed_s||0)+'s transcurridos'+(st.eta_s?' &middot; ~'+W.num(st.eta_s)+'s restantes':'')+(st.containers_total?' &middot; contenedores '+W.num(st.containers_done||0)+'/'+W.num(st.containers_total):'')+'</div>';
+        if(st.commit)html+='<div class="mono" style="font-size:10px;color:var(--w-muted);margin-top:4px">commit '+W.esc(st.commit)+'</div>';
+        html+='</div>';
+    }else if(st.status==='success'){
+        html+='<div style="background:rgba(0,184,125,.08);border:1px solid rgba(0,184,125,.4);border-radius:10px;padding:18px;display:flex;gap:14px;align-items:center;margin-bottom:14px">'
+            +'<div style="width:38px;height:38px;border-radius:10px;background:#00B87D;color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700">✓</div>'
+            +'<div><div style="font-size:14px;font-weight:800;color:#00B87D;letter-spacing:.05em">SISTEMA ACTUALIZADO</div>'
+            +'<div class="mono" style="font-size:11px;color:var(--w-muted);margin-top:2px">commit '+W.esc(st.commit||'-')+(st.containers_total?' · '+W.num(st.containers_total)+' contenedores':'')+(st.elapsed_s?' · '+W.num(st.elapsed_s)+'s':'')+'</div></div></div>';
+        html+='<div style="font-size:12px;color:var(--w-muted);line-height:1.7;margin-bottom:14px">Todos los componentes están en la última versión del repositorio.</div>';
+        html+='<button class="w-btn w-btn-primary" onclick="wontia.factoryRunUpdate()">Actualizar de nuevo desde Git</button>';
+    }else if(st.status==='rolled_back'){
+        html+='<div style="background:rgba(190,19,65,.08);border:1px solid rgba(190,19,65,.4);border-radius:10px;padding:18px;margin-bottom:14px"><div style="font-size:13px;font-weight:800;color:var(--w-accent);letter-spacing:.05em">ROLLBACK APLICADO</div><div class="mono" style="font-size:11px;color:var(--w-muted);margin-top:4px">La actualización falló la verificación y se restauró la versión anterior. Revisa el log del servidor.</div></div>';
+        html+='<button class="w-btn w-btn-primary" onclick="wontia.factoryRunUpdate()">Reintentar actualización</button>';
+    }else{
+        html+='<div style="font-size:12px;color:var(--w-muted);line-height:1.7;margin-bottom:14px">Actualiza TODOS los componentes del sistema (sitios, factory, temas, módulos) desde el repositorio oficial <code>intsolcom/wontia-web-intelligence</code>. El agente del servidor descarga el último commit, reconstruye la imagen, recrea los contenedores y verifica salud; si algo falla, hace rollback automático. Tarda ~1-2 minutos.</div>';
+        html+='<button class="w-btn w-btn-primary" onclick="wontia.factoryRunUpdate()">Actualizar sistema desde Git</button>';
+        html+='<div style="font-size:11px;color:var(--w-muted);margin-top:10px">Se ejecuta vía cron del servidor en menos de 1 minuto.</div>';
+    }
+    html+='</div>';
     html+='<div class="w-card"><h3>Historial de actualizaciones</h3>';
     if(!rows.length){html+='<div class="w-empty-state" style="padding:16px"><p>Sin actualizaciones aún</p></div>';}
     else{
@@ -1664,13 +1696,17 @@ W.factorySystem=async function(){
     }
     html+='</div>';
     el.innerHTML=html;
+    if(running){
+        clearTimeout(W.state.updatePoll);
+        W.state.updatePoll=setTimeout(function(){if(W.state.factory.tab==='system')W.factorySystem()},2500);
+    }
 };
 
 W.factoryRunUpdate=function(){
     W.confirm('¿Actualizar TODO el sistema desde Git? Los sitios se reinician brevemente (~1-2 min).',async function(){
         W.notify('Encolando actualización...','info');
         var r=await W.api('/api/v1/admin/system/update',{method:'POST'});
-        if(r.ok){W.notify(r.message,'success');setTimeout(W.factorySystem,4000)}
+        if(r.ok){W.notify(r.message,'success');setTimeout(W.factorySystem,2500)}
         else if(r.message)W.notify(r.message,'error');
     });
 };

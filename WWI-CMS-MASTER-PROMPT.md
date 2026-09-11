@@ -90,3 +90,35 @@ El monitor es un paso de PEDS: **ningún cambio se considera terminado sin pasar
 48. Puntuación de calidad por brick (tests, docs, seguridad).
 49. Auto-documentación de bricks (meta → docs).
 50. Panel de operador unificado: sitios + bricks + updates + salud + costos.
+
+## 6. 30 INNOVACIONES — MENÚ Y PROCESO DE ACTUALIZACIÓN
+1. Barra de progreso con porcentaje en tiempo real (polling 2.5s).
+2. Tiempo transcurrido y estimado (ETA calculado por ritmo real).
+3. Indicador de pasos: Descarga → Sincronización → Build → Contenedores → Salud.
+4. Contador de contenedores recreados (x/6) en vivo.
+5. Aviso verde flat "SISTEMA ACTUALIZADO" con commit, contenedores y duración.
+6. Banner de rollback en rojo cuando falla la verificación.
+7. Botón deshabilitado mientras corre (evita doble enqueue).
+8. Historial con estado, commit, contenedores y duración por corrida.
+9. Auto-refresh del historial al terminar (sin recargar página).
+10. Polling auto-cancelable al cambiar de pestaña.
+11. Detección de actualización estancada (stale > 5 min) con aviso.
+12. Notificación toast al encolar y al completar.
+13. Changelog visible: lista de commits incluidos en la actualización.
+14. Verificación de versión actual vs última de GitHub antes de actualizar.
+15. Badge "Actualización disponible" en el sidebar cuando el remoto tiene commits nuevos.
+16. Modo mantenimiento automático por sitio durante la recreación.
+17. Canary: recrear 1 contenedor primero y esperar salud antes del resto.
+18. Health-check con reintentos (3 intentos, backoff 5s).
+19. Rollback selectivo (solo contenedores fallidos).
+20. Snapshot pre-update (tag + dump de DB opcional).
+21. Firma de integridad del commit (SHA verificado contra GitHub API).
+22. Log en vivo del agente visible en el panel (últimas N líneas).
+23. Botón "Ver detalles" por actualización (errores, contenedores, timing por paso).
+24. Programación de ventana de mantenimiento (hora preferida).
+25. Notificación por email/Telegram al operador cuando termina o falla.
+26. Modo dry-run: simular sin recrear (valida clone+build).
+27. Rate-limit de updates (mínimo 5 min entre corridas).
+28. Firma de quién solicitó cada actualización (auditoría).
+29. Estado del agente (online/offline) visible en el panel.
+30. Export del reporte de actualización (JSON/PDF) para auditoría.

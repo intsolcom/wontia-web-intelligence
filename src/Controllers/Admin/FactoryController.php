@@ -355,6 +355,12 @@ class FactoryController
         Response::json(['ok' => true, 'data' => $this->service->systemUpdates()]);
     }
 
+    public function systemStatus(): void
+    {
+        $this->requireSuper();
+        Response::json(['ok' => true, 'data' => $this->service->systemUpdateStatus()]);
+    }
+
     private function escHtml(string $s): string
     {
         return htmlspecialchars($s, ENT_QUOTES, 'UTF-8');

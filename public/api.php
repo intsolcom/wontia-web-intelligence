@@ -261,6 +261,7 @@ $router->group('/api/v1/admin', function (Router $r) {
     $r->get('/factory/briefs', [\App\Controllers\Admin\FactoryController::class, 'briefsList']);
     $r->post('/system/update', [\App\Controllers\Admin\FactoryController::class, 'systemUpdate']);
     $r->get('/system/updates', [\App\Controllers\Admin\FactoryController::class, 'systemUpdates']);
+    $r->get('/system/status', [\App\Controllers\Admin\FactoryController::class, 'systemStatus']);
 
     $r->post('/tia/command', [\App\Controllers\Admin\TiaAgentController::class, 'command']);
     $r->post('/tia/confirm', [\App\Controllers\Admin\TiaAgentController::class, 'confirm']);

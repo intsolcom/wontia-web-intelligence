@@ -895,6 +895,26 @@ class FactoryService
         return array_slice($out, 0, 10);
     }
 
+    public function systemUpdateStatus(): array
+    {
+        $file = '/app/deploy-queue/update-status.json';
+        if (!file_exists($file)) return ['status' => 'idle'];
+        $data = json_decode((string)@file_get_contents($file), true);
+        if (!is_array($data)) return ['status' => 'idle'];
+        $now = time();
+        if (!empty($data['started_at'])) {
+            $data['elapsed_s'] = max(0, $now - (int)$data['started_at']);
+            $pct = (int)($data['pct'] ?? 0);
+            if (($data['status'] ?? '') === 'running' && $pct >= 5 && $pct < 100) {
+                $data['eta_s'] = (int)round($data['elapsed_s'] * (100 - $pct) / max(1, $pct));
+            }
+        }
+        if (($data['status'] ?? '') === 'running' && $now - (int)($data['updated_at'] ?? $now) > 300) {
+            $data['status'] = 'stale';
+        }
+        return $data;
+    }
+
     public function sendWelcomeEmail(array $payload): array
     {
         $mail = new EmailService();
