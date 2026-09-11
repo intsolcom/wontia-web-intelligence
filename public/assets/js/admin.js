@@ -688,7 +688,7 @@ W.bmCard=function(it){
     }
     var updateBadge=it.update_available?'<span class="w-bm-update" title="Actualización disponible">🔄</span>':'';
     var stateLabel=it.installed?'<span class="w-bm-installed-label">✓ Acoplado</span>':'<span class="w-bm-decoupled-label"'+(it.core?' title="Los bricks Core están disponibles sin necesidad de acople"':'')+'>○ Desacoplado</span>';
-    var devChip=(it.origin==='core'&&it.functional===false)?'<span class="w-bm-dev" title="Widget en desarrollo — aún no renderiza contenido">🧪 En desarrollo</span>':'';
+    var devChip=(it.origin==='core'&&it.functional===false)?'<span class="w-bm-dev" title="Se está cocinando — aún no renderiza contenido">🔥 En el horno</span>':'';
     return '<div class="w-bm-card'+(it.installed?' w-bm-installed':'')+'" data-slug="'+W.esc(it.slug)+'">'
         +'<span class="w-bm-blocks'+(it.installed?' on':' off')+'" aria-hidden="true"></span>'
         +(it.installed?'<span class="w-bm-live" title="Funcionando"></span>':'')
@@ -993,11 +993,22 @@ W.bsInstalled=async function(){
     }
 };
 
-W.bsIncubator=function(){
+W.bsIncubator=async function(){
     var el=document.getElementById('bs-content');
     if(!el)return;
-    el.innerHTML='<div class="w-card" style="margin-bottom:14px"><div style="font-size:13px;font-weight:700">&#x1F9EA; Incubadora de Bricks</div><div style="font-size:11px;color:var(--w-muted);margin-top:4px">Bricks del ecosistema en desarrollo o listos para activar en este sitio.</div></div><div id="bs-incubator" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px"><div style="font-size:12px;color:var(--w-muted)">Cargando...</div></div>';
-    W.wwiLoadBricks('bs-incubator');
+    el.innerHTML='<div style="text-align:center;padding:40px;color:var(--w-muted)">Cargando incubadora...</div>';
+    await W.bmLoad();
+    var inOven=(W._bm.items||[]).filter(function(it){return it.origin==='core'&&it.functional===false});
+    var ecosystem=(W._bm.items||[]).filter(function(it){return it.origin==='incubator'});
+    var html='<div class="w-card" style="padding:14px 18px;margin-bottom:14px"><div style="font-size:13px;font-weight:700">🧪 Incubadora de Bricks</div><div style="font-size:11px;color:var(--w-muted);margin-top:4px;line-height:1.7">Bricks que aún se están cocinando: widgets <strong style="color:var(--w-warn)">🔥 En el horno</strong> (todavía no renderizan) y bricks del ecosistema listos para acoplar. Agrupados por categoría.</div></div>';
+    var groups={};
+    inOven.concat(ecosystem).forEach(function(it){var c=it.category||'general';(groups[c]=groups[c]||[]).push(it)});
+    var cats=Object.keys(groups).sort();
+    if(!cats.length)html+='<div class="w-empty-state"><h3>Incubadora vacía</h3><p>No hay bricks en desarrollo ni del ecosistema pendientes.</p></div>';
+    cats.forEach(function(c){
+        html+='<div class="w-bm-section"><div class="w-bm-section-head"><span class="w-bm-section-title">'+W.esc(c)+'</span><span class="w-bm-section-count">'+groups[c].length+'</span></div><div class="w-bm-grid">'+groups[c].map(W.bmCard).join('')+'</div></div>';
+    });
+    el.innerHTML=html;
 };
 
 W.brickPreview=async function(type){
