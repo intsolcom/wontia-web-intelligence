@@ -1254,7 +1254,7 @@ W.renderFactory=async function(tab){
     tab=tab||m.tab||'inicio';
     m.tab=tab;
     var app=document.getElementById('wontia-app');
-    var tabs=[['inicio','Inicio'],['sitios','Sitios'],['dominios','Dominios'],['emails','Emails'],['pedidos','Pedidos'],['saldos','Saldos'],['ia','Consumo IA'],['jobs','Jobs'],['planes','Planes'],['config','Config'],['margin','Margin Guard']];
+    var tabs=[['inicio','Inicio'],['sitios','Sitios'],['dominios','Dominios'],['emails','Emails'],['pedidos','Pedidos'],['saldos','Saldos'],['ia','Consumo IA'],['jobs','Jobs'],['planes','Planes'],['config','Config'],['margin','Margin Guard'],['system','System']];
     var bar='<div class="w-brick-tabs">';
     tabs.forEach(function(t){
         bar+='<button class="w-brick-tab'+(tab===t[0]?' active':'')+'" onclick="wontia.factoryGo(\''+t[0]+'\')">'+t[1]+'</button>';
@@ -1271,7 +1271,7 @@ W.renderFactory=async function(tab){
         var dm=await W.api('/api/v1/admin/factory/domains');
         if(dm.data)m.domains=dm.data;
     }catch(e){}
-    var fns={inicio:W.factoryInicio,sitios:W.factorySites,dominios:W.factoryDominios,emails:W.factoryEmails,pedidos:W.factoryPedidos,saldos:W.factorySaldos,ia:W.factoryIA,jobs:W.factoryJobs,plans:W.factoryPlans,config:W.factoryConfig,margin:W.factoryMargin};
+    var fns={inicio:W.factoryInicio,sitios:W.factorySites,dominios:W.factoryDominios,emails:W.factoryEmails,pedidos:W.factoryPedidos,saldos:W.factorySaldos,ia:W.factoryIA,jobs:W.factoryJobs,plans:W.factoryPlans,config:W.factoryConfig,margin:W.factoryMargin,system:W.factorySystem};
     (fns[tab]||W.factoryInicio)();
 };
 
@@ -1640,6 +1640,39 @@ W.factoryRunJobs=async function(){
     var r=await W.api('/api/v1/admin/factory/jobs/run',{method:'POST'});
     if(r.ok)W.notify(r.message,'success');
     W.factoryJobs();
+};
+
+W.factorySystem=async function(){
+    var el=document.getElementById('factory-content');
+    el.innerHTML='<div style="text-align:center;padding:40px;color:var(--w-muted)">Loading...</div>';
+    var r=await W.api('/api/v1/admin/system/updates');
+    var rows=r.data||[];
+    var html='<div class="w-card"><h3>Actualización desde Git</h3>';
+    html+='<div style="font-size:12px;color:var(--w-muted);line-height:1.7;margin-bottom:14px">Actualiza TODOS los componentes del sistema (sitios, factory, temas, módulos) desde el repositorio oficial <code>intsolcom/wontia-web-intelligence</code>. El agente del servidor descarga el último commit, reconstruye la imagen, recrea los contenedores y verifica salud; si algo falla, hace rollback automático. Tarda ~1-2 minutos.</div>';
+    html+='<button class="w-btn w-btn-primary" onclick="wontia.factoryRunUpdate()">Actualizar sistema desde Git</button>';
+    html+='<div style="font-size:11px;color:var(--w-muted);margin-top:10px">Se ejecuta vía cron del servidor en menos de 1 minuto.</div></div>';
+    html+='<div class="w-card"><h3>Historial de actualizaciones</h3>';
+    if(!rows.length){html+='<div class="w-empty-state" style="padding:16px"><p>Sin actualizaciones aún</p></div>';}
+    else{
+        html+='<table class="w-table"><tr><th>Cuándo</th><th>Estado</th><th>Commit</th><th>Contenedores</th><th>Duración</th></tr>';
+        rows.forEach(function(u){
+            var d=u.data||{};
+            var status=u.status==='pending'?'pending':(d.status||'done');
+            html+='<tr><td style="font-size:10px">'+W.esc(u.file)+'</td><td>'+W.fStatus(String(status).toUpperCase())+'</td><td class="mono" style="font-size:11px">'+W.esc(d.commit||'-')+'</td><td style="font-size:11px">'+((d.containers||[]).length||'-')+'</td><td style="font-size:11px">'+(d.duration_s?d.duration_s+'s':'-')+'</td></tr>';
+        });
+        html+='</table>';
+    }
+    html+='</div>';
+    el.innerHTML=html;
+};
+
+W.factoryRunUpdate=function(){
+    W.confirm('¿Actualizar TODO el sistema desde Git? Los sitios se reinician brevemente (~1-2 min).',async function(){
+        W.notify('Encolando actualización...','info');
+        var r=await W.api('/api/v1/admin/system/update',{method:'POST'});
+        if(r.ok){W.notify(r.message,'success');setTimeout(W.factorySystem,4000)}
+        else if(r.message)W.notify(r.message,'error');
+    });
 };
 
 W.renderPortal=async function(){

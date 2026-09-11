@@ -868,6 +868,33 @@ class FactoryService
         return ['ok' => true, 'username' => $user['username'], 'email' => $user['email'], 'password' => $password];
     }
 
+    public function requestSystemUpdate(string $user): array
+    {
+        $ts = time();
+        $payload = ['action' => 'system_update', 'ts' => $ts, 'requested_by' => $user];
+        $payload['sign'] = hash_hmac('sha256', 'system_update|' . $ts, (string)Config::get('JWT_SECRET', 'x'));
+        $dir = '/app/deploy-queue';
+        @mkdir($dir, 0777, true);
+        if (@file_put_contents($dir . '/update-' . $ts . '.json', json_encode($payload)) === false) {
+            return ['ok' => false, 'message' => 'No se pudo encolar la actualización (permisos del volumen)'];
+        }
+        return ['ok' => true, 'message' => 'Actualización encolada — se aplicará en menos de 1 minuto'];
+    }
+
+    public function systemUpdates(): array
+    {
+        $dir = '/app/deploy-queue';
+        $out = [];
+        foreach (glob($dir . '/update-*.json') ?: [] as $f) {
+            $out[] = ['file' => basename($f), 'status' => 'pending', 'data' => json_decode((string)@file_get_contents($f), true)];
+        }
+        foreach (glob($dir . '/done/update-*.json') ?: [] as $f) {
+            $out[] = ['file' => basename($f), 'status' => 'done', 'data' => json_decode((string)@file_get_contents($f), true)];
+        }
+        usort($out, fn($a, $b) => strcmp($b['file'], $a['file']));
+        return array_slice($out, 0, 10);
+    }
+
     public function sendWelcomeEmail(array $payload): array
     {
         $mail = new EmailService();

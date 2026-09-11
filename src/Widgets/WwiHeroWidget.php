@@ -13,10 +13,10 @@ class WwiHeroWidget extends Widget
         return [
             ['key' => 'badge', 'label' => 'Badge', 'type' => 'text', 'default' => 'Tu sitio web profesional en 24 horas'],
             ['key' => 'title', 'label' => 'Titulo (usa | para resaltar en gradiente)', 'type' => 'text', 'default' => 'Tu negocio merece estar en Internet|. TIA lo construye.'],
-            ['key' => 'subtitle', 'label' => 'Subtitulo', 'type' => 'textarea', 'default' => 'Compra. Cuéntanos quién eres. TIA construye tu sitio web con dominio, hosting, SSL, correos y SEO — sin programador, sin diseñador, sin agencia.'],
-            ['key' => 'cta_primary', 'label' => 'CTA Principal', 'type' => 'text', 'default' => 'Crear mi sitio con IA'],
-            ['key' => 'cta_primary_url', 'label' => 'CTA URL', 'type' => 'text', 'default' => '#wwi-flow'],
-            ['key' => 'price_note', 'label' => 'Texto de precio', 'type' => 'text', 'default' => 'desde $299.000 COP · pago único'],
+            ['key' => 'subtitle', 'label' => 'Subtitulo', 'type' => 'textarea', 'default' => 'Cuéntale a TIA sobre tu negocio y mira tu sitio web en minutos: diseño, contenido, dominio, hosting, SSL y correos. Sin programador, sin diseñador, sin agencia.'],
+            ['key' => 'cta_primary', 'label' => 'CTA Principal', 'type' => 'text', 'default' => 'Empezar ahora'],
+            ['key' => 'cta_primary_url', 'label' => 'CTA URL', 'type' => 'text', 'default' => '#planes'],
+            ['key' => 'price_note', 'label' => 'Texto de precio', 'type' => 'text', 'default' => 'desde $299.000 COP · pago único · vista previa gratis'],
         ];
     }
 
@@ -32,9 +32,10 @@ class WwiHeroWidget extends Widget
         $html .= '<h1 style="font-size:clamp(30px,5vw,50px);font-weight:800;letter-spacing:-.02em;line-height:1.12;max-width:780px;margin:0 auto 18px">' . $t1 . ($t2 ? ' <span class="gradient-text">' . $t2 . '</span>' : '') . '</h1>';
         $html .= '<p style="font-size:15px;color:var(--muted);max-width:620px;margin:0 auto 26px;line-height:1.7">' . $this->esc($c['subtitle']) . '</p>';
         $html .= '<div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:14px">';
-        $html .= '<a class="btn btn-primary" id="wwi-start" style="padding:12px 26px;font-size:15px" href="' . $this->esc($c['cta_primary_url']) . '">' . $this->esc($c['cta_primary']) . '</a>';
+        $html .= '<a class="btn btn-primary btn-pulse" id="wwi-start" style="padding:13px 28px;font-size:15px" href="' . $this->esc($c['cta_primary_url']) . '">' . $this->esc($c['cta_primary']) . '</a>';
         $html .= '</div>';
         if ($c['price_note']) $html .= '<div class="mono" style="font-size:12px;color:var(--muted)">' . $this->esc($c['price_note']) . '</div>';
+        $html .= '<div class="trust-row" style="margin-top:14px"><span>Vista previa gratis</span><span>Sin tarjeta</span><span>Sin programador</span></div>';
         $html .= '<div class="wwi-grid-3 wrap" style="margin-top:44px">';
         $html .= '<div class="panel stat"><div class="v">24h</div><div class="l">o antes, online</div></div>';
         $html .= '<div class="panel stat"><div class="v">0</div><div class="l">programadores necesarios</div></div>';

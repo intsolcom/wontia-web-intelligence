@@ -341,6 +341,20 @@ class FactoryController
         Response::error($result['message'], 404);
     }
 
+    public function systemUpdate(): void
+    {
+        $this->requireSuper();
+        $user = Session::user();
+        $result = $this->service->requestSystemUpdate((string)($user['username'] ?? 'admin'));
+        $result['ok'] ? Response::success(null, $result['message']) : Response::error($result['message'], 500);
+    }
+
+    public function systemUpdates(): void
+    {
+        $this->requireSuper();
+        Response::json(['ok' => true, 'data' => $this->service->systemUpdates()]);
+    }
+
     private function escHtml(string $s): string
     {
         return htmlspecialchars($s, ENT_QUOTES, 'UTF-8');
