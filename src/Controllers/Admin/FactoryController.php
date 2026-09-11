@@ -326,6 +326,21 @@ class FactoryController
         Response::error($result['message'], 400);
     }
 
+    public function publicPreviewFromTemplate(Request $request): void
+    {
+        $result = $this->service->createTemplatePreview((string)($request->json()['template'] ?? ''));
+        if ($result['ok']) Response::json(['ok' => true, 'message' => 'Preview de plantilla listo', 'data' => $result], 201);
+        Response::error($result['message'], 404);
+    }
+
+    public function siteCredentials(Request $request, $id): void
+    {
+        $this->requireSuper();
+        $result = $this->service->resetClientPassword((int)$id);
+        if ($result['ok']) Response::json(['ok' => true, 'message' => 'Credenciales regeneradas', 'data' => $result]);
+        Response::error($result['message'], 404);
+    }
+
     private function escHtml(string $s): string
     {
         return htmlspecialchars($s, ENT_QUOTES, 'UTF-8');

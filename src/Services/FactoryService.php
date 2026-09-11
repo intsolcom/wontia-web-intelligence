@@ -799,6 +799,75 @@ class FactoryService
         }, $domains)))];
     }
 
+    public function createTemplatePreview(string $slug): array
+    {
+        $db = Database::instance();
+        $stmt = $db->prepare("SELECT t.*, c.name_es AS cat_es FROM wwi_templates t JOIN wwi_template_categories c ON c.id = t.category_id WHERE t.slug = :s AND t.site_id = @site_id LIMIT 1");
+        $stmt->execute(['s' => $slug]);
+        $tpl = $stmt->fetch();
+        if (!$tpl) return ['ok' => false, 'message' => 'Plantilla no encontrada'];
+        $preset = json_decode((string)$tpl['preset'], true) ?: [];
+        $color = (string)($preset['color'] ?? '#2563eb');
+        $structure = [
+            'business_name' => (string)$tpl['name_es'],
+            'tagline' => (string)$tpl['description_es'],
+            'nav' => ['Inicio', 'Servicios', 'Sobre nosotros', 'Contacto'],
+            'colors' => ['primary' => $color, 'secondary' => $this->shadeColor($color)],
+            'hero' => ['eyebrow' => (string)$tpl['cat_es'], 'title' => (string)$tpl['name_es'], 'subtitle' => (string)$tpl['description_es']],
+            'value_prop' => ['Diseño profesional listo para tu sector', 'Personalizable con TIA', 'Publicado en minutos'],
+            'services' => [],
+            'about' => 'Plantilla profesional para el sector ' . (string)$tpl['cat_es'] . '. TIA la adaptará a tu negocio: colores, textos, imágenes y secciones.',
+            'benefits' => [],
+            'testimonials' => [['quote' => 'Quedó perfecta en muy poco tiempo.', 'author' => 'Cliente (ejemplo)']],
+            'cta' => ['title' => '¿Listo para lanzar tu sitio?', 'subtitle' => 'Elige tu plan y TIA hace el resto.'],
+            'contact' => ['phone' => '{{TELEFONO}}', 'email' => '{{EMAIL}}', 'address' => '{{DIRECCION}}', 'whatsapp' => '{{WHATSAPP}}'],
+            'footer_note' => (string)$tpl['name_es'] . ' · sitio generado por TIA — Wontia Web Intelligence',
+        ];
+        foreach (($preset['sections'] ?? []) as $sec) {
+            if (!is_array($sec)) continue;
+            $title = (string)($sec['title'] ?? ($sec['widget'] ?? 'Sección'));
+            match ((string)($sec['widget'] ?? '')) {
+                'features' => $structure['services'][] = ['title' => $title, 'desc' => 'Servicio profesional para tu negocio — personalizable con TIA.'],
+                'trust' => $structure['testimonials'][] = ['quote' => 'Excelente servicio y atención.', 'author' => 'Cliente (ejemplo)'],
+                'pricing' => $structure['benefits'][] = ['title' => $title, 'desc' => 'Planes claros y sin sorpresas.'],
+                'cta' => $structure['cta'] = ['title' => $title, 'subtitle' => 'Contáctanos y empecemos hoy.'],
+                'howitworks' => $structure['about'] .= ' Proceso claro: cuéntale a TIA, revisa y publica.',
+                default => $structure['benefits'][] = ['title' => $title, 'desc' => 'Incluido en esta plantilla y personalizable.'],
+            };
+        }
+        if (!$structure['services']) $structure['services'] = [['title' => 'Servicios', 'desc' => 'Tus servicios aparecerán aquí.']];
+        if (!$structure['benefits']) {
+            $structure['benefits'] = [['title' => 'Fácil de usar', 'desc' => 'Editor visual + TIA integrada.'], ['title' => 'SEO incluido', 'desc' => 'Google-ready desde el día uno.']];
+        }
+        $uuid = bin2hex(random_bytes(16));
+        $db->prepare("INSERT INTO wwi_previews (site_id, uuid, ip_hash, prompt, structure, status) VALUES (@site_id, :u, 'tpl', :p, :st, 'ready')")
+            ->execute(['u' => $uuid, 'p' => 'Plantilla: ' . $slug, 'st' => json_encode($structure, JSON_UNESCAPED_UNICODE)]);
+        return ['ok' => true, 'uuid' => $uuid];
+    }
+
+    private function shadeColor(string $hex): string
+    {
+        $hex = ltrim($hex, '#');
+        if (strlen($hex) < 6) return '#1e3a8a';
+        $r = max(0, hexdec(substr($hex, 0, 2)) - 40);
+        $g = max(0, hexdec(substr($hex, 2, 2)) - 40);
+        $b = max(0, hexdec(substr($hex, 4, 2)) - 40);
+        return sprintf('#%02x%02x%02x', $r, $g, $b);
+    }
+
+    public function resetClientPassword(int $siteId): array
+    {
+        $db = Database::instance();
+        $stmt = $db->prepare("SELECT id, username, email FROM users WHERE site_id = :sid AND role = 'client' ORDER BY id ASC LIMIT 1");
+        $stmt->execute(['sid' => $siteId]);
+        $user = $stmt->fetch();
+        if (!$user) return ['ok' => false, 'message' => 'Este sitio no tiene usuario cliente aún'];
+        $password = bin2hex(random_bytes(6));
+        $hash = password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]);
+        $db->prepare("UPDATE users SET password_hash = :h WHERE id = :id")->execute(['h' => $hash, 'id' => $user['id']]);
+        return ['ok' => true, 'username' => $user['username'], 'email' => $user['email'], 'password' => $password];
+    }
+
     public function sendWelcomeEmail(array $payload): array
     {
         $mail = new EmailService();

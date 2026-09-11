@@ -290,16 +290,25 @@ function wwiFlowGo(i){
     wwiFlow.idx=i;
     document.getElementById('wwi-flow-track').style.transform='translateX(-'+(i*100)+'%)';
     document.querySelectorAll('.flow-head .dot').forEach(function(d){d.classList.toggle('on',+d.dataset.d===i)});
+    var labels=['Cuéntanos tu negocio','Tu vista previa','Elige plantilla','Elige tu plan','Tu dominio'];
+    var lbl=document.getElementById('flow-step-label');
+    if(lbl)lbl.textContent='Paso '+(i+1)+' · '+labels[i];
     if(i===2)wwiFlowLoadTpls();
     if(i===3)wwiFlowLoadPlans();
 }
+function wwiFlowChip(el){
+    var input=document.getElementById('flow-input');
+    if(input){input.value=el.textContent;wwiFlowSend()}
+}
 function wwiFlowChat(who,html){
-    var box=document.getElementById('flow-chat');if(!box)return;
-    var d=document.createElement('div');
-    d.className='chat-msg '+who;
-    d.innerHTML=html;
-    box.appendChild(d);
+    var box=document.getElementById('flow-chat');if(!box)return null;
+    var row=document.createElement('div');
+    row.className='chat-row '+who;
+    if(who==='tia')row.innerHTML='<div class="chat-ava">T</div><div class="chat-msg tia">'+html+'</div>';
+    else row.innerHTML='<div class="chat-msg user">'+html+'</div>';
+    box.appendChild(row);
     box.scrollTop=box.scrollHeight;
+    return row;
 }
 async function wwiFlowAttempts(){
     var el=document.getElementById('flow-attempts');
@@ -316,7 +325,7 @@ async function wwiFlowSend(){
     if(!v)return;
     wwiFlowChat('user',wwiEsc(v));
     input.value='';
-    wwiFlowChat('tia','<span class="spin" style="display:inline-block;width:14px;height:14px;border-width:2px"></span> Generando tu sitio…');
+    var tr=wwiFlowChat('tia','<span class="typing"><i></i><i></i><i></i></span>');
     try{
         var r=await fetch('/api/v1/public/previews',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:v})});
         var d=await r.json();
@@ -337,11 +346,11 @@ async function wwiFlowSend(){
             if(sd.data&&sd.data.status==='failed'){wwiFlowChat('tia','Algo falló al generar. Intenta de nuevo o usa el catálogo.');return}
         }
         if(ok){
-            wwiFlowChat('tia','¡Listo! Tu vista previa está creada. 👇');
+            if(tr)tr.querySelector('.chat-msg').innerHTML='¡Listo! Tu vista previa está creada. 👇';
             document.getElementById('pv-view').onclick=function(){wwiFlowShowPreview(wwiFlow.uuid)};
             wwiFlowGo(1);
         }else{
-            wwiFlowChat('tia','Está tardando más de lo normal. Revisa el preview o usa el catálogo.');
+            if(tr)tr.querySelector('.chat-msg').innerHTML='Está tardando más de lo normal. Revisa el preview o usa el catálogo.';
         }
     }catch(e){wwiFlowChat('tia','Error de conexión. Intenta de nuevo.')}
 }
@@ -367,7 +376,28 @@ async function wwiFlowLoadTpls(){
         grid.innerHTML=tpls.map(function(t){return '<div class="tpl-card" onclick="wwiFlowPickTpl(\''+wwiEsc(t.slug)+'\')"><div class="nm">'+wwiEsc(t.name_es)+'</div><div class="cat">'+wwiEsc(t.category_slug||'')+'</div></div>'}).join('')||'Sin plantillas';
     }catch(e){grid.textContent='Error cargando plantillas'}
 }
-function wwiFlowPickTpl(slug){wwiFlow.template=slug;wwiFlowGo(3)}
+function wwiPvDevice(w){
+    var box=document.getElementById('wwi-pv-box');
+    if(box){box.style.maxWidth=w+'px';box.style.transition='max-width .3s ease'}
+}
+function wwiFlowPickTpl(slug){
+    wwiFlow.template=slug;
+    wwiFlowTplPreview(slug);
+}
+async function wwiFlowTplPreview(slug){
+    try{
+        var r=await fetch('/api/v1/public/previews/from-template',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({template:slug})});
+        var d=await r.json();
+        if(d.ok&&d.data&&d.data.uuid){
+            wwiFlow.uuid=d.data.uuid;
+            document.getElementById('pv-view').onclick=function(){wwiFlowShowPreview(wwiFlow.uuid)};
+            document.getElementById('pv-title').textContent='Plantilla aplicada — vista previa lista';
+            wwiFlowGo(1);
+        }else{
+            wwiFlowGo(3);
+        }
+    }catch(e){wwiFlowGo(3)}
+}
 async function wwiFlowLoadPlans(){
     var grid=document.getElementById('flow-plans-grid');
     try{
@@ -442,60 +472,97 @@ async function wwiFlowCreateOrder(){
 document.addEventListener('DOMContentLoaded',function(){
     var fc=document.getElementById('flow-dom-confirm');
     if(fc)fc.addEventListener('click',wwiFlowConfirmDomain);
+    var mic=document.getElementById('flow-mic');
+    var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+    if(mic&&SR){
+        var rec=new SR();
+        rec.lang='es-CO';
+        rec.interimResults=false;
+        mic.addEventListener('click',function(){try{rec.start();mic.style.borderColor='var(--accent)'}catch(e){}});
+        rec.onresult=function(e){var t=e.results[0][0].transcript;var inp=document.getElementById('flow-input');if(inp)inp.value=t;mic.style.borderColor='';};
+        rec.onerror=function(){mic.style.borderColor=''};
+        rec.onend=function(){mic.style.borderColor=''};
+    }else if(mic){mic.style.display='none'}
 });
 </script>
 <style>
-.flow-overlay{position:fixed;inset:0;z-index:999;background:rgba(4,6,10,.92);backdrop-filter:blur(10px);display:none;align-items:center;justify-content:center;padding:20px}
+.flow-overlay{position:fixed;inset:0;z-index:999;background:rgba(4,6,10,.94);backdrop-filter:blur(14px);display:none;align-items:center;justify-content:center;padding:20px}
 .flow-overlay.open{display:flex}
-.flow-shell{width:100%;max-width:820px;height:min(620px,90vh);background:var(--panel);border:1px solid var(--border2);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;position:relative}
-.flow-head{display:flex;align-items:center;gap:12px;padding:14px 20px;border-bottom:1px solid var(--border);position:relative}
+.flow-shell{width:100%;max-width:860px;height:min(640px,92vh);background:linear-gradient(var(--panel),var(--panel)) padding-box,linear-gradient(135deg,rgba(34,211,238,.5),rgba(139,92,246,.5)) border-box;border:1px solid transparent;border-radius:18px;overflow:hidden;display:flex;flex-direction:column;position:relative;box-shadow:0 30px 90px rgba(0,0,0,.6)}
+.flow-head{display:flex;align-items:center;gap:14px;padding:16px 22px;border-bottom:1px solid var(--border);position:relative;background:rgba(255,255,255,.015)}
+.flow-head .step-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--accent)}
 .flow-head .dots{display:flex;gap:6px;flex:1}
 .flow-head .dot{height:5px;flex:1;border-radius:3px;background:var(--border2);transition:background .3s}
 .flow-head .dot.on{background:linear-gradient(120deg,#22d3ee,#8b5cf6)}
-.flow-close{background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1}
+.flow-close{background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1;transition:color .15s}
+.flow-close:hover{color:var(--text)}
 .flow-track{flex:1;display:flex;transition:transform .38s cubic-bezier(.4,0,.2,1);will-change:transform}
-.flow-slide{min-width:100%;padding:26px 30px;overflow-y:auto;box-sizing:border-box}
-.flow-h1{font-size:22px;font-weight:800;letter-spacing:-.01em;margin-bottom:8px}
-.flow-sub{font-size:13px;color:var(--muted);margin-bottom:20px;line-height:1.6}
-.chat-box{display:flex;flex-direction:column;gap:10px;margin-bottom:14px;max-height:300px;overflow-y:auto}
-.chat-msg{padding:10px 14px;border-radius:12px;font-size:13px;max-width:85%;line-height:1.5}
-.chat-msg.tia{background:rgba(139,92,246,.12);border:1px solid rgba(139,92,246,.3);align-self:flex-start}
-.chat-msg.user{background:rgba(34,211,238,.1);border:1px solid rgba(34,211,238,.35);align-self:flex-end}
+.flow-slide{min-width:100%;padding:28px 34px;overflow-y:auto;box-sizing:border-box}
+.flow-h1{font-size:23px;font-weight:800;letter-spacing:-.015em;margin-bottom:8px}
+.flow-sub{font-size:13.5px;color:var(--muted);margin-bottom:20px;line-height:1.65;max-width:560px}
+.chat-box{display:flex;flex-direction:column;gap:12px;margin-bottom:16px;max-height:290px;overflow-y:auto;padding-right:4px}
+.chat-row{display:flex;gap:10px;align-items:flex-end}
+.chat-row.user{justify-content:flex-end}
+.chat-ava{width:28px;height:28px;border-radius:9px;background:linear-gradient(135deg,#22d3ee,#8b5cf6);color:#041018;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0}
+.chat-msg{padding:11px 15px;border-radius:14px;font-size:13.5px;max-width:78%;line-height:1.55}
+.chat-msg.tia{background:rgba(139,92,246,.12);border:1px solid rgba(139,92,246,.3);border-bottom-left-radius:4px}
+.chat-msg.user{background:rgba(34,211,238,.1);border:1px solid rgba(34,211,238,.35);border-bottom-right-radius:4px}
+.typing{display:inline-flex;gap:4px;align-items:center;padding:2px 0}
+.typing i{width:6px;height:6px;border-radius:50%;background:var(--accent);opacity:.35;animation:tp 1s infinite}
+.typing i:nth-child(2){animation-delay:.15s}
+.typing i:nth-child(3){animation-delay:.3s}
+@keyframes tp{0%,100%{opacity:.25;transform:translateY(0)}50%{opacity:1;transform:translateY(-3px)}}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.chip{border:1px solid var(--border2);background:var(--panel2);color:var(--text);border-radius:999px;padding:7px 14px;font-size:12px;cursor:pointer;transition:all .15s;font-family:inherit}
+.chip:hover{border-color:var(--accent);color:var(--accent);transform:translateY(-1px)}
+.trust-row{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin-top:16px;font-size:11px;color:var(--muted)}
+.trust-row span::before{content:'✓ ';color:var(--ok);font-weight:700}
 .chat-in{display:flex;gap:8px}
 .chat-in .input{flex:1}
-.flow-actions{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap}
+.btn-pulse{animation:bp 2.4s infinite}
+@keyframes bp{0%,100%{box-shadow:0 0 0 0 rgba(34,211,238,.35)}50%{box-shadow:0 0 0 8px rgba(34,211,238,0)}}
+.flow-actions{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
 .flow-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.flow-grid .tpl-card{border:1px solid var(--border);border-radius:10px;padding:14px;text-align:center;cursor:pointer;transition:border .15s;background:var(--panel2)}
-.flow-grid .tpl-card:hover{border-color:var(--accent)}
-.tpl-card .nm{font-size:12px;font-weight:700}
-.tpl-card .cat{font-size:10px;color:var(--muted);margin-top:3px;text-transform:uppercase;letter-spacing:.05em}
-.plan-mini{border:1px solid var(--border);border-radius:12px;padding:18px;text-align:center;cursor:pointer;transition:border .15s}
-.plan-mini:hover{border-color:var(--accent)}
-.plan-mini .pr{font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:600;margin:6px 0}
-.plan-mini .nm{font-size:12px;font-weight:700}
+.flow-grid .tpl-card{border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center;cursor:pointer;transition:all .15s;background:var(--panel2)}
+.flow-grid .tpl-card:hover{border-color:var(--accent);transform:translateY(-2px)}
+.tpl-card .nm{font-size:12.5px;font-weight:700}
+.tpl-card .cat{font-size:10px;color:var(--muted);margin-top:4px;text-transform:uppercase;letter-spacing:.06em}
+.plan-mini{border:1px solid var(--border);border-radius:14px;padding:20px;text-align:center;cursor:pointer;transition:all .15s;background:var(--panel2)}
+.plan-mini:hover{border-color:var(--accent);transform:translateY(-2px)}
+.plan-mini .pr{font-family:'JetBrains Mono',monospace;font-size:21px;font-weight:600;margin:8px 0}
+.plan-mini .nm{font-size:12.5px;font-weight:700}
 .dom-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-.dom-chip{border:1px solid var(--border2);border-radius:8px;padding:7px 12px;font-family:'JetBrains Mono',monospace;font-size:12px;cursor:pointer}
-.dom-chip:hover{border-color:var(--accent)}
+.dom-chip{border:1px solid var(--border2);border-radius:9px;padding:8px 14px;font-family:'JetBrains Mono',monospace;font-size:12px;cursor:pointer;transition:all .15s;background:var(--panel2);color:var(--text)}
+.dom-chip:hover{border-color:var(--accent);color:var(--accent)}
 .dom-chip.sel{border-color:var(--accent);background:rgba(34,211,238,.1)}
-.flow-modal{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.75);display:none;align-items:center;justify-content:center;padding:18px}
+.flow-modal{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.78);display:none;align-items:center;justify-content:center;padding:18px}
 .flow-modal.open{display:flex}
-.flow-modal .box{width:100%;max-width:900px;height:min(85vh,640px);background:var(--panel);border:1px solid var(--border2);border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
+.flow-modal .box{width:100%;max-width:900px;height:min(85vh,640px);background:var(--panel);border:1px solid var(--border2);border-radius:16px;overflow:hidden;display:flex;flex-direction:column;transition:max-width .3s ease}
 .flow-modal .box iframe{flex:1;border:none;background:#fff}
-@media(max-width:720px){.flow-grid{grid-template-columns:repeat(2,1fr)}}
+.chip:focus-visible,.dom-chip:focus-visible,.btn:focus-visible,.flow-close:focus-visible,.input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media(prefers-reduced-motion:reduce){.flow-track{transition:none}.btn-pulse{animation:none}.typing i{animation:none}.chip:hover,.tpl-card:hover,.plan-mini:hover{transform:none}}
+@media(max-width:720px){.flow-grid{grid-template-columns:repeat(2,1fr)}.flow-slide{padding:22px 18px}.chat-msg{max-width:88%}}
 </style>
 <div class="flow-overlay" id="wwi-flow">
   <div class="flow-shell">
     <div class="flow-head">
+      <div class="step-label" id="flow-step-label">Paso 1 · Cuéntanos</div>
       <div class="dots"><div class="dot on" data-d="0"></div><div class="dot" data-d="1"></div><div class="dot" data-d="2"></div><div class="dot" data-d="3"></div><div class="dot" data-d="4"></div></div>
-      <button class="flow-close" onclick="wwiFlowClose()">&times;</button>
+      <button class="flow-close" onclick="wwiFlowClose()" aria-label="Cerrar">&times;</button>
     </div>
     <div class="flow-track" id="wwi-flow-track">
       <div class="flow-slide" id="fs-prompt">
         <div class="flow-h1">Hablemos de tu sitio web</div>
-        <div class="flow-sub">TIA construirá una vista previa a partir de lo que le cuentes. No necesitas saber de diseño.</div>
+        <div class="flow-sub">TIA construirá una vista previa a partir de lo que le cuentes. No necesitas saber de diseño. <span id="flow-voice-note"></span></div>
         <div class="chat-box" id="flow-chat"></div>
-        <div class="chat-in"><input class="input" id="flow-input" placeholder="Ej: soy arquitecto y quiero mostrar mi trayectoria y los proyectos que he ejecutado" onkeydown="if(event.key==='Enter')wwiFlowSend()"/><button class="btn btn-primary" onclick="wwiFlowSend()">Enviar</button></div>
+        <div class="chips" id="flow-chips">
+          <button class="chip" onclick="wwiFlowChip(this)">Soy arquitecto y quiero mostrar mi trayectoria y proyectos</button>
+          <button class="chip" onclick="wwiFlowChip(this)">Tengo un restaurante y quiero mostrar mi menú y reservas</button>
+          <button class="chip" onclick="wwiFlowChip(this)">Soy abogado y quiero ofrecer consultas en línea</button>
+        </div>
+        <div class="chat-in"><input class="input" id="flow-input" placeholder="Escribe cómo quieres tu sitio web…" onkeydown="if(event.key==='Enter')wwiFlowSend()"/><button class="btn btn-ghost" id="flow-mic" title="Dictar por voz" aria-label="Dictar por voz">🎤</button><button class="btn btn-primary btn-pulse" onclick="wwiFlowSend()">Enviar</button></div>
         <div class="flow-sub" id="flow-attempts" style="margin-top:12px"></div>
+        <div class="trust-row"><span>Vista previa gratis</span><span>Sin tarjeta de crédito</span><span>Listo en minutos</span></div>
         <div class="flow-actions"><button class="btn btn-ghost" onclick="wwiFlowGo(2)">Prefiero ver plantillas</button></div>
       </div>
       <div class="flow-slide" id="fs-preview">
@@ -532,8 +599,8 @@ document.addEventListener('DOMContentLoaded',function(){
   </div>
 </div>
 <div class="flow-modal" id="wwi-pv-modal">
-  <div class="box">
-    <div class="flow-head"><div style="flex:1;font-size:12px;font-weight:700;letter-spacing:.06em">VISTA PREVIA TEMPORAL</div><button class="flow-close" onclick="document.getElementById('wwi-pv-modal').classList.remove('open')">&times;</button></div>
+  <div class="box" id="wwi-pv-box">
+    <div class="flow-head"><div style="flex:1;font-size:12px;font-weight:700;letter-spacing:.06em">VISTA PREVIA TEMPORAL</div><div style="display:flex;gap:4px"><button class="btn btn-ghost" style="padding:4px 10px;font-size:11px" onclick="wwiPvDevice(900)">Desktop</button><button class="btn btn-ghost" style="padding:4px 10px;font-size:11px" onclick="wwiPvDevice(700)">Tablet</button><button class="btn btn-ghost" style="padding:4px 10px;font-size:11px" onclick="wwiPvDevice(390)">Mobile</button></div><button class="flow-close" onclick="document.getElementById('wwi-pv-modal').classList.remove('open')">&times;</button></div>
     <iframe id="wwi-pv-frame" src="about:blank"></iframe>
   </div>
 </div>

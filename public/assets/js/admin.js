@@ -1432,9 +1432,9 @@ W.factorySites=async function(){
     var r=await W.api('/api/v1/admin/factory/sites');
     var rows=r.data||[];
     var html='<div class="w-flex-between w-mb"><div style="font-size:12px;color:var(--w-muted)">Client sites (tenants) with lifecycle and plan.</div><button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.factorySiteForm()">+ New Site</button></div>';
-    html+='<table class="w-table"><tr><th>Site</th><th>Domain</th><th>Plan</th><th>Active Domain</th><th>Status</th><th>Created</th></tr>';
+    html+='<table class="w-table"><tr><th>Site</th><th>Domain</th><th>Plan</th><th>Active Domain</th><th>Status</th><th>Creds</th><th>Created</th></tr>';
     rows.forEach(function(s){
-        html+='<tr><td><strong>'+W.esc(s.name)+'</strong> <span style="font-size:10px;color:var(--w-muted)">#'+s.id+'</span></td><td style="font-size:11px">'+W.esc(s.domain||'-')+'</td><td>'+W.esc(s.plan_name||'-')+'</td><td style="font-size:11px">'+W.esc(s.active_domain||'-')+'</td><td>'+W.fStatusSelect('fs-'+s.id,s.status||'DRAFT',{list:['DRAFT','GENERATING','READY','PUBLISHED','SUSPENDED','ARCHIVED'],cb:'factorySiteStatus'})+'</td><td style="font-size:10px">'+W.esc((s.created_at||'').slice(0,10))+'</td></tr>';
+        html+='<tr><td><strong>'+W.esc(s.name)+'</strong> <span style="font-size:10px;color:var(--w-muted)">#'+s.id+'</span></td><td style="font-size:11px">'+W.esc(s.domain||'-')+'</td><td>'+W.esc(s.plan_name||'-')+'</td><td style="font-size:11px">'+W.esc(s.active_domain||'-')+'</td><td>'+W.fStatusSelect('fs-'+s.id,s.status||'DRAFT',{list:['DRAFT','GENERATING','READY','PUBLISHED','SUSPENDED','ARCHIVED'],cb:'factorySiteStatus'})+'</td><td><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.factoryCreds('+s.id+')">Creds</button></td><td style="font-size:10px">'+W.esc((s.created_at||'').slice(0,10))+'</td></tr>';
     });
     html+='</table>';
     el.innerHTML=html;
@@ -1443,6 +1443,14 @@ W.factorySites=async function(){
 W.factorySiteStatus=async function(id,status){
     var r=await W.api('/api/v1/admin/factory/sites/'+id+'/status',{method:'PUT',body:{status:status}});
     if(r.ok)W.notify(r.message,'success');
+};
+
+W.factoryCreds=async function(id){
+    W.notify('Generando credenciales del cliente...','info');
+    var r=await W.api('/api/v1/admin/factory/sites/'+id+'/credentials',{method:'POST'});
+    if(r.ok&&r.data){
+        W.modal('Credenciales del cliente', '<div class="w-form-group"><label class="w-label">Usuario</label><input class="w-input" readonly value="'+W.esc(r.data.username)+'"/></div><div class="w-form-group"><label class="w-label">Contraseña (se muestra una sola vez)</label><input class="w-input" readonly value="'+W.esc(r.data.password)+'"/></div><div style="font-size:11px;color:var(--w-muted)">Comparte estas credenciales con el cliente de forma segura. El acceso al panel de su sitio estará disponible cuando su dominio esté publicado.</div>', '<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cerrar</button>');
+    }
 };
 
 W.factorySiteForm=function(){

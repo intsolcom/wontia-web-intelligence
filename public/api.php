@@ -110,6 +110,7 @@ $router->post('/api/v1/public/payments/dummy/{uuid}', [\App\Controllers\Admin\Fa
 $router->post('/api/v1/public/briefs', [\App\Controllers\Admin\FactoryController::class, 'publicCreateBrief']);
 $router->get('/api/v1/public/previews/attempts', [\App\Controllers\Admin\FactoryController::class, 'publicPreviewAttempts']);
 $router->post('/api/v1/public/previews', [\App\Controllers\Admin\FactoryController::class, 'publicCreatePreview']);
+$router->post('/api/v1/public/previews/from-template', [\App\Controllers\Admin\FactoryController::class, 'publicPreviewFromTemplate']);
 $router->get('/api/v1/public/previews/{uuid}', [\App\Controllers\Admin\FactoryController::class, 'publicPreviewStatus']);
 $router->get('/api/v1/public/preview/{uuid}', [\App\Controllers\Admin\FactoryController::class, 'publicPreviewRender']);
 $router->post('/api/v1/public/previews/suggest-domains', [\App\Controllers\Admin\FactoryController::class, 'publicSuggestDomains']);
@@ -241,6 +242,7 @@ $router->group('/api/v1/admin', function (Router $r) {
     $r->get('/factory/sites', [\App\Controllers\Admin\FactoryController::class, 'sites']);
     $r->post('/factory/sites', [\App\Controllers\Admin\FactoryController::class, 'addSite']);
     $r->put('/factory/sites/{id}/status', [\App\Controllers\Admin\FactoryController::class, 'siteStatus']);
+    $r->post('/factory/sites/{id}/credentials', [\App\Controllers\Admin\FactoryController::class, 'siteCredentials']);
     $r->get('/factory/domains', [\App\Controllers\Admin\FactoryController::class, 'domains']);
     $r->post('/factory/domains', [\App\Controllers\Admin\FactoryController::class, 'addDomain']);
     $r->put('/factory/domains/{id}/status', [\App\Controllers\Admin\FactoryController::class, 'domainStatus']);
