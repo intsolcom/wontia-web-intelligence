@@ -567,7 +567,7 @@ W.renderBricks=async function(tab,action){
     var app=document.getElementById('wontia-app');
     var tabs=[
         {id:'marketplace',label:'Brick Marketplace'},
-        {id:'instalados',label:'Bricks Instalados'},
+        {id:'instalados',label:'Bricks Acoplados'},
         {id:'ia',label:'IA (BRICK)'},
         {id:'repos',label:'Repos & Sync'},
         {id:'incubadora',label:'Incubadora'}
@@ -675,18 +675,20 @@ W.bmCard=function(it){
         if(it.installed){
             if(it.update_available)actions+='<button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.bmUpdate('+it.installed_id+',\''+W.esc(it.slug)+'\')">🔄 Actualizar</button>';
             else actions+='<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.bhCheckUpdate('+it.installed_id+')">Check Update</button>';
-            actions+='<button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.bmUninstall('+it.installed_id+',\''+W.esc(it.name)+'\')">Desinstalar</button>';
+            actions+='<button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.bmUninstall(this,'+it.installed_id+',\''+W.esc(it.name)+'\',\''+W.esc(it.slug)+'\')">Desacoplar</button>';
         }else{
-            actions+='<button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.bmInstall('+it.source_id+',\''+W.esc(it.slug)+'\',\''+W.esc(it.name)+'\')">Instalar</button>';
+            actions+='<button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.bmInstall(this,'+it.source_id+',\''+W.esc(it.slug)+'\',\''+W.esc(it.name)+'\')">Acoplar</button>';
         }
     }else if(it.origin==='incubator'){
         if(it.installed)actions+='<button class="w-btn w-btn-secondary w-btn-sm" onclick="location.hash=\'#seo-global-launch\'">Abrir panel</button>';
-        else actions+='<button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.sglActivate()">Activar</button>';
+        else actions+='<button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.bmActivate(this)">Acoplar</button>';
     }
     var updateBadge=it.update_available?'<span class="w-bm-update" title="Actualización disponible">🔄</span>':'';
-    return '<div class="w-bm-card'+(it.installed?' w-bm-installed':'')+'">'
+    var stateLabel=it.installed?'<span class="w-bm-installed-label">✓ Acoplado</span>':'<span class="w-bm-decoupled-label">○ Desacoplado</span>';
+    return '<div class="w-bm-card'+(it.installed?' w-bm-installed':'')+'" data-slug="'+W.esc(it.slug)+'">'
+        +'<span class="w-bm-blocks'+(it.installed?' on':' off')+'" aria-hidden="true"></span>'
         +(it.installed?'<span class="w-bm-live" title="Funcionando"></span>':'')
-        +'<div class="w-bm-top"><span class="w-bm-chip">'+W.esc(origin)+'</span><span class="w-bm-chip">'+W.esc(it.category)+'</span>'+(it.installed?'<span class="w-bm-installed-label">✓ Instalado</span>':'')+updateBadge+'</div>'
+        +'<div class="w-bm-top"><span class="w-bm-chip">'+W.esc(origin)+'</span><span class="w-bm-chip">'+W.esc(it.category)+'</span>'+stateLabel+updateBadge+'</div>'
         +'<div class="w-bm-name">'+W.esc(it.name)+'</div>'
         +'<div class="w-bm-desc">'+W.esc(it.desc)+'</div>'
         +'<div class="w-bm-meta"><span>v'+W.esc(it.version)+'</span>'+(it.launched_at?'<span>'+W.esc(String(it.launched_at).slice(0,10))+'</span>':'')+(it.uses_ai?'<span class="w-bm-ia">✦ IA</span>':'')+'</div>'
@@ -729,13 +731,78 @@ W.bmPreview=function(slug){
     W.brickPreview(slug);
 };
 
-W.bmInstall=function(sourceId,slug,name){
-    W.api('/api/v1/admin/bricks/'+encodeURIComponent(slug)+'/event',{method:'POST',body:{event:'install'}}).catch(function(){});
-    W.bhInstall(sourceId,slug,name);
+W.bmBlocks=function(rect,color,mode){
+    try{if(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches)return}catch(e){}
+    var n=12,cx=rect.left+rect.width/2,cy=rect.top+rect.height/2;
+    for(var i=0;i<n;i++){
+        var b=document.createElement('div');
+        b.className='w-bm-fly';
+        b.style.background=color;
+        var sx,sy,ex,ey,rot;
+        if(mode==='crumble'){
+            sx=rect.left+Math.random()*Math.max(rect.width,60);
+            sy=rect.top+Math.random()*Math.max(rect.height,60)*0.7;
+            ex=sx+(Math.random()*180-90);
+            ey=sy+140+Math.random()*180;
+            rot=Math.random()*420-210;
+        }else{
+            sx=cx+(Math.random()*260-130);
+            sy=cy+(Math.random()*260-130);
+            ex=cx-6+((i%4)-1.5)*16;
+            ey=cy-6+(Math.floor(i/4)-1)*16;
+            rot=360;
+        }
+        b.style.left=sx+'px';
+        b.style.top=sy+'px';
+        document.body.appendChild(b);
+        var a=b.animate([
+            {transform:'translate(0,0) rotate(0deg) scale(1)',opacity:1},
+            {transform:'translate('+(ex-sx)+'px,'+(ey-sy)+'px) rotate('+rot+'deg) scale('+(mode==='crumble'?0.55:1)+')',opacity:mode==='crumble'?0:1}
+        ],{duration:mode==='crumble'?720:620,delay:i*22,easing:mode==='crumble'?'cubic-bezier(.45,0,.9,1)':'cubic-bezier(.22,1,.36,1)',fill:'forwards'});
+        a.onfinish=(function(el){return function(){el.remove()}})(b);
+    }
 };
 
-W.bmUninstall=function(id,name){
-    W.bhUninstall(id,name);
+W.bmInstall=function(btn,sourceId,slug,name){
+    var card=btn?btn.closest('.w-bm-card'):null;
+    var rect=card?card.getBoundingClientRect():{left:innerWidth/2-60,top:innerHeight/2-60,width:120,height:120};
+    W.bmBlocks(rect,'#34d399','assemble');
+    setTimeout(async function(){
+        var r=await W.api('/api/v1/admin/brickhub/install',{method:'POST',body:{source_id:sourceId,slug:slug,name:name}});
+        if(r.ok){
+            W.api('/api/v1/admin/bricks/'+encodeURIComponent(slug)+'/event',{method:'POST',body:{event:'install'}}).catch(function(){});
+            W.notify('"'+name+'" acoplado ✓','success');
+            W.confetti();
+            W._bm.loaded=false;
+            W.state.bmHighlight=slug;
+            window.location.hash='#bricks/instalados';
+        }else if(r.message)W.notify(r.message,'error');
+    },660);
+};
+
+W.bmUninstall=function(btn,id,name,slug){
+    var card=btn?btn.closest('.w-bm-card'):null;
+    var rect=card?card.getBoundingClientRect():{left:innerWidth/2-60,top:innerHeight/2-60,width:120,height:120};
+    W.confirm('¿Desacoplar "'+name+'"? Volverá al Brick Marketplace.',function(){
+        W.bmBlocks(rect,'#f87171','crumble');
+        W.api('/api/v1/admin/bricks/'+encodeURIComponent(slug)+'/event',{method:'POST',body:{event:'uninstall'}}).catch(function(){});
+        setTimeout(async function(){
+            var r=await W.api('/api/v1/admin/brickhub/uninstall/'+id,{method:'DELETE'});
+            if(r.ok){
+                W.notify('"'+name+'" desacoplado — devuelto al Marketplace','success');
+                W._bm.loaded=false;
+                if(W.state.bricksTab==='instalados')W.bsInstalled();
+                else W.bhRefresh();
+            }else if(r.message)W.notify(r.message,'error');
+        },760);
+    });
+};
+
+W.bmActivate=function(btn){
+    var card=btn?btn.closest('.w-bm-card'):null;
+    var rect=card?card.getBoundingClientRect():{left:innerWidth/2-60,top:innerHeight/2-60,width:120,height:120};
+    W.bmBlocks(rect,'#34d399','assemble');
+    setTimeout(function(){W.sglActivate()},620);
 };
 
 W.bmUpdate=function(id,slug){
@@ -844,11 +911,20 @@ W.bsInstalled=async function(){
     }catch(e){}
     var items=(W._bm.items||[]).filter(function(it){return it.installed});
     items.forEach(function(it){it.update_available=!!upd[it.slug]});
-    var html='<div class="w-card" style="padding:14px 18px;margin-bottom:14px"><div style="font-size:13px;font-weight:700">Bricks Instalados</div><div style="font-size:11px;color:var(--w-muted);margin-top:4px;line-height:1.7">Bricks activos en este sitio. El <span style="color:var(--w-primary)">punto verde palpitante</span> indica funcionamiento correcto; el resplandor verde marca los instalados y 🔄 avisa actualizaciones disponibles.</div></div>';
+    var html='<div class="w-card" style="padding:14px 18px;margin-bottom:14px"><div style="font-size:13px;font-weight:700">Bricks Acoplados</div><div style="font-size:11px;color:var(--w-muted);margin-top:4px;line-height:1.7">Bricks acoplados a este sitio. El <span style="color:var(--w-primary)">punto verde palpitante</span> indica funcionamiento correcto; el resplandor verde marca los acoplados y 🔄 avisa actualizaciones. Los bricks <strong style="color:var(--w-text)">Core</strong> vienen integrados al motor y no se desacoplan.</div></div>';
     html+='<div class="w-bm-grid" id="bs-grid"></div>';
     el.innerHTML=html;
     var grid=document.getElementById('bs-grid');
-    grid.innerHTML=items.map(W.bmCard).join('')||'<div class="w-empty-state" style="grid-column:1/-1"><h3>Sin bricks instalados</h3><p>Explora el Brick Marketplace para instalar.</p></div>';
+    grid.innerHTML=items.map(W.bmCard).join('')||'<div class="w-empty-state" style="grid-column:1/-1"><h3>Sin bricks acoplados</h3><p>Explora el Brick Marketplace para acoplar.</p></div>';
+    if(W.state.bmHighlight){
+        var hi=grid.querySelector('.w-bm-card[data-slug="'+W.state.bmHighlight+'"]');
+        W.state.bmHighlight=null;
+        if(hi){
+            hi.classList.add('w-bm-flash');
+            try{hi.scrollIntoView({block:'center',behavior:'smooth'})}catch(e){}
+            setTimeout(function(){hi.classList.remove('w-bm-flash')},2600);
+        }
+    }
 };
 
 W.bsIncubator=function(){
@@ -2543,7 +2619,7 @@ W.palette=function(){
         {label:'IA (BRICK) · Policies',hash:'#bricks/ia/policies',sub:'Estrategias y fallback',need:'bricks'},
         {label:'IA (BRICK) · Test',hash:'#bricks/ia/test',sub:'Probar un modelo',need:'bricks'},
         {label:'Brick Marketplace',hash:'#bricks',sub:'Todos los bricks, valoraciones y métricas',need:'bricks'},
-        {label:'Bricks Instalados',hash:'#bricks/instalados',sub:'Gestionar bricks activos',need:'bricks'},
+        {label:'Bricks Acoplados',hash:'#bricks/instalados',sub:'Gestionar bricks acoplados',need:'bricks'},
         {label:'Bricks · Repos & Sync',hash:'#bricks/repos',sub:'Fuentes GitHub, sync y updates',need:'bricks'},
         {label:'Bricks · Incubadora',hash:'#bricks/incubadora',sub:'Bricks del ecosistema',need:'bricks'},
         {label:'WWI · Sistema',hash:'#wwi',sub:'Estado y configuración',need:'wwi'}

@@ -78,7 +78,20 @@
 54. Réplica/edge: métricas agregadas en caché (TTL 60s) para no golpear DB en picos.
 55. Versionado semántico estricto + verificación de firma de bricks (supply-chain).
 
-## 3. GOBERNANZA (PEDS)
+## 3. ACOPLE / DESACOPLE — 10 INNOVACIONES
+1. ✅ **Semántica acoplado/desacoplado**: verde "✓ Acoplado" / rojo "○ Desacoplado", botones "Acoplar"/"Desacoplar" (los Core no se desacoplan: vienen integrados al motor).
+2. ✅ **Motivo de bloques** en cada ficha (mask SVG de 8 bloques, esquina inferior derecha, opacidad 12-18%, `pointer-events:none`) — identidad visual sin invadir.
+3. ✅ **Desmoronamiento**: al desacoplar, 12 bloques con gravedad, rotación y dispersión caen desde la ficha (Web Animations API) y el brick "vuelve" al Marketplace.
+4. ✅ **Acoplamiento inverso**: al acoplar, los bloques convergen y encajan en la ficha (snap magnético con easing), seguido de confetti blocky.
+5. ✅ **Traslado a la categoría**: tras acoplar, navegación automática a Bricks Acoplados con highlight verde + scroll centrado de la ficha.
+6. ✅ **Reduced-motion**: con `prefers-reduced-motion` las animaciones se omiten y solo cambia el estado (accesibilidad WCAG).
+7. Haptics móvil (`navigator.vibrate`) al acoplar/desacoplar en dispositivos táctiles.
+8. Sonido de encaje de bloques opcional (WebAudio, off por defecto, opt-in).
+9. **Undo de desacople**: toast accionable 8s con "Deshacer" que re-acopla sin pasar por el Marketplace.
+10. **Motivo de desacople**: selector (no lo uso / lento / faltan funciones / otro) que alimenta el ranking de causas y alertas de producto.
+- Bonus: modo "obra" (barra de progreso con bloques apilándose durante la instalación) y confetti 100% cuadrado para coherencia con el concepto de bloques.
+
+## 4. GOBERNANZA (PEDS)
 - Toda query nueva con `@site_id` cuando aplique; las agregaciones globales del marketplace son intencionales (feedback de producto cross-tenant) y guardan `site_id` de trazabilidad.
 - Escape de salida en frontend (`W.esc`); slugs validados con regex; eventos con whitelist.
 - Estados UX: loading, empty, error y success en cada vista; reduced-motion respetado.
