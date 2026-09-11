@@ -897,7 +897,7 @@ class FactoryService
 
     public function systemUpdateStatus(): array
     {
-        $file = '/app/deploy-queue/update-status.json';
+        $file = '/app/deploy-queue/system-status.json';
         if (!file_exists($file)) return ['status' => 'idle'];
         $data = json_decode((string)@file_get_contents($file), true);
         if (!is_array($data)) return ['status' => 'idle'];

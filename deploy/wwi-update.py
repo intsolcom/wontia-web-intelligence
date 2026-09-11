@@ -4,7 +4,7 @@ import json, os, hmac, hashlib, subprocess, time, glob, shutil
 QUEUE = "/var/lib/dokploy/wontia-deploy"
 DONE = QUEUE + "/done"
 LOG = "/var/log/wwi-update.log"
-STATUS = QUEUE + "/update-status.json"
+STATUS = QUEUE + "/system-status.json"
 REPO = "https://github.com/intsolcom/wontia-web-intelligence.git"
 SRC = "/tmp/wwi-src"
 APP = "/tmp/wontia-build/app"
