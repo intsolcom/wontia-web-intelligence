@@ -152,6 +152,14 @@ W.renderSectionManager=function(pageId){
     W.loadSections(pageId);
 };
 
+W.sectionLabel=function(s){
+    if(s.widget_type){
+        var n=String(s.widget_type).replace(/^wwi-/,'').replace(/([a-z])([A-Z])/g,'$1 $2').replace(/-/g,' ');
+        return n.charAt(0).toUpperCase()+n.slice(1);
+    }
+    return s.title||'Sección';
+};
+
 W.loadSections=async function(pageId){
     var el=document.getElementById('section-panel');
     if(!el)return;
@@ -166,13 +174,13 @@ W.loadSections=async function(pageId){
     }
     W.state.currentPage=d.data;
     if(!W.state.currentPage.sections)W.state.currentPage.sections=[];
-    var html='<div class="w-flex-between w-mb-lg"><div><h3 style="font-size:15px">Sections: '+W.esc(W.state.currentPage.title)+'</h3><span style="font-size:11px;color:var(--w-muted)">'+W.state.currentPage.sections.length+' sections</span></div><div class="w-flex w-gap-sm"><button class="w-btn w-btn-primary" onclick="wontia.showSectionTypePicker('+pageId+')">+ Add Section</button><a href="#pages" class="w-btn w-btn-secondary">Back</a></div></div>';
+    var html='<div class="w-flex-between w-mb-lg"><div><h3 style="font-size:15px">Secciones: '+W.esc(W.state.currentPage.title)+'</h3><span style="font-size:11px;color:var(--w-muted)">'+W.state.currentPage.sections.length+' secciones</span></div><div class="w-flex w-gap-sm"><button class="w-btn w-btn-primary" onclick="wontia.showSectionTypePicker('+pageId+')">+ Añadir sección</button><a href="#pages" class="w-btn w-btn-secondary">Volver</a></div></div>';
     if(!W.state.currentPage.sections.length){
-        html+='<div class="w-empty-state"><h3>No sections yet</h3><p>Add your first section to this page</p></div>';
+        html+='<div class="w-empty-state"><h3>Sin secciones</h3><p>Añade la primera sección a esta página</p></div>';
     }else{
         W.state.currentPage.sections.forEach(function(s,i){
             html+='<div class="w-card w-mb" draggable="true" data-sid="'+s.id+'" style="cursor:grab">';
-            html+='<div class="w-flex-between w-mb"><div class="w-flex w-gap-sm"><span style="font-size:10px;color:var(--w-muted);background:var(--w-bg);padding:2px 8px;border-radius:4px">'+W.esc(s.type)+'</span><strong style="font-size:13px">'+W.esc(s.title||'Untitled')+'</strong></div><div class="w-flex w-gap-sm"><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.editSection('+s.id+')">Edit</button><button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.deleteSection('+s.id+','+pageId+')">Del</button></div></div>';
+            html+='<div class="w-flex-between w-mb"><div class="w-flex w-gap-sm"><span style="font-size:10px;color:var(--w-muted);background:var(--w-bg);padding:2px 8px;border-radius:4px">'+W.esc(W.sectionLabel(s))+'</span><strong style="font-size:13px">'+W.esc(s.title||'Sin título')+'</strong>'+(s.is_active==1||s.is_active==='1'?'':'<span class="w-brick-chip" style="color:#F5A623">oculta</span>')+'</div><div class="w-flex w-gap-sm"><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.editSection('+s.id+')">Editar</button><button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.deleteSection('+s.id+','+pageId+')">Eliminar</button></div></div>';
             if(s.subtitle)html+='<p style="font-size:12px;color:var(--w-muted);margin-bottom:6px">'+W.esc(s.subtitle)+'</p>';
             html+='</div>';
         });
@@ -180,42 +188,97 @@ W.loadSections=async function(pageId){
     el.innerHTML=html;
 };
 
-W.showSectionTypePicker=function(pageId){
-    var types=['hero','features','cta','testimonials','pricing','stats','contact','faq','custom'];
-    var opts=types.map(function(t){return '<button class="w-btn w-btn-secondary" onclick="wontia.addSection('+pageId+',\''+t+'\')">'+t+'</button>'}).join('');
-    W.modal('Add Section','<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'+opts+'</div>');
+W.showSectionTypePicker=async function(pageId){
+    var d=await W.api('/api/v1/admin/bricks');
+    var bricks=d.data||{};
+    var cats={};
+    for(var id in bricks){var b=bricks[id];var c=b.category||'general';(cats[c]=cats[c]||[]).push({id:id,name:b.name});}
+    var html='<div style="font-size:11px;color:var(--w-muted);margin-bottom:10px">Elige el tipo de sección para esta página. Cada opción es un BRICK funcional del sistema.</div>';
+    for(var c in cats){
+        html+='<div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--w-muted);margin:12px 0 6px">'+W.esc(c)+'</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+        cats[c].forEach(function(b){html+='<button class="w-btn w-btn-secondary" onclick="wontia.addSection('+pageId+',\''+W.esc(b.id)+'\',\''+W.esc(b.name)+'\')">'+W.esc(b.name)+'</button>'});
+        html+='</div>';
+    }
+    W.modal('Añadir sección',html);
 };
 
-W.addSection=async function(pageId,type){
+W.addSection=async function(pageId,widgetId,widgetName){
     W.closeModal();
-    var r=await W.api('/api/v1/admin/pages/'+pageId+'/sections',{method:'POST',body:{type:type,title:type.charAt(0).toUpperCase()+type.slice(1)}});
-    if(r.ok){W.loadSections(pageId);W.notify('Section added','success')}
+    var r=await W.api('/api/v1/admin/pages/'+pageId+'/sections',{method:'POST',body:{type:'widget',widget_type:widgetId,title:widgetName||widgetId,config:{}}});
+    if(r.ok){W.loadSections(pageId);W.notify('Sección añadida','success')}
+    else if(r.message)W.notify(r.message,'error');
+};
+
+W.renderSchemaFields=function(schema,values){
+    values=values||{};
+    var html='';
+    (schema||[]).forEach(function(f){
+        var v=(values[f.key]!==undefined&&values[f.key]!==null)?values[f.key]:(f.default!==undefined?f.default:'');
+        var vid='secf-'+f.key;
+        if(f.type==='text')html+='<div class="w-form-group"><label class="w-label">'+W.esc(f.label)+'</label><input class="w-input" id="'+vid+'" value="'+W.esc(v)+'"/></div>';
+        else if(f.type==='textarea')html+='<div class="w-form-group"><label class="w-label">'+W.esc(f.label)+'</label><textarea class="w-textarea" id="'+vid+'">'+W.esc(v)+'</textarea></div>';
+        else if(f.type==='toggle')html+='<div class="w-form-group"><label class="w-label" style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="'+vid+'" '+(v?'checked':'')+' style="width:auto"/> '+W.esc(f.label)+'</label></div>';
+        else if(f.type==='select'){var o='';for(var k in (f.options||{}))o+='<option value="'+W.esc(k)+'"'+(String(v)===String(k)?' selected':'')+'>'+W.esc(f.options[k])+'</option>';html+='<div class="w-form-group"><label class="w-label">'+W.esc(f.label)+'</label><select class="w-select" id="'+vid+'">'+o+'</select></div>';}
+        else html+='<div class="w-form-group"><label class="w-label">'+W.esc(f.label)+' <span style="font-size:9px;color:var(--w-muted)">JSON</span></label><textarea class="w-textarea" id="'+vid+'" style="min-height:80px;font-family:monospace;font-size:11px">'+W.esc(typeof v==='object'?JSON.stringify(v):v)+'</textarea></div>';
+    });
+    return html;
+};
+
+W.collectSchemaFields=function(schema){
+    var cfg={};
+    (schema||[]).forEach(function(f){
+        var el=document.getElementById('secf-'+f.key);
+        if(!el)return;
+        if(f.type==='toggle')cfg[f.key]=el.checked?1:0;
+        else if(f.type==='code'){try{cfg[f.key]=JSON.parse(el.value||'[]')}catch(e){cfg[f.key]=el.value}}
+        else cfg[f.key]=el.value;
+    });
+    return cfg;
 };
 
 W.editSection=async function(sectionId){
-    var d=await W.api('/api/v1/admin/sections/'+sectionId);
-    var s=d.data;
+    var s=null;
+    ((W.state.currentPage&&W.state.currentPage.sections)||[]).forEach(function(x){if(x.id===sectionId)s=x});
+    if(!s){
+        var d=await W.api('/api/v1/admin/sections/'+sectionId);
+        if(!d.ok||!d.data){W.notify(d.message||'Section not found','error');return}
+        s=d.data;
+    }
     var pageId=s.page_id;
-    W.modal('Edit Section',
-        '<div class="w-form-group"><label class="w-label">Title</label><input class="w-input" id="es-title" value="'+W.esc(s.title||'')+'"/></div>'+
-        '<div class="w-form-group"><label class="w-label">Subtitle</label><textarea class="w-textarea" id="es-subtitle">'+W.esc(s.subtitle||'')+'</textarea></div>'+
-        '<div class="w-form-group"><label class="w-label">Content (HTML)</label><textarea class="w-textarea" id="es-content" style="min-height:150px;font-family:monospace">'+W.esc(s.content||'')+'</textarea></div>'+
-        '<div class="w-form-group"><label class="w-label">Image URL</label><input class="w-input" id="es-image" value="'+W.esc(s.image||'')+'"/></div>',
-        '<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cancel</button><button class="w-btn w-btn-primary" onclick="wontia.saveSection('+sectionId+','+pageId+')">Save</button>'
-    );
+    var body='';
+    body+='<div class="w-form-group"><label class="w-label">Título de la sección</label><input class="w-input" id="es-title" value="'+W.esc(s.title||'')+'"/></div>';
+    body+='<div class="w-form-group"><label class="w-label">Subtítulo / descripción</label><textarea class="w-textarea" id="es-subtitle">'+W.esc(s.subtitle||'')+'</textarea></div>';
+    if(s.widget_type){
+        var d2=await W.api('/api/v1/admin/bricks/'+s.widget_type);
+        var b=d2.data||{};
+        var schema=b.configSchema||[];
+        var values={};
+        try{values=JSON.parse(s.config||'{}')||{}}catch(e){}
+        W.state.editSchema=schema;
+        if(schema.length){body+='<div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--w-muted);margin:14px 0 8px">Contenido — '+W.esc(W.sectionLabel(s))+'</div>'+W.renderSchemaFields(schema,values);}
+    }else{
+        W.state.editSchema=null;
+        body+='<div class="w-form-group"><label class="w-label">Contenido (HTML)</label><textarea class="w-textarea" id="es-content" style="min-height:150px;font-family:monospace">'+W.esc(s.content||'')+'</textarea></div>';
+    }
+    body+='<label style="font-size:12px;display:flex;align-items:center;gap:8px;margin-top:8px"><input type="checkbox" id="es-active" '+(s.is_active==1||s.is_active==='1'?'checked':'')+' style="width:auto"/> Visible en el sitio</label>';
+    W.modal('Editar sección — '+W.sectionLabel(s),body,'<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cancelar</button><button class="w-btn w-btn-primary" onclick="wontia.saveSection('+sectionId+','+pageId+')">Guardar</button>');
 };
 
 W.saveSection=async function(id,pageId){
-    var data={title:document.getElementById('es-title').value,subtitle:document.getElementById('es-subtitle').value,content:document.getElementById('es-content').value,image:document.getElementById('es-image').value};
+    var activeEl=document.getElementById('es-active');
+    var data={title:W.val('es-title'),subtitle:W.val('es-subtitle'),is_active:activeEl&&activeEl.checked?1:0};
+    if(W.state.editSchema)data.config=W.collectSchemaFields(W.state.editSchema);
+    else data.content=W.val('es-content');
     var r=await W.api('/api/v1/admin/sections/'+id,{method:'PUT',body:data});
-    if(r.ok){W.closeModal();W.loadSections(pageId);W.notify('Section saved','success')}
+    if(r.ok){W.closeModal();W.loadSections(pageId);W.notify('Sección guardada','success')}
+    else if(r.message)W.notify(r.message,'error');
 };
 
 W.deleteSection=function(id,pageId){
-    W.confirm('Delete this section?',async function(){
+    W.confirm('¿Eliminar esta sección?',async function(){
         await W.api('/api/v1/admin/sections/'+id,{method:'DELETE'});
         W.loadSections(pageId);
-        W.notify('Section deleted','success');
+        W.notify('Sección eliminada','success');
     });
 };
 
