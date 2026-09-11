@@ -1978,6 +1978,83 @@ W.wwiRunJobs=async function(){
     if(el)el.innerHTML='<div style="font-size:11px;color:'+(r.ok?'#00B87D':'#BE1341')+'">'+W.esc(r.message||(r.ok?'Listo':'Error'))+'</div>';
 };
 
+W.palette=function(){
+    var existing=document.getElementById('w-palette-overlay');
+    if(existing){existing.remove();return}
+    var actions=[
+        {label:'Factory · Actualizaciones',hash:'#factory/updates',sub:'Actualizar sistema desde Git',need:'factory'},
+        {label:'Factory · Jobs',hash:'#factory/jobs',sub:'Cola de trabajos y provisioning',need:'factory'},
+        {label:'Factory · Sitios',hash:'#factory/sites',sub:'Lifecycle de sitios',need:'factory'},
+        {label:'Factory · Dominios',hash:'#factory/domains',sub:'Estados de dominio',need:'factory'},
+        {label:'Factory · Config',hash:'#factory/config',sub:'Planes, márgenes y pagos',need:'factory'},
+        {label:'AI BRICK · Overview',hash:'#brick/overview',sub:'KPIs y presupuesto de IA',need:'brick'},
+        {label:'AI BRICK · Policies',hash:'#brick/policies',sub:'Estrategias y fallback',need:'brick'},
+        {label:'AI BRICK · Test',hash:'#brick/test',sub:'Probar un modelo',need:'brick'},
+        {label:'WWI · Sistema',hash:'#wwi',sub:'Estado y configuración',need:'wwi'}
+    ].filter(function(a){return document.querySelector('.w-nav-item[data-panel="'+a.need+'"]')});
+    var items=[];
+    document.querySelectorAll('.w-nav-item').forEach(function(a){
+        var t=a.cloneNode(true);
+        var b=t.querySelector('.w-badge');
+        if(b)b.remove();
+        items.push({label:t.textContent.trim(),hash:a.getAttribute('href'),sub:'Panel'});
+    });
+    items=items.concat(actions);
+    var ov=document.createElement('div');
+    ov.className='w-palette-overlay';
+    ov.id='w-palette-overlay';
+    ov.innerHTML='<div class="w-palette"><input id="w-palette-input" placeholder="Buscar panel o acción…" autocomplete="off"/><div class="w-palette-list" id="w-palette-list"></div><div class="w-palette-foot"><span><kbd>↑↓</kbd>navegar</span><span><kbd>Enter</kbd>abrir</span><span><kbd>Esc</kbd>cerrar</span></div></div>';
+    document.body.appendChild(ov);
+    var input=ov.querySelector('#w-palette-input');
+    var list=ov.querySelector('#w-palette-list');
+    var sel=0,cur=items;
+    function fuzzy(q,s){
+        q=q.toLowerCase();s=s.toLowerCase();
+        if(s.indexOf(q)>-1)return true;
+        var i=0;
+        for(var j=0;j<s.length&&i<q.length;j++){if(s[j]===q[i])i++}
+        return i===q.length;
+    }
+    function render(){
+        if(!cur.length){list.innerHTML='<div class="w-palette-empty">Sin resultados</div>';return}
+        list.innerHTML=cur.map(function(it,i){
+            return '<div class="w-palette-item'+(i===sel?' sel':'')+'" data-i="'+i+'"><span>'+W.esc(it.label)+'</span><span class="sub">'+W.esc(it.sub||'')+'</span></div>';
+        }).join('');
+        var el=list.querySelector('.w-palette-item.sel');
+        if(el)el.scrollIntoView({block:'nearest'});
+    }
+    function go(i){
+        var it=cur[i];
+        if(!it)return;
+        ov.remove();
+        window.location.hash=it.hash;
+    }
+    function filter(){
+        var q=input.value.trim();
+        cur=q?items.filter(function(it){return fuzzy(q,it.label+' '+(it.sub||''))}):items;
+        sel=0;
+        render();
+    }
+    input.addEventListener('input',filter);
+    input.addEventListener('keydown',function(e){
+        if(e.key==='ArrowDown'){e.preventDefault();sel=Math.min(sel+1,cur.length-1);render()}
+        else if(e.key==='ArrowUp'){e.preventDefault();sel=Math.max(sel-1,0);render()}
+        else if(e.key==='Enter'){e.preventDefault();go(sel)}
+        else if(e.key==='Escape'){ov.remove()}
+    });
+    list.addEventListener('click',function(e){
+        var item=e.target.closest('.w-palette-item');
+        if(item)go(parseInt(item.dataset.i)||0);
+    });
+    ov.addEventListener('mousedown',function(e){if(e.target===ov)ov.remove()});
+    render();
+    input.focus();
+};
+document.addEventListener('keydown',function(e){
+    if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();W.palette()}
+    else if(e.key==='Escape'&&document.getElementById('w-palette-overlay')){document.getElementById('w-palette-overlay').remove()}
+});
+
 W.panels={
     dashboard:W.renderDashboard,
     wwi:W.renderWWI,

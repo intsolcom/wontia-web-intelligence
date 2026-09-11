@@ -141,6 +141,20 @@ endforeach; ?>
     document.querySelectorAll('.faq-q').forEach(function(q){
         q.addEventListener('click',function(){q.parentElement.classList.toggle('open')});
     });
+    var glow=document.createElement('div');glow.className='cursor-glow';document.body.appendChild(glow);
+    var progress=document.createElement('div');progress.className='scroll-progress';progress.setAttribute('aria-hidden','true');document.body.appendChild(progress);
+    var fine=window.matchMedia&&window.matchMedia('(pointer:fine)').matches;
+    var calm=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if(fine&&!calm){
+        var tx=window.innerWidth/2,ty=140,cx=tx,cy=ty,anim=false;
+        var step=function(){
+            cx+=(tx-cx)*.14;cy+=(ty-cy)*.14;
+            document.documentElement.style.setProperty('--cx',cx.toFixed(1)+'px');
+            document.documentElement.style.setProperty('--cy',cy.toFixed(1)+'px');
+            if(Math.abs(tx-cx)>.5||Math.abs(ty-cy)>.5){requestAnimationFrame(step)}else{anim=false}
+        };
+        document.addEventListener('mousemove',function(e){tx=e.clientX;ty=e.clientY;if(!anim){anim=true;glow.classList.add('on');requestAnimationFrame(step)}},{passive:true});
+    }
 })();
 async function wwiLoadPlans(){
     var boxes=document.querySelectorAll('[data-wwi-plans]');
@@ -589,6 +603,19 @@ document.addEventListener('DOMContentLoaded',function(){
 .chip:hover{background:linear-gradient(120deg,rgba(34,211,238,.12),rgba(139,92,246,.14));color:var(--text)}
 .confetti{position:fixed;z-index:1200;pointer-events:none;width:8px;height:8px;border-radius:2px;animation:conf 1.6s ease-out forwards}
 @keyframes conf{0%{opacity:1;transform:translate(0,0) rotate(0)}100%{opacity:0;transform:translate(var(--dx),var(--dy)) rotate(540deg)}}
+.cursor-glow{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:0;transition:opacity .4s;background:radial-gradient(520px circle at var(--cx,50%) var(--cy,0%),rgba(34,211,238,.1),rgba(139,92,246,.06) 45%,transparent 70%)}
+.cursor-glow.on{opacity:1}
+.scroll-progress{position:fixed;top:0;left:0;right:0;height:2px;z-index:101;background:linear-gradient(90deg,#22d3ee,#8b5cf6,#ec4899);transform:scaleX(0);transform-origin:0 50%}
+@supports (animation-timeline: scroll()){
+    .scroll-progress{animation:wwi-progress linear;animation-timeline:scroll(root)}
+    @keyframes wwi-progress{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+}
+@media(prefers-reduced-motion:no-preference){
+    @supports (animation-timeline: view()){
+        .reveal{opacity:1;transform:none;animation:wwi-reveal both;animation-timeline:view();animation-range:entry 5% entry 55%}
+        @keyframes wwi-reveal{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+    }
+}
 @media(prefers-reduced-motion:reduce){.aurora,.orbs i,.gradient-text,.btn-primary::after,.marquee .track,.chat-ava::after{animation:none}}
 </style>
 <div class="flow-overlay" id="wwi-flow">
