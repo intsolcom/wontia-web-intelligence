@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import json, os, hmac, hashlib, subprocess, sys, glob, time
+import json, os, hmac, hashlib, subprocess, sys, glob, time, fcntl
 
 QUEUE = "/var/lib/dokploy/wontia-deploy"
 LOG = "/var/log/wwi-deploy.log"
@@ -167,14 +167,23 @@ def main():
     if not secret():
         log("NO SECRET — skipping")
         return
-    for path in sorted(glob.glob(QUEUE + "/*.json")):
-        base = os.path.basename(path)
-        if base.startswith("update-") or base.startswith("system-"):
-            continue
-        try:
-            process(path)
-        except Exception as e:
-            log("ERROR " + path + ": " + str(e))
+    lock = open(QUEUE + "/.deploy.lock", "w")
+    try:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        return
+    try:
+        for path in sorted(glob.glob(QUEUE + "/*.json")):
+            base = os.path.basename(path)
+            if base.startswith("update-") or base.startswith("system-"):
+                continue
+            try:
+                process(path)
+            except Exception as e:
+                log("ERROR " + path + ": " + str(e))
+    finally:
+        fcntl.flock(lock, fcntl.LOCK_UN)
+        lock.close()
 
 if __name__ == "__main__":
     main()

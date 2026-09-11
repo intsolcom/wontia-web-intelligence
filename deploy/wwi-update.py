@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import json, os, hmac, hashlib, subprocess, time, glob, shutil
+import json, os, hmac, hashlib, subprocess, time, glob, shutil, fcntl
 
 QUEUE = "/var/lib/dokploy/wontia-deploy"
 DONE = QUEUE + "/done"
@@ -24,8 +24,10 @@ def status(step, pct, message="", **extra):
     }
     data.update(extra)
     try:
-        with open(STATUS, "w") as f:
+        tmp = STATUS + ".tmp"
+        with open(tmp, "w") as f:
             json.dump(data, f)
+        os.replace(tmp, STATUS)
     except Exception:
         pass
 
@@ -197,11 +199,21 @@ def process(path):
 def main():
     if not secret():
         return
-    for path in sorted(glob.glob(QUEUE + "/update-*.json")):
-        try:
-            process(path)
-        except Exception as e:
-            log("ERROR " + path + ": " + str(e))
+    lock = open(QUEUE + "/.update.lock", "w")
+    try:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        log("SKIP - another update run is in progress")
+        return
+    try:
+        for path in sorted(glob.glob(QUEUE + "/update-*.json")):
+            try:
+                process(path)
+            except Exception as e:
+                log("ERROR " + path + ": " + str(e))
+    finally:
+        fcntl.flock(lock, fcntl.LOCK_UN)
+        lock.close()
 
 if __name__ == "__main__":
     main()
