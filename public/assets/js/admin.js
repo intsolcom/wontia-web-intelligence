@@ -1642,6 +1642,31 @@ W.factoryRunJobs=async function(){
     W.factoryJobs();
 };
 
+W.updateLabels=function(files){
+    if(!files||!files.length)return 'Sistema';
+    var labels={};
+    files.forEach(function(f){
+        var m;
+        if((m=f.match(/^src\/Widgets\/(.+)Widget\.php$/))){labels['Widget '+m[1].replace(/([a-z])([A-Z])/g,'$1 $2')]=1;}
+        else if((m=f.match(/^src\/Bricks\/([^\/]+)/))){labels['Brick '+m[1]]=1;}
+        else if((m=f.match(/^templates\/themes\/([^\/]+)/))){labels['Tema '+m[1]]=1;}
+        else if((m=f.match(/^src\/Controllers\/Admin\/(.+)Controller\.php$/))){labels['Panel '+m[1]]=1;}
+        else if(f.indexOf('public/assets/js/admin.js')===0){labels['Panel admin (UI)']=1;}
+        else if(f.indexOf('public/assets/css')===0){labels['Estilos admin']=1;}
+        else if(f.indexOf('src/Core/AiBrick')===0){labels['BRICK (IA)']=1;}
+        else if(f.indexOf('src/Core/')===0){labels['Núcleo']=1;}
+        else if(f.indexOf('install/')===0){labels['Base de datos']=1;}
+        else if(f.indexOf('deploy/')===0){labels['Auto-actualización']=1;}
+        else if(f.indexOf('templates/')===0){labels['Temas']=1;}
+        else if((m=f.match(/\.md$/))){labels['Documentación']=1;}
+        else {labels['Sistema']=1;}
+    });
+    var keys=Object.keys(labels);
+    var shown=keys.slice(0,4).join(' · ');
+    if(keys.length>4)shown+=' · +'+(keys.length-4);
+    return shown;
+};
+
 W.factorySystem=async function(){
     var el=document.getElementById('factory-content');
     if(!el)return;
@@ -1686,11 +1711,13 @@ W.factorySystem=async function(){
     html+='<div class="w-card"><h3>Historial de actualizaciones</h3>';
     if(!rows.length){html+='<div class="w-empty-state" style="padding:16px"><p>Sin actualizaciones aún</p></div>';}
     else{
-        html+='<table class="w-table"><tr><th>Cuándo</th><th>Estado</th><th>Commit</th><th>Contenedores</th><th>Duración</th></tr>';
+        html+='<table class="w-table"><tr><th>Cuándo</th><th>Actualiza</th><th>Estado</th><th>Commit</th><th>Contenedores</th><th>Duración</th></tr>';
         rows.forEach(function(u){
             var d=u.data||{};
             var status=u.status==='pending'?'pending':(d.status||'done');
-            html+='<tr><td style="font-size:10px">'+W.esc(u.file)+'</td><td>'+W.fStatus(String(status).toUpperCase())+'</td><td class="mono" style="font-size:11px">'+W.esc(d.commit||'-')+'</td><td style="font-size:11px">'+((d.containers||[]).length||'-')+'</td><td style="font-size:11px">'+(d.duration_s?d.duration_s+'s':'-')+'</td></tr>';
+            var what=W.updateLabels(d.changed_files);
+            var subject=d.commit_subject?'<div style="font-size:10px;color:var(--w-muted);max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+W.esc(d.commit_subject)+'</div>':'';
+            html+='<tr><td style="font-size:10px">'+W.esc(u.file)+'</td><td style="font-size:11px"><strong>'+W.esc(what)+'</strong>'+subject+'</td><td>'+W.fStatus(String(status).toUpperCase())+'</td><td class="mono" style="font-size:11px">'+W.esc(d.commit||'-')+'</td><td style="font-size:11px">'+((d.containers||[]).length||'-')+'</td><td style="font-size:11px">'+(d.duration_s?d.duration_s+'s':'-')+'</td></tr>';
         });
         html+='</table>';
     }

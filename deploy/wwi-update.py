@@ -114,13 +114,28 @@ def process(path):
     sh(f"docker tag {IMAGE} {PREV}")
     status("clone", 10, "Descargando el último commit desde Git")
     sh(f"rm -rf {SRC}")
-    clone = sh(f"git clone --depth 1 {REPO} {SRC}", timeout=300)
+    clone = sh(f"git clone --depth 50 {REPO} {SRC}", timeout=300)
     if clone.returncode != 0:
         log("CLONE FAIL: " + clone.stderr[-300:])
         status("clone", 10, "Error descargando el repositorio", status="failed", error=clone.stderr[-300:])
         finish(path, {"ts": req.get("ts"), "status": "failed", "step": "clone", "error": clone.stderr[-500:]})
         return
     commit = sh(f"git -C {SRC} rev-parse --short HEAD").stdout.strip()
+    commit_full = sh(f"git -C {SRC} rev-parse HEAD").stdout.strip()
+    commit_subject = sh(f"git -C {SRC} log -1 --format=%s").stdout.strip()
+    last_file = QUEUE + "/.last-commit"
+    changed = []
+    try:
+        last = open(last_file).read().strip() if os.path.exists(last_file) else ""
+        if last:
+            out = sh(f"git -C {SRC} diff --name-only {last} HEAD", timeout=60)
+            if out.returncode == 0:
+                changed = [l.strip() for l in out.stdout.splitlines() if l.strip()]
+        if not changed:
+            out = sh(f"git -C {SRC} log -1 --name-only --format=", timeout=60)
+            changed = [l.strip() for l in out.stdout.splitlines() if l.strip()]
+    except Exception:
+        changed = []
     status("sync", 20, "Sincronizando archivos (preserva configuración)", commit=commit)
     rsync = sh(f"rsync -a --delete --exclude '.env' --exclude 'vendor/' --exclude 'cache/' --exclude 'public/assets/uploads/' {SRC}/ {APP}/", timeout=300)
     if rsync.returncode != 0:
@@ -162,7 +177,22 @@ def process(path):
         final_status = "success"
     duration = int(time.time() - started)
     log(f"UPDATE {final_status.upper()} commit={commit} containers={len(configs)} duration={duration}s")
-    finish(path, {"ts": req.get("ts"), "status": final_status, "commit": commit, "containers": [c["name"] for c in configs], "duration_s": duration, "failed": failed})
+    if final_status == "success":
+        try:
+            with open(QUEUE + "/.last-commit", "w") as f:
+                f.write(commit_full)
+        except Exception:
+            pass
+    finish(path, {
+        "ts": req.get("ts"),
+        "status": final_status,
+        "commit": commit,
+        "commit_subject": commit_subject,
+        "changed_files": changed[:80],
+        "containers": [c["name"] for c in configs],
+        "duration_s": duration,
+        "failed": failed,
+    })
 
 def main():
     if not secret():
