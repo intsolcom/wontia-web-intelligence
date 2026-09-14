@@ -44,6 +44,7 @@ W.router=function(){
     if(panel==='brickhub'){window.location.replace(window.location.pathname+window.location.search+'#bricks/extensiones');return}
     if(panel==='brick'){window.location.replace(window.location.pathname+window.location.search+'#bricks/ia');return}
     if(panel==='factory'){var ftab=parts[1]||'inicio';if(ftab==='updates')ftab='system';window.location.replace(window.location.pathname+window.location.search+'#wwi/'+ftab);return}
+    if(panel==='sections'){window.location.replace(window.location.pathname+window.location.search+'#pages/secciones'+(parts[1]?'/'+parts[1]:''));return}
     if(panel!=='bricks'){W.state.brickHost=null;W.state.bhHost=null}
     document.querySelectorAll('.w-nav-item').forEach(function(a){a.classList.toggle('active',a.dataset.panel===panel)});
     var title=document.getElementById('panel-title');
@@ -54,12 +55,10 @@ W.router=function(){
     W.vt(function(){
         app.innerHTML='<div style="text-align:center;padding:60px;color:var(--w-muted)">Loading...</div>';
         try{
-            var fn=W.panels[panel];
-            if(fn)fn(id,action,parts);
-            else if(panel==='pages'&&id&&!action)W.panels.pageEditor(id);
-            else if(panel==='blog'&&id&&!action)W.panels.blogEditor(id);
-            else if(panel==='sections'&&id)W.panels.pageSections(id);
-            else W.notify('Panel not found','error');
+        var fn=W.panels[panel];
+        if(fn)fn(id,action,parts);
+        else if(panel==='blog'&&id&&!action)W.panels.blogEditor(id);
+        else W.notify('Panel not found','error');
         }catch(e){app.innerHTML='<div class="w-empty-state"><h3>Error</h3><p>'+e.message+'</p></div>';}
     });
 };
@@ -100,8 +99,29 @@ W.logout=async function(){
     window.location.reload();
 };
 
-W.renderPageList=function(){
+W.renderPages=function(tab,pageId){
+    if(tab&&/^\d+$/.test(String(tab))){W.renderPageEditor(parseInt(tab,10));return}
+    tab=tab||'lista';
+    W.state.pagesTab=tab;
     var app=document.getElementById('wontia-app');
+    if(!app)return;
+    var tabs=[['lista','Páginas'],['secciones','Secciones']];
+    var bar='<div class="w-brick-tabs">';
+    tabs.forEach(function(t){
+        bar+='<button class="w-brick-tab'+(tab===t[0]?' active':'')+'" onclick="wontia.pagesGo(\''+t[0]+'\')">'+t[1]+'</button>';
+    });
+    bar+='</div>';
+    app.innerHTML=bar+'<div id="pages-content"></div>';
+    if(tab==='secciones')W.renderSectionManager(pageId,'pages-content');
+    else W.renderPageList('pages-content');
+};
+
+W.pagesGo=function(t){
+    window.location.hash=t==='secciones'?'#pages/secciones':'#pages';
+};
+
+W.renderPageList=function(containerId){
+    var app=document.getElementById(containerId||'wontia-app');
     var html='<div class="w-flex-between w-mb-lg"><div class="w-flex w-gap-sm"><input class="w-input" style="width:200px" placeholder="Search pages..." id="page-search"/></div><button class="w-btn w-btn-primary" onclick="wontia.panels.pageEditor()">+ New Page</button></div>';
     html+='<div id="page-list"></div>';
     app.innerHTML=html;
@@ -122,7 +142,7 @@ W.refreshPages=async function(){
         html+='<div class="w-page-list-item" onclick="wontia.panels.pageEditor('+p.id+')">';
         html+='<div><div style="font-size:13px;font-weight:600">'+W.esc(p.title)+'</div><div style="font-size:11px;color:var(--w-muted)">/'+W.esc(p.slug)+' &middot; '+p.section_count+' sections</div></div>';
         html+='<div class="w-flex w-gap-sm"><span class="w-badge w-badge-'+(p.status==='published'?'published':'draft')+'">'+p.status+'</span>';
-        html+='<a href="#sections/'+p.id+'" class="w-btn w-btn-secondary w-btn-sm" onclick="event.stopPropagation()">Sections</a>';
+        html+='<a href="#pages/secciones/'+p.id+'" class="w-btn w-btn-secondary w-btn-sm" onclick="event.stopPropagation()">Secciones</a>';
         html+='<button class="w-btn w-btn-danger w-btn-sm" onclick="event.stopPropagation();wontia.deletePage('+p.id+')">Delete</button></div>';
         html+='</div>';
     });
@@ -159,12 +179,13 @@ W.renderPageEditor=function(id){
         var method=id?'PUT':'POST';
         var url=id?'/api/v1/admin/pages/'+id:'/api/v1/admin/pages';
         var r=await W.api(url,{method:method,body:data});
-        if(r.ok){W.notify('Saved','success');W.state.currentPage=r.data;if(!id){window.location.hash='#sections/'+r.data.id;window.location.hash='#pages'}}
+        if(r.ok){W.notify('Saved','success');W.state.currentPage=r.data;if(!id){window.location.hash='#pages/secciones/'+r.data.id}}
     });
 };
 
-W.renderSectionManager=function(pageId){
-    var app=document.getElementById('wontia-app');
+W.renderSectionManager=function(pageId,containerId){
+    var app=document.getElementById(containerId||'wontia-app');
+    if(!app)return;
     app.innerHTML='<div id="section-panel"></div>';
     W.loadSections(pageId);
 };
@@ -181,28 +202,93 @@ W.loadSections=async function(pageId){
     var el=document.getElementById('section-panel');
     if(!el)return;
     if(!pageId){
-        el.innerHTML='<div class="w-empty-state"><h3>Selecciona una página</h3><p>Entra a Pages y elige la página cuyas secciones quieres editar.</p><a href="#pages" class="w-btn w-btn-primary">Ir a Pages</a></div>';
+        var pd=await W.api('/api/v1/admin/pages');
+        var pages=pd.data||[];
+        var html='<div class="w-card" style="padding:14px 18px;margin-bottom:14px"><div style="font-size:13px;font-weight:700">Secciones por página</div><div style="font-size:11px;color:var(--w-muted);margin-top:4px;line-height:1.6">Elige una página para gestionar sus secciones: <strong>arrastra</strong> para reordenar, añade bricks o edítalos.</div></div>';
+        if(!pages.length){
+            html+='<div class="w-empty-state"><h3>Sin páginas</h3><p>Crea tu primera página en la pestaña Páginas.</p><button class="w-btn w-btn-primary" onclick="wontia.pagesGo(\'lista\')">Ir a Páginas</button></div>';
+        }else{
+            html+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px">';
+            pages.forEach(function(p){
+                html+='<div class="w-card" style="padding:16px"><div style="font-size:13px;font-weight:600">'+W.esc(p.title)+'</div><div style="font-size:11px;color:var(--w-muted);margin-top:2px">/'+W.esc(p.slug)+' · '+p.section_count+' secciones</div><div style="margin-top:10px"><a class="w-btn w-btn-primary w-btn-sm" href="#pages/secciones/'+p.id+'">Gestionar secciones</a></div></div>';
+            });
+            html+='</div>';
+        }
+        el.innerHTML=html;
         return;
     }
     var d=await W.api('/api/v1/admin/pages/'+pageId);
     if(!d.ok||!d.data){
-        el.innerHTML='<div class="w-empty-state"><h3>Page not found</h3><p>La página no existe en este sitio. Entra a Pages para ver las disponibles.</p><a href="#pages" class="w-btn w-btn-primary">Ir a Pages</a></div>';
+        el.innerHTML='<div class="w-empty-state"><h3>Page not found</h3><p>La página no existe en este sitio.</p><button class="w-btn w-btn-primary" onclick="wontia.pagesGo(\'secciones\')">Elegir otra página</button></div>';
         return;
     }
     W.state.currentPage=d.data;
     if(!W.state.currentPage.sections)W.state.currentPage.sections=[];
-    var html='<div class="w-flex-between w-mb-lg"><div><h3 style="font-size:15px">Secciones: '+W.esc(W.state.currentPage.title)+'</h3><span style="font-size:11px;color:var(--w-muted)">'+W.state.currentPage.sections.length+' secciones</span></div><div class="w-flex w-gap-sm"><button class="w-btn w-btn-primary" onclick="wontia.showSectionTypePicker('+pageId+')">+ Añadir sección</button><a href="#pages" class="w-btn w-btn-secondary">Volver</a></div></div>';
+    var html='<div class="w-flex-between w-mb-lg"><div><h3 style="font-size:15px">Secciones: '+W.esc(W.state.currentPage.title)+'</h3><span style="font-size:11px;color:var(--w-muted)">'+W.state.currentPage.sections.length+' secciones · arrastra para reordenar</span></div><div class="w-flex w-gap-sm"><button class="w-btn w-btn-primary" onclick="wontia.showSectionTypePicker('+pageId+')">+ Añadir sección</button><button class="w-btn w-btn-secondary" onclick="wontia.pagesGo(\'secciones\')">Cambiar página</button></div></div>';
     if(!W.state.currentPage.sections.length){
         html+='<div class="w-empty-state"><h3>Sin secciones</h3><p>Añade la primera sección a esta página</p></div>';
     }else{
         W.state.currentPage.sections.forEach(function(s,i){
             html+='<div class="w-card w-mb" draggable="true" data-sid="'+s.id+'" style="cursor:grab">';
-            html+='<div class="w-flex-between w-mb"><div class="w-flex w-gap-sm"><span style="font-size:10px;color:var(--w-muted);background:var(--w-bg);padding:2px 8px;border-radius:4px">'+W.esc(W.sectionLabel(s))+'</span><strong style="font-size:13px">'+W.esc(s.title||'Sin título')+'</strong>'+(s.is_active==1||s.is_active==='1'?'':'<span class="w-brick-chip" style="color:#fbbf24">oculta</span>')+'</div><div class="w-flex w-gap-sm"><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.editSection('+s.id+')">Editar</button><button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.deleteSection('+s.id+','+pageId+')">Eliminar</button></div></div>';
+            html+='<div class="w-flex-between w-mb"><div class="w-flex w-gap-sm"><span class="w-drag-handle" title="Arrastra para reordenar">⠿</span><span style="font-size:10px;color:var(--w-muted);background:var(--w-bg);padding:2px 8px;border-radius:4px">'+W.esc(W.sectionLabel(s))+'</span><strong style="font-size:13px">'+W.esc(s.title||'Sin título')+'</strong>'+(s.is_active==1||s.is_active==='1'?'':'<span class="w-brick-chip" style="color:#fbbf24">oculta</span>')+'</div><div class="w-flex w-gap-sm"><button class="w-btn w-btn-secondary w-btn-sm" title="Subir" onclick="wontia.moveSection(this,'+s.id+',-1)">▲</button><button class="w-btn w-btn-secondary w-btn-sm" title="Bajar" onclick="wontia.moveSection(this,'+s.id+',1)">▼</button><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.editSection('+s.id+')">Editar</button><button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.deleteSection('+s.id+','+pageId+')">Eliminar</button></div></div>';
             if(s.subtitle)html+='<p style="font-size:12px;color:var(--w-muted);margin-bottom:6px">'+W.esc(s.subtitle)+'</p>';
             html+='</div>';
         });
     }
     el.innerHTML=html;
+    W.initSectionDnD(el);
+};
+
+W.initSectionDnD=function(container){
+    var dragEl=null;
+    container.querySelectorAll('[data-sid]').forEach(function(card){
+        card.addEventListener('dragstart',function(e){
+            dragEl=card;
+            card.classList.add('w-dragging');
+            try{e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',card.dataset.sid)}catch(err){}
+        });
+        card.addEventListener('dragend',function(){
+            card.classList.remove('w-dragging');
+            container.querySelectorAll('.w-drag-over').forEach(function(x){x.classList.remove('w-drag-over')});
+            if(dragEl)W.saveSectionOrder(container);
+            dragEl=null;
+        });
+        card.addEventListener('dragover',function(e){
+            e.preventDefault();
+            if(!dragEl||dragEl===card)return;
+            var rect=card.getBoundingClientRect();
+            var after=(e.clientY-rect.top)>rect.height/2;
+            card.classList.add('w-drag-over');
+            container.insertBefore(dragEl,after?card.nextSibling:card);
+        });
+        card.addEventListener('dragleave',function(){card.classList.remove('w-drag-over')});
+    });
+};
+
+W.saveSectionOrder=async function(container){
+    var cards=container.querySelectorAll('[data-sid]');
+    if(!cards.length)return;
+    var items=[];
+    cards.forEach(function(c,i){items.push({id:parseInt(c.dataset.sid,10),sort_order:i})});
+    var r=await W.api('/api/v1/admin/sections/reorder',{method:'PUT',body:{items:items}});
+    if(r.ok){
+        W.notify('Orden guardado','success');
+        if(W.state.currentPage&&W.state.currentPage.sections){
+            var byId={};
+            W.state.currentPage.sections.forEach(function(s){byId[s.id]=s});
+            W.state.currentPage.sections=items.map(function(it){return byId[it.id]}).filter(Boolean);
+        }
+    }else W.notify(r.message||'No se pudo guardar el orden','error');
+};
+
+W.moveSection=function(btn,sid,dir){
+    var card=btn.closest('[data-sid]');
+    if(!card)return;
+    var container=card.parentElement;
+    if(dir<0&&card.previousElementSibling)container.insertBefore(card,card.previousElementSibling);
+    else if(dir>0&&card.nextElementSibling)container.insertBefore(card.nextElementSibling,card);
+    else return;
+    W.saveSectionOrder(container);
 };
 
 W.showSectionTypePicker=async function(pageId){
@@ -2689,6 +2775,8 @@ W.palette=function(){
     var existing=document.getElementById('w-palette-overlay');
     if(existing){existing.remove();return}
     var actions=[
+        {label:'Pages · Páginas',hash:'#pages',sub:'Páginas del sitio y su contenido',need:'pages'},
+        {label:'Pages · Secciones',hash:'#pages/secciones',sub:'Reordenar secciones (arrastrar y soltar)',need:'pages'},
         {label:'WWI · Sitios',hash:'#wwi/sitios',sub:'Lifecycle de sitios',need:'wwi'},
         {label:'WWI · Pedidos',hash:'#wwi/pedidos',sub:'Pedidos, pagos y provisioning',need:'wwi'},
         {label:'WWI · Dominios',hash:'#wwi/dominios',sub:'Estados de dominio',need:'wwi'},
@@ -2778,10 +2866,8 @@ document.addEventListener('keydown',function(e){
 W.panels={
     dashboard:W.renderDashboard,
     wwi:W.renderWWI,
-    pages:W.renderPageList,
+    pages:W.renderPages,
     pageEditor:W.renderPageEditor,
-    sections:W.renderSectionManager,
-    pageSections:W.renderSectionManager,
     bricks:W.renderBricks,
     brickhub:W.renderBrickHub,
     brick:W.renderBrick,
@@ -2798,7 +2884,7 @@ W.panels={
 };
 
 (function(){
-    var required=['dashboard','wwi','pages','sections','bricks','brickhub','brick','blog','media','seo','analytics','settings','users'];
+    var required=['dashboard','wwi','pages','bricks','brickhub','brick','blog','media','seo','analytics','settings','users'];
     var missing=required.filter(function(k){return !W.panels[k]});
     if(missing.length)console.error('WWI ADMIN ERROR - paneles faltantes:',missing);
 })();

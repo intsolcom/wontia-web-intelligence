@@ -170,11 +170,11 @@ $router->group('/api/v1/admin', function (Router $r) {
     $r->delete('/pages/{id}', [\App\Controllers\Admin\PageController::class, 'destroy']);
 
     $r->get('/pages/{pageId}/sections', [\App\Controllers\Admin\SectionController::class, 'index']);
-    $r->get('/sections/{id}', [\App\Controllers\Admin\SectionController::class, 'show']);
     $r->post('/pages/{pageId}/sections', [\App\Controllers\Admin\SectionController::class, 'store']);
+    $r->put('/sections/reorder', [\App\Controllers\Admin\SectionController::class, 'reorder']);
+    $r->get('/sections/{id}', [\App\Controllers\Admin\SectionController::class, 'show']);
     $r->put('/sections/{id}', [\App\Controllers\Admin\SectionController::class, 'update']);
     $r->delete('/sections/{id}', [\App\Controllers\Admin\SectionController::class, 'destroy']);
-    $r->put('/sections/reorder', [\App\Controllers\Admin\SectionController::class, 'reorder']);
 
     $r->get('/bricks', [\App\Controllers\Admin\BrickController::class, 'index']);
     $r->get('/bricks/usage', [\App\Controllers\Admin\BrickController::class, 'usage']);

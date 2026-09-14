@@ -174,6 +174,9 @@ table.w-table{width:100%;border-collapse:collapse}
 .w-bm-ins{background:var(--w-surface);border:1px solid var(--w-border);border-radius:10px;padding:10px 12px}
 .w-bm-ins b{display:block;font-size:15px;font-weight:700;font-family:var(--w-font-mono)}
 .w-bm-ins span{font-size:10px;color:var(--w-muted)}
+.w-drag-handle{cursor:grab;color:var(--w-muted);font-size:14px;line-height:1;user-select:none}
+.w-dragging{opacity:.45;border-color:var(--w-brand)!important;transform:scale(.99)}
+.w-drag-over{border-color:var(--w-brand)!important;box-shadow:0 0 0 2px rgba(34,211,238,.25)}
 .w-bm-section{margin-bottom:18px}
 .w-bm-section-head{display:flex;align-items:center;gap:8px;margin-bottom:10px}
 .w-bm-section-title{font-size:11px;font-weight:800;color:var(--w-primary);letter-spacing:.06em;text-transform:uppercase}
