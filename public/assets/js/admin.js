@@ -571,13 +571,24 @@ W.renderSettings=async function(){
     var app=document.getElementById('wontia-app');
     var d=await W.api('/api/v1/admin/settings');
     var s=d.data||{};
+    var th=await W.api('/api/v1/admin/themes');
+    var td=th.data||{themes:[],active:''};
     var keys=['site_name','site_description','ga_measurement_id','cookie_consent_enabled','primary_color','logo_text'];
     var html='<div class="w-card"><h3>Site Settings</h3>';
     keys.forEach(function(k){
         html+='<div class="w-form-group"><label class="w-label">'+W.esc(k)+'</label><input class="w-input" id="set-'+k+'" value="'+W.esc(s[k]||'')+'"/></div>';
     });
     html+='<button class="w-btn w-btn-primary" onclick="wontia.saveSettings()">Save Settings</button></div>';
+    html+='<div class="w-card"><h3>Tema del sitio</h3><div style="font-size:11px;color:var(--w-muted);margin-bottom:10px">Activa o desactiva la apariencia del sitio en cualquier momento. El cambio es reversible y no afecta el contenido.</div><div class="w-flex w-gap-sm" style="flex-wrap:wrap"><select class="w-select" id="set-theme" style="max-width:300px">'+td.themes.map(function(t){return '<option value="'+W.esc(t)+'"'+(t===td.active?' selected':'')+'>'+W.esc(t)+'</option>'}).join('')+'</select><button class="w-btn w-btn-primary" onclick="wontia.saveTheme()">Activar tema</button></div><div style="font-size:11px;color:var(--w-muted);margin-top:8px">Tema activo: <strong>'+W.esc(td.active||'—')+'</strong></div></div>';
     app.innerHTML=html;
+};
+
+W.saveTheme=async function(){
+    var t=document.getElementById('set-theme')?document.getElementById('set-theme').value:'';
+    if(!t)return;
+    var r=await W.api('/api/v1/admin/themes/active',{method:'PUT',body:{theme:t}});
+    if(r.ok){W.notify(r.message||'Tema activado','success');W.renderSettings()}
+    else W.notify(r.message||'Error','error');
 };
 
 W.saveSettings=async function(){

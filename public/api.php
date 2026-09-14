@@ -342,6 +342,8 @@ $router->group('/api/v1/admin', function (Router $r) {
 
     $r->get('/settings', [\App\Controllers\Admin\SettingsController::class, 'index']);
     $r->put('/settings', [\App\Controllers\Admin\SettingsController::class, 'update']);
+    $r->get('/themes', [\App\Controllers\Admin\SettingsController::class, 'themes']);
+    $r->put('/themes/active', [\App\Controllers\Admin\SettingsController::class, 'setTheme']);
 
     $r->get('/users', [\App\Controllers\Admin\UserController::class, 'index']);
     $r->post('/users', [\App\Controllers\Admin\UserController::class, 'store']);
