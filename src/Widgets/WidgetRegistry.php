@@ -31,6 +31,7 @@ class WidgetRegistry
             $result[$id]['configSchema'] = $class::configSchema();
             $result[$id]['defaultConfig'] = $class::defaultConfig();
             $result[$id]['adminPreview'] = $class::adminPreview();
+            $result[$id]['editContract'] = $class::editContract();
         }
         return $result;
     }

@@ -27,6 +27,17 @@ abstract class Widget
         return $defaults;
     }
 
+    public static function editContract(): array
+    {
+        $repeaters = [];
+        $editable = [];
+        foreach (static::configSchema() as $field) {
+            if (($field['type'] ?? '') === 'repeater') $repeaters[$field['key']] = $field['fields'] ?? [];
+            if (in_array($field['type'] ?? '', ['text', 'textarea'], true)) $editable[] = $field['key'];
+        }
+        return ['editable' => $editable, 'repeaters' => $repeaters, 'sources' => [], 'dynamic' => false];
+    }
+
     public static function adminPreview(): string
     {
         return '<div style="background:var(--w-surface);border:1px solid var(--w-border);border-radius:8px;padding:20px;text-align:center;color:var(--w-muted);font-size:12px">' . htmlspecialchars(static::meta()['name']) . '</div>';

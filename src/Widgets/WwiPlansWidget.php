@@ -23,9 +23,9 @@ class WwiPlansWidget extends Widget
         $html = '<section id="planes" style="padding:90px 0">';
         $html .= '<div class="wrap"><div class="h-sec reveal">';
         $html .= '<div class="badge" style="margin-bottom:14px">Planes</div>';
-        $html .= '<h2>' . $this->esc($c['title']) . '</h2><p>' . $this->esc($c['subtitle']) . '</p></div>';
+        $html .= '<h2 data-editable="title">' . $this->esc($c['title']) . '</h2><p data-editable="subtitle">' . $this->esc($c['subtitle']) . '</p></div>';
         $html .= '<div class="wwi-grid-3" data-wwi-plans><div style="text-align:center;padding:40px;color:var(--muted);grid-column:1/-1">Cargando planes…</div></div>';
-        if ($c['note']) $html .= '<div class="mono" style="text-align:center;font-size:11px;color:var(--muted);margin-top:22px">' . $this->esc($c['note']) . '</div>';
+        if ($c['note']) $html .= '<div class="mono" data-editable="note" style="text-align:center;font-size:11px;color:var(--muted);margin-top:22px">' . $this->esc($c['note']) . '</div>';
         $html .= '</div></section>';
         return $html;
     }

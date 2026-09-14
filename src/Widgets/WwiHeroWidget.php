@@ -17,6 +17,23 @@ class WwiHeroWidget extends Widget
             ['key' => 'cta_primary', 'label' => 'CTA Principal', 'type' => 'text', 'default' => 'Empezar ahora'],
             ['key' => 'cta_primary_url', 'label' => 'CTA URL', 'type' => 'text', 'default' => '#planes'],
             ['key' => 'price_note', 'label' => 'Texto de precio', 'type' => 'text', 'default' => 'desde $299.000 COP · pago único · vista previa gratis'],
+            ['key' => 'stats', 'label' => 'Estadísticas', 'type' => 'repeater', 'fields' => [
+                ['key' => 'value', 'label' => 'Valor', 'type' => 'text'],
+                ['key' => 'label', 'label' => 'Etiqueta', 'type' => 'text'],
+            ], 'default' => [
+                ['value' => '24h', 'label' => 'o antes, online'],
+                ['value' => '0', 'label' => 'programadores necesarios'],
+                ['value' => 'TIA', 'label' => 'construye por ti'],
+            ]],
+            ['key' => 'sectors', 'label' => 'Sectores (marquee)', 'type' => 'repeater', 'fields' => [
+                ['key' => 'name', 'label' => 'Sector', 'type' => 'text'],
+            ], 'default' => [
+                ['name' => 'Restaurantes'], ['name' => 'Abogados'], ['name' => 'Medicos'], ['name' => 'Inmobiliarias'],
+                ['name' => 'Hoteles'], ['name' => 'Gimnasios'], ['name' => 'Consultores'], ['name' => 'Tiendas'],
+                ['name' => 'Cafeterias'], ['name' => 'Veterinarias'], ['name' => 'Arquitectos'], ['name' => 'Transporte'],
+                ['name' => 'Educacion'], ['name' => 'Eventos'], ['name' => 'Moda'], ['name' => 'Tecnologia'],
+                ['name' => 'Agricultura'], ['name' => 'Belleza'],
+            ]],
         ];
     }
 
@@ -38,11 +55,21 @@ class WwiHeroWidget extends Widget
         if ($c['price_note']) $html .= '<div class="mono" data-editable="price_note" style="font-size:12px;color:var(--muted)">' . $this->esc($c['price_note']) . '</div>';
         $html .= '<div class="trust-row" style="margin-top:14px"><span>Vista previa gratis</span><span>Sin tarjeta</span><span>Sin programador</span></div>';
         $html .= '<div class="wwi-grid-3 wrap" style="margin-top:44px">';
-        $html .= '<div class="panel stat"><div class="v" data-count="24" data-suffix="h">24h</div><div class="l">o antes, online</div></div>';
-        $html .= '<div class="panel stat"><div class="v">0</div><div class="l">programadores necesarios</div></div>';
-        $html .= '<div class="panel stat"><div class="v">TIA</div><div class="l">construye por ti</div></div>';
+        $stats = $this->safeJson($c['stats'] ?? []);
+        foreach ($stats as $st) {
+            if (!is_array($st)) continue;
+            $val = (string)($st['value'] ?? '');
+            $attrs = '';
+            if (preg_match('/^(\d+)(.*)$/u', $val, $m)) $attrs = ' data-count="' . $m[1] . '" data-suffix="' . $this->esc($m[2]) . '"';
+            $html .= '<div class="panel stat"><div class="v"' . $attrs . '>' . $this->esc($val) . '</div><div class="l">' . $this->esc($st['label'] ?? '') . '</div></div>';
+        }
         $html .= '</div>';
-        $sectors = ['Restaurantes', 'Abogados', 'Medicos', 'Inmobiliarias', 'Hoteles', 'Gimnasios', 'Consultores', 'Tiendas', 'Cafeterias', 'Veterinarias', 'Arquitectos', 'Transporte', 'Educacion', 'Eventos', 'Moda', 'Tecnologia', 'Agricultura', 'Belleza'];
+        $sectors = [];
+        foreach ($this->safeJson($c['sectors'] ?? []) as $sec) {
+            if (is_array($sec)) $sec = (string)($sec['name'] ?? '');
+            $sec = trim((string)$sec);
+            if ($sec !== '') $sectors[] = $sec;
+        }
         $html .= '<div class="marquee" style="max-width:1120px;margin:38px auto 0;border-radius:12px"><div class="track">';
         foreach (array_merge($sectors, $sectors) as $s) {
             $html .= '<span><b>◆</b> ' . $this->esc($s) . '</span>';

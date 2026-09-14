@@ -946,6 +946,12 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
 .wwi-edit-on .wwi-section:hover>.wwi-ed-tools{display:flex}
 .wwi-ed-tools button{width:30px;height:30px;border-radius:8px;border:1px solid var(--border2);background:rgba(6,8,15,.85);color:var(--text);cursor:pointer;font-size:13px;backdrop-filter:blur(8px)}
 .wwi-ed-tools button:hover{border-color:var(--accent);color:var(--accent)}
+.wwi-ed-rep{margin-bottom:12px;border:1px solid var(--border);border-radius:10px;padding:10px}
+.wwi-rep-item{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:8px}
+.wwi-rep-head{display:flex;justify-content:space-between;align-items:center;font-size:10px;color:var(--muted);margin-bottom:6px}
+.wwi-rep-item label{display:block;font-size:10px;color:var(--muted);margin-bottom:6px}
+.wwi-rep-item input,.wwi-rep-item textarea{width:100%;margin-top:3px;background:var(--bg);border:1px solid var(--border2);border-radius:6px;padding:6px 8px;color:var(--text);font-size:12px;font-family:inherit;outline:none}
+.wwi-rep-item textarea{min-height:54px;resize:vertical}
 .wwi-ed-cursor{position:fixed;z-index:100003;pointer-events:none;transform:translate(-2px,-2px);transition:left .8s linear,top .8s linear}
 .wwi-ed-cursor .dot{display:block;width:10px;height:10px;border-radius:50%;background:#22d3ee;box-shadow:0 0 0 3px rgba(34,211,238,.25)}
 .wwi-ed-cursor .nm{position:absolute;left:14px;top:-2px;font-size:10px;background:rgba(6,8,15,.85);color:#67e8f9;border:1px solid rgba(34,211,238,.4);border-radius:6px;padding:1px 6px;white-space:nowrap}
@@ -970,7 +976,7 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
     try{token=localStorage.getItem('wwi_token')||null}catch(e){}
     if(!token||window.__WWI_PREVIEW__)return;
     var CTX=window.__WWI_EDIT_CTX__||{};
-    var S={open:false,tab:'content',sel:null,sec:null,timer:null,undo:[],saving:false};
+    var S={open:false,tab:'content',sel:null,sec:null,timer:null,undo:[],saving:false,rep:{},repFields:{}};
     function api(url,opts){
         opts=opts||{};
         opts.headers=opts.headers||{};
@@ -1165,6 +1171,7 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
         if(!S.sel){b.innerHTML='<div class="wwi-ed-hint">Haz clic en una <strong>sección</strong> del sitio para editarla, o directamente en un <strong>texto / botón / precio</strong> para editarlo.<br><br>Arrastra el borde izquierdo para redimensionar. Los cambios se guardan automáticamente (Ctrl+Z deshace).</div>';return}
         var s=S.sec;if(!s){b.innerHTML='<div class="wwi-ed-hint">Cargando…</div>';return}
         if(S.sel.kind==='element'){renderElement(b,s);return}
+        S.rep={};S.repFields={};
         var cfg=cfgOf(s);
         var h='<div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:8px">'+esc(s.widget_type||s.type||'sección')+'</div>';
         h+='<label>Título<input id="wwi-ed-title" value="'+esc(s.title||'')+'"/></label>';
@@ -1182,6 +1189,13 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
                 h+='<label>'+esc(f.label)+'<select id="'+id+'">'+o+'</select></label>';
             }
             else if(f.type==='textarea'||f.type==='code')h+='<label>'+esc(f.label)+'<textarea id="'+id+'">'+esc(typeof v==='object'?JSON.stringify(v):v)+'</textarea></label>';
+            else if(f.type==='repeater'){
+                S.repFields[f.key]=f.fields||[];
+                var rv=cfg[f.key];
+                if(typeof rv==='string'){try{rv=JSON.parse(rv||'[]')}catch(e){rv=[]}}
+                S.rep[f.key]=Array.isArray(rv)?rv.slice():[];
+                h+='<div class="wwi-ed-rep"><div style="font-size:11px;color:var(--muted);margin-bottom:6px">'+esc(f.label)+'</div><div id="wwi-rep-'+f.key+'"></div><button class="wwi-ed-btn" data-repadd="'+f.key+'" style="margin-top:6px">+ Añadir</button></div>';
+            }
             else h+='<label>'+esc(f.label)+'<input id="'+id+'" value="'+esc(v)+'"/></label>';
         });
         h+='<label class="wwi-ed-check"><input type="checkbox" id="wwi-ed-active" '+(s.is_active==1||s.is_active==='1'?'checked':'')+'/> Visible en el sitio</label>';
@@ -1190,6 +1204,18 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
         var client=document.body.classList.contains('wwi-client');
         h+='<div class="wwi-ed-actions"><button class="wwi-ed-save" id="wwi-ed-save">Guardar</button><button class="wwi-ed-btn" id="wwi-ed-hist">🕘 Historial</button><button class="wwi-ed-btn" id="wwi-ed-ab">🧪 A/B</button>'+(client?'':'<button class="wwi-ed-btn" id="wwi-ed-up" title="Subir">▲</button><button class="wwi-ed-btn" id="wwi-ed-down" title="Bajar">▼</button><button class="wwi-ed-btn" id="wwi-ed-dup">Duplicar</button><button class="wwi-ed-btn" id="wwi-ed-del" style="color:#f87171">Eliminar</button>')+'</div>';
         b.innerHTML=h;
+        b.querySelectorAll('[data-repadd]').forEach(function(btn){
+            btn.onclick=function(){
+                var key=btn.dataset.repadd;
+                var fields=S.repFields[key]||[];
+                var item={};
+                fields.forEach(function(ff){item[ff.key]=''});
+                S.rep[key].push(item);
+                repRender(s,key);
+                scheduleAuto(function(){saveSection(s,collect(s),true)});
+            };
+        });
+        Object.keys(S.rep).forEach(function(key){repRender(s,key)});
         b.querySelectorAll('input,textarea,select').forEach(function(inp){
             inp.addEventListener('input',function(){scheduleAuto(function(){saveSection(s,collect(s),true)})});
         });
@@ -1215,8 +1241,64 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
         });
         cfg._hide_mobile=(el('wwi-ed-hm')&&el('wwi-ed-hm').checked)?1:0;
         cfg._hide_tablet=(el('wwi-ed-ht')&&el('wwi-ed-ht').checked)?1:0;
+        Object.keys(S.rep).forEach(function(key){cfg[key]=S.rep[key]});
         data.config=cfg;
         return data;
+    }
+    function repRender(s,key){
+        var list=el('wwi-rep-'+key);
+        if(!list)return;
+        var fields=S.repFields[key]||[];
+        var items=S.rep[key]||[];
+        var h='';
+        items.forEach(function(it,idx){
+            h+='<div class="wwi-rep-item"><div class="wwi-rep-head"><span>#'+(idx+1)+'</span><span>';
+            h+='<button class="wwi-ed-btn" data-repmv="-1" data-idx="'+idx+'" style="padding:1px 6px">▲</button> ';
+            h+='<button class="wwi-ed-btn" data-repmv="1" data-idx="'+idx+'" style="padding:1px 6px">▼</button> ';
+            h+='<button class="wwi-ed-btn" data-repdup="'+idx+'" style="padding:1px 6px">⧉</button> ';
+            h+='<button class="wwi-ed-btn" data-repdel="'+idx+'" style="padding:1px 6px;color:#f87171">✕</button>';
+            h+='</span></div>';
+            fields.forEach(function(ff){
+                var v=it[ff.key]!==undefined?it[ff.key]:'';
+                if(ff.type==='textarea')h+='<label>'+esc(ff.label)+'<textarea data-rf="'+ff.key+'" data-ridx="'+idx+'">'+esc(v)+'</textarea></label>';
+                else h+='<label>'+esc(ff.label)+'<input data-rf="'+ff.key+'" data-ridx="'+idx+'" value="'+esc(v)+'"/></label>';
+            });
+            h+='</div>';
+        });
+        if(!items.length)h='<div class="wwi-ed-hint">Sin elementos.</div>';
+        list.innerHTML=h;
+        list.querySelectorAll('[data-rf]').forEach(function(inp){
+            inp.addEventListener('input',function(){
+                var i=parseInt(inp.dataset.ridx,10);
+                if(S.rep[key]&&S.rep[key][i])S.rep[key][i][inp.dataset.rf]=inp.value;
+                scheduleAuto(function(){saveSection(s,collect(s),true)});
+            });
+        });
+        list.querySelectorAll('[data-repmv]').forEach(function(btn){
+            btn.onclick=function(){
+                var i=parseInt(btn.dataset.idx,10),j=i+parseInt(btn.dataset.repmv,10);
+                if(j<0||j>=S.rep[key].length)return;
+                var t=S.rep[key][i];S.rep[key][i]=S.rep[key][j];S.rep[key][j]=t;
+                repRender(s,key);
+                scheduleAuto(function(){saveSection(s,collect(s),true)});
+            };
+        });
+        list.querySelectorAll('[data-repdup]').forEach(function(btn){
+            btn.onclick=function(){
+                var i=parseInt(btn.dataset.repdup,10);
+                S.rep[key].splice(i+1,0,JSON.parse(JSON.stringify(S.rep[key][i])));
+                repRender(s,key);
+                scheduleAuto(function(){saveSection(s,collect(s),true)});
+            };
+        });
+        list.querySelectorAll('[data-repdel]').forEach(function(btn){
+            btn.onclick=function(){
+                var i=parseInt(btn.dataset.repdel,10);
+                S.rep[key].splice(i,1);
+                repRender(s,key);
+                scheduleAuto(function(){saveSection(s,collect(s),true)});
+            };
+        });
     }
     function snapshot(s){
         var snap={title:s.title||'',subtitle:s.subtitle||'',is_active:(s.is_active==1||s.is_active==='1')?1:0};

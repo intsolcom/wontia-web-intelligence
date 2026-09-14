@@ -23,7 +23,7 @@ class WwiCheckoutWidget extends Widget
     {
         $c = $this->mergeConfig($config);
         $html = '<section id="contacto" style="padding:90px 0;background:var(--bg2);border-top:1px solid var(--border)">';
-        $html .= '<div class="wrap"><div class="h-sec reveal"><h2>' . $this->esc($c['title']) . '</h2><p>' . $this->esc($c['subtitle']) . '</p></div>';
+        $html .= '<div class="wrap"><div class="h-sec reveal"><h2 data-editable="title">' . $this->esc($c['title']) . '</h2><p data-editable="subtitle">' . $this->esc($c['subtitle']) . '</p></div>';
         $html .= '<div class="panel reveal" style="max-width:560px;margin:0 auto;padding:30px">';
         $html .= '<div class="w-form-group" style="margin-bottom:14px"><label style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);display:block;margin-bottom:6px">Plan</label><select class="input" id="wwi-co-plan" style="font-family:inherit"></select></div>';
         $html .= '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">';
@@ -35,7 +35,7 @@ class WwiCheckoutWidget extends Widget
         $html .= '<div><label style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);display:block;margin-bottom:6px">Dominio deseado</label><input class="input" id="wwi-co-domain" placeholder="tunegocio.com"/></div>';
         $html .= '</div>';
         $html .= '<div class="mono" style="font-size:11px;color:var(--muted);margin-bottom:16px" id="wwi-co-total"></div>';
-        $html .= '<button class="btn btn-primary" style="width:100%;padding:12px" id="wwi-co-submit">' . $this->esc($c['button']) . '</button>';
+        $html .= '<button class="btn btn-primary" data-editable="button" style="width:100%;padding:12px" id="wwi-co-submit">' . $this->esc($c['button']) . '</button>';
         $html .= '<div id="wwi-co-result" style="margin-top:14px"></div>';
         $html .= '<div style="font-size:11px;color:var(--muted);margin-top:14px;line-height:1.6">' . $this->esc($c['note_es']) . '</div>';
         $html .= '</div></div></section>';
