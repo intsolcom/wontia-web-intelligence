@@ -4,6 +4,7 @@ namespace App\Controllers\Admin;
 use App\Core\Database;
 use App\Core\Request;
 use App\Core\Response;
+use App\Widgets\WidgetRegistry;
 
 class SectionController
 {
@@ -64,6 +65,20 @@ class SectionController
             ]);
         $id = $db->lastInsertId();
         Response::json(['ok' => true, 'data' => ['id' => $id]], 201);
+    }
+
+    public function render(Request $req, string $id): void
+    {
+        $section = $this->sectionInSite((int)$id);
+        if (!$section) Response::error('Section not found', 404);
+        $html = '';
+        if (!empty($section['widget_type']) && WidgetRegistry::get($section['widget_type'])) {
+            $config = json_decode($section['config'] ?? '{}', true) ?: [];
+            $html = WidgetRegistry::render($section['widget_type'], $config);
+        } else {
+            $html = (string)($section['content'] ?? '');
+        }
+        Response::json(['ok' => true, 'data' => ['html' => $html, 'widget_type' => $section['widget_type']]]);
     }
 
     public function update(Request $req, string $id): void

@@ -131,6 +131,7 @@ section{position:relative}
 </nav>
 <main>
 <?php foreach ($sections as $section):
+    echo '<div class="wwi-section" data-sid="' . (int)($section['id'] ?? 0) . '" data-widget="' . htmlspecialchars((string)($section['widget_type'] ?? '')) . '">';
     if (!empty($section['widget_type']) && WidgetRegistry::get($section['widget_type'])):
         $config = json_decode($section['config'] ?? '{}', true) ?: [];
         echo WidgetRegistry::render($section['widget_type'], $config);
@@ -139,6 +140,7 @@ section{position:relative}
     else:
         if ($section['content']) echo '<section>' . $section['content'] . '</section>';
     endif;
+    echo '</div>';
 endforeach; ?>
 </main>
 <?= CookieConsentService::render() ?>
@@ -856,5 +858,189 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
     </div>
   </div>
 </div>
+<style>
+.wwi-ed-bar{position:fixed;bottom:18px;right:18px;z-index:99998;background:var(--panel);border:1px solid var(--border2);border-radius:999px;padding:8px 14px;display:flex;gap:12px;align-items:center;font-size:12px;box-shadow:0 10px 30px rgba(0,0,0,.4)}
+.wwi-ed-bar .u{color:var(--muted);font-size:11px}
+.wwi-ed-toggle{display:flex;align-items:center;gap:6px;cursor:pointer;font-weight:600}
+.wwi-section{position:relative}
+.wwi-edit-on .wwi-section{outline:1px dashed transparent;transition:outline-color .2s}
+.wwi-edit-on .wwi-section:hover{outline-color:rgba(34,211,238,.55)}
+.wwi-ed-tools{display:none;position:absolute;top:10px;right:10px;z-index:99990;gap:4px}
+.wwi-edit-on .wwi-section:hover>.wwi-ed-tools{display:flex}
+.wwi-ed-tools button{width:30px;height:30px;border-radius:8px;border:1px solid var(--border2);background:rgba(6,8,15,.85);color:var(--text);cursor:pointer;font-size:13px;backdrop-filter:blur(8px)}
+.wwi-ed-tools button:hover{border-color:var(--accent);color:var(--accent)}
+.wwi-ed-panel{position:fixed;top:0;right:0;bottom:0;width:min(400px,92vw);background:var(--panel);border-left:1px solid var(--border2);z-index:100000;overflow-y:auto;padding:18px;box-shadow:-20px 0 60px rgba(0,0,0,.5)}
+.wwi-ed-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.wwi-ed-head strong{font-size:14px}
+.wwi-ed-head button{background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer}
+.wwi-ed-body label{display:block;font-size:11px;color:var(--muted);margin-bottom:10px}
+.wwi-ed-body input,.wwi-ed-body textarea,.wwi-ed-body select{width:100%;margin-top:4px;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;padding:8px 10px;color:var(--text);font-size:12px;font-family:inherit;outline:none}
+.wwi-ed-body textarea{min-height:70px;resize:vertical}
+.wwi-ed-check{display:flex;align-items:center;gap:8px}
+.wwi-ed-check input{width:auto;margin:0}
+.wwi-ed-actions{display:flex;gap:8px;margin-top:14px}
+.wwi-ed-save{background:linear-gradient(120deg,#22d3ee,#8b5cf6);color:#041018;font-weight:700;border:none;border-radius:8px;padding:9px 16px;cursor:pointer}
+.wwi-ed-toast{position:fixed;bottom:80px;right:18px;z-index:100001;background:rgba(52,211,153,.16);border:1px solid rgba(52,211,153,.4);color:#34d399;padding:10px 16px;border-radius:10px;font-size:12px;backdrop-filter:blur(8px)}
+.wwi-ed-toast.err{background:rgba(248,113,113,.16);border-color:rgba(248,113,113,.4);color:#f87171}
+@media(prefers-reduced-motion:reduce){.wwi-edit-on .wwi-section{transition:none}}
+</style>
+<script>
+(function(){
+    var token=null;
+    try{token=localStorage.getItem('wwi_token')||null}catch(e){}
+    if(!token||window.__WWI_PREVIEW__)return;
+    function api(url,opts){
+        opts=opts||{};
+        opts.headers=opts.headers||{};
+        opts.headers['Authorization']='Bearer '+token;
+        if(opts.body){opts.headers['Content-Type']='application/json';opts.body=JSON.stringify(opts.body)}
+        return fetch(url,opts).then(function(r){return r.json()});
+    }
+    function toast(msg,err){
+        var t=document.createElement('div');
+        t.className='wwi-ed-toast'+(err?' err':'');
+        t.textContent=msg;
+        document.body.appendChild(t);
+        setTimeout(function(){t.remove()},2600);
+    }
+    function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+    api('/api/v1/admin/auth/me').then(function(d){
+        if(!d||!d.ok||!d.user)return;
+        var bar=document.createElement('div');
+        bar.className='wwi-ed-bar';
+        bar.innerHTML='<span class="u">✎ '+esc(d.user.username||'')+'</span><label class="wwi-ed-toggle"><input type="checkbox" id="wwi-ed-on"/> Editar sitio</label>';
+        document.body.appendChild(bar);
+        document.getElementById('wwi-ed-on').addEventListener('change',function(){
+            document.body.classList.toggle('wwi-edit-on',this.checked);
+            if(this.checked)decorate();
+        });
+        decorate();
+    }).catch(function(){});
+    function decorate(){
+        document.querySelectorAll('.wwi-section[data-sid]').forEach(function(sec){
+            if(sec.dataset.edReady)return;
+            sec.dataset.edReady='1';
+            var tb=document.createElement('div');
+            tb.className='wwi-ed-tools';
+            tb.innerHTML='<button data-act="edit" title="Editar sección">✎</button><button data-act="up" title="Subir">▲</button><button data-act="down" title="Bajar">▼</button><button data-act="toggle" title="Ocultar / mostrar">👁</button>';
+            sec.appendChild(tb);
+            tb.addEventListener('click',function(e){
+                var b=e.target.closest('button');
+                if(!b)return;
+                e.preventDefault();
+                e.stopPropagation();
+                var sid=parseInt(sec.dataset.sid,10);
+                if(b.dataset.act==='edit')openPanel(sid);
+                else if(b.dataset.act==='up')move(sec,-1);
+                else if(b.dataset.act==='down')move(sec,1);
+                else if(b.dataset.act==='toggle')toggleVisible(sid);
+            });
+        });
+    }
+    function move(sec,dir){
+        var sib=dir<0?sec.previousElementSibling:sec.nextElementSibling;
+        if(!sib||!sib.classList.contains('wwi-section'))return;
+        if(dir<0)sec.parentNode.insertBefore(sec,sib);
+        else sec.parentNode.insertBefore(sib,sec);
+        var items=[];
+        document.querySelectorAll('.wwi-section[data-sid]').forEach(function(s,i){items.push({id:parseInt(s.dataset.sid,10),sort_order:i})});
+        api('/api/v1/admin/sections/reorder',{method:'PUT',body:{items:items}}).then(function(r){
+            toast(r.ok?'Orden guardado':'No se pudo guardar el orden',!r.ok);
+        });
+    }
+    function toggleVisible(sid){
+        api('/api/v1/admin/sections/'+sid).then(function(d){
+            if(!d.ok||!d.data)return;
+            var s=d.data;
+            var active=(s.is_active==1||s.is_active==='1')?0:1;
+            var cfg={};
+            try{cfg=JSON.parse(s.config||'{}')||{}}catch(e){}
+            api('/api/v1/admin/sections/'+sid,{method:'PUT',body:{title:s.title,subtitle:s.subtitle,is_active:active,config:cfg}}).then(function(r){
+                if(r.ok){
+                    var sec=document.querySelector('.wwi-section[data-sid="'+sid+'"]');
+                    if(sec)sec.style.opacity=active?'':'0.4';
+                    toast(active?'Sección visible':'Sección oculta');
+                }else toast(r.message||'Error',true);
+            });
+        });
+    }
+    function openPanel(sid){
+        api('/api/v1/admin/sections/'+sid).then(function(d){
+            if(!d.ok||!d.data){toast('No se pudo cargar la sección',true);return}
+            var s=d.data;
+            var cfg={};
+            try{cfg=JSON.parse(s.config||'{}')||{}}catch(e){}
+            var chain=Promise.resolve({data:{configSchema:[]}});
+            if(s.widget_type)chain=api('/api/v1/admin/bricks/'+encodeURIComponent(s.widget_type)).catch(function(){return{data:{}}});
+            chain.then(function(bd){
+                buildPanel(s,(bd.data&&bd.data.configSchema)||[],cfg);
+            });
+        });
+    }
+    function buildPanel(s,schema,cfg){
+        var old=document.getElementById('wwi-ed-panel');
+        if(old)old.remove();
+        var p=document.createElement('aside');
+        p.id='wwi-ed-panel';
+        p.className='wwi-ed-panel';
+        var html='<div class="wwi-ed-head"><strong>✎ Editar sección</strong><button id="wwi-ed-close">✕</button></div><div class="wwi-ed-body">';
+        html+='<label>Título<input id="wwi-ed-title" value="'+esc(s.title||'')+'"/></label>';
+        html+='<label>Subtítulo<textarea id="wwi-ed-subtitle">'+esc(s.subtitle||'')+'</textarea></label>';
+        (schema||[]).forEach(function(f){
+            var v=(cfg[f.key]!==undefined&&cfg[f.key]!==null)?cfg[f.key]:(f.default!==undefined?f.default:'');
+            var id='wwi-ed-f-'+f.key;
+            if(f.type==='toggle')html+='<label class="wwi-ed-check"><input type="checkbox" id="'+id+'" '+(v?'checked':'')+'/> '+esc(f.label)+'</label>';
+            else if(f.type==='select'){
+                var o='';
+                for(var k in (f.options||{}))o+='<option value="'+esc(k)+'"'+(String(v)===String(k)?' selected':'')+'>'+esc(f.options[k])+'</option>';
+                html+='<label>'+esc(f.label)+'<select id="'+id+'">'+o+'</select></label>';
+            }
+            else if(f.type==='textarea'||f.type==='code')html+='<label>'+esc(f.label)+'<textarea id="'+id+'">'+esc(typeof v==='object'?JSON.stringify(v):v)+'</textarea></label>';
+            else html+='<label>'+esc(f.label)+'<input id="'+id+'" value="'+esc(v)+'"/></label>';
+        });
+        html+='<label class="wwi-ed-check"><input type="checkbox" id="wwi-ed-active" '+(s.is_active==1||s.is_active==='1'?'checked':'')+'/> Visible en el sitio</label>';
+        html+='<div class="wwi-ed-actions"><button class="wwi-ed-save" id="wwi-ed-save">Guardar</button><button class="btn btn-ghost" id="wwi-ed-cancel">Cancelar</button></div>';
+        html+='</div>';
+        p.innerHTML=html;
+        document.body.appendChild(p);
+        document.getElementById('wwi-ed-close').onclick=function(){p.remove()};
+        document.getElementById('wwi-ed-cancel').onclick=function(){p.remove()};
+        document.getElementById('wwi-ed-save').onclick=function(){savePanel(s,schema,p)};
+        document.addEventListener('keydown',function onEsc(e){
+            if(e.key==='Escape'){p.remove();document.removeEventListener('keydown',onEsc)}
+        });
+    }
+    function savePanel(s,schema,p){
+        var data={title:document.getElementById('wwi-ed-title').value,subtitle:document.getElementById('wwi-ed-subtitle').value,is_active:document.getElementById('wwi-ed-active').checked?1:0};
+        if((schema||[]).length){
+            var cfg={};
+            schema.forEach(function(f){
+                var el=document.getElementById('wwi-ed-f-'+f.key);
+                if(!el)return;
+                if(f.type==='toggle')cfg[f.key]=el.checked?1:0;
+                else if(f.type==='code'){try{cfg[f.key]=JSON.parse(el.value||'null')}catch(e){cfg[f.key]=el.value}}
+                else cfg[f.key]=el.value;
+            });
+            data.config=cfg;
+        }
+        api('/api/v1/admin/sections/'+s.id,{method:'PUT',body:data}).then(function(r){
+            if(!r.ok){toast(r.message||'Error al guardar',true);return}
+            toast('Guardado ✓');
+            p.remove();
+            refresh(s.id);
+        });
+    }
+    function refresh(sid){
+        api('/api/v1/admin/sections/'+sid+'/render').then(function(r){
+            if(!r.ok||!r.data)return;
+            var sec=document.querySelector('.wwi-section[data-sid="'+sid+'"]');
+            if(!sec)return;
+            var tb=sec.querySelector('.wwi-ed-tools');
+            sec.innerHTML=r.data.html;
+            if(tb)sec.appendChild(tb);
+        });
+    }
+})();
+</script>
 </body>
 </html>

@@ -172,6 +172,7 @@ $router->group('/api/v1/admin', function (Router $r) {
     $r->get('/pages/{pageId}/sections', [\App\Controllers\Admin\SectionController::class, 'index']);
     $r->post('/pages/{pageId}/sections', [\App\Controllers\Admin\SectionController::class, 'store']);
     $r->put('/sections/reorder', [\App\Controllers\Admin\SectionController::class, 'reorder']);
+    $r->get('/sections/{id}/render', [\App\Controllers\Admin\SectionController::class, 'render']);
     $r->get('/sections/{id}', [\App\Controllers\Admin\SectionController::class, 'show']);
     $r->put('/sections/{id}', [\App\Controllers\Admin\SectionController::class, 'update']);
     $r->delete('/sections/{id}', [\App\Controllers\Admin\SectionController::class, 'destroy']);
