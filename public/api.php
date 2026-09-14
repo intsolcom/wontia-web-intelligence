@@ -189,6 +189,10 @@ $router->group('/api/v1/admin', function (Router $r) {
     $r->post('/versions/{id}/restore', [\App\Controllers\Admin\LiveEditorController::class, 'versionRestore']);
     $r->post('/presence', [\App\Controllers\Admin\LiveEditorController::class, 'presencePing']);
     $r->get('/presence', [\App\Controllers\Admin\LiveEditorController::class, 'presenceList']);
+    $r->get('/source/plans', [\App\Controllers\Admin\LiveEditorController::class, 'sourcePlansList']);
+    $r->put('/source/plans/{id}', [\App\Controllers\Admin\LiveEditorController::class, 'sourcePlanSave']);
+    $r->get('/source/templates', [\App\Controllers\Admin\LiveEditorController::class, 'sourceTemplatesList']);
+    $r->put('/source/templates/{id}', [\App\Controllers\Admin\LiveEditorController::class, 'sourceTemplateSave']);
     $r->get('/sections/{id}', [\App\Controllers\Admin\SectionController::class, 'show']);
     $r->put('/sections/{id}', [\App\Controllers\Admin\SectionController::class, 'update']);
     $r->delete('/sections/{id}', [\App\Controllers\Admin\SectionController::class, 'destroy']);
