@@ -261,7 +261,7 @@ async function wwiLoadPlans(){
             var html='';
             plans.forEach(function(p,i){
                 var feats=(p.features||[]).slice(0,8);
-                html+='<div class="card plan-card'+(i===0?' featured':'')+'"><div><div class="plan-name">'+wwiEsc(p.name_es)+' <span style="color:var(--muted)">/ '+wwiEsc(p.name_en)+'</span></div><div class="plan-price" style="margin-top:8px">$'+Number(p.price_cop).toLocaleString('es-CO')+' <small>COP</small>'+(p.price_usd?' <small>· $'+p.price_usd+' USD</small>':'')+'</div>'+(p.billing_type==='one_time'?'<div style="font-size:11px;color:var(--muted);margin-top:2px">pago único · dominio incluido 1er año</div>':'<div style="font-size:11px;color:var(--muted);margin-top:2px">suscripción mensual</div>')+'</div><div class="plan-feats">'+feats.map(function(f){return '<div>'+wwiEsc(String(f).replace(/_/g,' '))+'</div>'}).join('')+'</div><a class="btn '+(i===0?'btn-primary':'btn-outline')+'" style="width:100%" href="#contacto" data-plan="'+p.id+'">Elegir '+wwiEsc(p.name_es)+'</a></div>';
+                html+='<div class="card plan-card'+(i===0?' featured':'')+'" data-source="plan:'+p.id+'"><div><div class="plan-name">'+wwiEsc(p.name_es)+' <span style="color:var(--muted)">/ '+wwiEsc(p.name_en)+'</span></div><div class="plan-price" style="margin-top:8px">$'+Number(p.price_cop).toLocaleString('es-CO')+' <small>COP</small>'+(p.price_usd?' <small>· $'+p.price_usd+' USD</small>':'')+'</div>'+(p.billing_type==='one_time'?'<div style="font-size:11px;color:var(--muted);margin-top:2px">pago único · dominio incluido 1er año</div>':'<div style="font-size:11px;color:var(--muted);margin-top:2px">suscripción mensual</div>')+'</div><div class="plan-feats">'+feats.map(function(f){return '<div>'+wwiEsc(String(f).replace(/_/g,' '))+'</div>'}).join('')+'</div><a class="btn '+(i===0?'btn-primary':'btn-outline')+'" style="width:100%" href="#contacto" data-plan="'+p.id+'">Elegir '+wwiEsc(p.name_es)+'</a></div>';
             });
             box.innerHTML=html;
         });
@@ -335,7 +335,7 @@ async function wwiLoadTemplates(){
         var tpls=(d.data&&d.data.templates)||[];
         boxes.forEach(function(box){
             box.innerHTML=tpls.map(function(t){
-                return '<div class="card" style="text-align:center;padding:20px"><div style="font-size:22px;margin-bottom:8px">W</div><div style="font-size:13px;font-weight:600">'+wwiEsc(t.name_es)+'</div><div style="font-size:11px;color:var(--muted);margin-top:3px">'+wwiEsc(t.name_en)+'</div><div style="font-size:10px;color:var(--accent);margin-top:6px;text-transform:uppercase;letter-spacing:.05em">'+wwiEsc(t.category_slug||'')+'</div></div>';
+                return '<div class="card" data-source="template:'+(t.id||t.slug)+'" style="text-align:center;padding:20px"><div style="font-size:22px;margin-bottom:8px">W</div><div style="font-size:13px;font-weight:600">'+wwiEsc(t.name_es)+'</div><div style="font-size:11px;color:var(--muted);margin-top:3px">'+wwiEsc(t.name_en)+'</div><div style="font-size:10px;color:var(--accent);margin-top:6px;text-transform:uppercase;letter-spacing:.05em">'+wwiEsc(t.category_slug||'')+'</div></div>';
             }).join('')||'<div style="color:var(--muted);grid-column:1/-1">Sin plantillas aún</div>';
         });
     }catch(e){}
@@ -946,6 +946,7 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
 .wwi-edit-on .wwi-section:hover>.wwi-ed-tools{display:flex}
 .wwi-ed-tools button{width:30px;height:30px;border-radius:8px;border:1px solid var(--border2);background:rgba(6,8,15,.85);color:var(--text);cursor:pointer;font-size:13px;backdrop-filter:blur(8px)}
 .wwi-ed-tools button:hover{border-color:var(--accent);color:var(--accent)}
+.wwi-ed-comment.on{border-color:var(--accent);box-shadow:0 0 0 2px rgba(34,211,238,.2)}
 .wwi-ed-rep{margin-bottom:12px;border:1px solid var(--border);border-radius:10px;padding:10px}
 .wwi-rep-item{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:8px}
 .wwi-rep-head{display:flex;justify-content:space-between;align-items:center;font-size:10px;color:var(--muted);margin-bottom:6px}
@@ -1036,6 +1037,10 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
         decorate();
         bindSelect();
         initResize();
+        if(window.MutationObserver&&q('main')){
+            var mo=new MutationObserver(function(){if(document.body.classList.contains('wwi-edit-on'))decorate()});
+            mo.observe(q('main'),{childList:true,subtree:true});
+        }
         document.addEventListener('keydown',function(e){
             if(e.key==='Escape'){deselect()}
             else if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'&&S.sel){e.preventDefault();undo()}
@@ -1073,7 +1078,14 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
             if(!document.body.classList.contains('wwi-edit-on'))return;
             if(e.target.closest('.wwi-ed-side')||e.target.closest('.wwi-ed-bar')||e.target.closest('.wwi-ed-toast')||e.target.closest('.wwi-ed-tools'))return;
             if(e.target.closest('[contenteditable="true"]'))return;
+            var src=e.target.closest('[data-source]');
             var edit=e.target.closest('[data-editable]');
+            if(src&&!edit){
+                e.preventDefault();e.stopPropagation();
+                var sp=String(src.getAttribute('data-source')).split(':');
+                showSource(sp[0],sp[1]?parseInt(sp[1],10):null);
+                return;
+            }
             var sec=e.target.closest('.wwi-section[data-sid]');
             if(sec){
                 e.preventDefault();e.stopPropagation();
@@ -1153,6 +1165,7 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
             if(s.widget_type)chain=api('/api/v1/admin/bricks/'+encodeURIComponent(s.widget_type)).catch(function(){return{data:{}}});
             chain.then(function(bd){
                 s._schema=(bd.data&&bd.data.configSchema)||[];
+                s._sources=(bd.data&&bd.data.editContract&&bd.data.editContract.sources)||{};
                 cb(s);
             });
         });
@@ -1198,6 +1211,14 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
             }
             else h+='<label>'+esc(f.label)+'<input id="'+id+'" value="'+esc(v)+'"/></label>';
         });
+        var srcs=s._sources||{};
+        if(Object.keys(srcs).length){
+            h+='<div style="margin:10px 0;padding:10px;border:1px dashed var(--border2);border-radius:10px"><div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:6px">Contenido de fuente</div>';
+            Object.keys(srcs).forEach(function(k){
+                h+='<button class="wwi-ed-btn" data-src="'+esc(k)+'" style="margin:0 6px 6px 0">🧩 Editar '+esc((srcs[k]&&srcs[k].label)||k)+'</button>';
+            });
+            h+='<div style="font-size:10px;color:var(--muted);margin-top:2px">Estos datos alimentan el ecosistema y afectan a los sitios que usan esta fuente.</div></div>';
+        }
         h+='<label class="wwi-ed-check"><input type="checkbox" id="wwi-ed-active" '+(s.is_active==1||s.is_active==='1'?'checked':'')+'/> Visible en el sitio</label>';
         h+='<label class="wwi-ed-check"><input type="checkbox" id="wwi-ed-hm" '+(cfg._hide_mobile?'checked':'')+'/> Ocultar en móvil</label>';
         h+='<label class="wwi-ed-check"><input type="checkbox" id="wwi-ed-ht" '+(cfg._hide_tablet?'checked':'')+'/> Ocultar en tablet</label>';
@@ -1216,6 +1237,7 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
             };
         });
         Object.keys(S.rep).forEach(function(key){repRender(s,key)});
+        b.querySelectorAll('[data-src]').forEach(function(btn){btn.onclick=function(){showSource(btn.dataset.src,null)}});
         b.querySelectorAll('input,textarea,select').forEach(function(inp){
             inp.addEventListener('input',function(){scheduleAuto(function(){saveSection(s,collect(s),true)})});
         });
@@ -1671,11 +1693,22 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
         if(!meta||!(meta.getAttribute('content')||'').trim())issues.push({sev:'warn',txt:'Falta meta description',target:null});
         var words=(q('main')?q('main').textContent:'').trim().split(/\s+/).length;
         if(words<120)issues.push({sev:'info',txt:'Poco contenido: '+words+' palabras en la página',target:null});
+        var covEditable=0,noEdit=[];
+        document.querySelectorAll('main p,main h1,main h2,main h3,main h4,main a,main button,main img,main li').forEach(function(elm){
+            var isImg=elm.tagName==='IMG';
+            var txt=(elm.textContent||'').trim();
+            if(!isImg&&txt.length<4)return;
+            if(elm.closest('[data-editable]')||elm.closest('[data-source]')||elm.closest('.wwi-ed-tools')){covEditable++;return}
+            noEdit.push(elm);
+        });
+        if(noEdit.length)issues.push({sev:'info',txt:noEdit.length+' elemento(s) visibles sin editor (cobertura)',target:noEdit[0]});
+        var covTotal=covEditable+noEdit.length;
+        var covPct=covTotal?Math.round(covEditable/covTotal*100):100;
         var score=100;
         issues.forEach(function(i){score-=i.sev==='bad'?15:(i.sev==='warn'?8:3)});
         if(score<0)score=0;
         var col=score>=85?'#34d399':(score>=60?'#fbbf24':'#f87171');
-        var h='<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px"><div style="font-size:30px;font-weight:800;color:'+col+'">'+score+'</div><div><div style="font-size:12px;font-weight:700">Calidad de la página</div><div style="font-size:10px;color:var(--muted)">'+sections.length+' secciones · '+imgs.length+' imágenes · '+words+' palabras</div></div></div>';
+        var h='<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px"><div style="font-size:30px;font-weight:800;color:'+col+'">'+score+'</div><div><div style="font-size:12px;font-weight:700">Calidad de la página</div><div style="font-size:10px;color:var(--muted)">'+sections.length+' secciones · '+imgs.length+' imágenes · '+words+' palabras · cobertura '+covPct+'%</div></div></div>';
         h+='<div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:8px">Hallazgos ('+issues.length+')</div>';
         if(!issues.length)h+='<div class="wwi-ed-hint">¡Todo en orden! No se detectaron problemas.</div>';
         issues.forEach(function(i,idx){
@@ -1893,6 +1926,56 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
                 });
             };
         });
+    }
+    function showSource(kind,focusId){
+        var ov=document.createElement('div');
+        ov.className='wwi-ed-modal';
+        ov.innerHTML='<div class="wwi-ed-modal-box"><div class="wwi-ed-head"><strong>🧩 Fuente: '+esc(kind)+'</strong><button class="wwi-ed-x" id="wwi-ed-sclose">✕</button></div><div id="wwi-ed-slist" class="wwi-ed-hint">Cargando…</div></div>';
+        document.body.appendChild(ov);
+        el('wwi-ed-sclose').onclick=function(){ov.remove()};
+        ov.addEventListener('mousedown',function(e){if(e.target===ov)ov.remove()});
+        var url=kind==='plans'?'/api/v1/admin/source/plans':(kind==='templates'?'/api/v1/admin/source/templates':'');
+        if(!url){ov.remove();return}
+        api(url).then(function(d){
+            var list=d.data||[];
+            var box=el('wwi-ed-slist');
+            if(!list.length){box.innerHTML='Sin datos en esta fuente.';return}
+            var h='<div style="font-size:10px;color:var(--muted);margin-bottom:8px">'+(kind==='plans'?'Estos valores alimentan el Pricing Engine del ecosistema (requiere superadmin).':'Estos valores alimentan el catálogo de plantillas del ecosistema.')+'</div>';
+            list.forEach(function(it){
+                h+='<div class="wwi-ed-comment'+(focusId&&parseInt(it.id,10)===parseInt(focusId,10)?' on':'')+'" data-sid="'+it.id+'">';
+                h+='<label>Nombre ES<input data-f="name_es" value="'+esc(it.name_es||'')+'"/></label>';
+                h+='<label>Nombre EN<input data-f="name_en" value="'+esc(it.name_en||'')+'"/></label>';
+                if(kind==='plans'){
+                    h+='<label>Precio COP<input data-f="price_cop" type="number" value="'+esc(it.price_cop)+'"/></label>';
+                    h+='<label>Precio USD<input data-f="price_usd" type="number" value="'+esc(it.price_usd)+'"/></label>';
+                    h+='<label>Features (una por línea)<textarea data-f="features">'+esc((it.features||[]).join('\n'))+'</textarea></label>';
+                }else{
+                    h+='<label>Estado<select data-f="status">'+['active','beta','coming_soon','deprecated'].map(function(st){return '<option value="'+st+'"'+(it.status===st?' selected':'')+'>'+st+'</option>'}).join('')+'</select></label>';
+                }
+                h+='<div class="ac"><button class="wwi-ed-btn" data-ssave="'+it.id+'">Guardar</button></div></div>';
+            });
+            box.innerHTML=h;
+            box.querySelectorAll('[data-ssave]').forEach(function(btn){
+                btn.onclick=function(){
+                    var card=btn.closest('[data-sid]');
+                    var payload={};
+                    card.querySelectorAll('[data-f]').forEach(function(inp){
+                        var f=inp.dataset.f;
+                        if(f==='features')payload[f]=inp.value.split('\n').map(function(x){return x.trim()}).filter(function(x){return x});
+                        else if(f==='price_cop'||f==='price_usd')payload[f]=parseFloat(inp.value)||0;
+                        else payload[f]=inp.value;
+                    });
+                    api((kind==='plans'?'/api/v1/admin/source/plans/':'/api/v1/admin/source/templates/')+btn.dataset.ssave,{method:'PUT',body:payload}).then(function(r){
+                        if(r.ok){toast('Fuente actualizada');refreshSources()}
+                        else toast(r.message||'Error',true);
+                    });
+                };
+            });
+        }).catch(function(){var b2=el('wwi-ed-slist');if(b2)b2.textContent='No se pudo cargar la fuente (¿permisos?)';});
+    }
+    function refreshSources(){
+        try{if(window.wwiLoadPlans)window.wwiLoadPlans()}catch(e){}
+        try{if(window.wwiLoadTemplates)window.wwiLoadTemplates()}catch(e){}
     }
     function decorate(){
         document.querySelectorAll('.wwi-section[data-sid]').forEach(function(sec){

@@ -16,6 +16,14 @@ class WwiTemplatesWidget extends Widget
         ];
     }
 
+    public static function editContract(): array
+    {
+        $c = parent::editContract();
+        $c['sources'] = ['templates' => ['label' => 'Catálogo de plantillas', 'editable' => ['name_es', 'name_en', 'status']]];
+        $c['dynamic'] = true;
+        return $c;
+    }
+
     public function render(array $config = []): string
     {
         $c = $this->mergeConfig($config);

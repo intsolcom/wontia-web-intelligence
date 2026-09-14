@@ -98,4 +98,28 @@ class LiveEditorController
         $r = (new LiveEditorService())->variantDelete((int)$id);
         $r['ok'] ? Response::success(null, 'Variante eliminada') : Response::error('No encontrada', 404);
     }
+
+    public function sourcePlansList(Request $req): void
+    {
+        if (Session::userRole() !== 'superadmin') Response::error('Requiere superadmin', 403);
+        Response::json(['ok' => true, 'data' => (new LiveEditorService())->sourcePlans()]);
+    }
+
+    public function sourcePlanSave(Request $req, string $id): void
+    {
+        if (Session::userRole() !== 'superadmin') Response::error('Requiere superadmin', 403);
+        $r = (new LiveEditorService())->sourcePlanSave((int)$id, $req->json());
+        $r['ok'] ? Response::success(null, $r['message']) : Response::error($r['message'], 400);
+    }
+
+    public function sourceTemplatesList(Request $req): void
+    {
+        Response::json(['ok' => true, 'data' => (new LiveEditorService())->sourceTemplates()]);
+    }
+
+    public function sourceTemplateSave(Request $req, string $id): void
+    {
+        $r = (new LiveEditorService())->sourceTemplateSave((int)$id, $req->json());
+        $r['ok'] ? Response::success(null, $r['message']) : Response::error($r['message'], 400);
+    }
 }

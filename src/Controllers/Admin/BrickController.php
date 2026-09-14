@@ -33,6 +33,7 @@ class BrickController
             'configSchema' => $class::configSchema(),
             'defaultConfig' => $class::defaultConfig(),
             'adminPreview' => $class::adminPreview(),
+            'editContract' => $class::editContract(),
         ]]);
     }
 

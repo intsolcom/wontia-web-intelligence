@@ -17,6 +17,14 @@ class WwiPlansWidget extends Widget
         ];
     }
 
+    public static function editContract(): array
+    {
+        $c = parent::editContract();
+        $c['sources'] = ['plans' => ['label' => 'Motor de precios', 'editable' => ['name_es', 'name_en', 'price_cop', 'price_usd', 'features', 'is_active']]];
+        $c['dynamic'] = true;
+        return $c;
+    }
+
     public function render(array $config = []): string
     {
         $c = $this->mergeConfig($config);

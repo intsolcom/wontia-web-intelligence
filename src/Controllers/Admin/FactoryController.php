@@ -138,7 +138,7 @@ class FactoryController
     {
         $db = \App\Core\Database::instance();
         $cats = $db->query("SELECT slug, name_es, name_en, icon FROM wwi_template_categories WHERE site_id = @site_id ORDER BY sort_order ASC LIMIT 20")->fetchAll();
-        $tpls = $db->query("SELECT t.category_id, c.slug AS category_slug, t.slug, t.name_es, t.name_en, t.status FROM wwi_templates t JOIN wwi_template_categories c ON c.id = t.category_id WHERE t.site_id = @site_id ORDER BY t.sort_order ASC LIMIT 100")->fetchAll();
+        $tpls = $db->query("SELECT t.id, t.category_id, c.slug AS category_slug, t.slug, t.name_es, t.name_en, t.status FROM wwi_templates t JOIN wwi_template_categories c ON c.id = t.category_id WHERE t.site_id = @site_id ORDER BY t.sort_order ASC LIMIT 100")->fetchAll();
         Response::json(['ok' => true, 'data' => ['categories' => $cats, 'templates' => $tpls]]);
     }
 

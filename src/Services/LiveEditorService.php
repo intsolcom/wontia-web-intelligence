@@ -240,6 +240,79 @@ class LiveEditorService
         return $out;
     }
 
+    public function sourcePlans(): array
+    {
+        $this->ensureTables();
+        $rows = Database::instance()->query("SELECT id, slug, name_es, name_en, price_cop, price_usd, features, is_active FROM wwi_plans WHERE site_id = @site_id ORDER BY sort_order ASC")->fetchAll();
+        foreach ($rows as &$r) {
+            $r['features'] = is_string($r['features'] ?? null) ? (json_decode($r['features'], true) ?: []) : ($r['features'] ?? []);
+            $r['price_cop'] = (float)$r['price_cop'];
+            $r['price_usd'] = (float)$r['price_usd'];
+        }
+        return $rows;
+    }
+
+    public function sourcePlanSave(int $id, array $d): array
+    {
+        $sets = [];
+        $p = ['id' => $id];
+        foreach (['name_es', 'name_en'] as $f) {
+            if (array_key_exists($f, $d)) {
+                $sets[] = "$f = :$f";
+                $p[$f] = substr((string)$d[$f], 0, 150);
+            }
+        }
+        if (array_key_exists('price_cop', $d)) {
+            $sets[] = 'price_cop = :price_cop';
+            $p['price_cop'] = (float)$d['price_cop'];
+        }
+        if (array_key_exists('price_usd', $d)) {
+            $sets[] = 'price_usd = :price_usd';
+            $p['price_usd'] = (float)$d['price_usd'];
+        }
+        if (array_key_exists('features', $d)) {
+            $sets[] = 'features = :features';
+            $feats = array_values(array_filter(array_map('trim', (array)$d['features']), function ($x) {
+                return $x !== '';
+            }));
+            $p['features'] = json_encode($feats, JSON_UNESCAPED_UNICODE);
+        }
+        if (array_key_exists('is_active', $d)) {
+            $sets[] = 'is_active = :is_active';
+            $p['is_active'] = (int)$d['is_active'];
+        }
+        if (!$sets) return ['ok' => false, 'message' => 'Nada que actualizar'];
+        $stmt = Database::instance()->prepare("UPDATE wwi_plans SET " . implode(', ', $sets) . " WHERE id = :id AND site_id = @site_id");
+        $stmt->execute($p);
+        return ['ok' => $stmt->rowCount() > 0, 'message' => 'Plan actualizado'];
+    }
+
+    public function sourceTemplates(): array
+    {
+        $this->ensureTables();
+        return Database::instance()->query("SELECT t.id, t.slug, t.name_es, t.name_en, t.status, c.slug AS category_slug FROM wwi_templates t LEFT JOIN wwi_template_categories c ON c.id = t.category_id WHERE t.site_id = @site_id ORDER BY t.sort_order ASC")->fetchAll();
+    }
+
+    public function sourceTemplateSave(int $id, array $d): array
+    {
+        $sets = [];
+        $p = ['id' => $id];
+        foreach (['name_es', 'name_en'] as $f) {
+            if (array_key_exists($f, $d)) {
+                $sets[] = "$f = :$f";
+                $p[$f] = substr((string)$d[$f], 0, 150);
+            }
+        }
+        if (array_key_exists('status', $d) && in_array($d['status'], ['active', 'beta', 'coming_soon', 'deprecated'], true)) {
+            $sets[] = 'status = :status';
+            $p['status'] = $d['status'];
+        }
+        if (!$sets) return ['ok' => false, 'message' => 'Nada que actualizar'];
+        $stmt = Database::instance()->prepare("UPDATE wwi_templates SET " . implode(', ', $sets) . " WHERE id = :id AND site_id = @site_id");
+        $stmt->execute($p);
+        return ['ok' => $stmt->rowCount() > 0, 'message' => 'Plantilla actualizada'];
+    }
+
     public function variantTrack(int $id, string $type): bool
     {
         $this->ensureTables();
