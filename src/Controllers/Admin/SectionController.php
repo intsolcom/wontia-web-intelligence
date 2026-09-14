@@ -83,7 +83,19 @@ class SectionController
 
     public function update(Request $req, string $id): void
     {
-        if (!$this->sectionInSite((int)$id)) Response::error('Section not found', 404);
+        $current = $this->sectionInSite((int)$id);
+        if (!$current) Response::error('Section not found', 404);
+        $user = \App\Core\Session::user() ?: [];
+        (new \App\Services\LiveEditorService())->addVersion((int)$id, (int)($user['id'] ?? 0), (string)($user['username'] ?? ''), [
+            'title' => $current['title'],
+            'subtitle' => $current['subtitle'],
+            'content' => $current['content'],
+            'config' => json_decode($current['config'] ?? '{}', true) ?: [],
+            'is_active' => (int)$current['is_active'],
+            'type' => $current['type'],
+            'widget_type' => $current['widget_type'],
+            'sort_order' => (int)$current['sort_order'],
+        ]);
         $db = Database::instance();
         $fields = ['type', 'widget_type', 'title', 'subtitle', 'content', 'image', 'config', 'sort_order', 'is_active'];
         $sets = [];

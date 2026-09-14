@@ -173,6 +173,14 @@ $router->group('/api/v1/admin', function (Router $r) {
     $r->post('/pages/{pageId}/sections', [\App\Controllers\Admin\SectionController::class, 'store']);
     $r->put('/sections/reorder', [\App\Controllers\Admin\SectionController::class, 'reorder']);
     $r->get('/sections/{id}/render', [\App\Controllers\Admin\SectionController::class, 'render']);
+    $r->get('/sections/{id}/comments', [\App\Controllers\Admin\LiveEditorController::class, 'commentsList']);
+    $r->post('/sections/{id}/comments', [\App\Controllers\Admin\LiveEditorController::class, 'commentAdd']);
+    $r->get('/sections/{id}/versions', [\App\Controllers\Admin\LiveEditorController::class, 'versionsList']);
+    $r->put('/comments/{id}', [\App\Controllers\Admin\LiveEditorController::class, 'commentStatus']);
+    $r->delete('/comments/{id}', [\App\Controllers\Admin\LiveEditorController::class, 'commentDelete']);
+    $r->post('/versions/{id}/restore', [\App\Controllers\Admin\LiveEditorController::class, 'versionRestore']);
+    $r->post('/presence', [\App\Controllers\Admin\LiveEditorController::class, 'presencePing']);
+    $r->get('/presence', [\App\Controllers\Admin\LiveEditorController::class, 'presenceList']);
     $r->get('/sections/{id}', [\App\Controllers\Admin\SectionController::class, 'show']);
     $r->put('/sections/{id}', [\App\Controllers\Admin\SectionController::class, 'update']);
     $r->delete('/sections/{id}', [\App\Controllers\Admin\SectionController::class, 'destroy']);

@@ -911,6 +911,13 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
 .wwi-edit-on .wwi-section:hover>.wwi-ed-tools{display:flex}
 .wwi-ed-tools button{width:30px;height:30px;border-radius:8px;border:1px solid var(--border2);background:rgba(6,8,15,.85);color:var(--text);cursor:pointer;font-size:13px;backdrop-filter:blur(8px)}
 .wwi-ed-tools button:hover{border-color:var(--accent);color:var(--accent)}
+.wwi-ed-comment{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px}
+.wwi-ed-comment.done{opacity:.55}
+.wwi-ed-comment .hd{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-bottom:4px}
+.wwi-ed-comment .bd{font-size:12px;line-height:1.6;white-space:pre-wrap}
+.wwi-ed-comment .ac{display:flex;gap:6px;margin-top:8px}
+.wwi-ed-modal{position:fixed;inset:0;z-index:100002;background:rgba(4,6,10,.7);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:18px}
+.wwi-ed-modal-box{width:100%;max-width:480px;max-height:80vh;overflow-y:auto;background:var(--panel);border:1px solid var(--border2);border-radius:14px;padding:16px}
 .wwi-dropzone{height:10px;margin:8px 0;border-radius:6px;background:rgba(34,211,238,.10);border:1px dashed rgba(34,211,238,.45);transition:background .15s}
 .wwi-dropzone.over{background:rgba(34,211,238,.4)}
 .wwi-client .wwi-ed-tab[data-tab="add"]{display:none}
@@ -962,8 +969,8 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
         side.className='wwi-ed-side';
         side.id='wwi-ed-side';
         side.innerHTML='<div class="wwi-ed-resize" id="wwi-ed-resize"></div>'
-            +'<div class="wwi-ed-head"><div class="wwi-ed-crumb"><b id="wwi-ed-crumb">'+esc(CTX.pageTitle||'Página')+'</b><span id="wwi-ed-status"></span></div><button class="wwi-ed-x" id="wwi-ed-close" title="Cerrar">✕</button></div>'
-            +'<div class="wwi-ed-tabs"><button class="wwi-ed-tab on" data-tab="content">Contenido</button><button class="wwi-ed-tab" data-tab="add">Añadir</button><button class="wwi-ed-tab" data-tab="page">Página</button><button class="wwi-ed-tab" data-tab="quality">Calidad</button></div>'
+            +'<div class="wwi-ed-head"><div class="wwi-ed-crumb"><b id="wwi-ed-crumb">'+esc(CTX.pageTitle||'Página')+'</b><span id="wwi-ed-status"></span><span id="wwi-ed-peers"></span></div><button class="wwi-ed-x" id="wwi-ed-close" title="Cerrar">✕</button></div>'
+            +'<div class="wwi-ed-tabs"><button class="wwi-ed-tab on" data-tab="content">Contenido</button><button class="wwi-ed-tab" data-tab="add">Añadir</button><button class="wwi-ed-tab" data-tab="page">Página</button><button class="wwi-ed-tab" data-tab="comments">Comentarios</button><button class="wwi-ed-tab" data-tab="quality">Calidad</button></div>'
             +'<div class="wwi-ed-body" id="wwi-ed-body"></div>';
         document.body.appendChild(side);
         document.querySelectorAll('.wwi-ed-tab').forEach(function(b){
@@ -988,6 +995,7 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
             else if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'&&S.sel){e.preventDefault();undo()}
         });
         renderBody();
+        startPresence();
     }
     function renderTabs(){
         document.querySelectorAll('.wwi-ed-tab').forEach(function(b){b.classList.toggle('on',b.dataset.tab===S.tab)});
@@ -1110,6 +1118,7 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
         if(S.tab==='add'){renderAdd(b);return}
         if(S.tab==='page'){renderPage(b);return}
         if(S.tab==='quality'){renderQuality(b);return}
+        if(S.tab==='comments'){renderComments(b);return}
         renderContent(b);
     }
     function renderContent(b){
@@ -1137,12 +1146,13 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
         });
         h+='<label class="wwi-ed-check"><input type="checkbox" id="wwi-ed-active" '+(s.is_active==1||s.is_active==='1'?'checked':'')+'/> Visible en el sitio</label>';
         var client=document.body.classList.contains('wwi-client');
-        h+='<div class="wwi-ed-actions"><button class="wwi-ed-save" id="wwi-ed-save">Guardar</button>'+(client?'':'<button class="wwi-ed-btn" id="wwi-ed-up" title="Subir">▲</button><button class="wwi-ed-btn" id="wwi-ed-down" title="Bajar">▼</button><button class="wwi-ed-btn" id="wwi-ed-dup">Duplicar</button><button class="wwi-ed-btn" id="wwi-ed-del" style="color:#f87171">Eliminar</button>')+'</div>';
+        h+='<div class="wwi-ed-actions"><button class="wwi-ed-save" id="wwi-ed-save">Guardar</button><button class="wwi-ed-btn" id="wwi-ed-hist">🕘 Historial</button>'+(client?'':'<button class="wwi-ed-btn" id="wwi-ed-up" title="Subir">▲</button><button class="wwi-ed-btn" id="wwi-ed-down" title="Bajar">▼</button><button class="wwi-ed-btn" id="wwi-ed-dup">Duplicar</button><button class="wwi-ed-btn" id="wwi-ed-del" style="color:#f87171">Eliminar</button>')+'</div>';
         b.innerHTML=h;
         b.querySelectorAll('input,textarea,select').forEach(function(inp){
             inp.addEventListener('input',function(){scheduleAuto(function(){saveSection(s,collect(s),true)})});
         });
         el('wwi-ed-save').onclick=function(){saveSection(s,collect(s),false)};
+        el('wwi-ed-hist').onclick=function(){showVersions(s.id)};
         if(!client){
             el('wwi-ed-up').onclick=function(){moveSection(s.id,-1)};
             el('wwi-ed-down').onclick=function(){moveSection(s.id,1)};
@@ -1558,6 +1568,95 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
                 }
             });
         });
+    }
+    function renderComments(b){
+        if(!S.sel){b.innerHTML='<div class="wwi-ed-hint">Selecciona una sección en el sitio para ver y añadir comentarios anclados a ella.</div>';return}
+        var sid=S.sel.sid;
+        b.innerHTML='<div class="wwi-ed-hint">Cargando comentarios…</div>';
+        api('/api/v1/admin/sections/'+sid+'/comments').then(function(d){
+            var list=d.data||[];
+            var h='<div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:8px">Comentarios de la sección</div>';
+            h+='<label>Nuevo comentario<textarea id="wwi-ed-cbody" placeholder="Escribe un comentario o feedback…"></textarea></label>';
+            h+='<div class="wwi-ed-actions"><button class="wwi-ed-save" id="wwi-ed-cadd">Comentar</button></div>';
+            h+='<div id="wwi-ed-clist" style="margin-top:14px">';
+            if(!list.length)h+='<div class="wwi-ed-hint">Sin comentarios todavía.</div>';
+            list.forEach(function(c){
+                h+='<div class="wwi-ed-comment'+(c.status==='resolved'?' done':'')+'"><div class="hd"><b>'+esc(c.username||'')+'</b><span>'+esc(String(c.created_at||'').slice(0,16))+'</span></div><div class="bd">'+esc(c.body)+'</div><div class="ac"><button class="wwi-ed-btn" data-cact="toggle" data-cid="'+c.id+'" data-cst="'+(c.status==='resolved'?'open':'resolved')+'">'+(c.status==='resolved'?'Reabrir':'Resolver')+'</button><button class="wwi-ed-btn" data-cact="del" data-cid="'+c.id+'" style="color:#f87171">Eliminar</button></div></div>';
+            });
+            h+='</div>';
+            b.innerHTML=h;
+            el('wwi-ed-cadd').onclick=function(){
+                var body=(el('wwi-ed-cbody')||{value:''}).value.trim();
+                if(!body){toast('Escribe un comentario',true);return}
+                api('/api/v1/admin/sections/'+sid+'/comments',{method:'POST',body:{body:body}}).then(function(r){
+                    if(r.ok){toast('Comentario añadido');renderComments(b)}
+                    else toast(r.message||'Error',true);
+                });
+            };
+            b.querySelectorAll('[data-cact]').forEach(function(btn){
+                btn.onclick=function(){
+                    var cid=btn.dataset.cid;
+                    if(btn.dataset.cact==='toggle'){
+                        api('/api/v1/admin/comments/'+cid,{method:'PUT',body:{status:btn.dataset.cst}}).then(function(r){if(r.ok)renderComments(b)});
+                    }else{
+                        api('/api/v1/admin/comments/'+cid,{method:'DELETE'}).then(function(r){if(r.ok){toast('Comentario eliminado');renderComments(b)}});
+                    }
+                };
+            });
+        });
+    }
+    function showVersions(sid){
+        var ov=document.createElement('div');
+        ov.className='wwi-ed-modal';
+        ov.innerHTML='<div class="wwi-ed-modal-box"><div class="wwi-ed-head"><strong>🕘 Historial de versiones</strong><button class="wwi-ed-x" id="wwi-ed-vclose">✕</button></div><div id="wwi-ed-vlist" class="wwi-ed-hint">Cargando…</div></div>';
+        document.body.appendChild(ov);
+        el('wwi-ed-vclose').onclick=function(){ov.remove()};
+        ov.addEventListener('mousedown',function(e){if(e.target===ov)ov.remove()});
+        api('/api/v1/admin/sections/'+sid+'/versions').then(function(d){
+            var list=d.data||[];
+            var box=el('wwi-ed-vlist');
+            if(!list.length){box.innerHTML='Sin versiones guardadas aún. Se guardan automáticamente con cada cambio.';return}
+            var h='';
+            list.forEach(function(v){
+                h+='<div class="wwi-ed-tree-item"><span class="nm">'+esc(String(v.created_at||'').slice(0,16))+' · '+esc(v.username||'')+'</span><button class="wwi-ed-btn" data-vid="'+v.id+'">Restaurar</button></div>';
+            });
+            box.innerHTML=h;
+            box.querySelectorAll('[data-vid]').forEach(function(btn){
+                btn.onclick=function(){
+                    if(!window.confirm('¿Restaurar esta versión? El estado actual quedará en el historial.'))return;
+                    api('/api/v1/admin/versions/'+btn.dataset.vid+'/restore',{method:'POST'}).then(function(r){
+                        if(!r.ok){toast(r.message||'Error',true);return}
+                        toast('Versión restaurada');
+                        ov.remove();
+                        refresh(sid);
+                        if(S.sel&&S.sel.sid===sid)loadSection(sid,function(s){S.sec=s;renderBody()});
+                    });
+                };
+            });
+        });
+    }
+    var PRESENCE_TIMER=null;
+    function startPresence(){
+        if(PRESENCE_TIMER)return;
+        pingPresence();
+        PRESENCE_TIMER=setInterval(pingPresence,20000);
+    }
+    function pingPresence(){
+        var sid=(S.sel&&S.sel.sid)?S.sel.sid:null;
+        api('/api/v1/admin/presence',{method:'POST',body:{section_id:sid}}).then(function(){
+            api('/api/v1/admin/presence').then(function(d){
+                var list=d.data||[];
+                var pEl=el('wwi-ed-peers');
+                if(!pEl)return;
+                if(!list.length){pEl.textContent='';return}
+                pEl.textContent='· 👤 '+list.map(function(p){return p.username||('#'+p.user_id)}).join(', ');
+                var same=list.filter(function(p){return sid&&parseInt(p.section_id,10)===parseInt(sid,10)});
+                if(same.length&&!S._warned){
+                    S._warned=true;
+                    toast('👤 '+same[0].username+' también está editando esta sección');
+                }
+            });
+        }).catch(function(){});
     }
     function decorate(){
         document.querySelectorAll('.wwi-section[data-sid]').forEach(function(sec){
