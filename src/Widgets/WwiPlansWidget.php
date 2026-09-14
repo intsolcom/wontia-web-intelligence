@@ -45,7 +45,7 @@ class WwiPlansWidget extends Widget
             . ' data-one="' . $this->esc($c['one_time_note']) . '"'
             . ' data-monthly="' . $this->esc($c['monthly_note']) . '"'
             . ' data-prefix="' . $this->esc($c['button_prefix']) . '"'
-            . '><div style="text-align:center;padding:40px;color:var(--muted);grid-column:1/-1">' . $this->esc($c['loading_text']) . '</div></div>';
+            . '><div data-editable="loading_text" style="text-align:center;padding:40px;color:var(--muted);grid-column:1/-1">' . $this->esc($c['loading_text']) . '</div></div>';
         if ($c['note']) $html .= '<div class="mono" data-editable="note" style="text-align:center;font-size:11px;color:var(--muted);margin-top:22px">' . $this->esc($c['note']) . '</div>';
         $html .= '</div></section>';
         return $html;

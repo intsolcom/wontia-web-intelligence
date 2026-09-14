@@ -31,7 +31,7 @@ class WwiTemplatesWidget extends Widget
         $c = $this->mergeConfig($config);
         $html = '<section id="plantillas" style="padding:90px 0;background:var(--bg2);border-top:1px solid var(--border)">';
         $html .= '<div class="wrap"><div class="h-sec reveal"><h2 data-editable="title">' . $this->esc($c['title']) . '</h2><p data-editable="subtitle">' . $this->esc($c['subtitle']) . '</p></div>';
-        $html .= '<div class="wwi-grid-3" data-wwi-templates data-letter="' . $this->esc($c['card_letter']) . '"><div style="text-align:center;padding:40px;color:var(--muted);grid-column:1/-1">' . $this->esc($c['loading_text']) . '</div></div>';
+        $html .= '<div class="wwi-grid-3" data-wwi-templates data-letter="' . $this->esc($c['card_letter']) . '"><div data-editable="loading_text" style="text-align:center;padding:40px;color:var(--muted);grid-column:1/-1">' . $this->esc($c['loading_text']) . '</div></div>';
         $html .= '</div></section>';
         return $html;
     }
