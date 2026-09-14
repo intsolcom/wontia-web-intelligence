@@ -56,7 +56,7 @@
 5. ✅ Inserter desde Brick Marketplace con previews y "Añadir a página".
 
 **Fase 2 — Edición en vivo (el salto)**
-6. **Click-to-edit**: overlay en el sitio real; clic en una sección abre su inspector sin salir del sitio.
+6. ✅ **Click-to-edit**: overlay en el sitio real (barra "Editar sitio" token-gated, contorno al hover, toolbar ✎▲▼👁, inspector flotante schema-driven, guardado y re-render en vivo, Esc para cerrar).
 7. **Árbol de estructura** (layers): jerarquía Page → Sections → Elements con drag & drop.
 8. **Inspector lateral flotante**: schema-driven, edita el brick seleccionado en contexto.
 9. **Inserter flotante**: botón "+" entre secciones en el sitio; abre el marketplace y suelta el brick donde lo necesitas.
