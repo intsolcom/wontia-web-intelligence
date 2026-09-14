@@ -1,10 +1,33 @@
 <?php
 use App\Core\Config;
+use App\Core\Database;
 use App\Services\CookieConsentService;
 use App\Widgets\WidgetRegistry;
 
 $page = $page ?? ['title' => Config::get('site_name', 'WWI'), 'meta_title' => '', 'meta_description' => '', 'slug' => ''];
 $sections = $sections ?? [];
+
+$wwiNav = [];
+try {
+    $navStmt = Database::instance()->prepare("SELECT `value` FROM settings WHERE site_id = @site_id AND `key` = 'wwi_nav' LIMIT 1");
+    $navStmt->execute();
+    $wwiNav = json_decode((string)$navStmt->fetchColumn(), true) ?: [];
+} catch (\Throwable $e) {
+    $wwiNav = [];
+}
+$wwiNav = array_merge([
+    'brand' => 'WWI',
+    'logo_letter' => 'W',
+    'cta' => 'Crear mi sitio',
+    'cta_url' => '#planes',
+    'links' => [
+        ['label' => 'Planes', 'url' => '#planes'],
+        ['label' => 'Beneficios', 'url' => '#beneficios'],
+        ['label' => 'Plantillas', 'url' => '#plantillas'],
+        ['label' => 'FAQ', 'url' => '#faq'],
+    ],
+], $wwiNav);
+if (!is_array($wwiNav['links'] ?? null)) $wwiNav['links'] = [];
 ?>
 <!DOCTYPE html>
 <html lang="es" data-theme="dark">
@@ -117,16 +140,15 @@ section{position:relative}
 <div class="orbs"><i></i><i></i><i></i></div>
 <div class="grid-bg"></div>
 <nav class="w-nav">
-  <div class="w-nav-brand"><div class="w-nav-logo">W</div><span>WWI</span></div>
+  <div class="w-nav-brand"><div class="w-nav-logo" data-source="settings:nav:logo_letter"><?= htmlspecialchars((string)$wwiNav['logo_letter']) ?></div><span data-source="settings:nav:brand"><?= htmlspecialchars((string)$wwiNav['brand']) ?></span></div>
   <div class="w-nav-links">
-    <a href="#planes">Planes</a>
-    <a href="#beneficios">Beneficios</a>
-    <a href="#plantillas">Plantillas</a>
-    <a href="#faq">FAQ</a>
+    <?php foreach ($wwiNav['links'] as $i => $l): ?>
+    <a href="<?= htmlspecialchars((string)($l['url'] ?? '#')) ?>" data-source="settings:nav:link:<?= (int)$i ?>:label"><?= htmlspecialchars((string)($l['label'] ?? '')) ?></a>
+    <?php endforeach; ?>
   </div>
   <div style="display:flex;align-items:center;gap:10px">
     <button class="btn btn-ghost" id="wwi-theme-toggle" title="Cambiar tema" aria-label="Cambiar tema" style="width:36px;padding:8px 0;justify-content:center">☾</button>
-    <a href="#planes" class="btn btn-primary">Crear mi sitio</a>
+    <a href="<?= htmlspecialchars((string)$wwiNav['cta_url']) ?>" class="btn btn-primary" data-source="settings:nav:cta"><?= htmlspecialchars((string)$wwiNav['cta']) ?></a>
   </div>
 </nav>
 <main>
@@ -258,10 +280,11 @@ async function wwiLoadPlans(){
         var plans=(d.data||[]).filter(function(p){return p.price_cop>0});
         planData=plans;
         boxes.forEach(function(box){
+            var L={cop:box.dataset.cop||'COP',usd:box.dataset.usd||'USD',one:box.dataset.one||'pago único',monthly:box.dataset.monthly||'suscripción mensual',prefix:box.dataset.prefix||'Elegir '};
             var html='';
             plans.forEach(function(p,i){
                 var feats=(p.features||[]).slice(0,8);
-                html+='<div class="card plan-card'+(i===0?' featured':'')+'"><div><div class="plan-name"><span data-source="plan:'+p.id+':name_es">'+wwiEsc(p.name_es)+'</span> <span style="color:var(--muted)">/ '+wwiEsc(p.name_en)+'</span></div><div class="plan-price" style="margin-top:8px" data-source="plan:'+p.id+':price_cop">$'+Number(p.price_cop).toLocaleString('es-CO')+' <small>COP</small>'+(p.price_usd?' <small>· $'+p.price_usd+' USD</small>':'')+'</div>'+(p.billing_type==='one_time'?'<div style="font-size:11px;color:var(--muted);margin-top:2px">pago único · dominio incluido 1er año</div>':'<div style="font-size:11px;color:var(--muted);margin-top:2px">suscripción mensual</div>')+'</div><div class="plan-feats">'+feats.map(function(f,fi){return '<div data-source="plan:'+p.id+':feature:'+fi+'">'+wwiEsc(String(f).replace(/_/g,' '))+'</div>'}).join('')+'</div><a class="btn '+(i===0?'btn-primary':'btn-outline')+'" style="width:100%" href="#contacto" data-plan="'+p.id+'" data-source="plan:'+p.id+':name_es">Elegir '+wwiEsc(p.name_es)+'</a></div>';
+                html+='<div class="card plan-card'+(i===0?' featured':'')+'"><div><div class="plan-name"><span data-source="plan:'+p.id+':name_es">'+wwiEsc(p.name_es)+'</span> <span style="color:var(--muted)">/ '+wwiEsc(p.name_en)+'</span></div><div class="plan-price" style="margin-top:8px" data-source="plan:'+p.id+':price_cop">$'+Number(p.price_cop).toLocaleString('es-CO')+' <small>'+wwiEsc(L.cop)+'</small>'+(p.price_usd?' <small>· $'+p.price_usd+' '+wwiEsc(L.usd)+'</small>':'')+'</div>'+(p.billing_type==='one_time'?'<div style="font-size:11px;color:var(--muted);margin-top:2px">'+wwiEsc(L.one)+'</div>':'<div style="font-size:11px;color:var(--muted);margin-top:2px">'+wwiEsc(L.monthly)+'</div>')+'</div><div class="plan-feats">'+feats.map(function(f,fi){return '<div data-source="plan:'+p.id+':feature:'+fi+'">'+wwiEsc(String(f).replace(/_/g,' '))+'</div>'}).join('')+'</div><a class="btn '+(i===0?'btn-primary':'btn-outline')+'" style="width:100%" href="#contacto" data-plan="'+p.id+'" data-source="plan:'+p.id+':name_es">'+wwiEsc(L.prefix)+wwiEsc(p.name_es)+'</a></div>';
             });
             box.innerHTML=html;
         });
@@ -276,12 +299,13 @@ async function wwiLoadPlans(){
         });
     }catch(e){}
 }
+function wwiCoMsg(k,def){var c=document.getElementById('wwi-co');if(!c)return def;var v=c.getAttribute('data-msg-'+k);return v||def}
 function wwiUpdateTotal(){
     var sel=document.getElementById('wwi-co-plan');
     var tot=document.getElementById('wwi-co-total');
     if(!sel||!tot||!window.wwiPlans)return;
     var p=window.wwiPlans.find(function(x){return String(x.id)===String(sel.value)});
-    tot.textContent=p?('Total: $'+Number(p.price_cop).toLocaleString('es-CO')+' COP · pago único'):'';
+    tot.textContent=p?(wwiCoMsg('total','Total: ')+'$'+Number(p.price_cop).toLocaleString('es-CO')+' '+wwiCoMsg('currency','COP')):'';
 }
 async function wwiCheckoutSubmit(){
     var btn=document.getElementById('wwi-co-submit');
@@ -296,18 +320,18 @@ async function wwiCheckoutSubmit(){
         locale:'es'
     };
     if(!payload.customer_name||!payload.customer_email){res.innerHTML='<div style="color:var(--bad);font-size:12px">Completa nombre y email.</div>';return}
-    btn.disabled=true;btn.style.opacity=.6;btn.textContent='Creando…';
+    btn.disabled=true;btn.style.opacity=.6;var wwiBtnOrig=btn.textContent;btn.textContent=wwiCoMsg('creating','Creando…');
     try{
         var r=await fetch('/api/v1/public/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
         var d=await r.json();
         if(d.ok){
-            var demoBtn=(wwiPayMode==='dummy')?'<button class="btn btn-primary" style="margin-top:10px" onclick="wwiDummyPay(\''+d.data.uuid+'\')">Pagar (modo demo)</button>':'<div style="font-size:11px;color:var(--muted);margin-top:6px">Te contactaremos con el link de pago seguro.</div>';
-            res.innerHTML='<div class="panel" style="padding:16px;border-color:rgba(52,211,153,.5)"><div style="color:var(--ok);font-size:13px;font-weight:600">✓ Pedido creado — '+wwiEsc(d.data.plan_name)+'</div><div class="mono" style="font-size:11px;color:var(--muted);margin-top:6px"># '+wwiEsc(d.data.uuid)+' · $'+Number(d.data.total).toLocaleString('es-CO')+' COP · '+wwiEsc(d.data.status)+'</div>'+demoBtn+'</div>';
+            var demoBtn=(wwiPayMode==='dummy')?'<button class="btn btn-primary" style="margin-top:10px" onclick="wwiDummyPay(\''+d.data.uuid+'\')">'+wwiEsc(wwiCoMsg('demo','Pagar (modo demo)'))+'</button>':'<div style="font-size:11px;color:var(--muted);margin-top:6px">Te contactaremos con el link de pago seguro.</div>';
+            res.innerHTML='<div class="panel" style="padding:16px;border-color:rgba(52,211,153,.5)"><div style="color:var(--ok);font-size:13px;font-weight:600">'+wwiEsc(wwiCoMsg('created','✓ Pedido creado'))+' — '+wwiEsc(d.data.plan_name)+'</div><div class="mono" style="font-size:11px;color:var(--muted);margin-top:6px"># '+wwiEsc(d.data.uuid)+' · $'+Number(d.data.total).toLocaleString('es-CO')+' '+wwiEsc(wwiCoMsg('currency','COP'))+' · '+wwiEsc(d.data.status)+'</div>'+demoBtn+'</div>';
         }else{
             res.innerHTML='<div style="color:var(--bad);font-size:12px">'+wwiEsc(d.message||'Error al crear el pedido')+'</div>';
         }
-    }catch(e){res.innerHTML='<div style="color:var(--bad);font-size:12px">Error de conexión</div>'}
-    btn.disabled=false;btn.style.opacity=1;btn.textContent='Crear pedido';
+    }catch(e){res.innerHTML='<div style="color:var(--bad);font-size:12px">'+wwiEsc(wwiCoMsg('conn','Error de conexión'))+'</div>'}
+    btn.disabled=false;btn.style.opacity=1;btn.textContent=wwiBtnOrig||btn.textContent;
 }
 var wwiPayMode='';
 async function wwiLoadPayMode(){
@@ -320,11 +344,11 @@ async function wwiDummyPay(uuid){
         var d=await r.json();
         if(d.ok){
             var s=await fetch('/api/v1/public/orders/'+uuid);var sd=await s.json();
-            res.innerHTML='<div class="panel" style="padding:16px;border-color:rgba(52,211,153,.5)"><div style="color:var(--ok);font-size:13px;font-weight:600">✓ Pago demo aprobado — '+wwiEsc((sd.data&&sd.data.status)||'')+'</div><div style="font-size:11px;color:var(--muted);margin-top:6px">El provisioning se ejecuta automáticamente en la cola de jobs.</div></div>';
+            res.innerHTML='<div class="panel" style="padding:16px;border-color:rgba(52,211,153,.5)"><div style="color:var(--ok);font-size:13px;font-weight:600">'+wwiEsc(wwiCoMsg('paid','✓ Pago demo aprobado'))+' — '+wwiEsc((sd.data&&sd.data.status)||'')+'</div><div style="font-size:11px;color:var(--muted);margin-top:6px">'+wwiEsc(wwiCoMsg('provision','El provisioning se ejecuta automáticamente en la cola de jobs.'))+'</div></div>';
         }else{
             res.innerHTML='<div style="color:var(--bad);font-size:12px">'+wwiEsc(d.message||'Error')+'</div>';
         }
-    }catch(e){res.innerHTML='<div style="color:var(--bad);font-size:12px">Error de conexión</div>'}
+    }catch(e){res.innerHTML='<div style="color:var(--bad);font-size:12px">'+wwiEsc(wwiCoMsg('conn','Error de conexión'))+'</div>'}
 }
 async function wwiLoadTemplates(){
     var boxes=document.querySelectorAll('[data-wwi-templates]');
@@ -334,8 +358,9 @@ async function wwiLoadTemplates(){
         var d=await r.json();
         var tpls=(d.data&&d.data.templates)||[];
         boxes.forEach(function(box){
+            var letter=box.dataset.letter||'W';
             box.innerHTML=tpls.map(function(t){
-                return '<div class="card" style="text-align:center;padding:20px"><div style="font-size:22px;margin-bottom:8px">W</div><div style="font-size:13px;font-weight:600" data-source="template:'+(t.id||t.slug)+':name_es">'+wwiEsc(t.name_es)+'</div><div style="font-size:11px;color:var(--muted);margin-top:3px" data-source="template:'+(t.id||t.slug)+':name_en">'+wwiEsc(t.name_en)+'</div><div style="font-size:10px;color:var(--accent);margin-top:6px;text-transform:uppercase;letter-spacing:.05em">'+wwiEsc(t.category_slug||'')+'</div></div>';
+                return '<div class="card" style="text-align:center;padding:20px"><div style="font-size:22px;margin-bottom:8px">'+wwiEsc(letter)+'</div><div style="font-size:13px;font-weight:600" data-source="template:'+(t.id||t.slug)+':name_es">'+wwiEsc(t.name_es)+'</div><div style="font-size:11px;color:var(--muted);margin-top:3px" data-source="template:'+(t.id||t.slug)+':name_en">'+wwiEsc(t.name_en)+'</div><div style="font-size:10px;color:var(--accent);margin-top:6px;text-transform:uppercase;letter-spacing:.05em">'+wwiEsc(t.category_slug||'')+'</div></div>';
             }).join('')||'<div style="color:var(--muted);grid-column:1/-1">Sin plantillas aún</div>';
         });
     }catch(e){}
@@ -1094,6 +1119,7 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
             if(src&&!edit){
                 e.preventDefault();e.stopPropagation();
                 var sp=String(src.getAttribute('data-source')).split(':');
+                if(sp[0]==='settings'){showSettingsSource(sp.slice(2));return}
                 showSource(sp[0],sp[1]?parseInt(sp[1],10):null,sp[2]||null,sp[3]!==undefined?parseInt(sp[3],10):null);
                 return;
             }
@@ -2286,6 +2312,51 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
                 };
             });
         });
+    }
+    function showSettingsSource(path){
+        var ov=document.createElement('div');
+        ov.className='wwi-ed-modal';
+        ov.innerHTML='<div class="wwi-ed-modal-box"><div class="wwi-ed-head"><strong>🧩 Editar navegación</strong><button class="wwi-ed-x" id="wwi-ed-setclose">✕</button></div><div id="wwi-ed-setlist" class="wwi-ed-hint">Cargando…</div></div>';
+        document.body.appendChild(ov);
+        el('wwi-ed-setclose').onclick=function(){ov.remove()};
+        ov.addEventListener('mousedown',function(e){if(e.target===ov)ov.remove()});
+        api('/api/v1/admin/settings').then(function(d){
+            var all=d.data||{};
+            var nav={};
+            try{nav=JSON.parse(all['wwi_nav']||'{}')||{}}catch(e){nav={}}
+            nav=Object.assign({brand:'WWI',logo_letter:'W',cta:'Crear mi sitio',cta_url:'#planes',links:[]},nav);
+            var field=path[0]||'brand';
+            var label=field,val='';
+            if(field==='link'){
+                var idx=parseInt(path[1],10),sub=path[2];
+                var l=(nav.links&&nav.links[idx])||{};
+                val=l[sub]!==undefined?l[sub]:'';
+                label='Enlace #'+(idx+1)+' · '+(sub==='url'?'URL':'Texto');
+            }else{
+                val=nav[field]!==undefined?nav[field]:'';
+                label=({brand:'Marca',logo_letter:'Letra del logo',cta:'Texto del botón',cta_url:'URL del botón'})[field]||field;
+            }
+            var h='<div style="font-size:10px;color:var(--muted);margin-bottom:8px">Navegación del sitio (aplica a todas las páginas)</div>';
+            h+='<label>'+esc(label)+'<input id="wwi-set-val" value="'+esc(val)+'"/></label>';
+            h+='<div class="wwi-ed-actions"><button class="wwi-ed-save" id="wwi-set-save">Guardar</button></div>';
+            el('wwi-ed-setlist').innerHTML=h;
+            el('wwi-set-save').onclick=function(){
+                var v=el('wwi-set-val').value;
+                if(field==='link'){
+                    var idx2=parseInt(path[1],10),sub2=path[2];
+                    nav.links=nav.links||[];
+                    while(nav.links.length<=idx2)nav.links.push({label:'',url:'#'});
+                    nav.links[idx2][sub2]=v;
+                }else{
+                    nav[field]=v;
+                }
+                api('/api/v1/admin/settings',{method:'PUT',body:{wwi_nav:JSON.stringify(nav)}}).then(function(r){
+                    if(r.ok){toast('Navegación actualizada');setTimeout(function(){window.location.reload()},600)}
+                    else toast(r.message||'Error',true);
+                });
+            };
+            try{el('wwi-set-val').focus()}catch(e){}
+        }).catch(function(){var b2=el('wwi-ed-setlist');if(b2)b2.textContent='No se pudo cargar la configuración'});
     }
     function decorate(){
         document.querySelectorAll('.wwi-section[data-sid]').forEach(function(sec){

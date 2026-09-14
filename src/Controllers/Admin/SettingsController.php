@@ -21,7 +21,7 @@ class SettingsController
         $data = $req->json();
         if (empty($data)) Response::error('No data provided', 400);
         $db = Database::instance();
-        $stmt = $db->prepare("INSERT INTO settings (site_id, `key`, `value`) VALUES (1, :k, :v) ON DUPLICATE KEY UPDATE `value` = :v2");
+        $stmt = $db->prepare("INSERT INTO settings (site_id, `key`, `value`) VALUES (@site_id, :k, :v) ON DUPLICATE KEY UPDATE `value` = :v2");
         foreach ($data as $key => $value) {
             $stmt->execute(['k' => $key, 'v' => $value, 'v2' => $value]);
         }

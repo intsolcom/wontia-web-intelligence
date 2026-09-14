@@ -34,6 +34,14 @@ class WwiHeroWidget extends Widget
                 ['name' => 'Educacion'], ['name' => 'Eventos'], ['name' => 'Moda'], ['name' => 'Tecnologia'],
                 ['name' => 'Agricultura'], ['name' => 'Belleza'],
             ]],
+            ['key' => 'trust', 'label' => 'Barra de confianza', 'type' => 'repeater', 'fields' => [
+                ['key' => 'text', 'label' => 'Texto', 'type' => 'text'],
+            ], 'default' => [
+                ['text' => 'Vista previa gratis'],
+                ['text' => 'Sin tarjeta'],
+                ['text' => 'Sin programador'],
+            ]],
+            ['key' => 'sector_icon', 'label' => 'Ícono de la cinta', 'type' => 'text', 'inline' => true, 'default' => '◆'],
         ];
     }
 
@@ -53,7 +61,15 @@ class WwiHeroWidget extends Widget
         $html .= '<a class="btn btn-primary btn-pulse" data-editable="cta_primary" id="wwi-start" style="padding:13px 28px;font-size:15px" href="' . $this->esc($c['cta_primary_url']) . '">' . $this->esc($c['cta_primary']) . '</a>';
         $html .= '</div>';
         if ($c['price_note']) $html .= '<div class="mono" data-editable="price_note" style="font-size:12px;color:var(--muted)">' . $this->esc($c['price_note']) . '</div>';
-        $html .= '<div class="trust-row" style="margin-top:14px"><span>Vista previa gratis</span><span>Sin tarjeta</span><span>Sin programador</span></div>';
+        $trust = $this->safeJson($c['trust'] ?? []);
+        if ($trust) {
+            $html .= '<div class="trust-row" style="margin-top:14px">';
+            foreach ($trust as $i => $t) {
+                $txt = is_array($t) ? (string)($t['text'] ?? '') : (string)$t;
+                if ($txt !== '') $html .= '<span data-editable="trust.' . $i . '.text">' . $this->esc($txt) . '</span>';
+            }
+            $html .= '</div>';
+        }
         $html .= '<div class="wwi-grid-3 wrap" style="margin-top:44px">';
         $stats = $this->safeJson($c['stats'] ?? []);
         foreach ($stats as $i => $st) {
@@ -72,9 +88,11 @@ class WwiHeroWidget extends Widget
         }
         $sectorCount = count($sectors);
         $html .= '<div class="marquee" style="max-width:1120px;margin:38px auto 0;border-radius:12px"><div class="track">';
+        $sectorIcon = (string)($c['sector_icon'] ?? '◆');
         foreach (array_merge($sectors, $sectors) as $i => $s) {
             $ed = $i < $sectorCount ? ' data-editable="sectors.' . $i . '.name"' : ' aria-hidden="true"';
-            $html .= '<span' . $ed . '><b>◆</b> ' . $this->esc($s) . '</span>';
+            $iconEd = $i === 0 ? ' data-editable="sector_icon"' : '';
+            $html .= '<span' . $ed . '><b' . $iconEd . '>' . $this->esc($sectorIcon) . '</b> ' . $this->esc($s) . '</span>';
         }
         $html .= '</div></div>';
         $html .= '</div></section>';
