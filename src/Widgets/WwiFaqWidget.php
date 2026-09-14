@@ -36,7 +36,7 @@ class WwiFaqWidget extends Widget
         $html .= '<div style="max-width:720px;margin:0 auto">';
         foreach ($items as $item) {
             if (!is_array($item)) continue;
-            $html .= '<div class="faq-item reveal"><div class="faq-q">' . $this->esc($item['q'] ?? '') . '</div><div class="faq-a">' . $this->rich($item['a'] ?? '') . '</div></div>';
+            $html .= '<div class="faq-item reveal"><div class="faq-q" data-editable="items.' . $i . '.q">' . $this->esc($item['q'] ?? '') . '</div><div class="faq-a" data-editable="items.' . $i . '.a">' . $this->rich($item['a'] ?? '') . '</div></div>';
         }
         $html .= '</div></div></section>';
         return $html;

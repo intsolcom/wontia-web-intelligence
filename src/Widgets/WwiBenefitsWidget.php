@@ -35,9 +35,9 @@ class WwiBenefitsWidget extends Widget
         $html = '<section id="beneficios" style="padding:90px 0;background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border)">';
         $html .= '<div class="wrap"><div class="h-sec reveal"><h2 data-editable="title">' . $this->esc($c['title']) . '</h2><p data-editable="subtitle">' . $this->esc($c['subtitle']) . '</p></div>';
         $html .= '<div class="wwi-grid-3">';
-        foreach ($items as $item) {
+        foreach ($items as $i => $item) {
             if (!is_array($item)) continue;
-            $html .= '<div class="card reveal"><div class="ic">' . $this->esc($item['icon'] ?? 'W') . '</div><h3>' . $this->esc($item['title'] ?? '') . '</h3><p>' . $this->esc($item['desc'] ?? '') . '</p></div>';
+            $html .= '<div class="card reveal"><div class="ic" data-editable="items.' . $i . '.icon">' . $this->esc($item['icon'] ?? 'W') . '</div><h3 data-editable="items.' . $i . '.title">' . $this->esc($item['title'] ?? '') . '</h3><p data-editable="items.' . $i . '.desc">' . $this->esc($item['desc'] ?? '') . '</p></div>';
         }
         $html .= '</div></div></section>';
         return $html;

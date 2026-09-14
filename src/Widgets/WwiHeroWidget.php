@@ -56,12 +56,12 @@ class WwiHeroWidget extends Widget
         $html .= '<div class="trust-row" style="margin-top:14px"><span>Vista previa gratis</span><span>Sin tarjeta</span><span>Sin programador</span></div>';
         $html .= '<div class="wwi-grid-3 wrap" style="margin-top:44px">';
         $stats = $this->safeJson($c['stats'] ?? []);
-        foreach ($stats as $st) {
+        foreach ($stats as $i => $st) {
             if (!is_array($st)) continue;
             $val = (string)($st['value'] ?? '');
             $attrs = '';
             if (preg_match('/^(\d+)(.*)$/u', $val, $m)) $attrs = ' data-count="' . $m[1] . '" data-suffix="' . $this->esc($m[2]) . '"';
-            $html .= '<div class="panel stat"><div class="v"' . $attrs . '>' . $this->esc($val) . '</div><div class="l">' . $this->esc($st['label'] ?? '') . '</div></div>';
+            $html .= '<div class="panel stat"><div class="v"' . $attrs . ' data-editable="stats.' . $i . '.value">' . $this->esc($val) . '</div><div class="l" data-editable="stats.' . $i . '.label">' . $this->esc($st['label'] ?? '') . '</div></div>';
         }
         $html .= '</div>';
         $sectors = [];
@@ -70,9 +70,11 @@ class WwiHeroWidget extends Widget
             $sec = trim((string)$sec);
             if ($sec !== '') $sectors[] = $sec;
         }
+        $sectorCount = count($sectors);
         $html .= '<div class="marquee" style="max-width:1120px;margin:38px auto 0;border-radius:12px"><div class="track">';
-        foreach (array_merge($sectors, $sectors) as $s) {
-            $html .= '<span><b>◆</b> ' . $this->esc($s) . '</span>';
+        foreach (array_merge($sectors, $sectors) as $i => $s) {
+            $ed = $i < $sectorCount ? ' data-editable="sectors.' . $i . '.name"' : ' aria-hidden="true"';
+            $html .= '<span' . $ed . '><b>◆</b> ' . $this->esc($s) . '</span>';
         }
         $html .= '</div></div>';
         $html .= '</div></section>';

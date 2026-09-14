@@ -42,9 +42,9 @@ class WwiFooterWidget extends Widget
         $html = '<footer class="w-footer"><div class="wrap"><div class="cols">';
         $html .= '<div><div style="display:flex;align-items:center;gap:10px;margin-bottom:14px"><div class="w-nav-logo">W</div><span style="font-weight:800;letter-spacing:.06em">WONTIA WEB INTELLIGENCE</span></div><p data-editable="tagline">' . $this->esc($c['tagline']) . '</p></div>';
         $html .= '<div><h4>ES</h4>';
-        foreach ($linksEs as $l) { if (is_array($l)) $html .= '<a href="' . $this->esc($l['url'] ?? '#') . '">' . $this->esc($l['label'] ?? '') . '</a>'; }
+        foreach ($linksEs as $i => $l) { if (is_array($l)) $html .= '<a href="' . $this->esc($l['url'] ?? '#') . '" data-editable="links_es.' . $i . '.label">' . $this->esc($l['label'] ?? '') . '</a>'; }
         $html .= '</div><div><h4>EN</h4>';
-        foreach ($linksEn as $l) { if (is_array($l)) $html .= '<a href="' . $this->esc($l['url'] ?? '#') . '">' . $this->esc($l['label'] ?? '') . '</a>'; }
+        foreach ($linksEn as $i => $l) { if (is_array($l)) $html .= '<a href="' . $this->esc($l['url'] ?? '#') . '" data-editable="links_en.' . $i . '.label">' . $this->esc($l['label'] ?? '') . '</a>'; }
         $html .= '</div></div>';
         $html .= '<div class="legal"><span data-editable="copyright">' . $this->esc($c['copyright']) . '</span><span>Powered by <strong>Wontia</strong> — Intsolcom, LLC</span></div>';
         $html .= '</div></footer>';

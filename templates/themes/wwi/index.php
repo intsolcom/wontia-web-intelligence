@@ -261,7 +261,7 @@ async function wwiLoadPlans(){
             var html='';
             plans.forEach(function(p,i){
                 var feats=(p.features||[]).slice(0,8);
-                html+='<div class="card plan-card'+(i===0?' featured':'')+'" data-source="plan:'+p.id+'"><div><div class="plan-name">'+wwiEsc(p.name_es)+' <span style="color:var(--muted)">/ '+wwiEsc(p.name_en)+'</span></div><div class="plan-price" style="margin-top:8px">$'+Number(p.price_cop).toLocaleString('es-CO')+' <small>COP</small>'+(p.price_usd?' <small>· $'+p.price_usd+' USD</small>':'')+'</div>'+(p.billing_type==='one_time'?'<div style="font-size:11px;color:var(--muted);margin-top:2px">pago único · dominio incluido 1er año</div>':'<div style="font-size:11px;color:var(--muted);margin-top:2px">suscripción mensual</div>')+'</div><div class="plan-feats">'+feats.map(function(f){return '<div>'+wwiEsc(String(f).replace(/_/g,' '))+'</div>'}).join('')+'</div><a class="btn '+(i===0?'btn-primary':'btn-outline')+'" style="width:100%" href="#contacto" data-plan="'+p.id+'">Elegir '+wwiEsc(p.name_es)+'</a></div>';
+                html+='<div class="card plan-card'+(i===0?' featured':'')+'"><div><div class="plan-name"><span data-source="plan:'+p.id+':name_es">'+wwiEsc(p.name_es)+'</span> <span style="color:var(--muted)">/ '+wwiEsc(p.name_en)+'</span></div><div class="plan-price" style="margin-top:8px" data-source="plan:'+p.id+':price_cop">$'+Number(p.price_cop).toLocaleString('es-CO')+' <small>COP</small>'+(p.price_usd?' <small>· $'+p.price_usd+' USD</small>':'')+'</div>'+(p.billing_type==='one_time'?'<div style="font-size:11px;color:var(--muted);margin-top:2px">pago único · dominio incluido 1er año</div>':'<div style="font-size:11px;color:var(--muted);margin-top:2px">suscripción mensual</div>')+'</div><div class="plan-feats">'+feats.map(function(f,fi){return '<div data-source="plan:'+p.id+':feature:'+fi+'">'+wwiEsc(String(f).replace(/_/g,' '))+'</div>'}).join('')+'</div><a class="btn '+(i===0?'btn-primary':'btn-outline')+'" style="width:100%" href="#contacto" data-plan="'+p.id+'" data-source="plan:'+p.id+':name_es">Elegir '+wwiEsc(p.name_es)+'</a></div>';
             });
             box.innerHTML=html;
         });
@@ -335,7 +335,7 @@ async function wwiLoadTemplates(){
         var tpls=(d.data&&d.data.templates)||[];
         boxes.forEach(function(box){
             box.innerHTML=tpls.map(function(t){
-                return '<div class="card" data-source="template:'+(t.id||t.slug)+'" style="text-align:center;padding:20px"><div style="font-size:22px;margin-bottom:8px">W</div><div style="font-size:13px;font-weight:600">'+wwiEsc(t.name_es)+'</div><div style="font-size:11px;color:var(--muted);margin-top:3px">'+wwiEsc(t.name_en)+'</div><div style="font-size:10px;color:var(--accent);margin-top:6px;text-transform:uppercase;letter-spacing:.05em">'+wwiEsc(t.category_slug||'')+'</div></div>';
+                return '<div class="card" style="text-align:center;padding:20px"><div style="font-size:22px;margin-bottom:8px">W</div><div style="font-size:13px;font-weight:600" data-source="template:'+(t.id||t.slug)+':name_es">'+wwiEsc(t.name_es)+'</div><div style="font-size:11px;color:var(--muted);margin-top:3px" data-source="template:'+(t.id||t.slug)+':name_en">'+wwiEsc(t.name_en)+'</div><div style="font-size:10px;color:var(--accent);margin-top:6px;text-transform:uppercase;letter-spacing:.05em">'+wwiEsc(t.category_slug||'')+'</div></div>';
             }).join('')||'<div style="color:var(--muted);grid-column:1/-1">Sin plantillas aún</div>';
         });
     }catch(e){}
@@ -946,6 +946,9 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
 .wwi-edit-on .wwi-section:hover>.wwi-ed-tools{display:flex}
 .wwi-ed-tools button{width:30px;height:30px;border-radius:8px;border:1px solid var(--border2);background:rgba(6,8,15,.85);color:var(--text);cursor:pointer;font-size:13px;backdrop-filter:blur(8px)}
 .wwi-ed-tools button:hover{border-color:var(--accent);color:var(--accent)}
+.wwi-show-editables [data-editable]{outline:1px dashed rgba(139,92,246,.75);outline-offset:2px;border-radius:3px}
+.wwi-show-editables [data-source]{outline:1px dashed rgba(52,211,153,.8);outline-offset:2px;border-radius:3px}
+.wwi-show-editables .wwi-section{outline:1px dashed rgba(34,211,238,.35);outline-offset:-1px}
 .wwi-ed-err{border-color:#f87171!important;box-shadow:0 0 0 2px rgba(248,113,113,.18)!important}
 .wwi-ed-errmsg{font-size:10px;color:#f87171;margin-top:3px}
 .wwi-ed-rt-tools{display:flex;gap:4px;margin-bottom:6px}
@@ -1008,8 +1011,11 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
     function build(user){
         var bar=document.createElement('div');
         bar.className='wwi-ed-bar';
-        bar.innerHTML='<span class="u">✎ '+esc(user.username||'')+'</span><label class="wwi-ed-toggle"><input type="checkbox" id="wwi-ed-on"/> Editar sitio</label><label class="wwi-ed-toggle"><input type="checkbox" id="wwi-ed-client"/> Modo cliente</label>';
+        bar.innerHTML='<span class="u">✎ '+esc(user.username||'')+'</span><label class="wwi-ed-toggle"><input type="checkbox" id="wwi-ed-on"/> Editar sitio</label><label class="wwi-ed-toggle"><input type="checkbox" id="wwi-ed-client"/> Modo cliente</label><label class="wwi-ed-toggle"><input type="checkbox" id="wwi-ed-show"/> Mostrar editables</label>';
         document.body.appendChild(bar);
+        el('wwi-ed-show').addEventListener('change',function(){
+            document.body.classList.toggle('wwi-show-editables',this.checked);
+        });
         el('wwi-ed-client').checked=localStorage.getItem('wwi_ed_client')==='1';
         document.body.classList.toggle('wwi-client',el('wwi-ed-client').checked);
         el('wwi-ed-client').addEventListener('change',function(){
@@ -1088,7 +1094,7 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
             if(src&&!edit){
                 e.preventDefault();e.stopPropagation();
                 var sp=String(src.getAttribute('data-source')).split(':');
-                showSource(sp[0],sp[1]?parseInt(sp[1],10):null);
+                showSource(sp[0],sp[1]?parseInt(sp[1],10):null,sp[2]||null,sp[3]!==undefined?parseInt(sp[3],10):null);
                 return;
             }
             var sec=e.target.closest('.wwi-section[data-sid]');
@@ -1450,28 +1456,55 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
         });
     }
     function renderElement(b,s){
-        var key=S.sel.key;
+        var path=S.sel.key;
         var cfg=cfgOf(s);
-        var schema=(s._schema||[]).filter(function(f){return f.key===key})[0];
-        var val=cfg[key]!==undefined?cfg[key]:(schema&&schema.default!==undefined?schema.default:'');
-        var label=(schema&&schema.label)||key;
-        var long=String(val).length>70||(schema&&(schema.type==='textarea'||schema.type==='code'));
+        var parts=String(path).split('.');
+        var val='',label=path,ftype='text';
+        if(parts.length===3){
+            var key=parts[0],idx=parseInt(parts[1],10),sub=parts[2];
+            var arr=Array.isArray(cfg[key])?cfg[key]:[];
+            var item=arr[idx]||{};
+            val=item[sub]!==undefined?item[sub]:'';
+            var repF=(s._schema||[]).filter(function(x){return x.key===key})[0];
+            var subF=repF?((repF.fields||[]).filter(function(x){return x.key===sub})[0]||null):null;
+            label=((subF&&subF.label)||sub)+' · '+(repF?repF.label:key)+' #'+(idx+1);
+            ftype=(subF&&subF.type)||'text';
+        }else{
+            var f=(s._schema||[]).filter(function(x){return x.key===parts[0]})[0];
+            val=cfg[parts[0]]!==undefined?cfg[parts[0]]:(f&&f.default!==undefined?f.default:'');
+            label=(f&&f.label)||parts[0];
+            ftype=(f&&f.type)||'text';
+        }
+        var long=String(val).length>70||ftype==='textarea'||ftype==='code'||ftype==='richtext';
         var h='<div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:8px">Elemento · '+esc(label)+'</div>';
         h+=long?'<label>'+esc(label)+'<textarea id="wwi-ed-el">'+esc(typeof val==='object'?JSON.stringify(val):val)+'</textarea></label>':'<label>'+esc(label)+'<input id="wwi-ed-el" value="'+esc(val)+'"/></label>';
-        h+='<div class="wwi-ed-actions"><button class="wwi-ed-save" id="wwi-ed-el-save">Guardar</button><button class="wwi-ed-btn" id="wwi-ed-el-ai">✨ Mejorar con IA</button><button class="wwi-ed-btn" id="wwi-ed-el-sec">Editar sección completa</button></div>';
+        h+='<div class="wwi-ed-actions"><button class="wwi-ed-save" id="wwi-ed-el-save">Guardar</button><button class="wwi-ed-btn" id="wwi-ed-el-ai">✨ Mejorar con IA</button><button class="wwi-ed-btn" id="wwi-ed-el-rep">Editar la lista</button><button class="wwi-ed-btn" id="wwi-ed-el-sec">Editar sección completa</button></div>';
         b.innerHTML=h;
         var inp=el('wwi-ed-el');
-        inp.addEventListener('input',function(){scheduleAuto(function(){saveElement(s,key,inp.value)})});
-        el('wwi-ed-el-save').onclick=function(){saveElement(s,key,inp.value)};
+        inp.addEventListener('input',function(){scheduleAuto(function(){savePath(s,path,inp.value)})});
+        el('wwi-ed-el-save').onclick=function(){savePath(s,path,inp.value)};
         el('wwi-ed-el-ai').onclick=function(){aiImprove(inp)};
+        el('wwi-ed-el-rep').onclick=function(){selectSection(s.id)};
         el('wwi-ed-el-sec').onclick=function(){selectSection(s.id)};
         try{inp.focus()}catch(e){}
     }
-    function saveElement(s,key,val){
+    function savePath(s,path,val){
+        var parts=String(path).split('.');
         var cfg=cfgOf(s);
-        cfg[key]=val;
+        if(parts.length===1){
+            cfg[parts[0]]=val;
+        }else if(parts.length===3){
+            var key=parts[0],idx=parseInt(parts[1],10),sub=parts[2];
+            if(!Array.isArray(cfg[key]))cfg[key]=[];
+            while(cfg[key].length<=idx)cfg[key].push({});
+            if(!cfg[key][idx]||typeof cfg[key][idx]!=='object')cfg[key][idx]={};
+            cfg[key][idx][sub]=val;
+        }else{
+            return;
+        }
         saveSection(s,{title:s.title||'',subtitle:s.subtitle||'',is_active:(s.is_active==1||s.is_active==='1')?1:0,config:cfg});
     }
+    function saveElement(s,key,val){savePath(s,key,val)}
     function renderAdd(b){
         var h='<div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:8px">Insertar en esta página</div><div class="wwi-ed-cat">';
         h+='<button id="wwi-add-brick"><i>🧱</i>Sección / Brick<small>Desde el Marketplace</small></button>';
@@ -2017,10 +2050,10 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
             };
         });
     }
-    function showSource(kind,focusId){
+    function showSource(kind,focusId,field,fidx){
         var ov=document.createElement('div');
         ov.className='wwi-ed-modal';
-        ov.innerHTML='<div class="wwi-ed-modal-box"><div class="wwi-ed-head"><strong>🧩 Fuente: '+esc(kind)+'</strong><button class="wwi-ed-x" id="wwi-ed-sclose">✕</button></div><div id="wwi-ed-slist" class="wwi-ed-hint">Cargando…</div></div>';
+        ov.innerHTML='<div class="wwi-ed-modal-box"><div class="wwi-ed-head"><strong>🧩 '+(field?'Editar '+esc(field):'Fuente: '+esc(kind))+'</strong><button class="wwi-ed-x" id="wwi-ed-sclose">✕</button></div><div id="wwi-ed-slist" class="wwi-ed-hint">Cargando…</div></div>';
         document.body.appendChild(ov);
         el('wwi-ed-sclose').onclick=function(){ov.remove()};
         ov.addEventListener('mousedown',function(e){if(e.target===ov)ov.remove()});
@@ -2030,6 +2063,40 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
             var list=d.data||[];
             var box=el('wwi-ed-slist');
             if(!list.length){box.innerHTML='Sin datos en esta fuente.';return}
+            var item=null;
+            if(focusId)list.forEach(function(x){if(parseInt(x.id,10)===parseInt(focusId,10))item=x});
+            if(field&&item){
+                var h='<div style="font-size:10px;color:var(--muted);margin-bottom:8px">'+esc(item.name_es||('#'+focusId))+(kind==='plans'?' · Pricing Engine del ecosistema (afecta a todos los sitios)':' · catálogo de plantillas')+'</div>';
+                if(field==='feature'){
+                    var feats=item.features||[];
+                    h+='<label>Feature #'+((fidx||0)+1)+'<input id="wwi-src-val" value="'+esc(feats[fidx]||'')+'"/></label>';
+                }else if(field==='status'){
+                    h+='<label>Estado<select id="wwi-src-val">'+['active','beta','coming_soon','deprecated'].map(function(st){return '<option value="'+st+'"'+(item.status===st?' selected':'')+'>'+st+'</option>'}).join('')+'</select></label>';
+                }else{
+                    h+='<label>'+esc(field)+'<input id="wwi-src-val" value="'+esc(item[field]!==undefined?item[field]:'')+'"/></label>';
+                }
+                h+='<div class="wwi-ed-actions"><button class="wwi-ed-save" id="wwi-src-save">Guardar</button></div>';
+                box.innerHTML=h;
+                el('wwi-src-save').onclick=function(){
+                    var val=el('wwi-src-val').value;
+                    var payload={};
+                    if(field==='feature'){
+                        var feats2=(item.features||[]).slice();
+                        feats2[fidx]=val;
+                        payload.features=feats2;
+                    }else if(field==='price_cop'||field==='price_usd'){
+                        payload[field]=parseFloat(val)||0;
+                    }else{
+                        payload[field]=val;
+                    }
+                    api((kind==='plans'?'/api/v1/admin/source/plans/':'/api/v1/admin/source/templates/')+focusId,{method:'PUT',body:payload}).then(function(r){
+                        if(r.ok){toast('Fuente actualizada');refreshSources();ov.remove()}
+                        else toast(r.message||'Error',true);
+                    });
+                };
+                try{el('wwi-src-val').focus()}catch(e){}
+                return;
+            }
             var h='<div style="font-size:10px;color:var(--muted);margin-bottom:8px">'+(kind==='plans'?'Estos valores alimentan el Pricing Engine del ecosistema (requiere superadmin).':'Estos valores alimentan el catálogo de plantillas del ecosistema.')+'</div>';
             list.forEach(function(it){
                 h+='<div class="wwi-ed-comment'+(focusId&&parseInt(it.id,10)===parseInt(focusId,10)?' on':'')+'" data-sid="'+it.id+'">';

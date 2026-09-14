@@ -33,7 +33,7 @@ class WwiStepsWidget extends Widget
         $html .= '<div style="max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:26px">';
         foreach ($steps as $i => $step) {
             if (!is_array($step)) continue;
-            $html .= '<div class="step reveal"><div class="step-num">' . ($i + 1) . '</div><div><h3>' . $this->esc($step['title'] ?? '') . '</h3><p>' . $this->esc($step['desc'] ?? '') . '</p></div></div>';
+            $html .= '<div class="step reveal"><div class="step-num">' . ($i + 1) . '</div><div><h3 data-editable="steps.' . $i . '.title">' . $this->esc($step['title'] ?? '') . '</h3><p data-editable="steps.' . $i . '.desc">' . $this->esc($step['desc'] ?? '') . '</p></div></div>';
         }
         $html .= '</div></div></section>';
         return $html;
