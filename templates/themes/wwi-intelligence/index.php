@@ -280,7 +280,7 @@ if ($wwiAbIds) {
 }
 $wwiHeroDone = false;
 $wwiTiaPanel = '<aside class="wwi-iq-tia">'
-    . '<div class="tia-panel">'
+    . '<div class="tia-panel tia is-building" data-tia-state="building">'
     . '<div class="tia-head"><span class="wwi-ai-orb" aria-hidden="true"></span><div><b>TIA</b><span>Tecnología de Inteligencia Aplicada</span></div></div>'
     . '<div class="tia-list">'
     . '<div>Analizando información</div>'
@@ -951,6 +951,24 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
 .wwi-iq-hero .wwi-iq-hero-main .marquee{max-width:none!important;margin:30px 0 0!important;border-radius:14px!important}
 .wwi-iq-tia{position:sticky;top:92px}
 @media(max-width:1100px){.wwi-iq-tia{position:static}}
+.tia.is-idle .wwi-ai-orb{animation-duration:4.5s}
+.tia.is-thinking .wwi-ai-orb{animation-duration:1.4s}
+.tia.is-building .wwi-ai-orb{animation-duration:.9s;box-shadow:0 0 34px rgba(139,77,255,.75),0 0 90px rgba(139,77,255,.35)}
+.tia.is-waiting .wwi-ai-orb{animation-play-state:paused;opacity:.7}
+.tia.is-success .wwi-ai-orb{box-shadow:0 0 30px rgba(53,212,154,.6),0 0 80px rgba(53,212,154,.3)}
+.tia.is-error .wwi-ai-orb{box-shadow:0 0 30px rgba(255,102,122,.6),0 0 80px rgba(255,102,122,.3)}
+.btn.loading{position:relative;pointer-events:none;color:transparent!important}
+.btn.loading::after{content:'';position:absolute;width:18px;height:18px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spIQ .7s linear infinite}
+.btn.success{border-color:rgba(53,212,154,.5)!important;box-shadow:0 0 0 2px rgba(53,212,154,.25)}
+.btn.error{border-color:rgba(255,102,122,.5)!important;box-shadow:0 0 0 2px rgba(255,102,122,.25)}
+.input.error{border-color:rgba(255,102,122,.6)!important}
+.field-error{color:var(--bad);font-size:11.5px;margin-top:6px}
+.img-swap{position:relative;overflow:hidden;border-radius:14px}
+.img-swap img{transition:opacity .3s ease,transform .3s ease}
+.img-swap img:last-child{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0}
+.img-swap:hover img:first-child{opacity:0}
+.img-swap:hover img:last-child{opacity:1;transform:scale(1.03)}
+@media(prefers-reduced-motion:reduce){.btn.loading::after,.tia.is-building .wwi-ai-orb{animation:none}}
 </style>
 
 <div class="flow-overlay" id="wwi-flow">
