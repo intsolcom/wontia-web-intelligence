@@ -37,7 +37,7 @@ class WwiCheckoutWidget extends Widget
         $html .= '<div class="mono" style="font-size:11px;color:var(--muted);margin-bottom:16px" id="wwi-co-total"></div>';
         $html .= '<button class="btn btn-primary" data-editable="button" style="width:100%;padding:12px" id="wwi-co-submit">' . $this->esc($c['button']) . '</button>';
         $html .= '<div id="wwi-co-result" style="margin-top:14px"></div>';
-        $html .= '<div style="font-size:11px;color:var(--muted);margin-top:14px;line-height:1.6">' . $this->esc($c['note_es']) . '</div>';
+        $html .= '<div style="font-size:11px;color:var(--muted);margin-top:14px;line-height:1.6" data-editable="note_es">' . $this->esc($c['note_es']) . '</div>';
         $html .= '</div></div></section>';
         return $html;
     }

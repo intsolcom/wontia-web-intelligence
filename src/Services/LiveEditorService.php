@@ -55,6 +55,17 @@ class LiveEditorService
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             INDEX idx_section (section_id)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+        $db->exec("CREATE TABLE IF NOT EXISTS wwi_edit_events (
+            id BIGINT AUTO_INCREMENT PRIMARY KEY,
+            site_id INT NOT NULL DEFAULT 1,
+            user_id INT DEFAULT NULL,
+            section_id INT NOT NULL,
+            widget_type VARCHAR(100) DEFAULT '',
+            field VARCHAR(120) DEFAULT '',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_site_field (site_id, field),
+            INDEX idx_section (section_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
         foreach ([
             "ALTER TABLE wwi_edit_presence ADD COLUMN IF NOT EXISTS page_id INT DEFAULT NULL",
             "ALTER TABLE wwi_edit_presence ADD COLUMN IF NOT EXISTS cursor_x DECIMAL(6,2) DEFAULT NULL",
