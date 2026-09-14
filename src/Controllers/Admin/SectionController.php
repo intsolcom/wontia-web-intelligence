@@ -114,8 +114,26 @@ class SectionController
             $class = $widgetType ? WidgetRegistry::get($widgetType) : null;
             if ($class) {
                 foreach ($class::configSchema() as $field) {
-                    if (($field['type'] ?? '') === 'richtext' && isset($cfg[$field['key']])) {
-                        $cfg[$field['key']] = \App\Services\LiveEditorService::sanitizeRichHtml((string)$cfg[$field['key']]);
+                    $ftype = $field['type'] ?? '';
+                    $key = $field['key'] ?? '';
+                    if ($key === '') continue;
+                    if ($ftype === 'richtext' && isset($cfg[$key])) {
+                        $cfg[$key] = \App\Services\LiveEditorService::sanitizeRichHtml((string)$cfg[$key]);
+                    } elseif ($ftype === 'repeater' && isset($cfg[$key]) && is_array($cfg[$key])) {
+                        $richSub = [];
+                        foreach (($field['fields'] ?? []) as $sub) {
+                            if (($sub['type'] ?? '') === 'richtext') $richSub[] = $sub['key'] ?? '';
+                        }
+                        $richSub = array_values(array_filter($richSub));
+                        if ($richSub) {
+                            foreach ($cfg[$key] as &$item) {
+                                if (!is_array($item)) continue;
+                                foreach ($richSub as $rk) {
+                                    if (isset($item[$rk])) $item[$rk] = \App\Services\LiveEditorService::sanitizeRichHtml((string)$item[$rk]);
+                                }
+                            }
+                            unset($item);
+                        }
                     }
                 }
                 $params['config'] = json_encode($cfg, JSON_UNESCAPED_UNICODE);
