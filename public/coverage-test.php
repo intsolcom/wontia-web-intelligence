@@ -5,6 +5,26 @@ use App\Widgets\WidgetRegistry;
 
 \App\Core\Config::load();
 
+function markerConfig(array $schema): array
+{
+    $cfg = [];
+    foreach ($schema as $f) {
+        $type = $f['type'] ?? 'text';
+        $key = $f['key'] ?? '';
+        if ($key === '') continue;
+        if ($type === 'repeater') {
+            $item = [];
+            foreach (($f['fields'] ?? []) as $sub) {
+                if (!empty($sub['key'])) $item[$sub['key']] = '⟦' . $key . '.' . $sub['key'] . '⟧';
+            }
+            $cfg[$key] = [$item];
+        } elseif (in_array($type, ['text', 'textarea', 'richtext', 'link', 'image'], true)) {
+            $cfg[$key] = '⟦' . $key . '⟧';
+        }
+    }
+    return $cfg;
+}
+
 $bricks = WidgetRegistry::all();
 $ok = 0;
 $fail = 0;
@@ -12,7 +32,7 @@ $skip = 0;
 
 foreach ($bricks as $id => $b) {
     try {
-        $html = WidgetRegistry::render($id, $b['defaultConfig'] ?? []);
+        $html = WidgetRegistry::render($id, markerConfig($b['configSchema'] ?? []));
     } catch (\Throwable $e) {
         echo "FAIL $id - render error: " . $e->getMessage() . "\n";
         $fail++;

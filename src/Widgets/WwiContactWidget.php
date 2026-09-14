@@ -15,7 +15,7 @@ class WwiContactWidget extends Widget
             ['key' => 'subtitle', 'label' => 'Subtitulo', 'type' => 'textarea', 'inline' => true, 'default' => 'Escríbenos y te respondemos el mismo día.'],
             ['key' => 'email', 'label' => 'Email', 'type' => 'text', 'inline' => true, 'default' => 'hola@tunegocio.com'],
             ['key' => 'phone', 'label' => 'Teléfono', 'type' => 'text', 'inline' => true, 'default' => '+57 300 000 0000'],
-            ['key' => 'whatsapp', 'label' => 'WhatsApp (solo número)', 'type' => 'text', 'inline' => true, 'default' => ''],
+            ['key' => 'whatsapp', 'label' => 'WhatsApp (solo número)', 'type' => 'text', 'default' => ''],
             ['key' => 'address', 'label' => 'Dirección', 'type' => 'text', 'inline' => true, 'default' => ''],
             ['key' => 'button_text', 'label' => 'Texto del botón', 'type' => 'text', 'inline' => true, 'default' => 'Escribir por WhatsApp'],
             ['key' => 'email_label', 'label' => 'Etiqueta Email', 'type' => 'text', 'inline' => true, 'default' => 'Email'],
@@ -36,8 +36,9 @@ class WwiContactWidget extends Widget
         $html .= '<div class="card"><div style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:6px" data-editable="address_label">' . $this->esc($c['address_label']) . '</div><div style="font-size:13.5px;font-weight:600" data-editable="address">' . $this->esc($c['address']) . '</div></div>';
         $html .= '</div>';
         $wa = preg_replace('/[^0-9]/', '', (string)$c['whatsapp']);
-        if ($wa !== '') {
-            $html .= '<div style="text-align:center;margin-top:24px"><a class="btn btn-primary" href="https://wa.me/' . $this->esc($wa) . '" target="_blank" rel="noopener" data-editable="button_text" style="padding:12px 26px">' . $this->esc($c['button_text']) . '</a></div>';
+        if (trim((string)$c['button_text']) !== '') {
+            $href = $wa !== '' ? 'https://wa.me/' . $wa : '#contacto';
+            $html .= '<div style="text-align:center;margin-top:24px"><a class="btn btn-primary" href="' . $this->esc($href) . '"' . ($wa !== '' ? ' target="_blank" rel="noopener"' : '') . ' data-editable="button_text" style="padding:12px 26px">' . $this->esc($c['button_text']) . '</a></div>';
         }
         $map = trim((string)$c['map_embed']);
         if ($map !== '' && preg_match('#^https://#i', $map)) {
