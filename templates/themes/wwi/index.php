@@ -865,7 +865,7 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
 .wwi-section{position:relative}
 .wwi-edit-on .wwi-section{outline:1px dashed transparent;transition:outline-color .2s}
 .wwi-edit-on .wwi-section:hover{outline-color:rgba(34,211,238,.55)}
-.wwi-ed-tools{display:none;position:absolute;top:10px;right:10px;z-index:99990;gap:4px}
+.wwi-ed-tools{display:none;position:sticky;top:72px;z-index:99990;justify-content:flex-end;gap:4px;height:34px;margin:0 10px -34px 0}
 .wwi-edit-on .wwi-section:hover>.wwi-ed-tools{display:flex}
 .wwi-ed-tools button{width:30px;height:30px;border-radius:8px;border:1px solid var(--border2);background:rgba(6,8,15,.85);color:var(--text);cursor:pointer;font-size:13px;backdrop-filter:blur(8px)}
 .wwi-ed-tools button:hover{border-color:var(--accent);color:var(--accent)}
@@ -923,7 +923,7 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
             var tb=document.createElement('div');
             tb.className='wwi-ed-tools';
             tb.innerHTML='<button data-act="edit" title="Editar sección">✎</button><button data-act="up" title="Subir">▲</button><button data-act="down" title="Bajar">▼</button><button data-act="toggle" title="Ocultar / mostrar">👁</button>';
-            sec.appendChild(tb);
+            sec.insertBefore(tb,sec.firstChild);
             tb.addEventListener('click',function(e){
                 var b=e.target.closest('button');
                 if(!b)return;
@@ -1037,7 +1037,7 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
             if(!sec)return;
             var tb=sec.querySelector('.wwi-ed-tools');
             sec.innerHTML=r.data.html;
-            if(tb)sec.appendChild(tb);
+            if(tb)sec.insertBefore(tb,sec.firstChild);
         });
     }
 })();
