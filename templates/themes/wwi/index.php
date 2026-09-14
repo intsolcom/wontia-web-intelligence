@@ -858,37 +858,68 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
     </div>
   </div>
 </div>
+<script>window.__WWI_EDIT_CTX__=<?= json_encode(['pageId' => (int)($page['id'] ?? 0), 'pageTitle' => (string)($page['title'] ?? ''), 'pageSlug' => (string)($page['slug'] ?? '')], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;</script>
 <style>
 .wwi-ed-bar{position:fixed;bottom:18px;right:18px;z-index:99998;background:var(--panel);border:1px solid var(--border2);border-radius:999px;padding:8px 14px;display:flex;gap:12px;align-items:center;font-size:12px;box-shadow:0 10px 30px rgba(0,0,0,.4)}
 .wwi-ed-bar .u{color:var(--muted);font-size:11px}
 .wwi-ed-toggle{display:flex;align-items:center;gap:6px;cursor:pointer;font-weight:600}
-.wwi-section{position:relative}
-.wwi-edit-on .wwi-section{outline:1px dashed transparent;transition:outline-color .2s}
-.wwi-edit-on .wwi-section:hover{outline-color:rgba(34,211,238,.55)}
-.wwi-ed-tools{display:none;position:sticky;top:72px;z-index:99990;justify-content:flex-end;gap:4px;height:34px;margin:0 10px -34px 0}
-.wwi-edit-on .wwi-section:hover>.wwi-ed-tools{display:flex}
-.wwi-ed-tools button{width:30px;height:30px;border-radius:8px;border:1px solid var(--border2);background:rgba(6,8,15,.85);color:var(--text);cursor:pointer;font-size:13px;backdrop-filter:blur(8px)}
-.wwi-ed-tools button:hover{border-color:var(--accent);color:var(--accent)}
-.wwi-ed-panel{position:fixed;top:0;right:0;bottom:0;width:min(400px,92vw);background:var(--panel);border-left:1px solid var(--border2);z-index:100000;overflow-y:auto;padding:18px;box-shadow:-20px 0 60px rgba(0,0,0,.5)}
-.wwi-ed-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
-.wwi-ed-head strong{font-size:14px}
-.wwi-ed-head button{background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer}
+.wwi-ed-side{position:fixed;top:0;right:0;bottom:0;width:380px;max-width:92vw;background:var(--panel);border-left:1px solid var(--border2);z-index:100000;display:flex;flex-direction:column;transform:translateX(105%);transition:transform .25s cubic-bezier(.22,1,.36,1);box-shadow:-20px 0 60px rgba(0,0,0,.45)}
+.wwi-ed-open .wwi-ed-side{transform:none}
+.wwi-ed-resize{position:absolute;left:-3px;top:0;bottom:0;width:6px;cursor:col-resize}
+.wwi-ed-resize:hover{background:rgba(34,211,238,.4)}
+.wwi-ed-head{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.wwi-ed-crumb{flex:1;min-width:0}
+.wwi-ed-crumb b{display:block;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wwi-ed-crumb span{font-size:10px;color:var(--muted)}
+.wwi-ed-x{background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer}
+.wwi-ed-tabs{display:flex;border-bottom:1px solid var(--border)}
+.wwi-ed-tab{flex:1;padding:10px 6px;background:none;border:none;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent}
+.wwi-ed-tab.on{color:var(--text);border-bottom-color:var(--accent)}
+.wwi-ed-body{flex:1;overflow-y:auto;padding:16px}
 .wwi-ed-body label{display:block;font-size:11px;color:var(--muted);margin-bottom:10px}
 .wwi-ed-body input,.wwi-ed-body textarea,.wwi-ed-body select{width:100%;margin-top:4px;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;padding:8px 10px;color:var(--text);font-size:12px;font-family:inherit;outline:none}
 .wwi-ed-body textarea{min-height:70px;resize:vertical}
 .wwi-ed-check{display:flex;align-items:center;gap:8px}
 .wwi-ed-check input{width:auto;margin:0}
-.wwi-ed-actions{display:flex;gap:8px;margin-top:14px}
-.wwi-ed-save{background:linear-gradient(120deg,#22d3ee,#8b5cf6);color:#041018;font-weight:700;border:none;border-radius:8px;padding:9px 16px;cursor:pointer}
+.wwi-ed-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
+.wwi-ed-save{background:linear-gradient(120deg,#22d3ee,#8b5cf6);color:#041018;font-weight:700;border:none;border-radius:8px;padding:8px 14px;cursor:pointer;font-size:12px}
+.wwi-ed-btn{background:var(--panel2);border:1px solid var(--border2);color:var(--text);border-radius:8px;padding:7px 12px;cursor:pointer;font-size:12px;font-family:inherit}
+.wwi-ed-btn:hover{border-color:var(--accent);color:var(--accent)}
+.wwi-ed-cat{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.wwi-ed-cat button{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 10px;color:var(--text);cursor:pointer;font-size:12px;text-align:left;transition:border-color .15s,transform .15s;font-family:inherit}
+.wwi-ed-cat button:hover{border-color:var(--accent);transform:translateY(-2px)}
+.wwi-ed-cat button i{display:block;font-style:normal;font-size:16px;margin-bottom:4px}
+.wwi-ed-cat button small{display:block;color:var(--muted);font-size:10px;margin-top:2px}
+.wwi-ed-tree-item{display:flex;align-items:center;gap:6px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;cursor:pointer;font-size:12px;background:var(--bg2)}
+.wwi-ed-tree-item:hover{border-color:var(--border2)}
+.wwi-ed-tree-item.on{border-color:var(--accent);background:rgba(34,211,238,.08)}
+.wwi-ed-tree-item .nm{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wwi-ed-media{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.wwi-ed-media button{padding:0;border:1px solid var(--border);border-radius:8px;overflow:hidden;cursor:pointer;background:var(--bg2);aspect-ratio:1}
+.wwi-ed-media img{width:100%;height:100%;object-fit:cover;display:block}
+.wwi-ed-hint{font-size:12px;color:var(--muted);line-height:1.7}
 .wwi-ed-toast{position:fixed;bottom:80px;right:18px;z-index:100001;background:rgba(52,211,153,.16);border:1px solid rgba(52,211,153,.4);color:#34d399;padding:10px 16px;border-radius:10px;font-size:12px;backdrop-filter:blur(8px)}
 .wwi-ed-toast.err{background:rgba(248,113,113,.16);border-color:rgba(248,113,113,.4);color:#f87171}
-@media(prefers-reduced-motion:reduce){.wwi-edit-on .wwi-section{transition:none}}
+.wwi-section{position:relative}
+.wwi-edit-on .wwi-section{outline:1px dashed transparent;transition:outline-color .2s}
+.wwi-edit-on .wwi-section:hover{outline-color:rgba(34,211,238,.5)}
+.wwi-edit-on .wwi-section.wwi-sel{outline:2px solid rgba(34,211,238,.8);outline-offset:-2px}
+.wwi-edit-on [data-editable]{cursor:text}
+.wwi-edit-on [data-editable]:hover{outline:1px dashed rgba(139,92,246,.8);outline-offset:2px;border-radius:4px}
+.wwi-edit-on [data-editable].wwi-sel-el{outline:2px solid rgba(139,92,246,.9);outline-offset:2px;border-radius:4px}
+.wwi-ed-tools{display:none;position:sticky;top:72px;z-index:99990;justify-content:flex-end;gap:4px;height:34px;margin:0 10px -34px 0}
+.wwi-edit-on .wwi-section:hover>.wwi-ed-tools{display:flex}
+.wwi-ed-tools button{width:30px;height:30px;border-radius:8px;border:1px solid var(--border2);background:rgba(6,8,15,.85);color:var(--text);cursor:pointer;font-size:13px;backdrop-filter:blur(8px)}
+.wwi-ed-tools button:hover{border-color:var(--accent);color:var(--accent)}
+@media(prefers-reduced-motion:reduce){.wwi-edit-on .wwi-section{transition:none}.wwi-ed-side{transition:none}}
 </style>
 <script>
 (function(){
     var token=null;
     try{token=localStorage.getItem('wwi_token')||null}catch(e){}
     if(!token||window.__WWI_PREVIEW__)return;
+    var CTX=window.__WWI_EDIT_CTX__||{};
+    var S={open:false,tab:'content',sel:null,sec:null,timer:null,undo:[],saving:false};
     function api(url,opts){
         opts=opts||{};
         opts.headers=opts.headers||{};
@@ -896,6 +927,9 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
         if(opts.body){opts.headers['Content-Type']='application/json';opts.body=JSON.stringify(opts.body)}
         return fetch(url,opts).then(function(r){return r.json()});
     }
+    function el(id){return document.getElementById(id)}
+    function q(sel){return document.querySelector(sel)}
+    function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
     function toast(msg,err){
         var t=document.createElement('div');
         t.className='wwi-ed-toast'+(err?' err':'');
@@ -903,19 +937,443 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
         document.body.appendChild(t);
         setTimeout(function(){t.remove()},2600);
     }
-    function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+    function setStatus(t){var s=el('wwi-ed-status');if(s)s.textContent=t||''}
     api('/api/v1/admin/auth/me').then(function(d){
         if(!d||!d.ok||!d.user)return;
+        build(d.user);
+    }).catch(function(){});
+    function build(user){
         var bar=document.createElement('div');
         bar.className='wwi-ed-bar';
-        bar.innerHTML='<span class="u">✎ '+esc(d.user.username||'')+'</span><label class="wwi-ed-toggle"><input type="checkbox" id="wwi-ed-on"/> Editar sitio</label>';
+        bar.innerHTML='<span class="u">✎ '+esc(user.username||'')+'</span><label class="wwi-ed-toggle"><input type="checkbox" id="wwi-ed-on"/> Editar sitio</label>';
         document.body.appendChild(bar);
-        document.getElementById('wwi-ed-on').addEventListener('change',function(){
+        var side=document.createElement('aside');
+        side.className='wwi-ed-side';
+        side.id='wwi-ed-side';
+        side.innerHTML='<div class="wwi-ed-resize" id="wwi-ed-resize"></div>'
+            +'<div class="wwi-ed-head"><div class="wwi-ed-crumb"><b id="wwi-ed-crumb">'+esc(CTX.pageTitle||'Página')+'</b><span id="wwi-ed-status"></span></div><button class="wwi-ed-x" id="wwi-ed-close" title="Cerrar">✕</button></div>'
+            +'<div class="wwi-ed-tabs"><button class="wwi-ed-tab on" data-tab="content">Contenido</button><button class="wwi-ed-tab" data-tab="add">Añadir</button><button class="wwi-ed-tab" data-tab="page">Página</button></div>'
+            +'<div class="wwi-ed-body" id="wwi-ed-body"></div>';
+        document.body.appendChild(side);
+        document.querySelectorAll('.wwi-ed-tab').forEach(function(b){
+            b.addEventListener('click',function(){S.tab=b.dataset.tab;renderTabs();renderBody()});
+        });
+        el('wwi-ed-close').onclick=function(){openSide(false);el('wwi-ed-on').checked=false;document.body.classList.remove('wwi-edit-on')};
+        el('wwi-ed-on').addEventListener('change',function(){
             document.body.classList.toggle('wwi-edit-on',this.checked);
+            openSide(this.checked);
             if(this.checked)decorate();
         });
+        if(localStorage.getItem('wwi_ed_on')==='1'){
+            document.body.classList.add('wwi-edit-on');
+            el('wwi-ed-on').checked=true;
+            openSide(true);
+        }
         decorate();
-    }).catch(function(){});
+        bindSelect();
+        initResize();
+        document.addEventListener('keydown',function(e){
+            if(e.key==='Escape'){deselect()}
+            else if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'&&S.sel){e.preventDefault();undo()}
+        });
+        renderBody();
+    }
+    function renderTabs(){
+        document.querySelectorAll('.wwi-ed-tab').forEach(function(b){b.classList.toggle('on',b.dataset.tab===S.tab)});
+    }
+    function openSide(open){
+        S.open=open;
+        document.body.classList.toggle('wwi-ed-open',open);
+        try{localStorage.setItem('wwi_ed_on',open?'1':'0')}catch(e){}
+    }
+    function initResize(){
+        var h=el('wwi-ed-resize');if(!h)return;
+        var w=parseInt(localStorage.getItem('wwi_ed_w')||'380',10);
+        if(w>=300&&w<=720)el('wwi-ed-side').style.width=w+'px';
+        h.addEventListener('mousedown',function(e){
+            e.preventDefault();
+            var startX=e.clientX,startW=el('wwi-ed-side').offsetWidth;
+            function mv(ev){var nw=Math.min(720,Math.max(300,startW+(startX-ev.clientX)));el('wwi-ed-side').style.width=nw+'px'}
+            function up(){
+                document.removeEventListener('mousemove',mv);
+                document.removeEventListener('mouseup',up);
+                try{localStorage.setItem('wwi_ed_w',String(el('wwi-ed-side').offsetWidth))}catch(e){}
+            }
+            document.addEventListener('mousemove',mv);
+            document.addEventListener('mouseup',up);
+        });
+    }
+    function bindSelect(){
+        document.addEventListener('click',function(e){
+            if(!document.body.classList.contains('wwi-edit-on'))return;
+            if(e.target.closest('.wwi-ed-side')||e.target.closest('.wwi-ed-bar')||e.target.closest('.wwi-ed-toast')||e.target.closest('.wwi-ed-tools'))return;
+            var edit=e.target.closest('[data-editable]');
+            var sec=e.target.closest('.wwi-section[data-sid]');
+            if(sec){
+                e.preventDefault();e.stopPropagation();
+                var sid=parseInt(sec.dataset.sid,10);
+                if(edit)selectElement(sid,edit.getAttribute('data-editable'));
+                else selectSection(sid);
+                return;
+            }
+            deselect();
+        },true);
+        document.addEventListener('mouseover',function(e){
+            if(!document.body.classList.contains('wwi-edit-on'))return;
+            if(e.target.closest('.wwi-ed-side')||e.target.closest('.wwi-ed-bar')||e.target.closest('.wwi-ed-tools'))return;
+            var edit=e.target.closest('[data-editable]');
+            document.querySelectorAll('[data-editable].wwi-sel-el').forEach(function(x){if(x!==edit)x.classList.remove('wwi-sel-el')});
+            if(edit)edit.classList.add('wwi-sel-el');
+        });
+    }
+    function deselect(){
+        S.sel=null;S.sec=null;
+        document.querySelectorAll('.wwi-sel').forEach(function(x){x.classList.remove('wwi-sel')});
+        document.querySelectorAll('.wwi-sel-el').forEach(function(x){x.classList.remove('wwi-sel-el')});
+        if(S.tab==='content')renderBody();
+    }
+    function selectSection(sid){
+        document.querySelectorAll('.wwi-sel').forEach(function(x){x.classList.remove('wwi-sel')});
+        var sec=q('.wwi-section[data-sid="'+sid+'"]');
+        if(sec)sec.classList.add('wwi-sel');
+        S.sel={kind:'section',sid:sid};
+        openSide(true);S.tab='content';renderTabs();
+        setStatus('Cargando…');
+        loadSection(sid,function(s){S.sec=s;setStatus('');renderBody()});
+    }
+    function selectElement(sid,key){
+        document.querySelectorAll('.wwi-sel').forEach(function(x){x.classList.remove('wwi-sel')});
+        var sec=q('.wwi-section[data-sid="'+sid+'"]');
+        if(sec)sec.classList.add('wwi-sel');
+        S.sel={kind:'element',sid:sid,key:key};
+        openSide(true);S.tab='content';renderTabs();
+        setStatus('Cargando…');
+        loadSection(sid,function(s){S.sec=s;setStatus('');renderBody()});
+    }
+    function loadSection(sid,cb){
+        api('/api/v1/admin/sections/'+sid).then(function(d){
+            if(!d.ok||!d.data){toast('No se pudo cargar la sección',true);return}
+            var s=d.data;
+            var chain=Promise.resolve({data:{configSchema:[]}});
+            if(s.widget_type)chain=api('/api/v1/admin/bricks/'+encodeURIComponent(s.widget_type)).catch(function(){return{data:{}}});
+            chain.then(function(bd){
+                s._schema=(bd.data&&bd.data.configSchema)||[];
+                cb(s);
+            });
+        });
+    }
+    function cfgOf(s){try{return JSON.parse(s.config||'{}')||{}}catch(e){return{}}}
+    function renderBody(){
+        var b=el('wwi-ed-body');if(!b)return;
+        if(S.timer){clearTimeout(S.timer);S.timer=null}
+        if(S.tab==='add'){renderAdd(b);return}
+        if(S.tab==='page'){renderPage(b);return}
+        renderContent(b);
+    }
+    function renderContent(b){
+        if(!S.sel){b.innerHTML='<div class="wwi-ed-hint">Haz clic en una <strong>sección</strong> del sitio para editarla, o directamente en un <strong>texto / botón / precio</strong> para editarlo.<br><br>Arrastra el borde izquierdo para redimensionar. Los cambios se guardan automáticamente (Ctrl+Z deshace).</div>';return}
+        var s=S.sec;if(!s){b.innerHTML='<div class="wwi-ed-hint">Cargando…</div>';return}
+        if(S.sel.kind==='element'){renderElement(b,s);return}
+        var cfg=cfgOf(s);
+        var h='<div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:8px">'+esc(s.widget_type||s.type||'sección')+'</div>';
+        h+='<label>Título<input id="wwi-ed-title" value="'+esc(s.title||'')+'"/></label>';
+        h+='<label>Subtítulo<textarea id="wwi-ed-subtitle">'+esc(s.subtitle||'')+'</textarea></label>';
+        if(s.type==='html'||s.type==='custom'){
+            h+='<label>Contenido (HTML)<textarea id="wwi-ed-content" style="min-height:150px;font-family:monospace;font-size:11px">'+esc(s.content||'')+'</textarea></label>';
+        }
+        (s._schema||[]).forEach(function(f){
+            var v=(cfg[f.key]!==undefined&&cfg[f.key]!==null)?cfg[f.key]:(f.default!==undefined?f.default:'');
+            var id='wwi-ed-f-'+f.key;
+            if(f.type==='toggle')h+='<label class="wwi-ed-check"><input type="checkbox" id="'+id+'" '+(v?'checked':'')+'/> '+esc(f.label)+'</label>';
+            else if(f.type==='select'){
+                var o='';
+                for(var k in (f.options||{}))o+='<option value="'+esc(k)+'"'+(String(v)===String(k)?' selected':'')+'>'+esc(f.options[k])+'</option>';
+                h+='<label>'+esc(f.label)+'<select id="'+id+'">'+o+'</select></label>';
+            }
+            else if(f.type==='textarea'||f.type==='code')h+='<label>'+esc(f.label)+'<textarea id="'+id+'">'+esc(typeof v==='object'?JSON.stringify(v):v)+'</textarea></label>';
+            else h+='<label>'+esc(f.label)+'<input id="'+id+'" value="'+esc(v)+'"/></label>';
+        });
+        h+='<label class="wwi-ed-check"><input type="checkbox" id="wwi-ed-active" '+(s.is_active==1||s.is_active==='1'?'checked':'')+'/> Visible en el sitio</label>';
+        h+='<div class="wwi-ed-actions"><button class="wwi-ed-save" id="wwi-ed-save">Guardar</button><button class="wwi-ed-btn" id="wwi-ed-up" title="Subir">▲</button><button class="wwi-ed-btn" id="wwi-ed-down" title="Bajar">▼</button><button class="wwi-ed-btn" id="wwi-ed-dup">Duplicar</button><button class="wwi-ed-btn" id="wwi-ed-del" style="color:#f87171">Eliminar</button></div>';
+        b.innerHTML=h;
+        b.querySelectorAll('input,textarea,select').forEach(function(inp){
+            inp.addEventListener('input',function(){scheduleAuto(function(){saveSection(s,collect(s),true)})});
+        });
+        el('wwi-ed-save').onclick=function(){saveSection(s,collect(s),false)};
+        el('wwi-ed-up').onclick=function(){moveSection(s.id,-1)};
+        el('wwi-ed-down').onclick=function(){moveSection(s.id,1)};
+        el('wwi-ed-dup').onclick=function(){duplicateSection(s.id)};
+        el('wwi-ed-del').onclick=function(){deleteSection(s.id,s.title||s.widget_type||('#'+s.id))};
+    }
+    function collect(s){
+        var data={title:(el('wwi-ed-title')||{value:''}).value,subtitle:(el('wwi-ed-subtitle')||{value:''}).value,is_active:el('wwi-ed-active')&&el('wwi-ed-active').checked?1:0};
+        if(s.type==='html'||s.type==='custom')data.content=(el('wwi-ed-content')||{value:''}).value;
+        if((s._schema||[]).length){
+            var cfg={};
+            s._schema.forEach(function(f){
+                var fEl=el('wwi-ed-f-'+f.key);if(!fEl)return;
+                if(f.type==='toggle')cfg[f.key]=fEl.checked?1:0;
+                else if(f.type==='code'){try{cfg[f.key]=JSON.parse(fEl.value||'null')}catch(e){cfg[f.key]=fEl.value}}
+                else cfg[f.key]=fEl.value;
+            });
+            data.config=cfg;
+        }
+        return data;
+    }
+    function snapshot(s){
+        var snap={title:s.title||'',subtitle:s.subtitle||'',is_active:(s.is_active==1||s.is_active==='1')?1:0};
+        if(s.type==='html'||s.type==='custom')snap.content=s.content||'';
+        if(s.widget_type)snap.config=cfgOf(s);
+        return snap;
+    }
+    function saveSection(s,data,silent){
+        if(S.saving)return;
+        S.saving=true;setStatus('Guardando…');
+        var prev=snapshot(s);
+        api('/api/v1/admin/sections/'+s.id,{method:'PUT',body:data}).then(function(r){
+            S.saving=false;
+            if(!r.ok){setStatus('Error al guardar');toast(r.message||'Error al guardar',true);return}
+            S.undo.push({sid:s.id,data:prev});
+            if(S.undo.length>25)S.undo.shift();
+            setStatus('Guardado ✓ '+new Date().toTimeString().slice(0,5));
+            if(!silent)toast('Guardado ✓');
+            s.title=data.title;s.subtitle=data.subtitle;s.is_active=data.is_active;
+            if(data.config)s.config=JSON.stringify(data.config);
+            if(data.content!==undefined)s.content=data.content;
+            refresh(s.id);
+        }).catch(function(){S.saving=false;setStatus('Error de conexión');toast('Error de conexión',true)});
+    }
+    function scheduleAuto(fn){
+        if(S.timer)clearTimeout(S.timer);
+        S.timer=setTimeout(function(){S.timer=null;fn()},1200);
+    }
+    function undo(){
+        var last=S.undo.pop();
+        if(!last){toast('Nada que deshacer',true);return}
+        api('/api/v1/admin/sections/'+last.sid,{method:'PUT',body:last.data}).then(function(r){
+            if(!r.ok){toast(r.message||'Error al deshacer',true);return}
+            toast('Deshecho');
+            refresh(last.sid);
+            if(S.sel&&S.sel.sid===last.sid)loadSection(last.sid,function(s){S.sec=s;renderBody()});
+        });
+    }
+    function refresh(sid){
+        api('/api/v1/admin/sections/'+sid+'/render').then(function(r){
+            if(!r.ok||!r.data)return;
+            var sec=q('.wwi-section[data-sid="'+sid+'"]');
+            if(!sec)return;
+            var tb=sec.querySelector('.wwi-ed-tools');
+            sec.innerHTML=r.data.html;
+            if(tb)sec.insertBefore(tb,sec.firstChild);
+        });
+    }
+    function renderElement(b,s){
+        var key=S.sel.key;
+        var cfg=cfgOf(s);
+        var schema=(s._schema||[]).filter(function(f){return f.key===key})[0];
+        var val=cfg[key]!==undefined?cfg[key]:(schema&&schema.default!==undefined?schema.default:'');
+        var label=(schema&&schema.label)||key;
+        var long=String(val).length>70||(schema&&(schema.type==='textarea'||schema.type==='code'));
+        var h='<div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:8px">Elemento · '+esc(label)+'</div>';
+        h+=long?'<label>'+esc(label)+'<textarea id="wwi-ed-el">'+esc(typeof val==='object'?JSON.stringify(val):val)+'</textarea></label>':'<label>'+esc(label)+'<input id="wwi-ed-el" value="'+esc(val)+'"/></label>';
+        h+='<div class="wwi-ed-actions"><button class="wwi-ed-save" id="wwi-ed-el-save">Guardar</button><button class="wwi-ed-btn" id="wwi-ed-el-sec">Editar sección completa</button></div>';
+        b.innerHTML=h;
+        var inp=el('wwi-ed-el');
+        inp.addEventListener('input',function(){scheduleAuto(function(){saveElement(s,key,inp.value)})});
+        el('wwi-ed-el-save').onclick=function(){saveElement(s,key,inp.value)};
+        el('wwi-ed-el-sec').onclick=function(){selectSection(s.id)};
+        try{inp.focus()}catch(e){}
+    }
+    function saveElement(s,key,val){
+        var cfg=cfgOf(s);
+        cfg[key]=val;
+        saveSection(s,{title:s.title||'',subtitle:s.subtitle||'',is_active:(s.is_active==1||s.is_active==='1')?1:0,config:cfg});
+    }
+    function renderAdd(b){
+        var h='<div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:8px">Insertar en esta página</div><div class="wwi-ed-cat">';
+        h+='<button id="wwi-add-brick"><i>🧱</i>Sección / Brick<small>Desde el Marketplace</small></button>';
+        h+='<button id="wwi-add-text"><i>¶</i>Texto<small>Párrafo editable</small></button>';
+        h+='<button id="wwi-add-title"><i>H</i>Título<small>Encabezado grande</small></button>';
+        h+='<button id="wwi-add-btn"><i>▢</i>Botón<small>CTA con enlace</small></button>';
+        h+='<button id="wwi-add-img"><i>▣</i>Imagen<small>Desde la biblioteca</small></button>';
+        h+='<button id="wwi-add-2col"><i>▥</i>Fila 2 columnas<small>Grid responsive</small></button>';
+        h+='<button id="wwi-add-3col"><i>▦</i>Fila 3 columnas<small>Grid responsive</small></button>';
+        h+='<button id="wwi-add-code"><i>{ }</i>Código<small>HTML embebido</small></button>';
+        h+='<button id="wwi-add-sep"><i>—</i>Separador<small>Línea divisoria</small></button>';
+        h+='</div><div id="wwi-add-slot" style="margin-top:14px"></div>';
+        b.innerHTML=h;
+        el('wwi-add-brick').onclick=brickPicker;
+        el('wwi-add-text').onclick=function(){addHtml('<section style="padding:56px 0"><div class="wrap"><p style="font-size:15px;color:var(--muted);line-height:1.8">Escribe aquí tu texto…</p></div></section>','Texto')};
+        el('wwi-add-title').onclick=function(){addHtml('<section style="padding:56px 0"><div class="wrap"><h2 style="font-size:28px;font-weight:800;letter-spacing:-.02em">Tu título aquí</h2></div></section>','Título')};
+        el('wwi-add-btn').onclick=function(){addHtml('<section style="padding:36px 0"><div class="wrap" style="text-align:center"><a class="btn btn-primary" href="#">Mi botón</a></div></section>','Botón')};
+        el('wwi-add-img').onclick=mediaPicker;
+        el('wwi-add-2col').onclick=function(){addHtml('<section style="padding:56px 0"><div class="wrap" style="display:grid;grid-template-columns:1fr 1fr;gap:18px"><div class="card">Columna 1</div><div class="card">Columna 2</div></div></section>','Fila 2 columnas')};
+        el('wwi-add-3col').onclick=function(){addHtml('<section style="padding:56px 0"><div class="wrap" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px"><div class="card">Columna 1</div><div class="card">Columna 2</div><div class="card">Columna 3</div></div></section>','Fila 3 columnas')};
+        el('wwi-add-code').onclick=function(){addHtml('<section style="padding:40px 0"><div class="wrap"><pre style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;overflow:auto;font-size:12px"><code>&lt;!-- tu código aquí --&gt;</code></pre></div></section>','Código')};
+        el('wwi-add-sep').onclick=function(){addHtml('<section style="padding:18px 0"><div class="wrap"><hr style="border:none;border-top:1px solid var(--border)"/></div></section>','Separador')};
+    }
+    function addHtml(html,title){
+        if(!CTX.pageId){toast('Página no disponible',true);return}
+        setStatus('Insertando…');
+        api('/api/v1/admin/pages/'+CTX.pageId+'/sections',{method:'POST',body:{type:'html',title:title,content:html,config:{}}}).then(function(r){
+            if(!r.ok){setStatus('');toast(r.message||'Error al insertar',true);return}
+            appendSection(r.data.id);
+            toast('"'+title+'" insertado');
+            setStatus('');
+        }).catch(function(){setStatus('');toast('Error de conexión',true)});
+    }
+    function appendSection(id){
+        api('/api/v1/admin/sections/'+id+'/render').then(function(r){
+            if(!r.ok)return;
+            var main=q('main');
+            var div=document.createElement('div');
+            div.className='wwi-section';
+            div.dataset.sid=id;
+            div.innerHTML=r.data.html;
+            main.appendChild(div);
+            decorate();
+            selectSection(id);
+            try{div.scrollIntoView({behavior:'smooth',block:'center'})}catch(e){}
+        });
+    }
+    function brickPicker(){
+        var slot=el('wwi-add-slot');if(!slot)return;
+        slot.innerHTML='<div class="wwi-ed-hint">Cargando bricks…</div>';
+        api('/api/v1/admin/bricks').then(function(d){
+            var items=d.data||{};
+            var h='<div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:8px">Bricks disponibles</div><div style="display:flex;flex-direction:column;gap:6px">';
+            var n=0;
+            for(var id in items){
+                var b=items[id];
+                if(b.functional===false)continue;
+                n++;
+                h+='<button class="wwi-ed-btn" data-brick="'+esc(id)+'" data-name="'+esc(b.name)+'" style="text-align:left">'+esc(b.name)+' <small style="color:var(--muted);margin-left:6px">'+esc(b.category||'')+'</small></button>';
+            }
+            h+='</div>';
+            slot.innerHTML=n?h:'<div class="wwi-ed-hint">Sin bricks disponibles</div>';
+            slot.querySelectorAll('[data-brick]').forEach(function(btn){
+                btn.onclick=function(){
+                    api('/api/v1/admin/pages/'+CTX.pageId+'/sections',{method:'POST',body:{type:'widget',widget_type:btn.dataset.brick,title:btn.dataset.name,config:{}}}).then(function(r){
+                        if(r.ok){appendSection(r.data.id);toast('"'+btn.dataset.name+'" añadido')}
+                        else toast(r.message||'Error',true);
+                    });
+                };
+            });
+        });
+    }
+    function mediaPicker(){
+        var slot=el('wwi-add-slot');if(!slot)return;
+        slot.innerHTML='<div class="wwi-ed-hint">Cargando imágenes…</div>';
+        api('/api/v1/admin/media').then(function(d){
+            var items=d.data||[];
+            if(!items.length){slot.innerHTML='<div class="wwi-ed-hint">No hay imágenes aún. Súbelas desde el admin → Media.</div>';return}
+            var h='<div class="wwi-ed-media">';
+            items.forEach(function(m){h+='<button data-url="'+esc(m.url)+'" data-alt="'+esc(m.alt_text||m.filename||'')+'"><img src="'+esc(m.url)+'" alt=""/></button>'});
+            h+='</div>';
+            slot.innerHTML=h;
+            slot.querySelectorAll('[data-url]').forEach(function(btn){
+                btn.onclick=function(){
+                    addHtml('<section style="padding:40px 0"><div class="wrap"><img src="'+btn.dataset.url+'" alt="'+btn.dataset.alt+'" style="width:100%;border-radius:12px"/></div></section>','Imagen');
+                };
+            });
+        });
+    }
+    function renderPage(b){
+        b.innerHTML='<div class="wwi-ed-hint">Cargando…</div>';
+        Promise.all([api('/api/v1/admin/pages'),api('/api/v1/admin/pages/'+CTX.pageId+'/sections')]).then(function(res){
+            var pages=res[0].data||[],secs=res[1].data||[];
+            var h='<div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:8px">Página actual</div>';
+            h+='<div style="font-size:13px;font-weight:700">'+esc(CTX.pageTitle||'')+'</div><div style="font-size:11px;color:var(--muted);margin-bottom:14px">/'+esc(CTX.pageSlug||'')+'</div>';
+            h+='<div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:8px">Secciones ('+secs.length+')</div>';
+            h+='<div id="wwi-ed-tree">';
+            secs.forEach(function(s){
+                h+='<div class="wwi-ed-tree-item'+(S.sel&&S.sel.sid===s.id?' on':'')+'" data-sid="'+s.id+'"><span class="nm">'+esc(s.title||s.widget_type||('#'+s.id))+'</span><button class="wwi-ed-btn" data-act="up" style="padding:2px 7px">▲</button><button class="wwi-ed-btn" data-act="down" style="padding:2px 7px">▼</button></div>';
+            });
+            h+='</div>';
+            h+='<div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:16px 0 8px">Ir a otra página</div>';
+            h+='<div style="display:flex;flex-direction:column;gap:6px">';
+            pages.forEach(function(p){
+                var url=(p.slug==='home')?'/':'/'+p.slug;
+                h+='<a class="wwi-ed-btn" href="'+esc(url)+'" style="text-decoration:none">'+esc(p.title)+' <small style="color:var(--muted);margin-left:6px">/'+esc(p.slug)+'</small></a>';
+            });
+            h+='</div>';
+            b.innerHTML=h;
+            b.querySelectorAll('.wwi-ed-tree-item').forEach(function(row){
+                row.addEventListener('click',function(e){
+                    var act=(e.target&&e.target.dataset)?e.target.dataset.act:null;
+                    var sid=parseInt(row.dataset.sid,10);
+                    if(act==='up'||act==='down'){e.stopPropagation();moveSection(sid,act==='up'?-1:1);return}
+                    selectSection(sid);
+                });
+            });
+        });
+    }
+    function moveSection(sid,dir){
+        var sec=q('.wwi-section[data-sid="'+sid+'"]');
+        if(!sec)return;
+        var sib=dir<0?sec.previousElementSibling:sec.nextElementSibling;
+        if(!sib||!sib.classList.contains('wwi-section'))return;
+        if(dir<0)sec.parentNode.insertBefore(sec,sib);
+        else sec.parentNode.insertBefore(sib,sec);
+        saveOrder();
+    }
+    function saveOrder(){
+        var items=[];
+        document.querySelectorAll('.wwi-section[data-sid]').forEach(function(s,i){items.push({id:parseInt(s.dataset.sid,10),sort_order:i})});
+        api('/api/v1/admin/sections/reorder',{method:'PUT',body:{items:items}}).then(function(r){
+            toast(r.ok?'Orden guardado':'No se pudo guardar el orden',!r.ok);
+        });
+    }
+    function duplicateSection(sid){
+        api('/api/v1/admin/sections/'+sid).then(function(d){
+            if(!d.ok||!d.data)return;
+            var s=d.data;
+            var cfg={};try{cfg=JSON.parse(s.config||'{}')||{}}catch(e){}
+            api('/api/v1/admin/pages/'+s.page_id+'/sections',{method:'POST',body:{type:s.type,widget_type:s.widget_type,title:(s.title||'')+' (copia)',subtitle:s.subtitle,content:s.content,config:cfg}}).then(function(r){
+                if(!r.ok){toast(r.message||'Error',true);return}
+                var orig=q('.wwi-section[data-sid="'+sid+'"]');
+                api('/api/v1/admin/sections/'+r.data.id+'/render').then(function(rr){
+                    if(!rr.ok)return;
+                    var main=q('main');
+                    var div=document.createElement('div');
+                    div.className='wwi-section';
+                    div.dataset.sid=r.data.id;
+                    div.innerHTML=rr.data.html;
+                    if(orig&&orig.nextElementSibling)main.insertBefore(div,orig.nextElementSibling);
+                    else main.appendChild(div);
+                    decorate();
+                    selectSection(r.data.id);
+                    saveOrder();
+                    toast('Sección duplicada');
+                });
+            });
+        });
+    }
+    function deleteSection(sid,name){
+        if(!window.confirm('¿Eliminar la sección "'+name+'"? Esta acción no se puede deshacer.'))return;
+        api('/api/v1/admin/sections/'+sid,{method:'DELETE'}).then(function(r){
+            if(!r.ok){toast(r.message||'Error',true);return}
+            var sec=q('.wwi-section[data-sid="'+sid+'"]');
+            if(sec)sec.remove();
+            deselect();
+            toast('Sección eliminada');
+        });
+    }
+    function toggleVisible(sid){
+        api('/api/v1/admin/sections/'+sid).then(function(d){
+            if(!d.ok||!d.data)return;
+            var s=d.data;
+            var active=(s.is_active==1||s.is_active==='1')?0:1;
+            var cfg={};try{cfg=JSON.parse(s.config||'{}')||{}}catch(e){}
+            api('/api/v1/admin/sections/'+sid,{method:'PUT',body:{title:s.title,subtitle:s.subtitle,is_active:active,config:cfg}}).then(function(r){
+                if(r.ok){
+                    var sec=q('.wwi-section[data-sid="'+sid+'"]');
+                    if(sec)sec.style.opacity=active?'':'0.4';
+                    toast(active?'Sección visible':'Sección oculta');
+                }else toast(r.message||'Error',true);
+            });
+        });
+    }
     function decorate(){
         document.querySelectorAll('.wwi-section[data-sid]').forEach(function(sec){
             if(sec.dataset.edReady)return;
@@ -927,117 +1385,13 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
             tb.addEventListener('click',function(e){
                 var b=e.target.closest('button');
                 if(!b)return;
-                e.preventDefault();
-                e.stopPropagation();
+                e.preventDefault();e.stopPropagation();
                 var sid=parseInt(sec.dataset.sid,10);
-                if(b.dataset.act==='edit')openPanel(sid);
-                else if(b.dataset.act==='up')move(sec,-1);
-                else if(b.dataset.act==='down')move(sec,1);
+                if(b.dataset.act==='edit')selectSection(sid);
+                else if(b.dataset.act==='up')moveSection(sid,-1);
+                else if(b.dataset.act==='down')moveSection(sid,1);
                 else if(b.dataset.act==='toggle')toggleVisible(sid);
             });
-        });
-    }
-    function move(sec,dir){
-        var sib=dir<0?sec.previousElementSibling:sec.nextElementSibling;
-        if(!sib||!sib.classList.contains('wwi-section'))return;
-        if(dir<0)sec.parentNode.insertBefore(sec,sib);
-        else sec.parentNode.insertBefore(sib,sec);
-        var items=[];
-        document.querySelectorAll('.wwi-section[data-sid]').forEach(function(s,i){items.push({id:parseInt(s.dataset.sid,10),sort_order:i})});
-        api('/api/v1/admin/sections/reorder',{method:'PUT',body:{items:items}}).then(function(r){
-            toast(r.ok?'Orden guardado':'No se pudo guardar el orden',!r.ok);
-        });
-    }
-    function toggleVisible(sid){
-        api('/api/v1/admin/sections/'+sid).then(function(d){
-            if(!d.ok||!d.data)return;
-            var s=d.data;
-            var active=(s.is_active==1||s.is_active==='1')?0:1;
-            var cfg={};
-            try{cfg=JSON.parse(s.config||'{}')||{}}catch(e){}
-            api('/api/v1/admin/sections/'+sid,{method:'PUT',body:{title:s.title,subtitle:s.subtitle,is_active:active,config:cfg}}).then(function(r){
-                if(r.ok){
-                    var sec=document.querySelector('.wwi-section[data-sid="'+sid+'"]');
-                    if(sec)sec.style.opacity=active?'':'0.4';
-                    toast(active?'Sección visible':'Sección oculta');
-                }else toast(r.message||'Error',true);
-            });
-        });
-    }
-    function openPanel(sid){
-        api('/api/v1/admin/sections/'+sid).then(function(d){
-            if(!d.ok||!d.data){toast('No se pudo cargar la sección',true);return}
-            var s=d.data;
-            var cfg={};
-            try{cfg=JSON.parse(s.config||'{}')||{}}catch(e){}
-            var chain=Promise.resolve({data:{configSchema:[]}});
-            if(s.widget_type)chain=api('/api/v1/admin/bricks/'+encodeURIComponent(s.widget_type)).catch(function(){return{data:{}}});
-            chain.then(function(bd){
-                buildPanel(s,(bd.data&&bd.data.configSchema)||[],cfg);
-            });
-        });
-    }
-    function buildPanel(s,schema,cfg){
-        var old=document.getElementById('wwi-ed-panel');
-        if(old)old.remove();
-        var p=document.createElement('aside');
-        p.id='wwi-ed-panel';
-        p.className='wwi-ed-panel';
-        var html='<div class="wwi-ed-head"><strong>✎ Editar sección</strong><button id="wwi-ed-close">✕</button></div><div class="wwi-ed-body">';
-        html+='<label>Título<input id="wwi-ed-title" value="'+esc(s.title||'')+'"/></label>';
-        html+='<label>Subtítulo<textarea id="wwi-ed-subtitle">'+esc(s.subtitle||'')+'</textarea></label>';
-        (schema||[]).forEach(function(f){
-            var v=(cfg[f.key]!==undefined&&cfg[f.key]!==null)?cfg[f.key]:(f.default!==undefined?f.default:'');
-            var id='wwi-ed-f-'+f.key;
-            if(f.type==='toggle')html+='<label class="wwi-ed-check"><input type="checkbox" id="'+id+'" '+(v?'checked':'')+'/> '+esc(f.label)+'</label>';
-            else if(f.type==='select'){
-                var o='';
-                for(var k in (f.options||{}))o+='<option value="'+esc(k)+'"'+(String(v)===String(k)?' selected':'')+'>'+esc(f.options[k])+'</option>';
-                html+='<label>'+esc(f.label)+'<select id="'+id+'">'+o+'</select></label>';
-            }
-            else if(f.type==='textarea'||f.type==='code')html+='<label>'+esc(f.label)+'<textarea id="'+id+'">'+esc(typeof v==='object'?JSON.stringify(v):v)+'</textarea></label>';
-            else html+='<label>'+esc(f.label)+'<input id="'+id+'" value="'+esc(v)+'"/></label>';
-        });
-        html+='<label class="wwi-ed-check"><input type="checkbox" id="wwi-ed-active" '+(s.is_active==1||s.is_active==='1'?'checked':'')+'/> Visible en el sitio</label>';
-        html+='<div class="wwi-ed-actions"><button class="wwi-ed-save" id="wwi-ed-save">Guardar</button><button class="btn btn-ghost" id="wwi-ed-cancel">Cancelar</button></div>';
-        html+='</div>';
-        p.innerHTML=html;
-        document.body.appendChild(p);
-        document.getElementById('wwi-ed-close').onclick=function(){p.remove()};
-        document.getElementById('wwi-ed-cancel').onclick=function(){p.remove()};
-        document.getElementById('wwi-ed-save').onclick=function(){savePanel(s,schema,p)};
-        document.addEventListener('keydown',function onEsc(e){
-            if(e.key==='Escape'){p.remove();document.removeEventListener('keydown',onEsc)}
-        });
-    }
-    function savePanel(s,schema,p){
-        var data={title:document.getElementById('wwi-ed-title').value,subtitle:document.getElementById('wwi-ed-subtitle').value,is_active:document.getElementById('wwi-ed-active').checked?1:0};
-        if((schema||[]).length){
-            var cfg={};
-            schema.forEach(function(f){
-                var el=document.getElementById('wwi-ed-f-'+f.key);
-                if(!el)return;
-                if(f.type==='toggle')cfg[f.key]=el.checked?1:0;
-                else if(f.type==='code'){try{cfg[f.key]=JSON.parse(el.value||'null')}catch(e){cfg[f.key]=el.value}}
-                else cfg[f.key]=el.value;
-            });
-            data.config=cfg;
-        }
-        api('/api/v1/admin/sections/'+s.id,{method:'PUT',body:data}).then(function(r){
-            if(!r.ok){toast(r.message||'Error al guardar',true);return}
-            toast('Guardado ✓');
-            p.remove();
-            refresh(s.id);
-        });
-    }
-    function refresh(sid){
-        api('/api/v1/admin/sections/'+sid+'/render').then(function(r){
-            if(!r.ok||!r.data)return;
-            var sec=document.querySelector('.wwi-section[data-sid="'+sid+'"]');
-            if(!sec)return;
-            var tb=sec.querySelector('.wwi-ed-tools');
-            sec.innerHTML=r.data.html;
-            if(tb)sec.insertBefore(tb,sec.firstChild);
         });
     }
 })();

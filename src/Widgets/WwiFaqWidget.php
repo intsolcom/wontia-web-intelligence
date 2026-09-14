@@ -28,7 +28,7 @@ class WwiFaqWidget extends Widget
         $c = $this->mergeConfig($config);
         $items = $this->safeJson($c['items'] ?? '');
         $html = '<section id="faq" style="padding:90px 0">';
-        $html .= '<div class="wrap"><div class="h-sec reveal"><h2>' . $this->esc($c['title']) . '</h2></div>';
+        $html .= '<div class="wrap"><div class="h-sec reveal"><h2 data-editable="title">' . $this->esc($c['title']) . '</h2></div>';
         $html .= '<div style="max-width:720px;margin:0 auto">';
         foreach ($items as $item) {
             if (!is_array($item)) continue;
