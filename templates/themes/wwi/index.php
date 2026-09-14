@@ -911,7 +911,11 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
 .wwi-edit-on .wwi-section:hover>.wwi-ed-tools{display:flex}
 .wwi-ed-tools button{width:30px;height:30px;border-radius:8px;border:1px solid var(--border2);background:rgba(6,8,15,.85);color:var(--text);cursor:pointer;font-size:13px;backdrop-filter:blur(8px)}
 .wwi-ed-tools button:hover{border-color:var(--accent);color:var(--accent)}
-@media(prefers-reduced-motion:reduce){.wwi-edit-on .wwi-section{transition:none}.wwi-ed-side{transition:none}}
+.wwi-dropzone{height:10px;margin:8px 0;border-radius:6px;background:rgba(34,211,238,.10);border:1px dashed rgba(34,211,238,.45);transition:background .15s}
+.wwi-dropzone.over{background:rgba(34,211,238,.4)}
+.wwi-client .wwi-ed-tab[data-tab="add"]{display:none}
+.wwi-client .wwi-ed-tools button[data-act="up"],.wwi-client .wwi-ed-tools button[data-act="down"],.wwi-client .wwi-ed-tools button[data-act="toggle"]{display:none}
+@media(prefers-reduced-motion:reduce){.wwi-edit-on .wwi-section{transition:none}.wwi-ed-side{transition:none}.wwi-dropzone{transition:none}}
 </style>
 <script>
 (function(){
@@ -945,14 +949,21 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
     function build(user){
         var bar=document.createElement('div');
         bar.className='wwi-ed-bar';
-        bar.innerHTML='<span class="u">✎ '+esc(user.username||'')+'</span><label class="wwi-ed-toggle"><input type="checkbox" id="wwi-ed-on"/> Editar sitio</label>';
+        bar.innerHTML='<span class="u">✎ '+esc(user.username||'')+'</span><label class="wwi-ed-toggle"><input type="checkbox" id="wwi-ed-on"/> Editar sitio</label><label class="wwi-ed-toggle"><input type="checkbox" id="wwi-ed-client"/> Modo cliente</label>';
         document.body.appendChild(bar);
+        el('wwi-ed-client').checked=localStorage.getItem('wwi_ed_client')==='1';
+        document.body.classList.toggle('wwi-client',el('wwi-ed-client').checked);
+        el('wwi-ed-client').addEventListener('change',function(){
+            try{localStorage.setItem('wwi_ed_client',this.checked?'1':'0')}catch(e){}
+            document.body.classList.toggle('wwi-client',this.checked);
+            renderBody();
+        });
         var side=document.createElement('aside');
         side.className='wwi-ed-side';
         side.id='wwi-ed-side';
         side.innerHTML='<div class="wwi-ed-resize" id="wwi-ed-resize"></div>'
             +'<div class="wwi-ed-head"><div class="wwi-ed-crumb"><b id="wwi-ed-crumb">'+esc(CTX.pageTitle||'Página')+'</b><span id="wwi-ed-status"></span></div><button class="wwi-ed-x" id="wwi-ed-close" title="Cerrar">✕</button></div>'
-            +'<div class="wwi-ed-tabs"><button class="wwi-ed-tab on" data-tab="content">Contenido</button><button class="wwi-ed-tab" data-tab="add">Añadir</button><button class="wwi-ed-tab" data-tab="page">Página</button></div>'
+            +'<div class="wwi-ed-tabs"><button class="wwi-ed-tab on" data-tab="content">Contenido</button><button class="wwi-ed-tab" data-tab="add">Añadir</button><button class="wwi-ed-tab" data-tab="page">Página</button><button class="wwi-ed-tab" data-tab="quality">Calidad</button></div>'
             +'<div class="wwi-ed-body" id="wwi-ed-body"></div>';
         document.body.appendChild(side);
         document.querySelectorAll('.wwi-ed-tab').forEach(function(b){
@@ -1007,6 +1018,7 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
         document.addEventListener('click',function(e){
             if(!document.body.classList.contains('wwi-edit-on'))return;
             if(e.target.closest('.wwi-ed-side')||e.target.closest('.wwi-ed-bar')||e.target.closest('.wwi-ed-toast')||e.target.closest('.wwi-ed-tools'))return;
+            if(e.target.closest('[contenteditable="true"]'))return;
             var edit=e.target.closest('[data-editable]');
             var sec=e.target.closest('.wwi-section[data-sid]');
             if(sec){
@@ -1024,6 +1036,35 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
             var edit=e.target.closest('[data-editable]');
             document.querySelectorAll('[data-editable].wwi-sel-el').forEach(function(x){if(x!==edit)x.classList.remove('wwi-sel-el')});
             if(edit)edit.classList.add('wwi-sel-el');
+        });
+        document.addEventListener('dblclick',function(e){
+            if(!document.body.classList.contains('wwi-edit-on'))return;
+            var edit=e.target.closest('[data-editable]');
+            if(!edit)return;
+            e.preventDefault();e.stopPropagation();
+            var sec=edit.closest('.wwi-section[data-sid]');
+            if(!sec)return;
+            var sid=parseInt(sec.dataset.sid,10);
+            edit.setAttribute('contenteditable','true');
+            edit.style.outline='2px solid rgba(139,92,246,.9)';
+            edit.style.outlineOffset='2px';
+            try{edit.focus()}catch(err){}
+            var done=false;
+            var finish=function(commit){
+                if(done)return;done=true;
+                edit.removeAttribute('contenteditable');
+                edit.style.outline='';edit.style.outlineOffset='';
+                edit.removeEventListener('blur',onBlur);
+                if(!commit)return;
+                var val=edit.textContent.replace(/\s+/g,' ').trim();
+                loadSection(sid,function(s){saveElement(s,edit.getAttribute('data-editable'),val)});
+            };
+            var onBlur=function(){finish(true)};
+            edit.addEventListener('blur',onBlur);
+            edit.addEventListener('keydown',function(ev){
+                if(ev.key==='Enter'&&!ev.shiftKey){ev.preventDefault();finish(true)}
+                else if(ev.key==='Escape'){ev.preventDefault();finish(false)}
+            });
         });
     }
     function deselect(){
@@ -1068,6 +1109,7 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
         if(S.timer){clearTimeout(S.timer);S.timer=null}
         if(S.tab==='add'){renderAdd(b);return}
         if(S.tab==='page'){renderPage(b);return}
+        if(S.tab==='quality'){renderQuality(b);return}
         renderContent(b);
     }
     function renderContent(b){
@@ -1094,16 +1136,19 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
             else h+='<label>'+esc(f.label)+'<input id="'+id+'" value="'+esc(v)+'"/></label>';
         });
         h+='<label class="wwi-ed-check"><input type="checkbox" id="wwi-ed-active" '+(s.is_active==1||s.is_active==='1'?'checked':'')+'/> Visible en el sitio</label>';
-        h+='<div class="wwi-ed-actions"><button class="wwi-ed-save" id="wwi-ed-save">Guardar</button><button class="wwi-ed-btn" id="wwi-ed-up" title="Subir">▲</button><button class="wwi-ed-btn" id="wwi-ed-down" title="Bajar">▼</button><button class="wwi-ed-btn" id="wwi-ed-dup">Duplicar</button><button class="wwi-ed-btn" id="wwi-ed-del" style="color:#f87171">Eliminar</button></div>';
+        var client=document.body.classList.contains('wwi-client');
+        h+='<div class="wwi-ed-actions"><button class="wwi-ed-save" id="wwi-ed-save">Guardar</button>'+(client?'':'<button class="wwi-ed-btn" id="wwi-ed-up" title="Subir">▲</button><button class="wwi-ed-btn" id="wwi-ed-down" title="Bajar">▼</button><button class="wwi-ed-btn" id="wwi-ed-dup">Duplicar</button><button class="wwi-ed-btn" id="wwi-ed-del" style="color:#f87171">Eliminar</button>')+'</div>';
         b.innerHTML=h;
         b.querySelectorAll('input,textarea,select').forEach(function(inp){
             inp.addEventListener('input',function(){scheduleAuto(function(){saveSection(s,collect(s),true)})});
         });
         el('wwi-ed-save').onclick=function(){saveSection(s,collect(s),false)};
-        el('wwi-ed-up').onclick=function(){moveSection(s.id,-1)};
-        el('wwi-ed-down').onclick=function(){moveSection(s.id,1)};
-        el('wwi-ed-dup').onclick=function(){duplicateSection(s.id)};
-        el('wwi-ed-del').onclick=function(){deleteSection(s.id,s.title||s.widget_type||('#'+s.id))};
+        if(!client){
+            el('wwi-ed-up').onclick=function(){moveSection(s.id,-1)};
+            el('wwi-ed-down').onclick=function(){moveSection(s.id,1)};
+            el('wwi-ed-dup').onclick=function(){duplicateSection(s.id)};
+            el('wwi-ed-del').onclick=function(){deleteSection(s.id,s.title||s.widget_type||('#'+s.id))};
+        }
     }
     function collect(s){
         var data={title:(el('wwi-ed-title')||{value:''}).value,subtitle:(el('wwi-ed-subtitle')||{value:''}).value,is_active:el('wwi-ed-active')&&el('wwi-ed-active').checked?1:0};
@@ -1176,11 +1221,12 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
         var long=String(val).length>70||(schema&&(schema.type==='textarea'||schema.type==='code'));
         var h='<div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:8px">Elemento · '+esc(label)+'</div>';
         h+=long?'<label>'+esc(label)+'<textarea id="wwi-ed-el">'+esc(typeof val==='object'?JSON.stringify(val):val)+'</textarea></label>':'<label>'+esc(label)+'<input id="wwi-ed-el" value="'+esc(val)+'"/></label>';
-        h+='<div class="wwi-ed-actions"><button class="wwi-ed-save" id="wwi-ed-el-save">Guardar</button><button class="wwi-ed-btn" id="wwi-ed-el-sec">Editar sección completa</button></div>';
+        h+='<div class="wwi-ed-actions"><button class="wwi-ed-save" id="wwi-ed-el-save">Guardar</button><button class="wwi-ed-btn" id="wwi-ed-el-ai">✨ Mejorar con IA</button><button class="wwi-ed-btn" id="wwi-ed-el-sec">Editar sección completa</button></div>';
         b.innerHTML=h;
         var inp=el('wwi-ed-el');
         inp.addEventListener('input',function(){scheduleAuto(function(){saveElement(s,key,inp.value)})});
         el('wwi-ed-el-save').onclick=function(){saveElement(s,key,inp.value)};
+        el('wwi-ed-el-ai').onclick=function(){aiImprove(inp)};
         el('wwi-ed-el-sec').onclick=function(){selectSection(s.id)};
         try{inp.focus()}catch(e){}
     }
@@ -1211,18 +1257,28 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
         el('wwi-add-3col').onclick=function(){addHtml('<section style="padding:56px 0"><div class="wrap" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px"><div class="card">Columna 1</div><div class="card">Columna 2</div><div class="card">Columna 3</div></div></section>','Fila 3 columnas')};
         el('wwi-add-code').onclick=function(){addHtml('<section style="padding:40px 0"><div class="wrap"><pre style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;overflow:auto;font-size:12px"><code>&lt;!-- tu código aquí --&gt;</code></pre></div></section>','Código')};
         el('wwi-add-sep').onclick=function(){addHtml('<section style="padding:18px 0"><div class="wrap"><hr style="border:none;border-top:1px solid var(--border)"/></div></section>','Separador')};
+        b.querySelectorAll('.wwi-ed-cat button').forEach(function(btn){
+            if(btn.id==='wwi-add-img'||btn.id==='wwi-add-brick')return;
+            btn.setAttribute('draggable','true');
+            btn.addEventListener('dragstart',function(e){
+                e.dataTransfer.setData('text/plain',JSON.stringify({kind:'tpl',key:btn.id.replace('wwi-add-','')}));
+                e.dataTransfer.effectAllowed='copy';
+                buildDropzones();
+            });
+            btn.addEventListener('dragend',cleanupDropzones);
+        });
     }
-    function addHtml(html,title){
+    function addHtml(html,title,cb){
         if(!CTX.pageId){toast('Página no disponible',true);return}
         setStatus('Insertando…');
         api('/api/v1/admin/pages/'+CTX.pageId+'/sections',{method:'POST',body:{type:'html',title:title,content:html,config:{}}}).then(function(r){
             if(!r.ok){setStatus('');toast(r.message||'Error al insertar',true);return}
-            appendSection(r.data.id);
+            appendSection(r.data.id,cb);
             toast('"'+title+'" insertado');
             setStatus('');
         }).catch(function(){setStatus('');toast('Error de conexión',true)});
     }
-    function appendSection(id){
+    function appendSection(id,cb){
         api('/api/v1/admin/sections/'+id+'/render').then(function(r){
             if(!r.ok)return;
             var main=q('main');
@@ -1232,8 +1288,11 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
             div.innerHTML=r.data.html;
             main.appendChild(div);
             decorate();
-            selectSection(id);
-            try{div.scrollIntoView({behavior:'smooth',block:'center'})}catch(e){}
+            if(cb){cb(id)}
+            else{
+                selectSection(id);
+                try{div.scrollIntoView({behavior:'smooth',block:'center'})}catch(e){}
+            }
         });
     }
     function brickPicker(){
@@ -1252,6 +1311,13 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
             h+='</div>';
             slot.innerHTML=n?h:'<div class="wwi-ed-hint">Sin bricks disponibles</div>';
             slot.querySelectorAll('[data-brick]').forEach(function(btn){
+                btn.setAttribute('draggable','true');
+                btn.addEventListener('dragstart',function(e){
+                    e.dataTransfer.setData('text/plain',JSON.stringify({kind:'brick',id:btn.dataset.brick,name:btn.dataset.name}));
+                    e.dataTransfer.effectAllowed='copy';
+                    buildDropzones();
+                });
+                btn.addEventListener('dragend',cleanupDropzones);
                 btn.onclick=function(){
                     api('/api/v1/admin/pages/'+CTX.pageId+'/sections',{method:'POST',body:{type:'widget',widget_type:btn.dataset.brick,title:btn.dataset.name,config:{}}}).then(function(r){
                         if(r.ok){appendSection(r.data.id);toast('"'+btn.dataset.name+'" añadido')}
@@ -1371,6 +1437,125 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
                     if(sec)sec.style.opacity=active?'':'0.4';
                     toast(active?'Sección visible':'Sección oculta');
                 }else toast(r.message||'Error',true);
+            });
+        });
+    }
+    var TEMPLATES={
+        text:{title:'Texto',html:'<section style="padding:56px 0"><div class="wrap"><p style="font-size:15px;color:var(--muted);line-height:1.8">Escribe aquí tu texto…</p></div></section>'},
+        title:{title:'Título',html:'<section style="padding:56px 0"><div class="wrap"><h2 style="font-size:28px;font-weight:800;letter-spacing:-.02em">Tu título aquí</h2></div></section>'},
+        btn:{title:'Botón',html:'<section style="padding:36px 0"><div class="wrap" style="text-align:center"><a class="btn btn-primary" href="#">Mi botón</a></div></section>'},
+        '2col':{title:'Fila 2 columnas',html:'<section style="padding:56px 0"><div class="wrap" style="display:grid;grid-template-columns:1fr 1fr;gap:18px"><div class="card">Columna 1</div><div class="card">Columna 2</div></div></section>'},
+        '3col':{title:'Fila 3 columnas',html:'<section style="padding:56px 0"><div class="wrap" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px"><div class="card">Columna 1</div><div class="card">Columna 2</div><div class="card">Columna 3</div></div></section>'},
+        code:{title:'Código',html:'<section style="padding:40px 0"><div class="wrap"><pre style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px;overflow:auto;font-size:12px"><code>&lt;!-- tu código aquí --&gt;</code></pre></div></section>'},
+        sep:{title:'Separador',html:'<section style="padding:18px 0"><div class="wrap"><hr style="border:none;border-top:1px solid var(--border)"/></div></section>'}
+    };
+    function buildDropzones(){
+        cleanupDropzones();
+        var main=q('main');if(!main)return;
+        document.querySelectorAll('main .wwi-section[data-sid]').forEach(function(sec){
+            main.insertBefore(mkZone(sec),sec);
+        });
+        main.appendChild(mkZone(null));
+    }
+    function mkZone(before){
+        var z=document.createElement('div');
+        z.className='wwi-dropzone';
+        z.addEventListener('dragover',function(e){e.preventDefault();z.classList.add('over')});
+        z.addEventListener('dragleave',function(){z.classList.remove('over')});
+        z.addEventListener('drop',function(e){
+            e.preventDefault();
+            var data={};
+            try{data=JSON.parse(e.dataTransfer.getData('text/plain'))||{}}catch(err){}
+            dropInsert(before,data);
+        });
+        return z;
+    }
+    function cleanupDropzones(){document.querySelectorAll('.wwi-dropzone').forEach(function(z){z.remove()})}
+    function dropInsert(before,data){
+        cleanupDropzones();
+        if(!data||!data.kind)return;
+        if(data.kind==='tpl'){
+            var t=TEMPLATES[data.key];
+            if(!t){toast('Elemento no válido',true);return}
+            addHtml(t.html,t.title,function(id){moveBefore(id,before);toast('"'+t.title+'" insertado')});
+        }else if(data.kind==='brick'){
+            api('/api/v1/admin/pages/'+CTX.pageId+'/sections',{method:'POST',body:{type:'widget',widget_type:data.id,title:data.name,config:{}}}).then(function(r){
+                if(!r.ok){toast(r.message||'Error',true);return}
+                appendSection(r.data.id,function(){moveBefore(r.data.id,before);toast('"'+data.name+'" añadido')});
+            });
+        }
+    }
+    function moveBefore(sid,before){
+        var div=q('.wwi-section[data-sid="'+sid+'"]');
+        if(!div)return;
+        var main=q('main');
+        if(before&&before.parentNode===main)main.insertBefore(div,before);
+        else main.appendChild(div);
+        saveOrder();
+    }
+    function aiImprove(inp){
+        var txt=(inp.value||'').trim();
+        if(!txt){toast('Escribe algo primero',true);return}
+        setStatus('IA pensando…');
+        api('/api/v1/admin/brick/request',{method:'POST',body:{
+            system_prompt:'Eres copywriter senior de marketing digital. Mejora el texto manteniendo idioma, significado y tono profesional, claro y persuasivo. Devuelve SOLO el texto mejorado, sin comillas ni explicaciones.',
+            messages:[{role:'user',content:txt}],
+            system_id:'wontia',module:'live_editor',function:'improve_copy',temperature:0.6,max_tokens:500
+        }}).then(function(r){
+            setStatus('');
+            var out=(r&&r.data&&r.data.content)?String(r.data.content).trim():'';
+            if(!out){toast((r&&r.data&&r.data.error)?r.data.error:'IA sin respuesta',true);return}
+            inp.value=out;
+            toast('Texto mejorado ✨ (revisa y guarda)');
+        }).catch(function(){setStatus('');toast('Error de IA',true)});
+    }
+    function renderQuality(b){
+        var issues=[];
+        var sections=document.querySelectorAll('main .wwi-section[data-sid]');
+        var imgs=document.querySelectorAll('main img');
+        var noAlt=0;
+        imgs.forEach(function(im){if(!im.getAttribute('alt'))noAlt++});
+        if(noAlt)issues.push({sev:'warn',txt:noAlt+' imagen(es) sin atributo alt',target:null});
+        var h1=document.querySelectorAll('main h1');
+        if(h1.length===0)issues.push({sev:'warn',txt:'La página no tiene H1',target:null});
+        if(h1.length>1)issues.push({sev:'warn',txt:h1.length+' elementos H1 (debería haber 1)',target:h1[1]});
+        var emptyLinks=0;
+        document.querySelectorAll('main a').forEach(function(a){if(!a.textContent.trim()&&!a.querySelector('img'))emptyLinks++});
+        if(emptyLinks)issues.push({sev:'warn',txt:emptyLinks+' enlace(s) sin texto',target:null});
+        var noLabel=0;
+        document.querySelectorAll('main input,main textarea,main select').forEach(function(inp){
+            if(inp.type==='hidden')return;
+            var has=inp.getAttribute('aria-label')||inp.closest('label');
+            var id=inp.getAttribute('id');
+            if(!has&&id)has=document.querySelector('label[for="'+id+'"]');
+            if(!has)noLabel++;
+        });
+        if(noLabel)issues.push({sev:'warn',txt:noLabel+' campo(s) sin etiqueta accesible',target:null});
+        if(!(document.title||'').trim())issues.push({sev:'bad',txt:'La página no tiene <title>',target:null});
+        var meta=q('meta[name="description"]');
+        if(!meta||!(meta.getAttribute('content')||'').trim())issues.push({sev:'warn',txt:'Falta meta description',target:null});
+        var words=(q('main')?q('main').textContent:'').trim().split(/\s+/).length;
+        if(words<120)issues.push({sev:'info',txt:'Poco contenido: '+words+' palabras en la página',target:null});
+        var score=100;
+        issues.forEach(function(i){score-=i.sev==='bad'?15:(i.sev==='warn'?8:3)});
+        if(score<0)score=0;
+        var col=score>=85?'#34d399':(score>=60?'#fbbf24':'#f87171');
+        var h='<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px"><div style="font-size:30px;font-weight:800;color:'+col+'">'+score+'</div><div><div style="font-size:12px;font-weight:700">Calidad de la página</div><div style="font-size:10px;color:var(--muted)">'+sections.length+' secciones · '+imgs.length+' imágenes · '+words+' palabras</div></div></div>';
+        h+='<div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:8px">Hallazgos ('+issues.length+')</div>';
+        if(!issues.length)h+='<div class="wwi-ed-hint">¡Todo en orden! No se detectaron problemas.</div>';
+        issues.forEach(function(i,idx){
+            var ic=i.sev==='bad'?'⛔':(i.sev==='warn'?'⚠':'ℹ');
+            h+='<div class="wwi-ed-tree-item" data-qi="'+idx+'"><span class="nm">'+ic+' '+esc(i.txt)+'</span></div>';
+        });
+        h+='<div style="font-size:10px;color:var(--muted);margin-top:12px;line-height:1.6">Chequeos en vivo: alt de imágenes, H1 único, enlaces con texto, etiquetas de formularios, title y meta description, volumen de contenido.</div>';
+        b.innerHTML=h;
+        b.querySelectorAll('[data-qi]').forEach(function(row){
+            row.addEventListener('click',function(){
+                var i=issues[parseInt(row.dataset.qi,10)];
+                if(i&&i.target){
+                    var sec=i.target.closest('.wwi-section[data-sid]');
+                    if(sec){selectSection(parseInt(sec.dataset.sid,10));try{sec.scrollIntoView({behavior:'smooth',block:'center'})}catch(e){}}
+                }
             });
         });
     }
