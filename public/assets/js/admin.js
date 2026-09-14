@@ -43,6 +43,7 @@ W.router=function(){
     var action=parts[2];
     if(panel==='brickhub'){window.location.replace(window.location.pathname+window.location.search+'#bricks/extensiones');return}
     if(panel==='brick'){window.location.replace(window.location.pathname+window.location.search+'#bricks/ia');return}
+    if(panel==='factory'){var ftab=parts[1]||'inicio';if(ftab==='updates')ftab='system';window.location.replace(window.location.pathname+window.location.search+'#wwi/'+ftab);return}
     if(panel!=='bricks'){W.state.brickHost=null;W.state.bhHost=null}
     document.querySelectorAll('.w-nav-item').forEach(function(a){a.classList.toggle('active',a.dataset.panel===panel)});
     var title=document.getElementById('panel-title');
@@ -1852,39 +1853,13 @@ W.val=function(id){var e=document.getElementById(id);return e?e.value:''};
 
 W.state.factory={tab:'plans',plans:[],config:{}};
 
-W.renderFactory=async function(tab){
-    var m=W.state.factory;
-    tab=tab||m.tab||'inicio';
-    m.tab=tab;
-    var app=document.getElementById('wontia-app');
-    var tabs=[['inicio','Inicio'],['sitios','Sitios'],['dominios','Dominios'],['emails','Emails'],['pedidos','Pedidos'],['saldos','Saldos'],['ia','Consumo IA'],['jobs','Jobs'],['planes','Planes'],['config','Config'],['margin','Margin Guard'],['system','Actualizaciones']];
-    var bar='<div class="w-brick-tabs">';
-    tabs.forEach(function(t){
-        bar+='<button class="w-brick-tab'+(tab===t[0]?' active':'')+'" onclick="wontia.factoryGo(\''+t[0]+'\')">'+t[1]+'</button>';
-    });
-    bar+='<div style="flex:1"></div><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.factoryEnsure()">Setup Tables</button></div>';
-    app.innerHTML='<div>'+bar+'<div id="factory-content"></div></div>';
-    try{
-        var pl=await W.api('/api/v1/admin/factory/plans');
-        if(pl.data)m.plans=pl.data;
-        var cf=await W.api('/api/v1/admin/factory/config');
-        if(cf.data)m.config=cf.data;
-        var st=await W.api('/api/v1/admin/factory/sites');
-        if(st.data)m.sites=st.data;
-        var dm=await W.api('/api/v1/admin/factory/domains');
-        if(dm.data)m.domains=dm.data;
-    }catch(e){}
-    var fns={inicio:W.factoryInicio,sitios:W.factorySites,dominios:W.factoryDominios,emails:W.factoryEmails,pedidos:W.factoryPedidos,saldos:W.factorySaldos,ia:W.factoryIA,jobs:W.factoryJobs,plans:W.factoryPlans,config:W.factoryConfig,margin:W.factoryMargin,system:W.factorySystem};
-    (fns[tab]||W.factoryInicio)();
-};
-
-W.factoryGo=function(t){location.hash='#factory/'+t};
+W.factoryGo=function(t){location.hash='#wwi/'+t};
 
 W.factoryEnsure=async function(){
     W.notify('Ensuring factory tables...','info');
     var r=await W.api('/api/v1/admin/factory/ensure-tables',{method:'POST'});
     if(r.ok)W.notify(r.message,'success');
-    W.renderFactory();
+    W.renderWWI(W.state.factory.tab||'inicio');
 };
 
 W.factoryPlans=function(){
@@ -1906,7 +1881,7 @@ W.factoryPlans=function(){
 W.factoryDeletePlan=function(id){
     W.confirm('Delete this plan?',async function(){
         var r=await W.api('/api/v1/admin/factory/plans/'+id,{method:'DELETE'});
-        if(r.ok)W.renderFactory('plans');
+        if(r.ok)W.renderWWI('planes');
     });
 };
 
@@ -1938,7 +1913,7 @@ W.factorySavePlan=async function(id){
         is_active:document.getElementById('fp-active').checked?1:0
     };
     var r=id?await W.api('/api/v1/admin/factory/plans/'+id,{method:'PUT',body:payload}):await W.api('/api/v1/admin/factory/plans',{method:'POST',body:payload});
-    if(r.ok){W.closeModal();W.notify(r.message,'success');W.renderFactory('plans')}else if(r.message){W.notify(r.message,'error')}
+        if(r.ok){W.closeModal();W.notify(r.message,'success');W.renderWWI('planes')}else if(r.message){W.notify(r.message,'error')}
 };
 
 W.safeJsonField=function(id){
@@ -2449,9 +2424,34 @@ W.tiaLoadHistory=async function(){
     el.innerHTML=rows.map(function(a){return '<div style="padding:5px 0;border-bottom:1px solid var(--w-border);font-size:11px"><span class="w-brick-chip">'+W.esc(a.status)+'</span> <strong>'+W.esc(a.action)+'</strong><div style="color:var(--w-muted);margin-top:2px">'+W.esc((a.command||'').slice(0,80))+'</div></div>'}).join('')||'<div style="color:var(--w-muted);font-size:11px">Sin acciones aún</div>';
 };
 
-W.renderWWI=async function(){
+W.renderWWI=async function(tab,action){
+    tab=tab||'resumen';
+    W.state.wwiTab=tab;
     var app=document.getElementById('wontia-app');
-    app.innerHTML='<div style="text-align:center;padding:50px;color:var(--w-muted)">Cargando sistema WWI...</div>';
+    var tabs=[['resumen','Resumen'],['inicio','Inicio'],['sitios','Sitios'],['dominios','Dominios'],['emails','Emails'],['pedidos','Pedidos'],['saldos','Saldos'],['ia','Consumo IA'],['jobs','Jobs'],['planes','Planes'],['config','Config'],['margin','Margin Guard'],['system','Actualizaciones']];
+    var bar='<div class="w-brick-tabs">';
+    tabs.forEach(function(t){
+        bar+='<button class="w-brick-tab'+(tab===t[0]?' active':'')+'" onclick="wontia.wwiGo(\''+t[0]+'\')">'+t[1]+'</button>';
+    });
+    bar+='<div style="flex:1"></div><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.factoryEnsure()">Setup Tables</button></div>';
+    if(tab!=='resumen'){
+        W.state.factory.tab=tab;
+        app.innerHTML='<div>'+bar+'<div id="factory-content"></div></div>';
+        try{
+            var pl=await W.api('/api/v1/admin/factory/plans');
+            if(pl.data)W.state.factory.plans=pl.data;
+            var cf=await W.api('/api/v1/admin/factory/config');
+            if(cf.data)W.state.factory.config=cf.data;
+            var stt=await W.api('/api/v1/admin/factory/sites');
+            if(stt.data)W.state.factory.sites=stt.data;
+            var dm=await W.api('/api/v1/admin/factory/domains');
+            if(dm.data)W.state.factory.domains=dm.data;
+        }catch(e){}
+        var fns={inicio:W.factoryInicio,sitios:W.factorySites,dominios:W.factoryDominios,emails:W.factoryEmails,pedidos:W.factoryPedidos,saldos:W.factorySaldos,ia:W.factoryIA,jobs:W.factoryJobs,planes:W.factoryPlans,config:W.factoryConfig,margin:W.factoryMargin,system:W.factorySystem};
+        (fns[tab]||W.factoryInicio)();
+        return;
+    }
+    app.innerHTML=bar+'<div style="text-align:center;padding:40px;color:var(--w-muted)">Cargando sistema WWI...</div>';
     var st=(await W.api('/api/v1/admin/system/status')).data||{};
     var br=(await W.api('/api/v1/brick/overview')).data||{};
     var fd=(await W.api('/api/v1/admin/factory/dashboard')).data||{};
@@ -2459,7 +2459,7 @@ W.renderWWI=async function(){
     var s=br.stats||{};
     var color=st.status==='success'?'#34d399':(st.status==='running'?'#22d3ee':(st.status==='rolled_back'?'#f87171':'#8593ab'));
     var statusTxt=st.status==='running'?('Actualizando — '+(st.pct||0)+'%'):(st.status==='success'?'Sistema al día':(st.status==='rolled_back'?'Rollback aplicado':'Listo'));
-    var html='<div style="margin-bottom:18px"><div style="font-size:20px;font-weight:800;letter-spacing:-.01em">WWI — Centro de Administración</div><div style="font-size:12px;color:var(--w-muted);margin-top:4px">Administra el SISTEMA completo (motor CMS, bricks, IA, sitios). Esto es distinto del contenido de tu landing.</div></div>';
+    var html='<div style="margin-bottom:18px"><div style="font-size:20px;font-weight:800;letter-spacing:-.01em">WWI — Centro de Administración</div><div style="font-size:12px;color:var(--w-muted);margin-top:4px">Motor CMS + negocio (sitios, pedidos, dominios, saldos) + bricks + IA, todo en un solo lugar.</div></div>';
     html+='<div class="w-stats">'
         +'<div class="w-stat-card"><div class="w-stat-value" style="color:'+color+'">'+W.esc(statusTxt)+'</div><div class="w-stat-label">Estado del sistema</div></div>'
         +'<div class="w-stat-card"><div class="w-stat-value">'+W.esc(st.commit||'—')+'</div><div class="w-stat-label">Versión desplegada</div></div>'
@@ -2470,17 +2470,17 @@ W.renderWWI=async function(){
     html+='<div class="w-brick-grid2" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">';
     html+='<div class="w-card"><h3>Acciones del sistema</h3>'
         +'<div style="display:flex;flex-direction:column;gap:8px">'
-        +'<button class="w-btn w-btn-primary" onclick="location.hash=\'#factory/system\'">Actualizar sistema desde Git</button>'
+        +'<button class="w-btn w-btn-primary" onclick="location.hash=\'#wwi/system\'">Actualizar sistema desde Git</button>'
         +'<button class="w-btn w-btn-secondary" onclick="wontia.wwiSetup(\'brick\')">Preparar tablas de IA (BRICK)</button>'
         +'<button class="w-btn w-btn-secondary" onclick="wontia.wwiSetup(\'brickhub\')">Preparar tablas de BrickHub</button>'
         +'<button class="w-btn w-btn-secondary" onclick="wontia.wwiRunJobs()">Ejecutar trabajos pendientes (jobs)</button>'
-        +'<button class="w-btn w-btn-secondary" onclick="location.hash=\'#factory/jobs\'">Ver cola de trabajos</button>'
+        +'<button class="w-btn w-btn-secondary" onclick="location.hash=\'#wwi/jobs\'">Ver cola de trabajos</button>'
         +'</div><div id="wwi-action-result" style="margin-top:10px"></div></div>';
     html+='<div class="w-card"><h3>¿Qué es cada menú?</h3><div style="font-size:12px;color:var(--w-muted);line-height:1.9">'
         +'<div><strong style="color:var(--w-text)">Pages</strong> — las páginas del sitio (ej. Home) y su contenido.</div>'
         +'<div><strong style="color:var(--w-text)">Sections</strong> — las secciones dentro de una página (hero, planes, FAQ…).</div>'
-        +'<div><strong style="color:var(--w-text)">Bricks</strong> — hub con pestañas: Biblioteca (widgets), Extensiones (repos/updates), IA (BRICK) e Incubadora.</div>'
-        +'<div><strong style="color:var(--w-text)">Factory</strong> — el negocio: planes, pedidos, sitios de clientes, dominios, saldos.</div>'
+        +'<div><strong style="color:var(--w-text)">Bricks</strong> — hub con pestañas: Marketplace, Acoplados, IA (BRICK), Repos & Sync e Incubadora.</div>'
+        +'<div><strong style="color:var(--w-text)">WWI — Sistema</strong> — el motor y el negocio: Resumen, Sitios, Dominios, Emails, Pedidos, Saldos, Consumo IA, Jobs, Planes, Config, Margin y Actualizaciones.</div>'
         +'<div><strong style="color:var(--w-text)">Blog / Media / SEO / Analytics</strong> — contenido, imágenes, posicionamiento y métricas.</div>'
         +'<div><strong style="color:var(--w-text)">Settings / Users</strong> — configuración del sitio y cuentas con acceso.</div>'
         +'</div></div>';
@@ -2488,9 +2488,11 @@ W.renderWWI=async function(){
     html+='<div class="w-card" style="margin-top:14px"><h3>🧱 Incubadora de Bricks</h3>'
         +'<div style="font-size:11px;color:var(--w-muted);margin-bottom:10px">Bricks instalables del ecosistema. Actívalos y adminístralos desde aquí.</div>'
         +'<div id="wwi-bricks-slot" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px"><div style="font-size:12px;color:var(--w-muted)">Cargando bricks...</div></div></div>';
-    app.innerHTML=html;
+    app.innerHTML=bar+html;
     W.wwiLoadBricks();
 };
+
+W.wwiGo=function(t){window.location.hash=t==='resumen'?'#wwi':'#wwi/'+t};
 
 W.wwiLoadBricks=async function(slotId){
     var el=document.getElementById(slotId||'wwi-bricks-slot'); if(!el)return;
@@ -2647,7 +2649,7 @@ W.mountTopbar=function(){
         var b=document.createElement('a');
         b.id='w-jobs-badge';
         b.className='w-jobs-badge';
-        b.href='#factory/jobs';
+        b.href='#wwi/jobs';
         b.title='Trabajos pendientes';
         b.style.display='none';
         bar.insertBefore(b,bar.lastElementChild);
@@ -2687,11 +2689,13 @@ W.palette=function(){
     var existing=document.getElementById('w-palette-overlay');
     if(existing){existing.remove();return}
     var actions=[
-        {label:'Factory · Actualizaciones',hash:'#factory/updates',sub:'Actualizar sistema desde Git',need:'factory'},
-        {label:'Factory · Jobs',hash:'#factory/jobs',sub:'Cola de trabajos y provisioning',need:'factory'},
-        {label:'Factory · Sitios',hash:'#factory/sites',sub:'Lifecycle de sitios',need:'factory'},
-        {label:'Factory · Dominios',hash:'#factory/domains',sub:'Estados de dominio',need:'factory'},
-        {label:'Factory · Config',hash:'#factory/config',sub:'Planes, márgenes y pagos',need:'factory'},
+        {label:'WWI · Sitios',hash:'#wwi/sitios',sub:'Lifecycle de sitios',need:'wwi'},
+        {label:'WWI · Pedidos',hash:'#wwi/pedidos',sub:'Pedidos, pagos y provisioning',need:'wwi'},
+        {label:'WWI · Dominios',hash:'#wwi/dominios',sub:'Estados de dominio',need:'wwi'},
+        {label:'WWI · Actualizaciones',hash:'#wwi/system',sub:'Actualizar sistema desde Git',need:'wwi'},
+        {label:'WWI · Jobs',hash:'#wwi/jobs',sub:'Cola de trabajos y provisioning',need:'wwi'},
+        {label:'WWI · Planes',hash:'#wwi/planes',sub:'Planes, precios y márgenes',need:'wwi'},
+        {label:'WWI · Config',hash:'#wwi/config',sub:'Config del negocio y pagos',need:'wwi'},
         {label:'IA (BRICK) · Overview',hash:'#bricks/ia/overview',sub:'KPIs y presupuesto de IA',need:'bricks'},
         {label:'IA (BRICK) · Policies',hash:'#bricks/ia/policies',sub:'Estrategias y fallback',need:'bricks'},
         {label:'IA (BRICK) · Test',hash:'#bricks/ia/test',sub:'Probar un modelo',need:'bricks'},
@@ -2781,7 +2785,7 @@ W.panels={
     bricks:W.renderBricks,
     brickhub:W.renderBrickHub,
     brick:W.renderBrick,
-    factory:W.renderFactory,
+    wwi:W.renderWWI,
     portal:W.renderPortal,
     blog:W.renderBlogList,
     blogEditor:W.renderBlogEditor,
@@ -2794,7 +2798,7 @@ W.panels={
 };
 
 (function(){
-    var required=['dashboard','wwi','pages','sections','bricks','brickhub','brick','factory','blog','media','seo','analytics','settings','users'];
+    var required=['dashboard','wwi','pages','sections','bricks','brickhub','brick','blog','media','seo','analytics','settings','users'];
     var missing=required.filter(function(k){return !W.panels[k]});
     if(missing.length)console.error('WWI ADMIN ERROR - paneles faltantes:',missing);
 })();

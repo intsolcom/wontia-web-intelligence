@@ -109,10 +109,6 @@ endif;
             Bricks
             <span id="bh-badge" class="w-badge w-badge-published" style="display:none;margin-left:auto;font-size:10px;padding:2px 8px;border-radius:10px;background:linear-gradient(120deg,#22d3ee,#8b5cf6);color:#041018;font-weight:700">0</span>
         </a>
-        <a href="#factory" class="w-nav-item" data-panel="factory">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 20a2 2 0 002 2h16a2 2 0 002-2V8l-7 5V8l-7 5V4a2 2 0 00-2-2H4a2 2 0 00-2 2z"/></svg>
-            Factory
-        </a>
         <?php if (($user['role'] ?? '') === 'client'): ?>
         <a href="#portal" class="w-nav-item" data-panel="portal">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
