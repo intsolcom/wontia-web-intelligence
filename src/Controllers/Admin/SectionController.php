@@ -108,6 +108,19 @@ class SectionController
             }
         }
         if (empty($sets)) Response::error('No fields to update', 400);
+        if (isset($params['config'])) {
+            $cfg = json_decode((string)$params['config'], true) ?: [];
+            $widgetType = (string)($req->input('widget_type') ?? ($current['widget_type'] ?? ''));
+            $class = $widgetType ? WidgetRegistry::get($widgetType) : null;
+            if ($class) {
+                foreach ($class::configSchema() as $field) {
+                    if (($field['type'] ?? '') === 'richtext' && isset($cfg[$field['key']])) {
+                        $cfg[$field['key']] = \App\Services\LiveEditorService::sanitizeRichHtml((string)$cfg[$field['key']]);
+                    }
+                }
+                $params['config'] = json_encode($cfg, JSON_UNESCAPED_UNICODE);
+            }
+        }
         $db->prepare("UPDATE sections SET " . implode(', ', $sets) . " WHERE id = :id AND page_id IN (SELECT id FROM pages WHERE site_id = @site_id)")->execute($params);
         Response::json(['ok' => true]);
     }

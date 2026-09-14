@@ -313,6 +313,16 @@ class LiveEditorService
         return ['ok' => $stmt->rowCount() > 0, 'message' => 'Plantilla actualizada'];
     }
 
+    public static function sanitizeRichHtml(string $html): string
+    {
+        $allowed = '<b><strong><i><em><u><a><ul><ol><li><br><p><span>';
+        $html = strip_tags($html, $allowed);
+        $html = preg_replace('/\s(on\w+)\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)/i', '', $html);
+        $html = preg_replace('/javascript\s*:/i', '', $html);
+        $html = preg_replace('/<a\s+(?![^>]*href=)[^>]*>/i', '<a>', $html);
+        return trim((string)$html);
+    }
+
     public function variantTrack(int $id, string $type): bool
     {
         $this->ensureTables();

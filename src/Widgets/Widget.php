@@ -59,4 +59,9 @@ abstract class Widget
         if (is_string($value)) return json_decode($value, true) ?: [];
         return [];
     }
+
+    protected function rich($value): string
+    {
+        return \App\Services\LiveEditorService::sanitizeRichHtml((string)$value);
+    }
 }

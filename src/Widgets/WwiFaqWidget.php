@@ -15,7 +15,7 @@ class WwiFaqWidget extends Widget
             ['key' => 'subtitle', 'label' => 'Subtitulo', 'type' => 'textarea', 'default' => 'Lo que más nos preguntan antes de empezar.'],
             ['key' => 'items', 'label' => 'Preguntas', 'type' => 'repeater', 'fields' => [
                 ['key' => 'q', 'label' => 'Pregunta', 'type' => 'text'],
-                ['key' => 'a', 'label' => 'Respuesta', 'type' => 'textarea'],
+                ['key' => 'a', 'label' => 'Respuesta', 'type' => 'richtext'],
             ], 'default' => [
                 ['q' => '¿El dominio está incluido?', 'a' => 'Sí, durante el primer período contratado. La renovación anual se factura según la tarifa vigente del registrador.'],
                 ['q' => '¿Cuánto tarda en estar online?', 'a' => 'Nuestro objetivo es 24 horas o menos desde que el pago se verifica y TIA recibe la información del negocio.'],
@@ -36,7 +36,7 @@ class WwiFaqWidget extends Widget
         $html .= '<div style="max-width:720px;margin:0 auto">';
         foreach ($items as $item) {
             if (!is_array($item)) continue;
-            $html .= '<div class="faq-item reveal"><div class="faq-q">' . $this->esc($item['q'] ?? '') . '</div><div class="faq-a">' . $this->esc($item['a'] ?? '') . '</div></div>';
+            $html .= '<div class="faq-item reveal"><div class="faq-q">' . $this->esc($item['q'] ?? '') . '</div><div class="faq-a">' . $this->rich($item['a'] ?? '') . '</div></div>';
         }
         $html .= '</div></div></section>';
         return $html;
