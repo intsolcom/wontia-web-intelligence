@@ -118,6 +118,11 @@ $router->get('/api/v1/public/domain/check', function ($request) {
     $name = (string)($request->get('name', ''));
     Response::json(['ok' => true, 'data' => (new \App\Services\DomainCheckerService())->check($name)]);
 });
+$router->post('/api/v1/public/variants/{id}/track', function ($request, $id) {
+    $type = (string)$request->input('type', 'view');
+    $ok = (new \App\Services\LiveEditorService())->variantTrack((int)$id, $type);
+    Response::json(['ok' => $ok]);
+});
 $router->get('/api/v1/health', function () {
     $dbOk = false;
     $cacheOk = is_writable(ROOT_DIR . '/cache');
@@ -176,6 +181,9 @@ $router->group('/api/v1/admin', function (Router $r) {
     $r->get('/sections/{id}/comments', [\App\Controllers\Admin\LiveEditorController::class, 'commentsList']);
     $r->post('/sections/{id}/comments', [\App\Controllers\Admin\LiveEditorController::class, 'commentAdd']);
     $r->get('/sections/{id}/versions', [\App\Controllers\Admin\LiveEditorController::class, 'versionsList']);
+    $r->get('/sections/{id}/variants', [\App\Controllers\Admin\LiveEditorController::class, 'variantsList']);
+    $r->post('/sections/{id}/variants', [\App\Controllers\Admin\LiveEditorController::class, 'variantSave']);
+    $r->delete('/variants/{id}', [\App\Controllers\Admin\LiveEditorController::class, 'variantDelete']);
     $r->put('/comments/{id}', [\App\Controllers\Admin\LiveEditorController::class, 'commentStatus']);
     $r->delete('/comments/{id}', [\App\Controllers\Admin\LiveEditorController::class, 'commentDelete']);
     $r->post('/versions/{id}/restore', [\App\Controllers\Admin\LiveEditorController::class, 'versionRestore']);

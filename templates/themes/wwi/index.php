@@ -130,10 +130,28 @@ section{position:relative}
   </div>
 </nav>
 <main>
-<?php foreach ($sections as $section):
-    echo '<div class="wwi-section" data-sid="' . (int)($section['id'] ?? 0) . '" data-widget="' . htmlspecialchars((string)($section['widget_type'] ?? '')) . '">';
+<?php
+$wwiAbIds = [];
+foreach ($sections as $s) {
+    if (!empty($s['widget_type']) && WidgetRegistry::get($s['widget_type'])) $wwiAbIds[] = (int)($s['id'] ?? 0);
+}
+$wwiAb = [];
+if ($wwiAbIds) {
+    try {
+        $wwiVisitor = sha1(($_SERVER['REMOTE_ADDR'] ?? '') . '|' . ($_SERVER['HTTP_USER_AGENT'] ?? ''));
+        $wwiAb = (new \App\Services\LiveEditorService())->pickVariants($wwiAbIds, $wwiVisitor);
+    } catch (\Throwable $e) {
+        $wwiAb = [];
+    }
+}
+foreach ($sections as $section):
+    $wwiSid = (int)($section['id'] ?? 0);
+    $config = json_decode($section['config'] ?? '{}', true) ?: [];
+    $wwiVariant = isset($wwiAb[$wwiSid]) ? (int)$wwiAb[$wwiSid]['variant_id'] : 0;
+    if ($wwiVariant) $config = array_merge($config, $wwiAb[$wwiSid]['config']);
+    $wwiHide = (!empty($config['_hide_mobile']) ? ' wwi-hide-mobile' : '') . (!empty($config['_hide_tablet']) ? ' wwi-hide-tablet' : '');
+    echo '<div class="wwi-section' . $wwiHide . '" data-sid="' . $wwiSid . '" data-widget="' . htmlspecialchars((string)($section['widget_type'] ?? '')) . '"' . ($wwiVariant ? ' data-variant="' . $wwiVariant . '"' : '') . '>';
     if (!empty($section['widget_type']) && WidgetRegistry::get($section['widget_type'])):
-        $config = json_decode($section['config'] ?? '{}', true) ?: [];
         echo WidgetRegistry::render($section['widget_type'], $config);
     elseif ($section['type'] === 'custom' || $section['type'] === 'html'):
         echo '<section>' . ($section['content'] ?? '') . '</section>';
@@ -143,6 +161,23 @@ section{position:relative}
     echo '</div>';
 endforeach; ?>
 </main>
+<script>
+(function(){
+    var isEditor=false;
+    try{isEditor=!!localStorage.getItem('wwi_token')}catch(e){}
+    if(isEditor)return;
+    document.querySelectorAll('.wwi-section[data-variant]').forEach(function(sec){
+        var vid=sec.getAttribute('data-variant');
+        try{var k='wwi_ab_seen_'+vid;if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,'1')}catch(e){}
+        fetch('/api/v1/public/variants/'+vid+'/track',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'view'})}).catch(function(){});
+        sec.addEventListener('click',function(e){
+            if(e.target.closest('a,button')){
+                fetch('/api/v1/public/variants/'+vid+'/track',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:'click'})}).catch(function(){});
+            }
+        });
+    });
+})();
+</script>
 <?= CookieConsentService::render() ?>
 <script>
 (function(){
@@ -911,6 +946,11 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
 .wwi-edit-on .wwi-section:hover>.wwi-ed-tools{display:flex}
 .wwi-ed-tools button{width:30px;height:30px;border-radius:8px;border:1px solid var(--border2);background:rgba(6,8,15,.85);color:var(--text);cursor:pointer;font-size:13px;backdrop-filter:blur(8px)}
 .wwi-ed-tools button:hover{border-color:var(--accent);color:var(--accent)}
+.wwi-ed-cursor{position:fixed;z-index:100003;pointer-events:none;transform:translate(-2px,-2px);transition:left .8s linear,top .8s linear}
+.wwi-ed-cursor .dot{display:block;width:10px;height:10px;border-radius:50%;background:#22d3ee;box-shadow:0 0 0 3px rgba(34,211,238,.25)}
+.wwi-ed-cursor .nm{position:absolute;left:14px;top:-2px;font-size:10px;background:rgba(6,8,15,.85);color:#67e8f9;border:1px solid rgba(34,211,238,.4);border-radius:6px;padding:1px 6px;white-space:nowrap}
+@media(max-width:720px){.wwi-hide-mobile{display:none!important}}
+@media(min-width:721px) and (max-width:1100px){.wwi-hide-tablet{display:none!important}}
 .wwi-ed-comment{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px}
 .wwi-ed-comment.done{opacity:.55}
 .wwi-ed-comment .hd{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-bottom:4px}
@@ -1145,14 +1185,17 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
             else h+='<label>'+esc(f.label)+'<input id="'+id+'" value="'+esc(v)+'"/></label>';
         });
         h+='<label class="wwi-ed-check"><input type="checkbox" id="wwi-ed-active" '+(s.is_active==1||s.is_active==='1'?'checked':'')+'/> Visible en el sitio</label>';
+        h+='<label class="wwi-ed-check"><input type="checkbox" id="wwi-ed-hm" '+(cfg._hide_mobile?'checked':'')+'/> Ocultar en móvil</label>';
+        h+='<label class="wwi-ed-check"><input type="checkbox" id="wwi-ed-ht" '+(cfg._hide_tablet?'checked':'')+'/> Ocultar en tablet</label>';
         var client=document.body.classList.contains('wwi-client');
-        h+='<div class="wwi-ed-actions"><button class="wwi-ed-save" id="wwi-ed-save">Guardar</button><button class="wwi-ed-btn" id="wwi-ed-hist">🕘 Historial</button>'+(client?'':'<button class="wwi-ed-btn" id="wwi-ed-up" title="Subir">▲</button><button class="wwi-ed-btn" id="wwi-ed-down" title="Bajar">▼</button><button class="wwi-ed-btn" id="wwi-ed-dup">Duplicar</button><button class="wwi-ed-btn" id="wwi-ed-del" style="color:#f87171">Eliminar</button>')+'</div>';
+        h+='<div class="wwi-ed-actions"><button class="wwi-ed-save" id="wwi-ed-save">Guardar</button><button class="wwi-ed-btn" id="wwi-ed-hist">🕘 Historial</button><button class="wwi-ed-btn" id="wwi-ed-ab">🧪 A/B</button>'+(client?'':'<button class="wwi-ed-btn" id="wwi-ed-up" title="Subir">▲</button><button class="wwi-ed-btn" id="wwi-ed-down" title="Bajar">▼</button><button class="wwi-ed-btn" id="wwi-ed-dup">Duplicar</button><button class="wwi-ed-btn" id="wwi-ed-del" style="color:#f87171">Eliminar</button>')+'</div>';
         b.innerHTML=h;
         b.querySelectorAll('input,textarea,select').forEach(function(inp){
             inp.addEventListener('input',function(){scheduleAuto(function(){saveSection(s,collect(s),true)})});
         });
         el('wwi-ed-save').onclick=function(){saveSection(s,collect(s),false)};
         el('wwi-ed-hist').onclick=function(){showVersions(s.id)};
+        el('wwi-ed-ab').onclick=function(){showVariants(s.id)};
         if(!client){
             el('wwi-ed-up').onclick=function(){moveSection(s.id,-1)};
             el('wwi-ed-down').onclick=function(){moveSection(s.id,1)};
@@ -1163,16 +1206,16 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
     function collect(s){
         var data={title:(el('wwi-ed-title')||{value:''}).value,subtitle:(el('wwi-ed-subtitle')||{value:''}).value,is_active:el('wwi-ed-active')&&el('wwi-ed-active').checked?1:0};
         if(s.type==='html'||s.type==='custom')data.content=(el('wwi-ed-content')||{value:''}).value;
-        if((s._schema||[]).length){
-            var cfg={};
-            s._schema.forEach(function(f){
-                var fEl=el('wwi-ed-f-'+f.key);if(!fEl)return;
-                if(f.type==='toggle')cfg[f.key]=fEl.checked?1:0;
-                else if(f.type==='code'){try{cfg[f.key]=JSON.parse(fEl.value||'null')}catch(e){cfg[f.key]=fEl.value}}
-                else cfg[f.key]=fEl.value;
-            });
-            data.config=cfg;
-        }
+        var cfg=cfgOf(s);
+        (s._schema||[]).forEach(function(f){
+            var fEl=el('wwi-ed-f-'+f.key);if(!fEl)return;
+            if(f.type==='toggle')cfg[f.key]=fEl.checked?1:0;
+            else if(f.type==='code'){try{cfg[f.key]=JSON.parse(fEl.value||'null')}catch(e){cfg[f.key]=fEl.value}}
+            else cfg[f.key]=fEl.value;
+        });
+        cfg._hide_mobile=(el('wwi-ed-hm')&&el('wwi-ed-hm').checked)?1:0;
+        cfg._hide_tablet=(el('wwi-ed-ht')&&el('wwi-ed-ht').checked)?1:0;
+        data.config=cfg;
         return data;
     }
     function snapshot(s){
@@ -1616,36 +1659,76 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
             var list=d.data||[];
             var box=el('wwi-ed-vlist');
             if(!list.length){box.innerHTML='Sin versiones guardadas aún. Se guardan automáticamente con cada cambio.';return}
-            var h='';
-            list.forEach(function(v){
-                h+='<div class="wwi-ed-tree-item"><span class="nm">'+esc(String(v.created_at||'').slice(0,16))+' · '+esc(v.username||'')+'</span><button class="wwi-ed-btn" data-vid="'+v.id+'">Restaurar</button></div>';
-            });
-            box.innerHTML=h;
-            box.querySelectorAll('[data-vid]').forEach(function(btn){
-                btn.onclick=function(){
-                    if(!window.confirm('¿Restaurar esta versión? El estado actual quedará en el historial.'))return;
-                    api('/api/v1/admin/versions/'+btn.dataset.vid+'/restore',{method:'POST'}).then(function(r){
-                        if(!r.ok){toast(r.message||'Error',true);return}
-                        toast('Versión restaurada');
-                        ov.remove();
-                        refresh(sid);
-                        if(S.sel&&S.sel.sid===sid)loadSection(sid,function(s){S.sec=s;renderBody()});
-                    });
-                };
+            api('/api/v1/admin/sections/'+sid).then(function(sd){
+                var cur=sd.data||{};
+                var curCfg={};try{curCfg=JSON.parse(cur.config||'{}')||{}}catch(e){}
+                var h='';
+                list.forEach(function(v){
+                    var snap={};try{snap=typeof v.snapshot==='string'?JSON.parse(v.snapshot):(v.snapshot||{})}catch(e){}
+                    var ch=[];
+                    if((snap.title||'')!==(cur.title||''))ch.push('título');
+                    if((snap.subtitle||'')!==(cur.subtitle||''))ch.push('subtítulo');
+                    if((snap.content||'')!==(cur.content||''))ch.push('contenido');
+                    var sc=snap.config||{};
+                    var campos=false;
+                    Object.keys(sc).forEach(function(k){if(JSON.stringify(sc[k])!==JSON.stringify(curCfg[k]))campos=true;});
+                    if(campos&&ch.indexOf('campos')<0)ch.push('campos');
+                    h+='<div class="wwi-ed-tree-item"><span class="nm">'+esc(String(v.created_at||'').slice(0,16))+' · '+esc(v.username||'')+(ch.length?' · <span style="color:#fbbf24">cambios: '+ch.join(', ')+'</span>':' · sin cambios')+'</span><button class="wwi-ed-btn" data-vid="'+v.id+'">Restaurar</button></div>';
+                });
+                box.innerHTML=h;
+                box.querySelectorAll('[data-vid]').forEach(function(btn){
+                    btn.onclick=function(){
+                        if(!window.confirm('¿Restaurar esta versión? El estado actual quedará en el historial.'))return;
+                        api('/api/v1/admin/versions/'+btn.dataset.vid+'/restore',{method:'POST'}).then(function(r){
+                            if(!r.ok){toast(r.message||'Error',true);return}
+                            toast('Versión restaurada');
+                            ov.remove();
+                            refresh(sid);
+                            if(S.sel&&S.sel.sid===sid)loadSection(sid,function(s){S.sec=s;renderBody()});
+                        });
+                    };
+                });
             });
         });
     }
     var PRESENCE_TIMER=null;
     function startPresence(){
         if(PRESENCE_TIMER)return;
+        document.addEventListener('mousemove',function(e){
+            S.cursor={x:Math.round(e.clientX/window.innerWidth*10000)/100,y:Math.round(e.clientY/window.innerHeight*10000)/100};
+        },{passive:true});
         pingPresence();
-        PRESENCE_TIMER=setInterval(pingPresence,20000);
+        PRESENCE_TIMER=setInterval(pingPresence,6000);
+    }
+    function renderCursors(list){
+        var seen={};
+        (list||[]).forEach(function(p){
+            if(p.cursor_x==null||p.cursor_y==null)return;
+            if(CTX.pageId&&p.page_id&&parseInt(p.page_id,10)!==parseInt(CTX.pageId,10))return;
+            seen[p.user_id]=1;
+            var c=el('wwi-ed-cur-'+p.user_id);
+            if(!c){
+                c=document.createElement('div');
+                c.id='wwi-ed-cur-'+p.user_id;
+                c.className='wwi-ed-cursor';
+                c.innerHTML='<span class="dot"></span><span class="nm"></span>';
+                document.body.appendChild(c);
+            }
+            c.style.left=p.cursor_x+'%';
+            c.style.top=p.cursor_y+'%';
+            c.querySelector('.nm').textContent=p.username||('#'+p.user_id);
+        });
+        document.querySelectorAll('.wwi-ed-cursor').forEach(function(c){
+            var id=parseInt(c.id.replace('wwi-ed-cur-',''),10);
+            if(!seen[id])c.remove();
+        });
     }
     function pingPresence(){
         var sid=(S.sel&&S.sel.sid)?S.sel.sid:null;
-        api('/api/v1/admin/presence',{method:'POST',body:{section_id:sid}}).then(function(){
+        api('/api/v1/admin/presence',{method:'POST',body:{section_id:sid,page_id:CTX.pageId||null,cursor_x:S.cursor?S.cursor.x:null,cursor_y:S.cursor?S.cursor.y:null}}).then(function(){
             api('/api/v1/admin/presence').then(function(d){
                 var list=d.data||[];
+                renderCursors(list);
                 var pEl=el('wwi-ed-peers');
                 if(!pEl)return;
                 if(!list.length){pEl.textContent='';return}
@@ -1657,6 +1740,77 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
                 }
             });
         }).catch(function(){});
+    }
+    function showVariants(sid){
+        var ov=document.createElement('div');
+        ov.className='wwi-ed-modal';
+        ov.innerHTML='<div class="wwi-ed-modal-box"><div class="wwi-ed-head"><strong>🧪 A/B testing de la sección</strong><button class="wwi-ed-x" id="wwi-ed-abclose">✕</button></div><div id="wwi-ed-ablist" class="wwi-ed-hint">Cargando…</div><div id="wwi-ed-abedit"></div></div>';
+        document.body.appendChild(ov);
+        el('wwi-ed-abclose').onclick=function(){ov.remove()};
+        ov.addEventListener('mousedown',function(e){if(e.target===ov)ov.remove()});
+        function load(){
+            api('/api/v1/admin/sections/'+sid+'/variants').then(function(d){
+                var list=d.data||[];
+                var box=el('wwi-ed-ablist');
+                var h='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><span style="font-size:11px;color:var(--muted)">'+list.length+' variante(s) · asignación determinista por visitante</span><button class="wwi-ed-btn" id="wwi-ed-abnew">+ Nueva variante</button></div>';
+                if(!list.length)h+='<div class="wwi-ed-hint">Sin variantes. Crea una para testear una versión alternativa de esta sección.</div>';
+                list.forEach(function(v){
+                    var ctr=v.views>0?Math.round(v.clicks/v.views*100):0;
+                    h+='<div class="wwi-ed-comment"><div class="hd"><b>'+esc(v.name||'B')+'</b><span>peso '+v.weight+' · 👁 '+v.views+' · 🖱 '+v.clicks+' · CTR '+ctr+'%</span></div><div class="ac"><button class="wwi-ed-btn" data-va="edit" data-vid="'+v.id+'">Editar</button><button class="wwi-ed-btn" data-va="toggle" data-vid="'+v.id+'">'+(v.is_active==1?'Desactivar':'Activar')+'</button><button class="wwi-ed-btn" data-va="del" data-vid="'+v.id+'" style="color:#f87171">Eliminar</button></div></div>';
+                });
+                box.innerHTML=h;
+                el('wwi-ed-abnew').onclick=function(){editVariant(null,load)};
+                box.querySelectorAll('[data-va]').forEach(function(btn){
+                    btn.onclick=function(){
+                        var vid=parseInt(btn.dataset.vid,10);
+                        var v=null;
+                        list.forEach(function(x){if(parseInt(x.id,10)===vid)v=x});
+                        if(btn.dataset.va==='edit')editVariant(v,load);
+                        else if(btn.dataset.va==='del'){
+                            if(!window.confirm('¿Eliminar la variante?'))return;
+                            api('/api/v1/admin/variants/'+vid,{method:'DELETE'}).then(function(){load()});
+                        }else{
+                            var cfg={};try{cfg=JSON.parse(v.config||'{}')||{}}catch(e){}
+                            api('/api/v1/admin/sections/'+sid+'/variants',{method:'POST',body:{id:vid,name:v.name,config:cfg,weight:v.weight,is_active:v.is_active==1?0:1}}).then(function(){load()});
+                        }
+                    };
+                });
+            });
+        }
+        load();
+    }
+    function editVariant(v,cb){
+        loadSection(S.sel.sid,function(s){
+            var cfg={};
+            if(v){try{cfg=JSON.parse(v.config||'{}')||{}}catch(e){cfg={}}}
+            else{cfg=cfgOf(s)}
+            var h='<div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:10px 0 8px">'+(v?'Editar variante':'Nueva variante (clon de la actual)')+'</div>';
+            h+='<label>Nombre<input id="wwi-av-name" value="'+esc(v?v.name:'B')+'"/></label>';
+            h+='<label>Peso (1-100)<input id="wwi-av-weight" type="number" min="1" max="100" value="'+(v?v.weight:50)+'"/></label>';
+            (s._schema||[]).forEach(function(f){
+                var val=cfg[f.key]!==undefined?cfg[f.key]:(f.default!==undefined?f.default:'');
+                var id='wwi-av-f-'+f.key;
+                if(f.type==='toggle')h+='<label class="wwi-ed-check"><input type="checkbox" id="'+id+'" '+(val?'checked':'')+'/> '+esc(f.label)+'</label>';
+                else if(f.type==='textarea'||f.type==='code')h+='<label>'+esc(f.label)+'<textarea id="'+id+'">'+esc(typeof val==='object'?JSON.stringify(val):val)+'</textarea></label>';
+                else h+='<label>'+esc(f.label)+'<input id="'+id+'" value="'+esc(val)+'"/></label>';
+            });
+            h+='<div class="wwi-ed-actions"><button class="wwi-ed-save" id="wwi-av-save">Guardar variante</button></div>';
+            var slot=el('wwi-ed-abedit');
+            slot.innerHTML=h;
+            el('wwi-av-save').onclick=function(){
+                var ncfg={};
+                (s._schema||[]).forEach(function(f){
+                    var fEl=el('wwi-av-f-'+f.key);if(!fEl)return;
+                    if(f.type==='toggle')ncfg[f.key]=fEl.checked?1:0;
+                    else if(f.type==='code'){try{ncfg[f.key]=JSON.parse(fEl.value||'null')}catch(e){ncfg[f.key]=fEl.value}}
+                    else ncfg[f.key]=fEl.value;
+                });
+                api('/api/v1/admin/sections/'+s.id+'/variants',{method:'POST',body:{id:v?v.id:null,name:el('wwi-av-name').value,weight:parseInt(el('wwi-av-weight').value,10)||50,is_active:v?(v.is_active==1?1:0):1,config:ncfg}}).then(function(r){
+                    if(r.ok){toast('Variante guardada');slot.innerHTML='';if(cb)cb()}
+                    else toast(r.message||'Error',true);
+                });
+            };
+        });
     }
     function decorate(){
         document.querySelectorAll('.wwi-section[data-sid]').forEach(function(sec){
