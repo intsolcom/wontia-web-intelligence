@@ -1,6 +1,12 @@
 # WWI — LIVE INLINE EDITOR MASTER PROMPT (Editor en vivo con barra lateral)
 
-> Especificación del editor inline de WWI: barra lateral derecha que edita con el mouse cualquier sección/módulo/componente mientras navegas el sitio. Incluye sistema de inserción (secciones, bricks, imágenes, texto, bloques, filas, columnas, herramientas, código) y 32 innovaciones. **Estado: spec aprobada pendiente de implementación por fases.**
+> Especificación del editor inline de WWI: barra lateral derecha que edita con el mouse cualquier sección/módulo/componente mientras navegas el sitio. Incluye sistema de inserción (secciones, bricks, imágenes, texto, bloques, filas, columnas, herramientas, código) y 32 innovaciones. **Estado: FASES A, B y C IMPLEMENTADAS Y DESPLEGADAS.**
+
+## 0. ESTADO DE ENTREGA (sep 2026)
+- **Fase A ✅**: barra lateral redimensionable (Contenido/Añadir/Página/Calidad), selección de secciones y elementos `data-editable`, formularios schema-driven con autosave + Ctrl+Z, re-render en vivo, sistema de inserción (brick marketplace, texto, título, botón, imagen, filas 2/3 col, código, separador), árbol de página y navegación.
+- **Fase B ✅**: edición inline (doble clic → contenteditable, Enter/Esc), drag & drop desde el catálogo con drop zones e inserción en posición, modo cliente (bloquea estructura), visibilidad responsive (ocultar en móvil/tablet).
+- **Fase C ✅**: IA de copy ("✨ Mejorar con IA" vía BRICK), pestaña Calidad (SEO/a11y con score y salto al hallazgo), comentarios anclados (CRUD + resolver), historial de versiones (snapshot automático + diff + restaurar), presencia/colaboración con cursores (heartbeat 6s, cursores remotos con nombre), A/B testing por sección (variantes con peso, asignación determinista, beacons de vista/click, stats y CTR).
+- **Honesto (no incluido)**: cursores en tiempo real estricto (la presencia es por polling de 6s), miniaturas gráficas de versiones (se sustituyó por diff textual de cambios), overrides de estilos por breakpoint (solo visibilidad por breakpoint).
 
 ## 1. COMPRENSIÓN DEL REQUERIMIENTO (confirmación)
 1. Al activar **"Editar sitio"**, se abre una **barra lateral derecha fija** con el editor completo.
