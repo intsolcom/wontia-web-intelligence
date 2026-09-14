@@ -122,4 +122,15 @@ class LiveEditorController
         $r = (new LiveEditorService())->sourceTemplateSave((int)$id, $req->json());
         $r['ok'] ? Response::success(null, $r['message']) : Response::error($r['message'], 400);
     }
+
+    public function search(Request $req, string $pageId): void
+    {
+        $q = (string)$req->get('q', '');
+        Response::json(['ok' => true, 'data' => (new LiveEditorService())->searchSections((int)$pageId, $q)]);
+    }
+
+    public function telemetry(Request $req): void
+    {
+        Response::json(['ok' => true, 'data' => (new LiveEditorService())->telemetry()]);
+    }
 }

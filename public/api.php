@@ -175,6 +175,8 @@ $router->group('/api/v1/admin', function (Router $r) {
     $r->delete('/pages/{id}', [\App\Controllers\Admin\PageController::class, 'destroy']);
 
     $r->get('/pages/{pageId}/sections', [\App\Controllers\Admin\SectionController::class, 'index']);
+    $r->get('/pages/{pageId}/search', [\App\Controllers\Admin\LiveEditorController::class, 'search']);
+    $r->get('/editor/telemetry', [\App\Controllers\Admin\LiveEditorController::class, 'telemetry']);
     $r->post('/pages/{pageId}/sections', [\App\Controllers\Admin\SectionController::class, 'store']);
     $r->put('/sections/reorder', [\App\Controllers\Admin\SectionController::class, 'reorder']);
     $r->get('/sections/{id}/render', [\App\Controllers\Admin\SectionController::class, 'render']);

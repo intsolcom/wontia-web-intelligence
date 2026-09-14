@@ -11,8 +11,8 @@ class WwiTemplatesWidget extends Widget
     public static function configSchema(): array
     {
         return [
-            ['key' => 'title', 'label' => 'Titulo', 'type' => 'text', 'default' => 'Plantillas para cada sector'],
-            ['key' => 'subtitle', 'label' => 'Subtitulo', 'type' => 'textarea', 'default' => 'Categorías listas. TIA adapta colores, textos y secciones a tu negocio.'],
+            ['key' => 'title', 'label' => 'Titulo', 'type' => 'text', 'inline' => true, 'default' => 'Plantillas para cada sector'],
+            ['key' => 'subtitle', 'label' => 'Subtitulo', 'type' => 'textarea', 'inline' => true, 'default' => 'Categorías listas. TIA adapta colores, textos y secciones a tu negocio.'],
         ];
     }
 

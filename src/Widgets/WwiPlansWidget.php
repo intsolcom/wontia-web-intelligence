@@ -11,9 +11,9 @@ class WwiPlansWidget extends Widget
     public static function configSchema(): array
     {
         return [
-            ['key' => 'title', 'label' => 'Titulo', 'type' => 'text', 'default' => 'Planes simples. Todo incluido.'],
-            ['key' => 'subtitle', 'label' => 'Subtitulo', 'type' => 'textarea', 'default' => 'Los precios vienen del motor de pricing de WWI — cámbialos en el panel sin tocar código.'],
-            ['key' => 'note', 'label' => 'Nota inferior', 'type' => 'text', 'default' => 'Dominio incluido el primer año. Renovación según tarifa vigente. Precios en COP.'],
+            ['key' => 'title', 'label' => 'Titulo', 'type' => 'text', 'inline' => true, 'default' => 'Planes simples. Todo incluido.'],
+            ['key' => 'subtitle', 'label' => 'Subtitulo', 'type' => 'textarea', 'inline' => true, 'default' => 'Los precios vienen del motor de pricing de WWI — cámbialos en el panel sin tocar código.'],
+            ['key' => 'note', 'label' => 'Nota inferior', 'type' => 'text', 'inline' => true, 'default' => 'Dominio incluido el primer año. Renovación según tarifa vigente. Precios en COP.'],
         ];
     }
 

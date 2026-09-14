@@ -11,8 +11,8 @@ class WwiStepsWidget extends Widget
     public static function configSchema(): array
     {
         return [
-            ['key' => 'title', 'label' => 'Titulo', 'type' => 'text', 'default' => '¿Cómo funciona?'],
-            ['key' => 'subtitle', 'label' => 'Subtitulo', 'type' => 'textarea', 'default' => 'De "quiero una web" a "mi web está online" sin intervención humana.'],
+            ['key' => 'title', 'label' => 'Titulo', 'type' => 'text', 'inline' => true, 'default' => '¿Cómo funciona?'],
+            ['key' => 'subtitle', 'label' => 'Subtitulo', 'type' => 'textarea', 'inline' => true, 'default' => 'De "quiero una web" a "mi web está online" sin intervención humana.'],
             ['key' => 'steps', 'label' => 'Pasos', 'type' => 'repeater', 'fields' => [
                 ['key' => 'title', 'label' => 'Título', 'type' => 'text'],
                 ['key' => 'desc', 'label' => 'Descripción', 'type' => 'textarea'],

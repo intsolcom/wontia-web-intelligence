@@ -11,10 +11,10 @@ class WwiCheckoutWidget extends Widget
     public static function configSchema(): array
     {
         return [
-            ['key' => 'title', 'label' => 'Titulo', 'type' => 'text', 'default' => 'Crea tu sitio ahora'],
-            ['key' => 'subtitle', 'label' => 'Subtitulo', 'type' => 'textarea', 'default' => 'Completa tus datos. Al pagar, TIA comienza a construir tu sitio automáticamente.'],
-            ['key' => 'button', 'label' => 'Botón', 'type' => 'text', 'default' => 'Crear pedido'],
-            ['key' => 'note_es', 'label' => 'Nota ES', 'type' => 'text', 'default' => 'Recibirás la confirmación y el link de pago por email. Dominio incluido el primer año según plan.'],
+            ['key' => 'title', 'label' => 'Titulo', 'type' => 'text', 'inline' => true, 'default' => 'Crea tu sitio ahora'],
+            ['key' => 'subtitle', 'label' => 'Subtitulo', 'type' => 'textarea', 'inline' => true, 'default' => 'Completa tus datos. Al pagar, TIA comienza a construir tu sitio automáticamente.'],
+            ['key' => 'button', 'label' => 'Botón', 'type' => 'text', 'inline' => true, 'default' => 'Crear pedido'],
+            ['key' => 'note_es', 'label' => 'Nota ES', 'type' => 'text', 'inline' => true, 'default' => 'Recibirás la confirmación y el link de pago por email. Dominio incluido el primer año según plan.'],
             ['key' => 'note_en', 'label' => 'Nota EN', 'type' => 'text', 'default' => 'You will receive confirmation and the payment link by email. Domain included for the first year per plan.'],
         ];
     }

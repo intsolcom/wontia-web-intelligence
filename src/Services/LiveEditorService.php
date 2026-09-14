@@ -313,6 +313,72 @@ class LiveEditorService
         return ['ok' => $stmt->rowCount() > 0, 'message' => 'Plantilla actualizada'];
     }
 
+    public function trackEdits(int $sectionId, string $widgetType, ?int $userId, array $fields): void
+    {
+        if (!$fields) return;
+        try {
+            $this->ensureTables();
+            $db = Database::instance();
+            $stmt = $db->prepare("INSERT INTO wwi_edit_events (site_id, user_id, section_id, widget_type, field) VALUES (@site_id, :u, :s, :w, :f)");
+            foreach (array_slice(array_values(array_unique($fields)), 0, 30) as $f) {
+                $stmt->execute(['u' => $userId, 's' => $sectionId, 'w' => substr($widgetType, 0, 100), 'f' => substr((string)$f, 0, 120)]);
+            }
+        } catch (\Throwable $e) {
+        }
+    }
+
+    public function searchSections(int $pageId, string $q): array
+    {
+        $q = trim($q);
+        if ($q === '' || mb_strlen($q) < 2) return [];
+        $this->ensureTables();
+        $stmt = Database::instance()->prepare("SELECT s.id, s.title, s.subtitle, s.content, s.config, s.widget_type FROM sections s JOIN pages p ON p.id = s.page_id WHERE s.page_id = :p AND p.site_id = @site_id ORDER BY s.sort_order ASC");
+        $stmt->execute(['p' => $pageId]);
+        $out = [];
+        foreach ($stmt->fetchAll() as $row) {
+            $fields = [];
+            foreach (['title' => 'Título', 'subtitle' => 'Subtítulo', 'content' => 'Contenido'] as $k => $label) {
+                if (mb_stripos((string)$row[$k], $q) !== false) $fields[] = ['field' => $k, 'label' => $label, 'snippet' => $this->snippet((string)$row[$k], $q)];
+            }
+            $cfg = json_decode((string)$row['config'], true);
+            if (is_array($cfg)) {
+                foreach ($cfg as $k => $v) {
+                    if (is_string($v) && mb_stripos($v, $q) !== false) {
+                        $fields[] = ['field' => (string)$k, 'label' => (string)$k, 'snippet' => $this->snippet($v, $q)];
+                    } elseif (is_array($v)) {
+                        foreach ($v as $i => $item) {
+                            if (!is_array($item)) continue;
+                            foreach ($item as $sk => $sv) {
+                                if (is_string($sv) && mb_stripos($sv, $q) !== false) {
+                                    $fields[] = ['field' => $k . '[' . $i . '].' . $sk, 'label' => $k . ' #' . ($i + 1) . ' · ' . $sk, 'snippet' => $this->snippet($sv, $q)];
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            if ($fields) $out[] = ['section_id' => (int)$row['id'], 'title' => $row['title'] ?: $row['widget_type'], 'widget' => $row['widget_type'], 'matches' => array_slice($fields, 0, 6)];
+        }
+        return array_slice($out, 0, 30);
+    }
+
+    private function snippet(string $text, string $q): string
+    {
+        $pos = mb_stripos($text, $q);
+        if ($pos === false) return mb_substr($text, 0, 80);
+        $start = max(0, $pos - 30);
+        return ($start > 0 ? '…' : '') . mb_substr($text, $start, 90) . '…';
+    }
+
+    public function telemetry(): array
+    {
+        $this->ensureTables();
+        $db = Database::instance();
+        $top = $db->query("SELECT widget_type, field, COUNT(*) AS c FROM wwi_edit_events WHERE site_id = @site_id GROUP BY widget_type, field ORDER BY c DESC LIMIT 12")->fetchAll();
+        $widgets = $db->query("SELECT widget_type, COUNT(*) AS c FROM wwi_edit_events WHERE site_id = @site_id GROUP BY widget_type ORDER BY c DESC LIMIT 10")->fetchAll();
+        return ['top_fields' => $top, 'widgets' => $widgets];
+    }
+
     public static function sanitizeRichHtml(string $html): string
     {
         $allowed = '<b><strong><i><em><u><a><ul><ol><li><br><p><span>';

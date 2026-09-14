@@ -11,9 +11,9 @@ class WwiCtaWidget extends Widget
     public static function configSchema(): array
     {
         return [
-            ['key' => 'title', 'label' => 'Titulo', 'type' => 'text', 'default' => 'Tu negocio merece estar en Internet'],
-            ['key' => 'subtitle', 'label' => 'Subtitulo', 'type' => 'textarea', 'default' => 'Compra. Cuéntanos quién eres. TIA construye tu sitio web.'],
-            ['key' => 'button', 'label' => 'Botón', 'type' => 'text', 'default' => 'Crear mi sitio ahora'],
+            ['key' => 'title', 'label' => 'Titulo', 'type' => 'text', 'inline' => true, 'default' => 'Tu negocio merece estar en Internet'],
+            ['key' => 'subtitle', 'label' => 'Subtitulo', 'type' => 'textarea', 'inline' => true, 'default' => 'Compra. Cuéntanos quién eres. TIA construye tu sitio web.'],
+            ['key' => 'button', 'label' => 'Botón', 'type' => 'text', 'inline' => true, 'default' => 'Crear mi sitio ahora'],
             ['key' => 'button_url', 'label' => 'URL', 'type' => 'link', 'default' => '#planes'],
             ['key' => 'image', 'label' => 'Imagen (opcional)', 'type' => 'image', 'default' => ''],
         ];

@@ -33,7 +33,7 @@ abstract class Widget
         $editable = [];
         foreach (static::configSchema() as $field) {
             if (($field['type'] ?? '') === 'repeater') $repeaters[$field['key']] = $field['fields'] ?? [];
-            if (in_array($field['type'] ?? '', ['text', 'textarea'], true)) $editable[] = $field['key'];
+            if (!empty($field['inline'])) $editable[] = $field['key'];
         }
         return ['editable' => $editable, 'repeaters' => $repeaters, 'sources' => [], 'dynamic' => false];
     }

@@ -1186,7 +1186,13 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
         renderContent(b);
     }
     function renderContent(b){
-        if(!S.sel){b.innerHTML='<div class="wwi-ed-hint">Haz clic en una <strong>sección</strong> del sitio para editarla, o directamente en un <strong>texto / botón / precio</strong> para editarlo.<br><br>Arrastra el borde izquierdo para redimensionar. Los cambios se guardan automáticamente (Ctrl+Z deshace).</div>';return}
+        if(!S.sel){
+            b.innerHTML='<div class="wwi-ed-hint">Haz clic en una <strong>sección</strong> del sitio para editarla, o directamente en un <strong>texto / botón / precio</strong>.<br><br>Arrastra el borde izquierdo para redimensionar. Los cambios se guardan automáticamente (Ctrl+Z deshace).</div>'
+                +'<div style="margin:14px 0 8px"><input id="wwi-ed-q" placeholder="🔍 Buscar contenido en esta página…" style="width:100%;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;padding:8px 10px;color:var(--text);font-size:12px;outline:none;font-family:inherit"/></div><div id="wwi-ed-qres"></div>';
+            var qEl=el('wwi-ed-q');
+            qEl.addEventListener('input',function(){if(this.value.length>=2)doSearch(this.value);else{var r=el('wwi-ed-qres');if(r)r.innerHTML=''}});
+            return;
+        }
         var s=S.sec;if(!s){b.innerHTML='<div class="wwi-ed-hint">Cargando…</div>';return}
         if(S.sel.kind==='element'){renderElement(b,s);return}
         S.rep={};S.repFields={};
@@ -1209,16 +1215,16 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
             }
             else if(f.type==='image')h+='<label><span style="display:flex;justify-content:space-between;align-items:center">'+esc(f.label)+defBtn(f)+'</span><div style="display:flex;gap:6px;margin-top:4px"><input id="'+id+'" value="'+esc(v)+'" placeholder="URL de imagen"/><button type="button" class="wwi-ed-btn" data-imgpick="'+f.key+'">📁</button></div></label><div id="wwi-imgp-'+f.key+'" style="margin-bottom:10px">'+(v?'<img src="'+esc(v)+'" style="max-width:100%;border-radius:8px"/>':'')+'</div>';
             else if(f.type==='link')h+='<label><span style="display:flex;justify-content:space-between;align-items:center">'+esc(f.label)+defBtn(f)+'</span><div style="display:flex;gap:6px;margin-top:4px"><input id="'+id+'" value="'+esc(v)+'" placeholder="#seccion, /pagina o https://…"/><button type="button" class="wwi-ed-btn" data-linkpick="'+f.key+'">🔗</button></div></label>';
-            else if(f.type==='richtext')h+='<div style="margin-bottom:10px"><label style="display:flex;justify-content:space-between;align-items:center">'+esc(f.label)+defBtn(f)+'</label><div class="wwi-ed-rt-tools"><button type="button" class="wwi-ed-btn" data-rt="bold" data-rkey="'+f.key+'"><b>B</b></button><button type="button" class="wwi-ed-btn" data-rt="italic" data-rkey="'+f.key+'"><i>I</i></button><button type="button" class="wwi-ed-btn" data-rt="insertUnorderedList" data-rkey="'+f.key+'">• Lista</button><button type="button" class="wwi-ed-btn" data-rt="createLink" data-rkey="'+f.key+'">🔗</button></div><div class="wwi-ed-rt-body" id="wwi-rt-'+f.key+'" contenteditable="true">'+(typeof v==='string'?v:'')+'</div><input type="hidden" id="'+id+'" value="'+esc(typeof v==='object'?JSON.stringify(v):v)+'"/></div>';
-            else if(f.type==='textarea'||f.type==='code')h+='<label><span style="display:flex;justify-content:space-between;align-items:center">'+esc(f.label)+defBtn(f)+'</span><textarea id="'+id+'">'+esc(typeof v==='object'?JSON.stringify(v):v)+'</textarea></label>';
+            else if(f.type==='richtext')h+='<div style="margin-bottom:10px"><label style="display:flex;justify-content:space-between;align-items:center">'+esc(f.label)+defBtn(f)+aiBtn(f)+'</label><div class="wwi-ed-rt-tools"><button type="button" class="wwi-ed-btn" data-rt="bold" data-rkey="'+f.key+'"><b>B</b></button><button type="button" class="wwi-ed-btn" data-rt="italic" data-rkey="'+f.key+'"><i>I</i></button><button type="button" class="wwi-ed-btn" data-rt="insertUnorderedList" data-rkey="'+f.key+'">• Lista</button><button type="button" class="wwi-ed-btn" data-rt="createLink" data-rkey="'+f.key+'">🔗</button></div><div class="wwi-ed-rt-body" id="wwi-rt-'+f.key+'" contenteditable="true">'+(typeof v==='string'?v:'')+'</div><input type="hidden" id="'+id+'" value="'+esc(typeof v==='object'?JSON.stringify(v):v)+'"/></div>';
+            else if(f.type==='textarea'||f.type==='code')h+='<label><span style="display:flex;justify-content:space-between;align-items:center">'+esc(f.label)+defBtn(f)+aiBtn(f)+'</span><textarea id="'+id+'">'+esc(typeof v==='object'?JSON.stringify(v):v)+'</textarea></label>';
             else if(f.type==='repeater'){
                 S.repFields[f.key]=f.fields||[];
                 var rv=cfg[f.key];
                 if(typeof rv==='string'){try{rv=JSON.parse(rv||'[]')}catch(e){rv=[]}}
                 S.rep[f.key]=Array.isArray(rv)?rv.slice():[];
-                h+='<div class="wwi-ed-rep"><div style="font-size:11px;color:var(--muted);margin-bottom:6px;display:flex;justify-content:space-between;align-items:center"><span>'+esc(f.label)+'</span>'+defBtn(f)+'</div><div id="wwi-rep-'+f.key+'"></div><button class="wwi-ed-btn" data-repadd="'+f.key+'" style="margin-top:6px">+ Añadir</button></div>';
+                h+='<div class="wwi-ed-rep"><div style="font-size:11px;color:var(--muted);margin-bottom:6px;display:flex;justify-content:space-between;align-items:center"><span>'+esc(f.label)+'</span><span>'+aiBtnRep(f)+defBtn(f)+'</span></div><div id="wwi-rep-'+f.key+'"></div><button class="wwi-ed-btn" data-repadd="'+f.key+'" style="margin-top:6px">+ Añadir</button></div>';
             }
-            else h+='<label><span style="display:flex;justify-content:space-between;align-items:center">'+esc(f.label)+defBtn(f)+'</span><input id="'+id+'" value="'+esc(v)+'"/></label>';
+            else h+='<label><span style="display:flex;justify-content:space-between;align-items:center">'+esc(f.label)+defBtn(f)+aiBtn(f)+'</span><input id="'+id+'" value="'+esc(v)+'"/></label>';
         });
         var srcs=s._sources||{};
         if(Object.keys(srcs).length){
@@ -1283,6 +1289,12 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
                 scheduleAuto(function(){saveSection(s,collect(s),true)});
                 toast('Valor por defecto restaurado');
             };
+        });
+        b.querySelectorAll('[data-ai]').forEach(function(btn){
+            btn.onclick=function(e){e.preventDefault();e.stopPropagation();aiField(s,btn.dataset.ai,btn)};
+        });
+        b.querySelectorAll('[data-airep]').forEach(function(btn){
+            btn.onclick=function(e){e.preventDefault();e.stopPropagation();aiRepeater(s,btn.dataset.airep,btn)};
         });
         b.querySelectorAll('[data-repadd]').forEach(function(btn){
             btn.onclick=function(){
@@ -1784,6 +1796,7 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
             h+='<div class="wwi-ed-tree-item" data-qi="'+idx+'"><span class="nm">'+ic+' '+esc(i.txt)+'</span></div>';
         });
         h+='<div style="font-size:10px;color:var(--muted);margin-top:12px;line-height:1.6">Chequeos en vivo: alt de imágenes, H1 único, enlaces con texto, etiquetas de formularios, title y meta description, volumen de contenido.</div>';
+        h+='<div class="w-card" style="margin-top:12px;padding:10px"><div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:6px">Telemetría de edición</div><div id="wwi-ed-tele" class="wwi-ed-hint">Cargando…</div></div>';
         b.innerHTML=h;
         b.querySelectorAll('[data-qi]').forEach(function(row){
             row.addEventListener('click',function(){
@@ -1793,6 +1806,15 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
                     if(sec){selectSection(parseInt(sec.dataset.sid,10));try{sec.scrollIntoView({behavior:'smooth',block:'center'})}catch(e){}}
                 }
             });
+        });
+        api('/api/v1/admin/editor/telemetry').then(function(d){
+            var t=d.data||{};
+            var box=el('wwi-ed-tele');if(!box)return;
+            var tf=t.top_fields||[],wg=t.widgets||[];
+            var hh='';
+            if(tf.length){hh+='<div style="margin-bottom:6px"><b>Campos más editados</b>';tf.slice(0,6).forEach(function(x){hh+='<div>'+esc(x.widget_type||'')+' · '+esc(x.field||'')+' — '+x.c+'</div>'});hh+='</div>'}
+            if(wg.length){hh+='<div><b>Widgets más editados</b>';wg.slice(0,5).forEach(function(x){hh+='<div>'+esc(x.widget_type||'')+' — '+x.c+'</div>'});hh+='</div>'}
+            box.innerHTML=hh||'Sin datos de edición todavía.';
         });
     }
     function renderComments(b){
@@ -2049,6 +2071,63 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
         if(f.default===undefined)return '';
         return '<button type="button" class="wwi-ed-btn" data-def="'+f.key+'" title="Restaurar valor por defecto" style="padding:1px 6px;font-size:10px">↺</button>';
     }
+    function aiBtn(f){
+        if(f.type!=='text'&&f.type!=='textarea'&&f.type!=='richtext')return '';
+        return '<button type="button" class="wwi-ed-btn" data-ai="'+f.key+'" title="Generar o mejorar con IA" style="padding:1px 6px;font-size:10px">✨</button>';
+    }
+    function aiBtnRep(f){
+        return '<button type="button" class="wwi-ed-btn" data-airep="'+f.key+'" title="Rellenar la lista con IA" style="padding:1px 6px;font-size:10px">✨ IA</button>';
+    }
+    function aiField(s,key,btn){
+        var f=(s._schema||[]).filter(function(x){return x.key===key})[0];
+        if(!f)return;
+        var inp=el('wwi-ed-f-'+key);
+        var current=f.type==='richtext'?(el('wwi-rt-'+key)?el('wwi-rt-'+key).innerHTML:''):(inp?inp.value:'');
+        var label=f.label||key;
+        var ask=window.prompt('¿Qué quieres que haga la IA con "'+label+'"?\nEj: mejora el texto · hazlo más corto · traduce al inglés · hazlo más persuasivo','mejora el texto');
+        if(ask===null)return;
+        setStatus('IA pensando…');
+        var sys='Eres copywriter senior de marketing digital. Devuelve SOLO el resultado final (sin comillas ni explicaciones), en el idioma pedido, listo para pegar en una web.';
+        var prompt='Campo: '+label+'\nInstrucción: '+ask+'\nTexto actual:\n'+current;
+        api('/api/v1/admin/brick/request',{method:'POST',body:{system_prompt:sys,messages:[{role:'user',content:prompt}],system_id:'wontia',module:'live_editor',function:'fill_field',temperature:0.6,max_tokens:700}}).then(function(r){
+            setStatus('');
+            var out=(r&&r.data&&r.data.content)?String(r.data.content).trim():'';
+            if(!out){toast((r&&r.data&&r.data.error)?r.data.error:'IA sin respuesta',true);return}
+            if(f.type==='richtext'){var body=el('wwi-rt-'+key);if(body)body.innerHTML=out;if(inp)inp.value=out}
+            else if(inp)inp.value=out;
+            scheduleAuto(function(){saveSection(s,collect(s),true)});
+            toast('Contenido generado ✨');
+        }).catch(function(){setStatus('');toast('Error de IA',true)});
+    }
+    function aiRepeater(s,key,btn){
+        var f=(s._schema||[]).filter(function(x){return x.key===key})[0];
+        if(!f)return;
+        var fields=S.repFields[key]||[];
+        var ctx=window.prompt('¿Para qué negocio/sector quieres rellenar "'+(f.label||key)+'"?\nEj: panadería artesanal en Medellín','');
+        if(ctx===null)return;
+        var count=parseInt(window.prompt('¿Cuántos elementos?','6')||'6',10)||6;
+        count=Math.min(20,Math.max(1,count));
+        setStatus('IA generando…');
+        var keys=fields.map(function(x){return x.key}).join(', ');
+        var sys='Devuelve SOLO un JSON array válido (sin markdown) con '+count+' objetos cuyas claves son: '+keys+'. Textos breves, profesionales y específicos.';
+        var prompt='Contexto del negocio: '+ctx+'\nGenera los '+count+' elementos.';
+        api('/api/v1/admin/brick/request',{method:'POST',body:{system_prompt:sys,messages:[{role:'user',content:prompt}],system_id:'wontia',module:'live_editor',function:'fill_repeater',temperature:0.7,max_tokens:1200}}).then(function(r){
+            setStatus('');
+            var out=(r&&r.data&&r.data.content)?String(r.data.content).trim():'';
+            var json=out.replace(/```json/gi,'').replace(/```/g,'').trim();
+            var arr=null;
+            try{arr=JSON.parse(json)}catch(e){var m=json.match(/\[[\s\S]*\]/);if(m){try{arr=JSON.parse(m[0])}catch(e2){}}}
+            if(!Array.isArray(arr)||!arr.length){toast('La IA no devolvió una lista válida',true);return}
+            S.rep[key]=arr.slice(0,count).map(function(it){
+                var o={};
+                fields.forEach(function(ff){o[ff.key]=(it&&it[ff.key]!=null)?String(it[ff.key]):''});
+                return o;
+            });
+            repRender(s,key);
+            scheduleAuto(function(){saveSection(s,collect(s),true)});
+            toast('Lista generada con IA ✨');
+        }).catch(function(){setStatus('');toast('Error de IA',true)});
+    }
     function syncRt(key,s){
         var body=el('wwi-rt-'+key),hi=el('wwi-ed-f-'+key);
         if(body&&hi){hi.value=body.innerHTML;scheduleAuto(function(){saveSection(s,collect(s),true)})}
@@ -2116,6 +2195,29 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
                 m.textContent=er.msg;
                 inp.parentNode.appendChild(m);
             }
+        });
+    }
+    function doSearch(q){
+        var res=el('wwi-ed-qres');if(!res)return;
+        res.innerHTML='<div class="wwi-ed-hint">Buscando…</div>';
+        api('/api/v1/admin/pages/'+(CTX.pageId||0)+'/search?q='+encodeURIComponent(q)).then(function(d){
+            var list=d.data||[];
+            if(!list.length){res.innerHTML='<div class="wwi-ed-hint">Sin resultados.</div>';return}
+            var h='';
+            list.forEach(function(it){
+                h+='<div class="wwi-ed-tree-item" data-gosec="'+it.section_id+'"><span class="nm"><b>'+esc(it.title||'')+'</b>';
+                (it.matches||[]).forEach(function(m){h+='<div style="font-size:10px;color:var(--muted)">'+esc(m.label)+': '+esc(m.snippet)+'</div>'});
+                h+='</span></div>';
+            });
+            res.innerHTML=h;
+            res.querySelectorAll('[data-gosec]').forEach(function(row){
+                row.onclick=function(){
+                    var sid=parseInt(row.dataset.gosec,10);
+                    selectSection(sid);
+                    var sec=q('.wwi-section[data-sid="'+sid+'"]');
+                    if(sec)try{sec.scrollIntoView({behavior:'smooth',block:'center'})}catch(e){}
+                };
+            });
         });
     }
     function decorate(){

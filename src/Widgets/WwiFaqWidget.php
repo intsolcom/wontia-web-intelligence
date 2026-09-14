@@ -11,8 +11,8 @@ class WwiFaqWidget extends Widget
     public static function configSchema(): array
     {
         return [
-            ['key' => 'title', 'label' => 'Titulo', 'type' => 'text', 'default' => 'Preguntas frecuentes'],
-            ['key' => 'subtitle', 'label' => 'Subtitulo', 'type' => 'textarea', 'default' => 'Lo que más nos preguntan antes de empezar.'],
+            ['key' => 'title', 'label' => 'Titulo', 'type' => 'text', 'inline' => true, 'default' => 'Preguntas frecuentes'],
+            ['key' => 'subtitle', 'label' => 'Subtitulo', 'type' => 'textarea', 'inline' => true, 'default' => 'Lo que más nos preguntan antes de empezar.'],
             ['key' => 'items', 'label' => 'Preguntas', 'type' => 'repeater', 'fields' => [
                 ['key' => 'q', 'label' => 'Pregunta', 'type' => 'text'],
                 ['key' => 'a', 'label' => 'Respuesta', 'type' => 'richtext'],

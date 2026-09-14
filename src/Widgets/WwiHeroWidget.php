@@ -11,12 +11,12 @@ class WwiHeroWidget extends Widget
     public static function configSchema(): array
     {
         return [
-            ['key' => 'badge', 'label' => 'Badge', 'type' => 'text', 'default' => 'Tu sitio web profesional en 24 horas'],
-            ['key' => 'title', 'label' => 'Titulo (usa | para resaltar en gradiente)', 'type' => 'text', 'default' => 'Tu negocio merece estar en Internet|. TIA lo construye.'],
-            ['key' => 'subtitle', 'label' => 'Subtitulo', 'type' => 'textarea', 'default' => 'Cuéntale a TIA sobre tu negocio y mira tu sitio web en minutos: diseño, contenido, dominio, hosting, SSL y correos. Sin programador, sin diseñador, sin agencia.'],
-            ['key' => 'cta_primary', 'label' => 'CTA Principal', 'type' => 'text', 'default' => 'Empezar ahora'],
-            ['key' => 'cta_primary_url', 'label' => 'CTA URL', 'type' => 'text', 'default' => '#planes'],
-            ['key' => 'price_note', 'label' => 'Texto de precio', 'type' => 'text', 'default' => 'desde $299.000 COP · pago único · vista previa gratis'],
+            ['key' => 'badge', 'label' => 'Badge', 'type' => 'text', 'inline' => true, 'default' => 'Tu sitio web profesional en 24 horas'],
+            ['key' => 'title', 'label' => 'Titulo (usa | para resaltar en gradiente)', 'type' => 'text', 'inline' => true, 'default' => 'Tu negocio merece estar en Internet|. TIA lo construye.'],
+            ['key' => 'subtitle', 'label' => 'Subtitulo', 'type' => 'textarea', 'inline' => true, 'default' => 'Cuéntale a TIA sobre tu negocio y mira tu sitio web en minutos: diseño, contenido, dominio, hosting, SSL y correos. Sin programador, sin diseñador, sin agencia.'],
+            ['key' => 'cta_primary', 'label' => 'CTA Principal', 'type' => 'text', 'inline' => true, 'default' => 'Empezar ahora'],
+            ['key' => 'cta_primary_url', 'label' => 'CTA URL', 'type' => 'link', 'default' => '#planes'],
+            ['key' => 'price_note', 'label' => 'Texto de precio', 'type' => 'text', 'inline' => true, 'default' => 'desde $299.000 COP · pago único · vista previa gratis'],
             ['key' => 'stats', 'label' => 'Estadísticas', 'type' => 'repeater', 'fields' => [
                 ['key' => 'value', 'label' => 'Valor', 'type' => 'text'],
                 ['key' => 'label', 'label' => 'Etiqueta', 'type' => 'text'],

@@ -11,8 +11,8 @@ class WwiBenefitsWidget extends Widget
     public static function configSchema(): array
     {
         return [
-            ['key' => 'title', 'label' => 'Titulo', 'type' => 'text', 'default' => 'Todo lo que tu negocio necesita para estar online'],
-            ['key' => 'subtitle', 'label' => 'Subtitulo', 'type' => 'textarea', 'default' => 'Un solo pago. TIA se encarga del resto.'],
+            ['key' => 'title', 'label' => 'Titulo', 'type' => 'text', 'inline' => true, 'default' => 'Todo lo que tu negocio necesita para estar online'],
+            ['key' => 'subtitle', 'label' => 'Subtitulo', 'type' => 'textarea', 'inline' => true, 'default' => 'Un solo pago. TIA se encarga del resto.'],
             ['key' => 'items', 'label' => 'Beneficios', 'type' => 'repeater', 'fields' => [
                 ['key' => 'icon', 'label' => 'Icono (1 letra)', 'type' => 'text'],
                 ['key' => 'title', 'label' => 'Título', 'type' => 'text'],

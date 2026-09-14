@@ -140,6 +140,22 @@ class SectionController
             }
         }
         $db->prepare("UPDATE sections SET " . implode(', ', $sets) . " WHERE id = :id AND page_id IN (SELECT id FROM pages WHERE site_id = @site_id)")->execute($params);
+        $changed = [];
+        foreach (['title', 'subtitle', 'content'] as $f) {
+            if (array_key_exists($f, $params) && (string)$params[$f] !== (string)($current[$f] ?? '')) $changed[] = $f;
+        }
+        if (array_key_exists('is_active', $params) && (int)$params['is_active'] !== (int)$current['is_active']) $changed[] = 'is_active';
+        if (array_key_exists('config', $params)) {
+            $newCfg = json_decode((string)$params['config'], true) ?: [];
+            $oldCfg = json_decode((string)($current['config'] ?? '{}'), true) ?: [];
+            foreach ($newCfg as $k => $v) {
+                if (!array_key_exists($k, $oldCfg) || json_encode($oldCfg[$k]) !== json_encode($v)) $changed[] = (string)$k;
+            }
+        }
+        if ($changed) {
+            $u = \App\Core\Session::user() ?: [];
+            (new \App\Services\LiveEditorService())->trackEdits((int)$id, (string)($current['widget_type'] ?? ''), (int)($u['id'] ?? 0), $changed);
+        }
         Response::json(['ok' => true]);
     }
 

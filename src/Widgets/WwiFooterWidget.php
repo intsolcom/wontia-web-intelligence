@@ -11,7 +11,7 @@ class WwiFooterWidget extends Widget
     public static function configSchema(): array
     {
         return [
-            ['key' => 'tagline', 'label' => 'Tagline', 'type' => 'textarea', 'default' => 'Wontia Web Intelligence — la fábrica autónoma de sitios web con IA. Una persona, una idea, una compra, una conversación con TIA: tu negocio online.'],
+            ['key' => 'tagline', 'label' => 'Tagline', 'type' => 'textarea', 'inline' => true, 'default' => 'Wontia Web Intelligence — la fábrica autónoma de sitios web con IA. Una persona, una idea, una compra, una conversación con TIA: tu negocio online.'],
             ['key' => 'links_es', 'label' => 'Links ES', 'type' => 'repeater', 'fields' => [
                 ['key' => 'label', 'label' => 'Texto', 'type' => 'text'],
                 ['key' => 'url', 'label' => 'URL', 'type' => 'text'],
@@ -30,7 +30,7 @@ class WwiFooterWidget extends Widget
                 ['label' => 'Templates', 'url' => '#plantillas'],
                 ['label' => 'FAQ', 'url' => '#faq'],
             ]],
-            ['key' => 'copyright', 'label' => 'Copyright', 'type' => 'text', 'default' => '© 2026 Intsolcom, LLC. Todos los derechos reservados.'],
+            ['key' => 'copyright', 'label' => 'Copyright', 'type' => 'text', 'inline' => true, 'default' => '© 2026 Intsolcom, LLC. Todos los derechos reservados.'],
         ];
     }
 
