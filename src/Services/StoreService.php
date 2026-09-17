@@ -27,7 +27,7 @@ class StoreService
                 $missing[] = $t;
             }
         }
-        if (!$missing) return ['ok' => true, 'created' => 0, 'missing' => []];
+        if (!$missing) return $this->migrate(['ok' => true, 'created' => 0, 'missing' => []]);
 
         $path = ROOT_DIR . '/install/store.sql';
         if (!file_exists($path)) return ['ok' => false, 'message' => 'Schema not found', 'missing' => $missing];
@@ -43,13 +43,19 @@ class StoreService
                 return ['ok' => false, 'message' => $e->getMessage(), 'missing' => $missing];
             }
         }
+        return $this->migrate(['ok' => true, 'created' => $created, 'missing' => $missing]);
+    }
+
+    private function migrate(array $result): array
+    {
+        $db = Database::instance();
         foreach ([
             "ALTER TABLE store_orders ADD COLUMN IF NOT EXISTS ip_hash VARCHAR(64) NULL",
             "ALTER TABLE store_orders ADD COLUMN IF NOT EXISTS stock_released TINYINT DEFAULT 0",
         ] as $alter) {
             try { $db->exec($alter); } catch (\Exception $e) {}
         }
-        return ['ok' => true, 'created' => $created, 'missing' => $missing];
+        return $result;
     }
 
     public function ready(): bool
