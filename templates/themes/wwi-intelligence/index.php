@@ -569,6 +569,7 @@ if(startBtn)startBtn.addEventListener('click',function(e){e.preventDefault();wwi
 var wwiFlow={idx:0,uuid:null,planId:null,addons:[],domain:null,attempts:0};
 function wwiFlowOpen(){
     document.getElementById('wwi-flow').classList.add('open');
+    if(location.hash!=='#empezar')try{history.replaceState(null,'','#empezar')}catch(e){}
     wwiFlowGo(0);
     wwiFlowAttempts();
     if(!wwiFlow.booted){
@@ -576,7 +577,12 @@ function wwiFlowOpen(){
         wwiFlow.booted=true;
     }
 }
-function wwiFlowClose(){document.getElementById('wwi-flow').classList.remove('open')}
+function wwiFlowClose(){
+    document.getElementById('wwi-flow').classList.remove('open');
+    if(location.hash==='#empezar')try{history.replaceState(null,'',location.pathname+location.search)}catch(e){}
+}
+function wwiFlowMaybeOpen(){if(location.hash==='#empezar'&&document.getElementById('wwi-flow'))wwiFlowOpen()}
+if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',wwiFlowMaybeOpen)}else{wwiFlowMaybeOpen()}
 function wwiFlowGo(i){
     wwiFlow.idx=i;
     document.getElementById('wwi-flow-track').style.transform='translateX(-'+(i*100)+'%)';
@@ -695,7 +701,11 @@ async function wwiFlowLoadPlans(){
     try{
         var r=await fetch('/api/v1/public/plans');
         var d=await r.json();
-        var plans=(d.data||[]).filter(function(p){return p.price_cop>0&&p.slug!=='web-master'&&p.slug!=='web-catalog-pro'}).slice(0,3);
+        var core=['web-starter','web-business','web-catalog','ecommerce'];
+        var all=(d.data||[]).filter(function(p){return p.price_cop>0&&p.slug!=='web-master'&&p.slug!=='web-catalog-pro'});
+        var plans=all.filter(function(p){return core.indexOf(p.slug)>-1});
+        if(plans.length<2)plans=all;
+        plans=plans.slice(0,4);
         grid.innerHTML=plans.map(function(p){return '<div class="plan-mini" onclick="wwiFlowPickPlan('+p.id+')"><div class="nm">'+wwiEsc(p.name_es)+'</div><div class="pr">$'+Number(p.price_cop).toLocaleString('es-CO')+'</div><div style="font-size:10px;color:var(--muted)">COP · pago único</div></div>'}).join('')||'Sin planes';
     }catch(e){grid.textContent='Error cargando planes'}
 }
