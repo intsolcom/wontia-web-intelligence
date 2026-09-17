@@ -48,7 +48,7 @@ W.router=function(){
     if(panel!=='bricks'){W.state.brickHost=null;W.state.bhHost=null}
     document.querySelectorAll('.w-nav-item').forEach(function(a){a.classList.toggle('active',a.dataset.panel===panel)});
     var title=document.getElementById('panel-title');
-    var titles={dashboard:'Dashboard',wwi:'WWI — Sistema',pages:'Pages',sections:'Sections',bricks:'Bricks',brickhub:'BrickHub',brick:'AI BRICK',factory:'Factory',portal:'Mi Portal',blog:'Blog',media:'Media',seo:'SEO','seo-global-launch':'SEO Global Launch',analytics:'Analytics',settings:'Settings',users:'Users'};
+    var titles={dashboard:'Dashboard',wwi:'WWI — Sistema',store:'Tienda',pages:'Pages',sections:'Sections',bricks:'Bricks',brickhub:'BrickHub',brick:'AI BRICK',factory:'Factory',portal:'Mi Portal',blog:'Blog',media:'Media',seo:'SEO','seo-global-launch':'SEO Global Launch',analytics:'Analytics',settings:'Settings',users:'Users'};
     if(title)title.textContent=titles[panel]||panel;
     var app=document.getElementById('wontia-app');
     if(!app)return;
@@ -2874,9 +2874,326 @@ document.addEventListener('keydown',function(e){
     else if(e.key==='Escape'&&document.getElementById('w-palette-overlay')){document.getElementById('w-palette-overlay').remove()}
 });
 
+W.storeGo=function(t){window.location.hash='#store/'+t};
+
+W.renderStore=async function(tab){
+    tab=tab||'productos';
+    W.state.storeTab=tab;
+    var app=document.getElementById('wontia-app');
+    var tabs=[['productos','Productos'],['categorias','Categorías'],['pedidos','Pedidos'],['envios','Envíos'],['config','Configuración']];
+    var bar='<div class="w-brick-tabs">';
+    tabs.forEach(function(t){bar+='<button class="w-brick-tab'+(tab===t[0]?' active':'')+'" onclick="wontia.storeGo(\''+t[0]+'\')">'+t[1]+'</button>'});
+    bar+='<div style="flex:1"></div><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.storeEnsure()">Setup Tables</button></div>';
+    app.innerHTML=bar+'<div id="store-content"><div style="text-align:center;padding:40px;color:var(--w-muted)">Cargando tienda...</div></div>';
+    var ov=await W.api('/api/v1/admin/store/overview');
+    if(ov.ok&&ov.data&&ov.data.ready===false){
+        document.getElementById('store-content').innerHTML='<div class="w-empty-state"><h3>Tienda no inicializada</h3><p>Crea las tablas de la tienda para empezar a vender.</p><button class="w-btn w-btn-primary" style="margin-top:12px" onclick="wontia.storeEnsure()">Crear tablas de la tienda</button></div>';
+        return;
+    }
+    var fns={productos:W.storeProducts,categorias:W.storeCategories,pedidos:W.storeOrders,envios:W.storeZones,config:W.storeSettings};
+    (fns[tab]||W.storeProducts)();
+};
+
+W.storeEnsure=async function(){
+    var r=await W.api('/api/v1/admin/store/ensure-tables',{method:'POST'});
+    if(r.ok){W.notify('Tablas de tienda listas','success');W.renderStore(W.state.storeTab||'productos')}
+    else W.notify((r.data&&r.data.message)||'Error al crear tablas','error');
+};
+
+W.storeProducts=function(){
+    var el=document.getElementById('store-content');
+    el.innerHTML='<div class="w-flex-between w-mb-lg" style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:16px">'
+        +'<div style="display:flex;gap:8px;flex-wrap:wrap"><input class="w-input" style="width:220px" id="store-p-search" placeholder="Buscar producto o SKU..."/>'
+        +'<select class="w-input" id="store-p-status" style="width:150px"><option value="">Todos</option><option value="active">Activos</option><option value="draft">Borrador</option><option value="archived">Archivados</option></select></div>'
+        +'<button class="w-btn w-btn-primary" onclick="wontia.storeProductEditor()">+ Nuevo producto</button></div>'
+        +'<div id="store-p-list"></div>';
+    W.storeProductsLoad();
+    document.getElementById('store-p-search').addEventListener('input',W.storeProductsLoad);
+    document.getElementById('store-p-status').addEventListener('change',W.storeProductsLoad);
+};
+
+W.storeProductsLoad=async function(){
+    var q=document.getElementById('store-p-search')?document.getElementById('store-p-search').value:'';
+    var st=document.getElementById('store-p-status')?document.getElementById('store-p-status').value:'';
+    var list=document.getElementById('store-p-list');
+    if(!list)return;
+    var r=await W.api('/api/v1/admin/store/products?search='+encodeURIComponent(q)+'&status='+encodeURIComponent(st)+'&limit=200');
+    var rows=r.data||[];
+    if(!rows.length){list.innerHTML='<div class="w-empty-state"><h3>Sin productos</h3><p>Crea tu primer producto para empezar a vender.</p></div>';return}
+    var html='<div class="w-card" style="padding:0;overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="text-align:left;color:var(--w-muted);font-size:11px;text-transform:uppercase;letter-spacing:.05em">'
+        +'<th style="padding:12px 14px">Producto</th><th style="padding:12px 14px">Categoría</th><th style="padding:12px 14px">Precio</th><th style="padding:12px 14px">Stock</th><th style="padding:12px 14px">Estado</th><th style="padding:12px 14px"></th></tr></thead><tbody>';
+    rows.forEach(function(p){
+        var stockTxt=p.track_stock==1?String(p.stock):'∞';
+        var badge=p.status==='active'?'published':(p.status==='draft'?'draft':'archived');
+        html+='<tr style="border-top:1px solid var(--w-border)">'
+            +'<td style="padding:12px 14px"><div style="font-weight:600">'+W.esc(p.name)+(p.is_featured==1?' ⭐':'')+'</div><div style="font-size:11px;color:var(--w-muted)">/'+W.esc(p.slug)+(p.sku?' · '+W.esc(p.sku):'')+'</div></td>'
+            +'<td style="padding:12px 14px;color:var(--w-muted)">'+W.esc(p.category_name||'—')+'</td>'
+            +'<td style="padding:12px 14px;font-weight:600">$'+W.num((p.price_cents/100))+'</td>'
+            +'<td style="padding:12px 14px;'+(p.track_stock==1&&p.stock<=3?'color:#f87171;font-weight:700':'')+'">'+stockTxt+'</td>'
+            +'<td style="padding:12px 14px"><span class="w-badge w-badge-'+badge+'">'+W.esc(p.status)+'</span></td>'
+            +'<td style="padding:12px 14px;text-align:right;white-space:nowrap"><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.storeProductEditor('+p.id+')">Editar</button> '
+            +'<button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.storeProductDelete('+p.id+')">Eliminar</button></td></tr>';
+    });
+    html+='</tbody></table></div>';
+    list.innerHTML=html;
+};
+
+W.storeProductEditor=async function(id){
+    var p={id:0,name:'',slug:'',category_id:'',description:'',short_description:'',price_cents:0,compare_price_cents:0,sku:'',stock:0,track_stock:1,status:'draft',is_featured:0,images:[],variants:[]};
+    if(id){var r=await W.api('/api/v1/admin/store/products/'+id);if(r.ok&&r.data)p=r.data}
+    var cats=(await W.api('/api/v1/admin/store/categories')).data||[];
+    var catOpts='<option value="">Sin categoría</option>';
+    cats.forEach(function(c){catOpts+='<option value="'+c.id+'"'+(String(p.category_id)===String(c.id)?' selected':'')+'>'+W.esc(c.name)+'</option>'});
+    var body='<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Nombre *</label><input class="w-input" id="sp-name" value="'+W.esc(p.name)+'" style="width:100%"/></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Slug</label><input class="w-input" id="sp-slug" value="'+W.esc(p.slug)+'" style="width:100%"/></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Categoría</label><select class="w-input" id="sp-cat" style="width:100%">'+catOpts+'</select></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">SKU</label><input class="w-input" id="sp-sku" value="'+W.esc(p.sku)+'" style="width:100%"/></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Precio (en centavos) *</label><input class="w-input" type="number" id="sp-price" value="'+p.price_cents+'" style="width:100%"/></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Precio comparación (centavos)</label><input class="w-input" type="number" id="sp-compare" value="'+p.compare_price_cents+'" style="width:100%"/></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Stock</label><input class="w-input" type="number" id="sp-stock" value="'+p.stock+'" style="width:100%"/></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Estado</label><select class="w-input" id="sp-status" style="width:100%">'
+            +['draft','active','archived'].map(function(s){return '<option value="'+s+'"'+(p.status===s?' selected':'')+'>'+s+'</option>'}).join('')+'</select></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Controlar stock</label><select class="w-input" id="sp-track" style="width:100%"><option value="1"'+(p.track_stock==1?' selected':'')+'>Sí</option><option value="0"'+(p.track_stock!=1?' selected':'')+'>No (ilimitado)</option></select></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Destacado</label><select class="w-input" id="sp-featured" style="width:100%"><option value="0"'+(p.is_featured!=1?' selected':'')+'>No</option><option value="1"'+(p.is_featured==1?' selected':'')+'>Sí</option></select></div>'
+        +'</div>'
+        +'<div style="margin-top:12px"><label style="font-size:11px;color:var(--w-muted)">Descripción corta</label><input class="w-input" id="sp-short" value="'+W.esc(p.short_description||'')+'" style="width:100%"/></div>'
+        +'<div style="margin-top:12px"><label style="font-size:11px;color:var(--w-muted)">Descripción</label><textarea class="w-input" id="sp-desc" rows="4" style="width:100%">'+W.esc(p.description||'')+'</textarea></div>'
+        +'<div style="margin-top:12px"><label style="font-size:11px;color:var(--w-muted)">Imágenes (una URL por línea)</label><textarea class="w-input" id="sp-images" rows="3" style="width:100%">'+W.esc((p.images||[]).join('\n'))+'</textarea></div>'
+        +'<div style="margin-top:12px"><label style="font-size:11px;color:var(--w-muted)">Variantes (nombre, precio en centavos, stock)</label><div id="sp-variants"></div><button class="w-btn w-btn-secondary w-btn-sm" style="margin-top:6px" onclick="wontia.storeVariantRow()">+ Variante</button></div>';
+    W.modal(id?('Editar producto #'+id):'Nuevo producto',body,'<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cancelar</button><button class="w-btn w-btn-primary" onclick="wontia.storeProductSave('+(id||0)+')">Guardar</button>');
+    (p.variants||[]).forEach(function(v){W.storeVariantRow(v)});
+};
+
+W.storeVariantRow=function(v){
+    v=v||{name:'',price_cents:0,stock:0};
+    var c=document.getElementById('sp-variants');
+    var d=document.createElement('div');
+    d.style.cssText='display:grid;grid-template-columns:1fr 110px 90px 34px;gap:6px;margin-top:6px';
+    d.innerHTML='<input class="w-input sp-v-name" value="'+W.esc(v.name)+'" placeholder="Ej: Talla M"/>'
+        +'<input class="w-input sp-v-price" type="number" value="'+(v.price_cents||0)+'" placeholder="Precio"/>'
+        +'<input class="w-input sp-v-stock" type="number" value="'+(v.stock||0)+'" placeholder="Stock"/>'
+        +'<button class="w-btn w-btn-danger w-btn-sm" onclick="this.parentNode.remove()">×</button>';
+    c.appendChild(d);
+};
+
+W.storeProductSave=async function(id){
+    var v=function(s){var el=document.querySelector(s);return el?el.value:''};
+    var images=v('#sp-images').split('\n').map(function(s){return s.trim()}).filter(function(s){return s});
+    var variants=[];
+    document.querySelectorAll('#sp-variants > div').forEach(function(row){
+        var nm=row.querySelector('.sp-v-name').value.trim();
+        if(!nm)return;
+        variants.push({name:nm,price_cents:parseInt(row.querySelector('.sp-v-price').value)||0,stock:parseInt(row.querySelector('.sp-v-stock').value)||0});
+    });
+    var payload={id:id||undefined,name:v('#sp-name'),slug:v('#sp-slug'),category_id:v('#sp-cat')||null,sku:v('#sp-sku'),
+        price_cents:parseInt(v('#sp-price'))||0,compare_price_cents:parseInt(v('#sp-compare'))||0,stock:parseInt(v('#sp-stock'))||0,
+        track_stock:parseInt(v('#sp-track')),status:v('#sp-status'),is_featured:parseInt(v('#sp-featured')),
+        short_description:v('#sp-short'),description:v('#sp-desc'),images:images,variants:variants};
+    var r=await W.api(id?('/api/v1/admin/store/products/'+id):'/api/v1/admin/store/products',{method:id?'PUT':'POST',body:payload});
+    if(r.ok){W.notify('Producto guardado','success');W.closeModal();W.storeProductsLoad()}
+};
+
+W.storeProductDelete=function(id){
+    W.confirm('¿Eliminar este producto? Esta acción no se puede deshacer.',async function(){
+        var r=await W.api('/api/v1/admin/store/products/'+id,{method:'DELETE'});
+        if(r.ok){W.notify('Producto eliminado','success');W.storeProductsLoad()}
+    });
+};
+
+W.storeCategories=async function(){
+    var el=document.getElementById('store-content');
+    var r=await W.api('/api/v1/admin/store/categories');
+    var rows=r.data||[];
+    var html='<div class="w-flex-between" style="display:flex;justify-content:space-between;margin-bottom:16px"><h3 style="margin:0">Categorías</h3><button class="w-btn w-btn-primary" onclick="wontia.storeCategoryEditor()">+ Nueva categoría</button></div>';
+    if(!rows.length){html+='<div class="w-empty-state"><h3>Sin categorías</h3><p>Agrupa tus productos por categorías.</p></div>'}
+    else{
+        html+='<div class="w-card" style="padding:0"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="text-align:left;color:var(--w-muted);font-size:11px;text-transform:uppercase"><th style="padding:12px 14px">Nombre</th><th style="padding:12px 14px">Slug</th><th style="padding:12px 14px">Productos</th><th style="padding:12px 14px">Activa</th><th style="padding:12px 14px"></th></tr></thead><tbody>';
+        rows.forEach(function(c){
+            html+='<tr style="border-top:1px solid var(--w-border)"><td style="padding:12px 14px;font-weight:600">'+W.esc(c.name)+'</td><td style="padding:12px 14px;color:var(--w-muted)">'+W.esc(c.slug)+'</td>'
+                +'<td style="padding:12px 14px">'+(c.product_count||0)+'</td><td style="padding:12px 14px">'+(c.is_active==1?'Sí':'No')+'</td>'
+                +'<td style="padding:12px 14px;text-align:right;white-space:nowrap"><button class="w-btn w-btn-secondary w-btn-sm" onclick=\'wontia.storeCategoryEditor('+JSON.stringify(c)+')\'>Editar</button> '
+                +'<button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.storeCategoryDelete('+c.id+')">Eliminar</button></td></tr>';
+        });
+        html+='</tbody></table></div>';
+    }
+    el.innerHTML=html;
+};
+
+W.storeCategoryEditor=function(c){
+    c=c||{id:0,name:'',slug:'',description:'',is_active:1};
+    var body='<div><label style="font-size:11px;color:var(--w-muted)">Nombre *</label><input class="w-input" id="sc-name" value="'+W.esc(c.name)+'" style="width:100%"/></div>'
+        +'<div style="margin-top:12px"><label style="font-size:11px;color:var(--w-muted)">Slug</label><input class="w-input" id="sc-slug" value="'+W.esc(c.slug)+'" style="width:100%"/></div>'
+        +'<div style="margin-top:12px"><label style="font-size:11px;color:var(--w-muted)">Descripción</label><input class="w-input" id="sc-desc" value="'+W.esc(c.description||'')+'" style="width:100%"/></div>'
+        +'<div style="margin-top:12px"><label style="font-size:11px;color:var(--w-muted)">Activa</label><select class="w-input" id="sc-active" style="width:100%"><option value="1"'+(c.is_active==1?' selected':'')+'>Sí</option><option value="0"'+(c.is_active!=1?' selected':'')+'>No</option></select></div>';
+    W.modal(c.id?('Editar categoría #'+c.id):'Nueva categoría',body,'<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cancelar</button><button class="w-btn w-btn-primary" onclick="wontia.storeCategorySave('+(c.id||0)+')">Guardar</button>');
+};
+
+W.storeCategorySave=async function(id){
+    var v=function(s){return document.querySelector(s).value};
+    var payload={id:id||undefined,name:v('#sc-name'),slug:v('#sc-slug'),description:v('#sc-desc'),is_active:parseInt(v('#sc-active'))};
+    var r=await W.api(id?('/api/v1/admin/store/categories/'+id):'/api/v1/admin/store/categories',{method:id?'PUT':'POST',body:payload});
+    if(r.ok){W.notify('Categoría guardada','success');W.closeModal();W.storeCategories()}
+};
+
+W.storeCategoryDelete=function(id){
+    W.confirm('¿Eliminar esta categoría? Los productos quedarán sin categoría.',async function(){
+        var r=await W.api('/api/v1/admin/store/categories/'+id,{method:'DELETE'});
+        if(r.ok){W.notify('Categoría eliminada','success');W.storeCategories()}
+    });
+};
+
+W.storeOrders=async function(){
+    var el=document.getElementById('store-content');
+    el.innerHTML='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px"><input class="w-input" style="width:240px" id="store-o-search" placeholder="Buscar pedido, cliente..."/>'
+        +'<select class="w-input" id="store-o-pay" style="width:150px"><option value="">Pago: todos</option><option value="pending">Pendiente</option><option value="paid">Pagado</option><option value="failed">Fallido</option></select>'
+        +'<select class="w-input" id="store-o-ful" style="width:170px"><option value="">Estado: todos</option><option value="new">Nuevo</option><option value="confirmed">Confirmado</option><option value="preparing">Preparando</option><option value="shipped">Enviado</option><option value="delivered">Entregado</option><option value="cancelled">Cancelado</option></select></div>'
+        +'<div id="store-o-list"></div>';
+    W.storeOrdersLoad();
+    document.getElementById('store-o-search').addEventListener('input',W.storeOrdersLoad);
+    document.getElementById('store-o-pay').addEventListener('change',W.storeOrdersLoad);
+    document.getElementById('store-o-ful').addEventListener('change',W.storeOrdersLoad);
+};
+
+W.storeOrdersLoad=async function(){
+    var list=document.getElementById('store-o-list');
+    if(!list)return;
+    var q=document.getElementById('store-o-search').value,ps=document.getElementById('store-o-pay').value,fs=document.getElementById('store-o-ful').value;
+    var r=await W.api('/api/v1/admin/store/orders?search='+encodeURIComponent(q)+'&payment_status='+ps+'&fulfillment_status='+fs+'&limit=200');
+    var rows=r.data||[];
+    if(!rows.length){list.innerHTML='<div class="w-empty-state"><h3>Sin pedidos</h3><p>Los pedidos de la tienda aparecerán aquí.</p></div>';return}
+    var payColor={paid:'#34d399',pending:'#fbbf24',failed:'#f87171',refunded:'#8593ab'};
+    var html='<div class="w-card" style="padding:0;overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="text-align:left;color:var(--w-muted);font-size:11px;text-transform:uppercase"><th style="padding:12px 14px">Pedido</th><th style="padding:12px 14px">Cliente</th><th style="padding:12px 14px">Total</th><th style="padding:12px 14px">Pago</th><th style="padding:12px 14px">Estado</th><th style="padding:12px 14px">Fecha</th></tr></thead><tbody>';
+    rows.forEach(function(o){
+        html+='<tr style="border-top:1px solid var(--w-border);cursor:pointer" onclick="wontia.storeOrderDetail('+o.id+')">'
+            +'<td style="padding:12px 14px;font-weight:600">'+W.esc(o.order_number||o.uuid.slice(0,8))+'</td>'
+            +'<td style="padding:12px 14px">'+W.esc(o.customer_name||'')+'<div style="font-size:11px;color:var(--w-muted)">'+W.esc(o.customer_email||'')+'</div></td>'
+            +'<td style="padding:12px 14px;font-weight:600">$'+W.num((o.total_cents/100))+'</td>'
+            +'<td style="padding:12px 14px"><span style="color:'+(payColor[o.payment_status]||'inherit')+';font-weight:600">'+W.esc(o.payment_status)+'</span></td>'
+            +'<td style="padding:12px 14px">'+W.esc(o.fulfillment_status)+'</td>'
+            +'<td style="padding:12px 14px;color:var(--w-muted)">'+W.esc((o.created_at||'').slice(0,16))+'</td></tr>';
+    });
+    html+='</tbody></table></div>';
+    list.innerHTML=html;
+};
+
+W.storeOrderDetail=async function(id){
+    var r=await W.api('/api/v1/admin/store/orders/'+id);
+    if(!r.ok||!r.data)return;
+    var o=r.data;
+    var items=(o.items||[]).map(function(it){return '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--w-border);font-size:13px"><span>'+(it.qty)+' × '+W.esc(it.name)+(it.variant_name?' ('+W.esc(it.variant_name)+')':'')+'</span><span>$'+W.num((it.subtotal_cents/100))+'</span></div>'}).join('');
+    var addr=o.shipping_address||{};
+    var body='<div style="font-size:13px;line-height:1.9">'
+        +'<div><strong>Cliente:</strong> '+W.esc(o.customer_name||'')+' · '+W.esc(o.customer_email||'')+' · '+W.esc(o.customer_phone||'')+'</div>'
+        +'<div><strong>Entrega:</strong> '+W.esc([addr.line1,addr.city,addr.region].filter(function(x){return x}).join(', '))+'</div>'
+        +(o.notes?'<div><strong>Notas:</strong> '+W.esc(o.notes)+'</div>':'')
+        +'<div style="margin-top:12px">'+items+'</div>'
+        +'<div style="display:flex;justify-content:space-between;padding:6px 0"><span>Subtotal</span><span>$'+W.num((o.subtotal_cents/100))+'</span></div>'
+        +'<div style="display:flex;justify-content:space-between;padding:6px 0"><span>Envío</span><span>$'+W.num((o.shipping_cents/100))+'</span></div>'
+        +'<div style="display:flex;justify-content:space-between;padding:6px 0;font-weight:800;font-size:15px"><span>Total</span><span>$'+W.num((o.total_cents/100))+'</span></div>'
+        +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px">'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Estado del pago</label><select class="w-input" id="so-pay" style="width:100%">'+['pending','paid','failed','refunded'].map(function(s){return '<option value="'+s+'"'+(o.payment_status===s?' selected':'')+'>'+s+'</option>'}).join('')+'</select></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Estado del pedido</label><select class="w-input" id="so-ful" style="width:100%">'+['new','confirmed','preparing','shipped','delivered','cancelled'].map(function(s){return '<option value="'+s+'"'+(o.fulfillment_status===s?' selected':'')+'>'+s+'</option>'}).join('')+'</select></div>'
+        +'</div>'
+        +'<div style="margin-top:12px"><label style="font-size:11px;color:var(--w-muted)">Notas internas</label><textarea class="w-input" id="so-notes" rows="2" style="width:100%">'+W.esc(o.admin_notes||'')+'</textarea></div></div>';
+    W.modal('Pedido '+(o.order_number||o.uuid.slice(0,8)),body,'<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cerrar</button><button class="w-btn w-btn-primary" onclick="wontia.storeOrderSave('+id+')">Guardar cambios</button>');
+};
+
+W.storeOrderSave=async function(id){
+    var payload={payment_status:document.getElementById('so-pay').value,fulfillment_status:document.getElementById('so-ful').value,admin_notes:document.getElementById('so-notes').value};
+    var r=await W.api('/api/v1/admin/store/orders/'+id,{method:'PUT',body:payload});
+    if(r.ok){W.notify('Pedido actualizado','success');W.closeModal();W.storeOrdersLoad()}
+};
+
+W.storeZones=async function(){
+    var el=document.getElementById('store-content');
+    var r=await W.api('/api/v1/admin/store/zones');
+    var rows=r.data||[];
+    var html='<div style="display:flex;justify-content:space-between;margin-bottom:16px"><h3 style="margin:0">Zonas de envío</h3><button class="w-btn w-btn-primary" onclick="wontia.storeZoneEditor()">+ Nueva zona</button></div>';
+    if(!rows.length){html+='<div class="w-empty-state"><h3>Sin zonas de envío</h3><p>Define zonas y costos para calcular el envío en el checkout.</p></div>'}
+    else{
+        html+='<div class="w-card" style="padding:0"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="text-align:left;color:var(--w-muted);font-size:11px;text-transform:uppercase"><th style="padding:12px 14px">Zona</th><th style="padding:12px 14px">Regiones</th><th style="padding:12px 14px">Costo</th><th style="padding:12px 14px">Gratis desde</th><th style="padding:12px 14px">Entrega</th><th style="padding:12px 14px"></th></tr></thead><tbody>';
+        rows.forEach(function(z){
+            html+='<tr style="border-top:1px solid var(--w-border)"><td style="padding:12px 14px;font-weight:600">'+W.esc(z.name)+'</td><td style="padding:12px 14px;color:var(--w-muted)">'+W.esc(z.regions||'—')+'</td>'
+                +'<td style="padding:12px 14px">$'+W.num((z.cost_cents/100))+'</td><td style="padding:12px 14px">'+(z.free_over_cents>0?'$'+W.num((z.free_over_cents/100)):'—')+'</td>'
+                +'<td style="padding:12px 14px;color:var(--w-muted)">'+W.esc(z.eta_days||'—')+'</td>'
+                +'<td style="padding:12px 14px;text-align:right;white-space:nowrap"><button class="w-btn w-btn-secondary w-btn-sm" onclick=\'wontia.storeZoneEditor('+JSON.stringify(z)+')\'>Editar</button> '
+                +'<button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.storeZoneDelete('+z.id+')">Eliminar</button></td></tr>';
+        });
+        html+='</tbody></table></div>';
+    }
+    el.innerHTML=html;
+};
+
+W.storeZoneEditor=function(z){
+    z=z||{id:0,name:'',regions:'',cost_cents:0,free_over_cents:0,eta_days:'',is_active:1};
+    var body='<div><label style="font-size:11px;color:var(--w-muted)">Nombre *</label><input class="w-input" id="sz-name" value="'+W.esc(z.name)+'" placeholder="Ej: Nacional / Medellín" style="width:100%"/></div>'
+        +'<div style="margin-top:12px"><label style="font-size:11px;color:var(--w-muted)">Regiones cubiertas</label><input class="w-input" id="sz-regions" value="'+W.esc(z.regions||'')+'" placeholder="Ej: Antioquia, Cundinamarca" style="width:100%"/></div>'
+        +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Costo (centavos)</label><input class="w-input" type="number" id="sz-cost" value="'+(z.cost_cents||0)+'" style="width:100%"/></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Gratis desde (centavos, 0=nunca)</label><input class="w-input" type="number" id="sz-free" value="'+(z.free_over_cents||0)+'" style="width:100%"/></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Tiempo de entrega</label><input class="w-input" id="sz-eta" value="'+W.esc(z.eta_days||'')+'" placeholder="Ej: 2-4 días" style="width:100%"/></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Activa</label><select class="w-input" id="sz-active" style="width:100%"><option value="1"'+(z.is_active==1?' selected':'')+'>Sí</option><option value="0"'+(z.is_active!=1?' selected':'')+'>No</option></select></div></div>';
+    W.modal(z.id?('Editar zona #'+z.id):'Nueva zona de envío',body,'<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cancelar</button><button class="w-btn w-btn-primary" onclick="wontia.storeZoneSave('+(z.id||0)+')">Guardar</button>');
+};
+
+W.storeZoneSave=async function(id){
+    var v=function(s){return document.querySelector(s).value};
+    var payload={id:id||undefined,name:v('#sz-name'),regions:v('#sz-regions'),cost_cents:parseInt(v('#sz-cost'))||0,free_over_cents:parseInt(v('#sz-free'))||0,eta_days:v('#sz-eta'),is_active:parseInt(v('#sz-active'))};
+    var r=await W.api(id?('/api/v1/admin/store/zones/'+id):'/api/v1/admin/store/zones',{method:id?'PUT':'POST',body:payload});
+    if(r.ok){W.notify('Zona guardada','success');W.closeModal();W.storeZones()}
+};
+
+W.storeZoneDelete=function(id){
+    W.confirm('¿Eliminar esta zona de envío?',async function(){
+        var r=await W.api('/api/v1/admin/store/zones/'+id,{method:'DELETE'});
+        if(r.ok){W.notify('Zona eliminada','success');W.storeZones()}
+    });
+};
+
+W.storeSettings=async function(){
+    var el=document.getElementById('store-content');
+    var r=await W.api('/api/v1/admin/store/settings');
+    var s=r.data||{},methods=r.methods||[];
+    var pm=['wompi','cod','manual'];
+    var body='<div class="w-card"><h3 style="margin-top:0">Tienda</h3>'
+        +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Tienda habilitada</label><select class="w-input" id="ss-enabled" style="width:100%"><option value="1"'+((s.store_enabled==='1'||s.store_enabled==='')?' selected':'')+'>Sí</option><option value="0"'+(s.store_enabled==='0'?' selected':'')+'>No</option></select></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Moneda</label><select class="w-input" id="ss-currency" style="width:100%"><option value="COP"'+(s.store_currency==='COP'?' selected':'')+'>COP</option><option value="USD"'+(s.store_currency==='USD'?' selected':'')+'>USD</option></select></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">WhatsApp de la tienda</label><input class="w-input" id="ss-whatsapp" value="'+W.esc(s.store_whatsapp||'')+'" placeholder="573001234567" style="width:100%"/></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Email de notificaciones</label><input class="w-input" id="ss-notify" value="'+W.esc(s.store_notify_email||'')+'" placeholder="ventas@tutienda.com" style="width:100%"/></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Pedido mínimo (centavos)</label><input class="w-input" type="number" id="ss-min" value="'+(parseInt(s.store_min_order_cents)||0)+'" style="width:100%"/></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">URL de términos y condiciones</label><input class="w-input" id="ss-terms" value="'+W.esc(s.store_terms_url||'')+'" style="width:100%"/></div>'
+        +'</div>'
+        +'<div style="margin-top:12px"><label style="font-size:11px;color:var(--w-muted)">Nota de envío</label><input class="w-input" id="ss-shipnote" value="'+W.esc(s.store_shipping_note||'')+'" style="width:100%"/></div>'
+        +'</div>'
+        +'<div class="w-card" style="margin-top:14px"><h3 style="margin-top:0">Métodos de pago</h3><div style="display:flex;gap:18px;flex-wrap:wrap">'
+        +pm.map(function(m){var label={wompi:'Wompi (en línea)',cod:'Contra entrega',manual:'Pago asistido (WhatsApp)'}[m];return '<label style="font-size:13px;display:flex;gap:8px;align-items:center"><input type="checkbox" class="ss-pm" value="'+m+'"'+(methods.indexOf(m)>-1?' checked':'')+'/> '+label+'</label>'}).join('')
+        +'</div></div>'
+        +'<div class="w-card" style="margin-top:14px"><h3 style="margin-top:0">Wompi</h3><div style="font-size:12px;color:var(--w-muted);margin-bottom:12px">Llaves del comercio (cada tienda usa sus propias llaves).</div>'
+        +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Public key</label><input class="w-input" id="ss-wompi-pub" value="'+W.esc(s.store_wompi_public_key||'')+'" style="width:100%"/></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Integrity key '+(s.store_wompi_integrity_key_set?'(guardada)':'(sin configurar)')+'</label><input class="w-input" type="password" id="ss-wompi-int" value="" placeholder="••••" style="width:100%"/></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Events key '+(s.store_wompi_events_key_set?'(guardada)':'(sin configurar)')+'</label><input class="w-input" type="password" id="ss-wompi-evt" value="" placeholder="••••" style="width:100%"/></div>'
+        +'</div></div>'
+        +'<div style="margin-top:16px"><button class="w-btn w-btn-primary" onclick="wontia.storeSettingsSave()">Guardar configuración</button></div>';
+    el.innerHTML=body;
+};
+
+W.storeSettingsSave=async function(){
+    var v=function(s){return document.querySelector(s).value};
+    var methods=[];document.querySelectorAll('.ss-pm').forEach(function(c){if(c.checked)methods.push(c.value)});
+    var payload={store_enabled:v('#ss-enabled'),store_currency:v('#ss-currency'),store_whatsapp:v('#ss-whatsapp'),store_notify_email:v('#ss-notify'),
+        store_min_order_cents:parseInt(v('#ss-min'))||0,store_terms_url:v('#ss-terms'),store_shipping_note:v('#ss-shipnote'),
+        store_payment_methods:methods,store_wompi_public_key:v('#ss-wompi-pub'),store_wompi_integrity_key:v('#ss-wompi-int'),store_wompi_events_key:v('#ss-wompi-evt')};
+    var r=await W.api('/api/v1/admin/store/settings',{method:'PUT',body:payload});
+    if(r.ok){W.notify('Configuración guardada','success');W.storeSettings()}
+};
+
 W.panels={
     dashboard:W.renderDashboard,
     wwi:W.renderWWI,
+    store:W.renderStore,
     pages:W.renderPages,
     pageEditor:W.renderPageEditor,
     bricks:W.renderBricks,

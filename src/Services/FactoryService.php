@@ -1028,6 +1028,38 @@ class FactoryService
                 ->execute(['pid' => $pageId, 'wt' => $sec['widget_type'], 't' => $sec['title'], 'cfg' => $sec['config'], 's' => $sec['sort']]);
         }
 
+        $isEcommerce = $plan && in_array('ecommerce', (array)($plan['features'] ?? []), true);
+        if ($isEcommerce) {
+            $store = new StoreService();
+            $store->ensureTables();
+            $cfgStmt = $db->prepare("INSERT INTO settings (site_id, `key`, `value`) VALUES (:sid, :k, :v) ON DUPLICATE KEY UPDATE `value` = VALUES(`value`)");
+            foreach ([
+                'store_enabled' => '1',
+                'store_currency' => 'COP',
+                'store_payment_methods' => '["cod"]',
+                'store_notify_email' => (string)$order['customer_email'],
+                'store_shipping_note' => 'Envio calculado al finalizar el pedido.',
+            ] as $k => $v) {
+                $cfgStmt->execute(['sid' => $tenantId, 'k' => $k, 'v' => $v]);
+            }
+            $db->prepare("INSERT INTO store_shipping_zones (site_id, name, regions, cost_cents, free_over_cents, eta_days, is_active, sort_order)
+                VALUES (:sid, 'Nacional', 'Cobertura nacional', 1500000, 20000000, '2-5 dias', 1, 0)")
+                ->execute(['sid' => $tenantId]);
+            $db->prepare("INSERT INTO pages (site_id, title, slug, template, meta_title, meta_description, status, sort_order) VALUES (:sid, 'Tienda', 'tienda', 'default', :mt, :md, 'published', 1)")
+                ->execute(['sid' => $tenantId, 'mt' => 'Tienda', 'md' => 'Catalogo y pedidos en linea']);
+            $shopPageId = (int)$db->lastInsertId();
+            $shopSections = [
+                ['widget_type' => 'store-catalog', 'title' => 'Catalogo', 'config' => '{}', 'sort' => 0],
+                ['widget_type' => 'store-product', 'title' => 'Producto', 'config' => '{}', 'sort' => 1],
+                ['widget_type' => 'store-cart', 'title' => 'Carrito', 'config' => '{}', 'sort' => 2],
+                ['widget_type' => 'store-checkout', 'title' => 'Checkout', 'config' => '{}', 'sort' => 3],
+            ];
+            foreach ($shopSections as $sec) {
+                $db->prepare("INSERT INTO sections (page_id, type, widget_type, title, config, sort_order, is_active) VALUES (:pid, 'widget', :wt, :t, :cfg, :s, 1)")
+                    ->execute(['pid' => $shopPageId, 'wt' => $sec['widget_type'], 't' => $sec['title'], 'cfg' => $sec['config'], 's' => $sec['sort']]);
+            }
+        }
+
         $db->prepare("UPDATE sites SET status = 'READY' WHERE id = :id")->execute(['id' => $tenantId]);
         $this->transitionOrder($orderId, 'READY');
         $this->addLedger(['site_id' => $tenantId, 'direction' => 'credit', 'amount' => (float)$order['total'], 'reason' => 'Saldo inicial del plan', 'ref' => 'provision:' . $order['uuid']]);
@@ -1131,6 +1163,9 @@ class FactoryService
                 (@site_id, 'web-master', 'Web Master', 'Web Master', 'Suscripcion mensual: mantenimiento, mejoras continuas y soporte TIA prioritario.', 'Monthly subscription: maintenance, continuous improvements and priority TIA support.', 149000, 38, 'monthly', 0, '[\"everything\",\"monthly_improvements\",\"priority_tia\",\"dedicated_support\"]', '{\"sites\":1,\"mailboxes\":25,\"storage_mb\":102400,\"ai_monthly_usd\":100,\"products\":0}', '[{\"item\":\"email\",\"usd\":30},{\"item\":\"hosting\",\"usd\":40},{\"item\":\"ai\",\"usd\":100},{\"item\":\"payment_fee\",\"pct\":3.5},{\"item\":\"support\",\"usd\":40}]', 30, 5)");
             $seeded = true;
         }
+
+        $db->exec("INSERT IGNORE INTO wwi_plans (site_id, slug, name_es, name_en, description_es, description_en, price_cop, price_usd, billing_type, duration_months, features, limits, margin_cost_items, min_margin_pct, sort_order) VALUES
+            (@site_id, 'ecommerce', 'Ecommerce', 'Ecommerce', 'Tienda en linea completa: catalogo con variantes, carrito, checkout, pagos en linea (Wompi), contra entrega, envios y gestion de pedidos.', 'Full online store: catalog with variants, cart, checkout, online payments (Wompi), cash on delivery, shipping and order management.', 899000, 225, 'one_time', 12, '[\"web_catalog_all\",\"ecommerce\",\"cart\",\"checkout\",\"online_payments\",\"shipping_zones\",\"order_management\",\"product_variants\",\"customer_accounts\",\"wompi\",\"cod\"]', '{\"sites\":1,\"mailboxes\":5,\"storage_mb\":20480,\"ai_monthly_usd\":35,\"products\":100}', '[{\"item\":\"domain\",\"usd\":10.97},{\"item\":\"email\",\"usd\":18},{\"item\":\"hosting\",\"usd\":45},{\"item\":\"ai\",\"usd\":35},{\"item\":\"payment_fee\",\"pct\":3.5},{\"item\":\"support\",\"usd\":25}]', 25, 6)");
 
         $catCount = (int)$db->query("SELECT COUNT(*) FROM wwi_template_categories WHERE site_id = @site_id")->fetchColumn();
         if ($catCount === 0) {

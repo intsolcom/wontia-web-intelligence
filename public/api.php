@@ -118,6 +118,15 @@ $router->get('/api/v1/public/domain/check', function ($request) {
     $name = (string)($request->get('name', ''));
     Response::json(['ok' => true, 'data' => (new \App\Services\DomainCheckerService())->check($name)]);
 });
+
+$router->get('/api/v1/public/store/config', [\App\Controllers\StorePublicController::class, 'config']);
+$router->get('/api/v1/public/store/products', [\App\Controllers\StorePublicController::class, 'products']);
+$router->get('/api/v1/public/store/products/{slug}', [\App\Controllers\StorePublicController::class, 'product']);
+$router->get('/api/v1/public/store/categories', [\App\Controllers\StorePublicController::class, 'categories']);
+$router->get('/api/v1/public/store/zones', [\App\Controllers\StorePublicController::class, 'zones']);
+$router->post('/api/v1/public/store/orders', [\App\Controllers\StorePublicController::class, 'createOrder']);
+$router->get('/api/v1/public/store/orders/{uuid}', [\App\Controllers\StorePublicController::class, 'orderStatus']);
+$router->post('/api/v1/public/store/payments/wompi/webhook', [\App\Controllers\StorePublicController::class, 'wompiWebhook']);
 $router->post('/api/v1/public/variants/{id}/track', function ($request, $id) {
     $type = (string)$request->input('type', 'view');
     $ok = (new \App\Services\LiveEditorService())->variantTrack((int)$id, $type);
@@ -299,8 +308,28 @@ $router->group('/api/v1/admin', function (Router $r) {
     $r->get('/tia/sections', [\App\Controllers\Admin\TiaAgentController::class, 'sections']);
     $r->get('/tia/history', [\App\Controllers\Admin\TiaAgentController::class, 'history']);
 
-    $r->get('/media', [\App\Controllers\Admin\MediaController::class, 'index']);
-    $r->post('/media/upload', [\App\Controllers\Admin\MediaController::class, 'upload']);
+    $r->get('/store/overview', [\App\Controllers\Admin\StoreController::class, 'overview']);
+    $r->post('/store/ensure-tables', [\App\Controllers\Admin\StoreController::class, 'ensureTables']);
+    $r->get('/store/products', [\App\Controllers\Admin\StoreController::class, 'products']);
+    $r->post('/store/products', [\App\Controllers\Admin\StoreController::class, 'productSave']);
+    $r->get('/store/products/{id}', [\App\Controllers\Admin\StoreController::class, 'productShow']);
+    $r->put('/store/products/{id}', [\App\Controllers\Admin\StoreController::class, 'productSave']);
+    $r->delete('/store/products/{id}', [\App\Controllers\Admin\StoreController::class, 'productDelete']);
+    $r->get('/store/categories', [\App\Controllers\Admin\StoreController::class, 'categories']);
+    $r->post('/store/categories', [\App\Controllers\Admin\StoreController::class, 'categorySave']);
+    $r->put('/store/categories/{id}', [\App\Controllers\Admin\StoreController::class, 'categorySave']);
+    $r->delete('/store/categories/{id}', [\App\Controllers\Admin\StoreController::class, 'categoryDelete']);
+    $r->get('/store/orders', [\App\Controllers\Admin\StoreController::class, 'orders']);
+    $r->get('/store/orders/{id}', [\App\Controllers\Admin\StoreController::class, 'orderShow']);
+    $r->put('/store/orders/{id}', [\App\Controllers\Admin\StoreController::class, 'orderUpdate']);
+    $r->get('/store/zones', [\App\Controllers\Admin\StoreController::class, 'zones']);
+    $r->post('/store/zones', [\App\Controllers\Admin\StoreController::class, 'zoneSave']);
+    $r->put('/store/zones/{id}', [\App\Controllers\Admin\StoreController::class, 'zoneSave']);
+    $r->delete('/store/zones/{id}', [\App\Controllers\Admin\StoreController::class, 'zoneDelete']);
+    $r->get('/store/settings', [\App\Controllers\Admin\StoreController::class, 'settings']);
+    $r->put('/store/settings', [\App\Controllers\Admin\StoreController::class, 'settingsSave']);
+
+    $r->get('/media', [\App\Controllers\Admin\MediaController::class, 'index']);    $r->post('/media/upload', [\App\Controllers\Admin\MediaController::class, 'upload']);
     $r->delete('/media/{id}', [\App\Controllers\Admin\MediaController::class, 'destroy']);
 
     $r->get('/blog/posts', [\App\Controllers\Admin\BlogController::class, 'index']);
