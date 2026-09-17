@@ -419,6 +419,12 @@ class FactoryController
         $result['ok'] ? Response::success(null, $result['message']) : Response::error($result['message']);
     }
 
+    public function syncMail(): void
+    {
+        $result = $this->service->syncMailConfig();
+        $result['ok'] ? Response::success(null, $result['message']) : Response::error($result['message']);
+    }
+
     public function margin(): void
     {
         Response::json(['ok' => true, 'data' => $this->service->marginReport()]);

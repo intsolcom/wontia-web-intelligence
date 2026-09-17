@@ -2027,9 +2027,15 @@ W.factoryConfig=function(){
         html+='<tr><td style="font-size:11px;color:var(--w-muted)"><code>'+W.esc(k)+'</code></td><td><input class="w-input fc-val" data-key="'+W.esc(k)+'" value="'+W.esc(cfg[k])+'" style="max-width:400px"/></td></tr>';
     }
     html+='</table>';
-    html+='<button class="w-btn w-btn-primary w-mt" onclick="wontia.factorySaveConfig()">Save Configuration</button>';
-    el.innerHTML=html;
-};
+      html+='<button class="w-btn w-btn-primary w-mt" onclick="wontia.factorySaveConfig()">Save Configuration</button>';
+      html+=' <button class="w-btn w-btn-secondary w-mt" onclick="wontia.factorySyncMail()">Sincronizar correo a todos los sitios</button>';
+      el.innerHTML=html;
+  };
+  
+  W.factorySyncMail=async function(){
+      var r=await W.api('/api/v1/admin/factory/mail/sync',{method:'POST',body:{}});
+      W.notify(r.message||(r.ok?'OK':'Error'),r.ok?'success':'error');
+  };
 
 W.factorySaveConfig=async function(){
     var payload={};
@@ -2959,10 +2965,64 @@ W.storeProductEditor=async function(id){
         +'</div>'
         +'<div style="margin-top:12px"><label style="font-size:11px;color:var(--w-muted)">Descripción corta</label><input class="w-input" id="sp-short" value="'+W.esc(p.short_description||'')+'" style="width:100%"/></div>'
         +'<div style="margin-top:12px"><label style="font-size:11px;color:var(--w-muted)">Descripción</label><textarea class="w-input" id="sp-desc" rows="4" style="width:100%">'+W.esc(p.description||'')+'</textarea></div>'
-        +'<div style="margin-top:12px"><label style="font-size:11px;color:var(--w-muted)">Imágenes (una URL por línea)</label><textarea class="w-input" id="sp-images" rows="3" style="width:100%">'+W.esc((p.images||[]).join('\n'))+'</textarea></div>'
+        +'<div style="margin-top:12px"><label style="font-size:11px;color:var(--w-muted)">Imágenes</label><div id="sp-images-list" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px"></div>'
+        +'<div style="display:flex;gap:6px"><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.storeMediaPicker()">+ Elegir del Media</button>'
+        +'<input class="w-input" id="sp-img-url" placeholder="https://... o /assets/uploads/..." style="flex:1"/>'
+        +'<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.storeAddImageUrl()">+ URL</button></div></div>'
         +'<div style="margin-top:12px"><label style="font-size:11px;color:var(--w-muted)">Variantes (nombre, precio en centavos, stock)</label><div id="sp-variants"></div><button class="w-btn w-btn-secondary w-btn-sm" style="margin-top:6px" onclick="wontia.storeVariantRow()">+ Variante</button></div>';
     W.modal(id?('Editar producto #'+id):'Nuevo producto',body,'<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cancelar</button><button class="w-btn w-btn-primary" onclick="wontia.storeProductSave('+(id||0)+')">Guardar</button>');
+    W.state.storeImages=(p.images||[]).slice();
+    W.storeRenderImages();
     (p.variants||[]).forEach(function(v){W.storeVariantRow(v)});
+};
+
+W.storeRenderImages=function(){
+    var el=document.getElementById('sp-images-list');
+    if(!el)return;
+    var imgs=W.state.storeImages||[];
+    if(!imgs.length){el.innerHTML='<div style="font-size:11px;color:var(--w-muted)">Sin imágenes todavía.</div>';return}
+    el.innerHTML=imgs.map(function(u,i){
+        return '<div style="position:relative;width:74px;height:74px;border-radius:10px;overflow:hidden;border:1px solid var(--w-border)">'
+            +'<img src="'+W.esc(u)+'" style="width:100%;height:100%;object-fit:cover" onerror="this.style.opacity=.25"/>'
+            +'<button class="w-btn w-btn-danger w-btn-sm" style="position:absolute;top:2px;right:2px;padding:1px 6px;font-size:11px" onclick="wontia.storeRemoveImage('+i+')">×</button></div>';
+    }).join('');
+};
+
+W.storeRemoveImage=function(i){
+    (W.state.storeImages||[]).splice(i,1);
+    W.storeRenderImages();
+};
+
+W.storeAddImageUrl=function(){
+    var el=document.getElementById('sp-img-url');
+    var u=el?el.value.trim():'';
+    if(!u)return;
+    W.state.storeImages=W.state.storeImages||[];
+    W.state.storeImages.push(u);
+    if(el)el.value='';
+    W.storeRenderImages();
+};
+
+W.storeMediaPicker=async function(){
+    var r=await W.api('/api/v1/admin/media?page=1');
+    var rows=r.data||[];
+    if(!rows.length){W.notify('No hay archivos en Media. Sube imágenes primero.','error');return}
+    var grid='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px;max-height:420px;overflow:auto">';
+    rows.forEach(function(m){
+        var isImg=(m.mime||'').indexOf('image/')===0;
+        grid+='<div style="cursor:pointer;border:1px solid var(--w-border);border-radius:10px;overflow:hidden" onclick="wontia.storePickMedia(\''+W.esc(m.url).replace(/'/g,'')+'\')">'
+            +(isImg?'<img src="'+W.esc(m.url)+'" style="width:100%;height:84px;object-fit:cover;display:block"/>':'<div style="height:84px;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--w-muted)">'+W.esc(m.mime||'file')+'</div>')
+            +'<div style="font-size:10px;color:var(--w-muted);padding:4px 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+W.esc(m.filename||'')+'</div></div>';
+    });
+    grid+='</div>';
+    W.modal('Elegir imagen del Media',grid,'<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cerrar</button>');
+};
+
+W.storePickMedia=function(url){
+    W.state.storeImages=W.state.storeImages||[];
+    W.state.storeImages.push(url);
+    W.closeModal();
+    W.storeRenderImages();
 };
 
 W.storeVariantRow=function(v){
@@ -2979,7 +3039,7 @@ W.storeVariantRow=function(v){
 
 W.storeProductSave=async function(id){
     var v=function(s){var el=document.querySelector(s);return el?el.value:''};
-    var images=v('#sp-images').split('\n').map(function(s){return s.trim()}).filter(function(s){return s});
+    var images=(W.state.storeImages||[]).slice();
     var variants=[];
     document.querySelectorAll('#sp-variants > div').forEach(function(row){
         var nm=row.querySelector('.sp-v-name').value.trim();
@@ -3163,6 +3223,8 @@ W.storeSettings=async function(){
         +'<div><label style="font-size:11px;color:var(--w-muted)">WhatsApp de la tienda</label><input class="w-input" id="ss-whatsapp" value="'+W.esc(s.store_whatsapp||'')+'" placeholder="573001234567" style="width:100%"/></div>'
         +'<div><label style="font-size:11px;color:var(--w-muted)">Email de notificaciones</label><input class="w-input" id="ss-notify" value="'+W.esc(s.store_notify_email||'')+'" placeholder="ventas@tutienda.com" style="width:100%"/></div>'
         +'<div><label style="font-size:11px;color:var(--w-muted)">Pedido mínimo (centavos)</label><input class="w-input" type="number" id="ss-min" value="'+(parseInt(s.store_min_order_cents)||0)+'" style="width:100%"/></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Máx. pedidos por IP/hora</label><input class="w-input" type="number" id="ss-max-ip" value="'+(parseInt(s.store_max_orders_hour_ip)||8)+'" style="width:100%"/></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Máx. pedidos por correo/hora</label><input class="w-input" type="number" id="ss-max-email" value="'+(parseInt(s.store_max_orders_hour_email)||4)+'" style="width:100%"/></div>'
         +'<div><label style="font-size:11px;color:var(--w-muted)">URL de términos y condiciones</label><input class="w-input" id="ss-terms" value="'+W.esc(s.store_terms_url||'')+'" style="width:100%"/></div>'
         +'</div>'
         +'<div style="margin-top:12px"><label style="font-size:11px;color:var(--w-muted)">Nota de envío</label><input class="w-input" id="ss-shipnote" value="'+W.esc(s.store_shipping_note||'')+'" style="width:100%"/></div>'
@@ -3176,7 +3238,8 @@ W.storeSettings=async function(){
         +'<div><label style="font-size:11px;color:var(--w-muted)">Integrity key '+(s.store_wompi_integrity_key_set?'(guardada)':'(sin configurar)')+'</label><input class="w-input" type="password" id="ss-wompi-int" value="" placeholder="••••" style="width:100%"/></div>'
         +'<div><label style="font-size:11px;color:var(--w-muted)">Events key '+(s.store_wompi_events_key_set?'(guardada)':'(sin configurar)')+'</label><input class="w-input" type="password" id="ss-wompi-evt" value="" placeholder="••••" style="width:100%"/></div>'
         +'</div></div>'
-        +'<div style="margin-top:16px"><button class="w-btn w-btn-primary" onclick="wontia.storeSettingsSave()">Guardar configuración</button></div>';
+        +'<div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap"><button class="w-btn w-btn-primary" onclick="wontia.storeSettingsSave()">Guardar configuración</button>'
+        +'<button class="w-btn w-btn-secondary" onclick="wontia.storeMaintenance()">Liberar stock de pedidos vencidos</button></div>';
     el.innerHTML=body;
 };
 
@@ -3185,9 +3248,15 @@ W.storeSettingsSave=async function(){
     var methods=[];document.querySelectorAll('.ss-pm').forEach(function(c){if(c.checked)methods.push(c.value)});
     var payload={store_enabled:v('#ss-enabled'),store_currency:v('#ss-currency'),store_whatsapp:v('#ss-whatsapp'),store_notify_email:v('#ss-notify'),
         store_min_order_cents:parseInt(v('#ss-min'))||0,store_terms_url:v('#ss-terms'),store_shipping_note:v('#ss-shipnote'),
+        store_max_orders_hour_ip:parseInt(v('#ss-max-ip'))||8,store_max_orders_hour_email:parseInt(v('#ss-max-email'))||4,
         store_payment_methods:methods,store_wompi_public_key:v('#ss-wompi-pub'),store_wompi_integrity_key:v('#ss-wompi-int'),store_wompi_events_key:v('#ss-wompi-evt')};
     var r=await W.api('/api/v1/admin/store/settings',{method:'PUT',body:payload});
     if(r.ok){W.notify('Configuración guardada','success');W.storeSettings()}
+};
+
+W.storeMaintenance=async function(){
+    var r=await W.api('/api/v1/admin/store/maintenance',{method:'POST',body:{}});
+    if(r.ok)W.notify('Pedidos vencidos liberados: '+((r.data&&r.data.released)||0),'success');
 };
 
 W.panels={

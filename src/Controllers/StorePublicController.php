@@ -3,6 +3,7 @@ namespace App\Controllers;
 
 use App\Core\Request;
 use App\Core\Response;
+use App\Services\StoreRateLimitException;
 use App\Services\StoreService;
 
 class StorePublicController
@@ -83,8 +84,10 @@ class StorePublicController
     public function createOrder(Request $req): void
     {
         try {
-            $result = $this->svc()->createOrder($req->json());
+            $result = $this->svc()->createOrder($req->json(), $req->ip());
             Response::json(['ok' => true, 'data' => $result], 201);
+        } catch (StoreRateLimitException $e) {
+            Response::error($e->getMessage(), 429);
         } catch (\InvalidArgumentException | \RuntimeException $e) {
             Response::error($e->getMessage(), 400);
         } catch (\Throwable $e) {

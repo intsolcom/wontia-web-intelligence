@@ -1061,6 +1061,7 @@ class FactoryService
         }
 
         $db->prepare("UPDATE sites SET status = 'READY' WHERE id = :id")->execute(['id' => $tenantId]);
+        $this->copyMailConfig($tenantId);
         $this->transitionOrder($orderId, 'READY');
         $this->addLedger(['site_id' => $tenantId, 'direction' => 'credit', 'amount' => (float)$order['total'], 'reason' => 'Saldo inicial del plan', 'ref' => 'provision:' . $order['uuid']]);
         $siteUrl = 'https://' . (!empty($order['domain_name']) ? $order['domain_name'] : ('cliente' . $tenantId . '.wontia.com'));
@@ -1070,8 +1071,42 @@ class FactoryService
         return ['ok' => true, 'tenant_id' => $tenantId, 'site_uuid' => $siteUuid];
     }
 
-    public function planBySlug(string $slug): ?array
+    public function copyMailConfig(int $siteId): int
     {
+        $map = ['wwi.mail_host' => 'mail_host', 'wwi.mail_port' => 'mail_port', 'wwi.mail_user' => 'mail_user',
+            'wwi.mail_pass' => 'mail_pass', 'wwi.mail_from' => 'mail_from', 'wwi.mail_from_name' => 'mail_from_name'];
+        $cfg = $this->config();
+        $values = [];
+        foreach ($map as $from => $to) {
+            $v = (string)($cfg[$from] ?? '');
+            if ($v !== '') $values[$to] = $v;
+        }
+        if (!$values) return 0;
+        $stmt = Database::instance()->prepare("INSERT INTO settings (site_id, `key`, `value`) VALUES (:sid, :k, :v) ON DUPLICATE KEY UPDATE `value` = :v2");
+        $n = 0;
+        foreach ($values as $k => $v) {
+            $stmt->execute(['sid' => $siteId, 'k' => $k, 'v' => $v, 'v2' => $v]);
+            $n++;
+        }
+        return $n;
+    }
+
+    public function syncMailConfig(): array
+    {
+        $cfg = $this->config();
+        if (trim((string)($cfg['wwi.mail_host'] ?? '')) === '') {
+            return ['ok' => false, 'message' => 'Configura primero wwi.mail_host en Factory - Config'];
+        }
+        $db = Database::instance();
+        $sites = $db->query("SELECT id FROM sites")->fetchAll();
+        $total = 0;
+        foreach ($sites as $s) {
+            $total += $this->copyMailConfig((int)$s['id']);
+        }
+        return ['ok' => true, 'message' => 'Correo sincronizado en ' . count($sites) . ' sitios (' . $total . ' valores)'];
+    }
+
+    public function planBySlug(string $slug): ?array    {
         $stmt = Database::instance()->prepare("SELECT * FROM wwi_plans WHERE slug = :s AND site_id = @site_id LIMIT 1");
         $stmt->execute(['s' => $slug]);
         $row = $stmt->fetch();
@@ -1207,6 +1242,12 @@ class FactoryService
             'wwi.site_promise_hours' => '24',
             'wwi.locales' => '["es","en"]',
             'wwi.domain_costs' => '{"com":{"reg":10.97,"ren":10.97},"net":{"reg":12.98,"ren":12.98},"org":{"reg":12.50,"ren":12.50},"co":{"reg":28.00,"ren":30.00},"com.co":{"reg":25.00,"ren":35.00},"site":{"reg":2.50,"ren":30.00},"info":{"reg":15.00,"ren":20.00}}',
+            'wwi.mail_host' => '',
+            'wwi.mail_port' => '465',
+            'wwi.mail_user' => '',
+            'wwi.mail_pass' => '',
+            'wwi.mail_from' => '',
+            'wwi.mail_from_name' => 'Wontia',
         ] as $key => $value) {
             $cfgStmt->execute(['k' => $key, 'v' => $value]);
         }

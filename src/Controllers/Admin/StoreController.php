@@ -1,6 +1,7 @@
 <?php
 namespace App\Controllers\Admin;
 
+use App\Core\Database;
 use App\Core\Request;
 use App\Core\Response;
 use App\Services\StoreService;
@@ -152,6 +153,12 @@ class StoreController
     {
         $this->svc()->deleteZone((int)$id);
         Response::json(['ok' => true]);
+    }
+
+    public function maintenance(): void
+    {
+        $siteId = (int)Database::instance()->query("SELECT @site_id")->fetchColumn();
+        Response::json(['ok' => true, 'data' => $this->svc()->releaseExpiredOrders($siteId ?: null, 60)]);
     }
 
     // ── Settings ──

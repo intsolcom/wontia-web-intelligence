@@ -11,6 +11,7 @@ class StoreService
         'store_enabled', 'store_currency', 'store_payment_methods', 'store_wompi_public_key',
         'store_wompi_integrity_key', 'store_wompi_events_key', 'store_notify_email',
         'store_shipping_note', 'store_min_order_cents', 'store_whatsapp', 'store_terms_url',
+        'store_max_orders_hour_ip', 'store_max_orders_hour_email',
     ];
 
     public const PAYMENT_METHODS = ['wompi', 'cod', 'manual'];
@@ -41,6 +42,12 @@ class StoreService
             } catch (\Exception $e) {
                 return ['ok' => false, 'message' => $e->getMessage(), 'missing' => $missing];
             }
+        }
+        foreach ([
+            "ALTER TABLE store_orders ADD COLUMN IF NOT EXISTS ip_hash VARCHAR(64) NULL",
+            "ALTER TABLE store_orders ADD COLUMN IF NOT EXISTS stock_released TINYINT DEFAULT 0",
+        ] as $alter) {
+            try { $db->exec($alter); } catch (\Exception $e) {}
         }
         return ['ok' => true, 'created' => $created, 'missing' => $missing];
     }
@@ -352,11 +359,12 @@ class StoreService
 
     // ── Orders ──
 
-    public function createOrder(array $input): array
+    public function createOrder(array $input, string $ip = ''): array
     {
         if (!$this->ready()) throw new \RuntimeException('La tienda no esta configurada');
         $settings = $this->settings();
         if ($settings['store_enabled'] !== '1' && $settings['store_enabled'] !== '') throw new \RuntimeException('La tienda esta deshabilitada');
+        $this->assertRateLimit($settings, $input, $ip);
 
         $items = (array)($input['items'] ?? []);
         if (!$items) throw new \InvalidArgumentException('El pedido no tiene productos');
@@ -443,16 +451,17 @@ class StoreService
             ], fn($v) => $v !== ''));
 
             $cust = $this->upsertCustomer($name, $email, $phone, (string)($customer['document'] ?? ''), $addressJson);
+            $ipHash = $ip !== '' ? hash('sha256', $ip) : '';
 
             $db->prepare("INSERT INTO store_orders (site_id, uuid, order_number, customer_id, customer_name, customer_email, customer_phone, customer_document,
                 shipping_address, shipping_zone_id, subtotal_cents, shipping_cents, discount_cents, total_cents, currency, payment_method, payment_status,
-                fulfillment_status, notes) VALUES (@site_id, :uuid, :num, :cid, :name, :email, :phone, :doc, :addr, :zone, :sub, :ship, 0, :total, :cur, :pm,
-                'pending', 'new', :notes)")
+                fulfillment_status, notes, ip_hash) VALUES (@site_id, :uuid, :num, :cid, :name, :email, :phone, :doc, :addr, :zone, :sub, :ship, 0, :total, :cur, :pm,
+                'pending', 'new', :notes, :iph)")
                 ->execute([
                     'uuid' => $uuid, 'num' => $orderNumber, 'cid' => $cust, 'name' => $name, 'email' => $email, 'phone' => $phone,
                     'doc' => (string)($customer['document'] ?? ''), 'addr' => $addressJson, 'zone' => $zoneId,
                     'sub' => $subtotal, 'ship' => $shippingCents, 'total' => $total, 'cur' => $settings['store_currency'],
-                    'pm' => $method, 'notes' => (string)($input['notes'] ?? ''),
+                    'pm' => $method, 'notes' => (string)($input['notes'] ?? ''), 'iph' => $ipHash,
                 ]);
             $orderId = (int)$db->lastInsertId();
 
@@ -576,6 +585,65 @@ class StoreService
     }
 
     // ── Helpers ──
+
+    private function assertRateLimit(array $settings, array $input, string $ip): void
+    {
+        $maxIp = (int)($settings['store_max_orders_hour_ip'] ?? 0) ?: 8;
+        $maxEmail = (int)($settings['store_max_orders_hour_email'] ?? 0) ?: 4;
+        $db = Database::instance();
+        if ($ip !== '') {
+            $stmt = $db->prepare("SELECT COUNT(*) FROM store_orders WHERE site_id = @site_id AND ip_hash = :h AND created_at >= (NOW() - INTERVAL 1 HOUR)");
+            $stmt->execute(['h' => hash('sha256', $ip)]);
+            if ((int)$stmt->fetchColumn() >= $maxIp) {
+                throw new StoreRateLimitException('Demasiados pedidos desde tu conexion. Intenta de nuevo mas tarde o escribenos por WhatsApp.');
+            }
+        }
+        $email = trim((string)($input['customer']['email'] ?? ''));
+        if ($email !== '') {
+            $stmt = $db->prepare("SELECT COUNT(*) FROM store_orders WHERE site_id = @site_id AND customer_email = :e AND created_at >= (NOW() - INTERVAL 1 HOUR)");
+            $stmt->execute(['e' => $email]);
+            if ((int)$stmt->fetchColumn() >= $maxEmail) {
+                throw new StoreRateLimitException('Ya registramos varios pedidos con este correo. Espera unos minutos o contactanos.');
+            }
+        }
+    }
+
+    public function releaseExpiredOrders(?int $siteId = null, int $minutes = 60): array
+    {
+        if (!$this->ready()) return ['released' => 0, 'orders' => []];
+        $db = Database::instance();
+        $sql = "SELECT id, site_id, uuid, order_number FROM store_orders
+                WHERE payment_status = 'pending' AND payment_method <> 'cod' AND stock_released = 0
+                AND created_at <= (NOW() - INTERVAL :m MINUTE)";
+        $params = ['m' => max(5, $minutes)];
+        if ($siteId !== null) {
+            $sql .= " AND site_id = :sid";
+            $params['sid'] = $siteId;
+        }
+        $sql .= " ORDER BY id ASC LIMIT 50";
+        $stmt = $db->prepare($sql);
+        $stmt->execute($params);
+        $orders = $stmt->fetchAll();
+        $released = [];
+        foreach ($orders as $o) {
+            $items = $db->prepare("SELECT product_id, variant_id, qty FROM store_order_items WHERE order_id = :oid AND site_id = :sid");
+            $items->execute(['oid' => (int)$o['id'], 'sid' => (int)$o['site_id']]);
+            foreach ($items->fetchAll() as $it) {
+                if (!empty($it['variant_id'])) {
+                    $db->prepare("UPDATE store_variants SET stock = stock + :q WHERE id = :id AND site_id = :sid")
+                        ->execute(['q' => (int)$it['qty'], 'id' => (int)$it['variant_id'], 'sid' => (int)$o['site_id']]);
+                } elseif (!empty($it['product_id'])) {
+                    $db->prepare("UPDATE store_products SET stock = stock + :q WHERE id = :id AND site_id = :sid AND track_stock = 1")
+                        ->execute(['q' => (int)$it['qty'], 'id' => (int)$it['product_id'], 'sid' => (int)$o['site_id']]);
+                }
+            }
+            $db->prepare("UPDATE store_orders SET payment_status = 'failed', fulfillment_status = 'cancelled', stock_released = 1,
+                admin_notes = CONCAT(COALESCE(admin_notes, ''), '\n[auto] Stock liberado por pago no completado') WHERE id = :id AND site_id = :sid")
+                ->execute(['id' => (int)$o['id'], 'sid' => (int)$o['site_id']]);
+            $released[] = $o['order_number'] ?: $o['uuid'];
+        }
+        return ['released' => count($released), 'orders' => $released];
+    }
 
     private function upsertCustomer(string $name, string $email, string $phone, string $doc, string $addressJson): int
     {

@@ -99,6 +99,8 @@ CREATE TABLE IF NOT EXISTS store_orders (
     provider_ref VARCHAR(255),
     notes TEXT,
     admin_notes TEXT,
+    ip_hash VARCHAR(64) NULL,
+    stock_released TINYINT DEFAULT 0,
     paid_at DATETIME NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

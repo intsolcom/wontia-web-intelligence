@@ -275,6 +275,7 @@ $router->group('/api/v1/admin', function (Router $r) {
     $r->delete('/factory/plans/{id}', [\App\Controllers\Admin\FactoryController::class, 'deletePlan']);
     $r->get('/factory/config', [\App\Controllers\Admin\FactoryController::class, 'config']);
     $r->put('/factory/config', [\App\Controllers\Admin\FactoryController::class, 'saveConfig']);
+    $r->post('/factory/mail/sync', [\App\Controllers\Admin\FactoryController::class, 'syncMail']);
     $r->get('/factory/margin', [\App\Controllers\Admin\FactoryController::class, 'margin']);
     $r->post('/factory/ensure-tables', [\App\Controllers\Admin\FactoryController::class, 'ensureTables']);
     $r->get('/factory/dashboard', [\App\Controllers\Admin\FactoryController::class, 'dashboard']);
@@ -310,6 +311,7 @@ $router->group('/api/v1/admin', function (Router $r) {
 
     $r->get('/store/overview', [\App\Controllers\Admin\StoreController::class, 'overview']);
     $r->post('/store/ensure-tables', [\App\Controllers\Admin\StoreController::class, 'ensureTables']);
+    $r->post('/store/maintenance', [\App\Controllers\Admin\StoreController::class, 'maintenance']);
     $r->get('/store/products', [\App\Controllers\Admin\StoreController::class, 'products']);
     $r->post('/store/products', [\App\Controllers\Admin\StoreController::class, 'productSave']);
     $r->get('/store/products/{id}', [\App\Controllers\Admin\StoreController::class, 'productShow']);
