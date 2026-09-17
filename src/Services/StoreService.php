@@ -145,6 +145,7 @@ class StoreService
         $name = trim((string)($d['name'] ?? ''));
         if ($name === '') throw new \InvalidArgumentException('Nombre requerido');
         $slug = trim((string)($d['slug'] ?? '')) ?: $this->slugify($name);
+        $this->assertSlugFree('store_categories', $slug, $id);
         $params = [
             'name' => $name, 'slug' => $slug,
             'description' => (string)($d['description'] ?? ''),
@@ -226,6 +227,7 @@ class StoreService
         $name = trim((string)($d['name'] ?? ''));
         if ($name === '') throw new \InvalidArgumentException('Nombre requerido');
         $slug = trim((string)($d['slug'] ?? '')) ?: $this->slugify($name);
+        $this->assertSlugFree('store_products', $slug, $id);
         $params = [
             'category_id' => !empty($d['category_id']) ? (int)$d['category_id'] : null,
             'name' => $name,
@@ -635,8 +637,18 @@ class StoreService
         return $row;
     }
 
-    private function slugify(string $s): string
+    private function assertSlugFree(string $table, string $slug, ?int $id): void
     {
+        if (!in_array($table, ['store_products', 'store_categories'], true)) return;
+        $stmt = Database::instance()->prepare("SELECT id FROM $table WHERE slug = :slug AND site_id = @site_id LIMIT 1");
+        $stmt->execute(['slug' => $slug]);
+        $found = $stmt->fetchColumn();
+        if ($found && (int)$found !== (int)$id) {
+            throw new \InvalidArgumentException('Ya existe un registro con ese slug: ' . $slug);
+        }
+    }
+
+    private function slugify(string $s): string    {
         $s = strtolower(trim($s));
         $s = str_replace(['á', 'é', 'í', 'ó', 'ú', 'ñ', 'ü'], ['a', 'e', 'i', 'o', 'u', 'n', 'u'], $s);
         $s = preg_replace('/[^a-z0-9]+/', '-', $s) ?: '';

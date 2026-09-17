@@ -10,7 +10,8 @@ COPY . /app
 RUN mkdir -p /app/public/assets/uploads /app/cache \
     && chown -R www-data:www-data /app/public/assets/uploads /app/cache \
     && chmod 777 /app/public/assets/uploads /app/cache \
-    && chmod -R a+rX /app/src /app/templates
+    && chmod -R a+rX /app/src /app/templates \
+    && printf "display_errors=Off\nlog_errors=On\nerror_log=/dev/stderr\nerror_reporting=E_ALL & ~E_DEPRECATED & ~E_STRICT\n" > /usr/local/etc/php/php.ini
 
 EXPOSE 80
 
