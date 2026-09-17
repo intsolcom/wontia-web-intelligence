@@ -34,7 +34,7 @@ class PageController
         if (!$title) Response::error('Title is required', 400);
 
         $db = Database::instance();
-        $db->prepare("INSERT INTO pages (site_id, title, slug, template, meta_title, meta_description, status, sort_order) VALUES (1, :title, :slug, :template, :meta_title, :meta_description, :status, :sort_order)")
+        $db->prepare("INSERT INTO pages (site_id, title, slug, template, meta_title, meta_description, status, sort_order) VALUES (@site_id, :title, :slug, :template, :meta_title, :meta_description, :status, :sort_order)")
             ->execute([
                 'title' => $title,
                 'slug' => $slug,
@@ -67,7 +67,7 @@ class PageController
         }
         if (empty($sets)) Response::error('No fields to update', 400);
 
-        $db->prepare("UPDATE pages SET " . implode(', ', $sets) . " WHERE id = :id")->execute($params);
+        $db->prepare("UPDATE pages SET " . implode(', ', $sets) . " WHERE id = :id AND site_id = @site_id")->execute($params);
         Response::json(['ok' => true]);
     }
 

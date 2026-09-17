@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 namespace App\Controllers\Admin;
 
 use App\Core\Database;
@@ -56,7 +56,7 @@ class BlogController
         $status = $req->input('status', 'draft');
         $publishedAt = $status === 'published' ? date('Y-m-d H:i:s') : null;
 
-        $db->prepare("INSERT INTO blog_posts (site_id, title, slug, excerpt, content, cover_image, cover_alt, category_id, author_name, author_role, read_time, status, featured, meta_title, meta_description, meta_keywords, lang, published_at) VALUES (1, :title, :slug, :excerpt, :content, :cover, :cover_alt, :cat, :author, :role, :read, :status, :featured, :meta_title, :meta_desc, :meta_key, :lang, :pub)")
+        $db->prepare("INSERT INTO blog_posts (site_id, title, slug, excerpt, content, cover_image, cover_alt, category_id, author_name, author_role, read_time, status, featured, meta_title, meta_description, meta_keywords, lang, published_at) VALUES (@site_id, :title, :slug, :excerpt, :content, :cover, :cover_alt, :cat, :author, :role, :read, :status, :featured, :meta_title, :meta_desc, :meta_key, :lang, :pub)")
             ->execute([
                 'title' => $title,
                 'slug' => $slug,
@@ -103,7 +103,7 @@ class BlogController
         }
         if ($readTime !== null) { $sets[] = "read_time = :rt"; $params['rt'] = $readTime; }
         if (!empty($sets)) {
-            $db->prepare("UPDATE blog_posts SET " . implode(', ', $sets) . " WHERE id = :id")->execute($params);
+            $db->prepare("UPDATE blog_posts SET " . implode(', ', $sets) . " WHERE id = :id AND site_id = @site_id")->execute($params);
         }
         $this->syncTags($id, $req->input('tag_ids', []));
         Response::json(['ok' => true]);
@@ -125,7 +125,7 @@ class BlogController
         if (!$p) Response::error('Post not found', 404);
         $newStatus = $p['status'] === 'published' ? 'draft' : 'published';
         $publishedAt = $newStatus === 'published' ? date('Y-m-d H:i:s') : null;
-        $db->prepare("UPDATE blog_posts SET status = :s, published_at = :pa WHERE id = :id")->execute(['s' => $newStatus, 'pa' => $publishedAt, 'id' => $id]);
+        $db->prepare("UPDATE blog_posts SET status = :s, published_at = :pa WHERE id = :id AND site_id = @site_id")->execute(['s' => $newStatus, 'pa' => $publishedAt, 'id' => $id]);
         Response::json(['ok' => true, 'status' => $newStatus]);
     }
 

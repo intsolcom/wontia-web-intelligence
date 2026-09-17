@@ -20,14 +20,14 @@ class BlogTagController
         if (!$name) Response::error('Name is required', 400);
         $slug = $req->input('slug') ?: \App\Controllers\Admin\PageController::slugify($name);
         $db = Database::instance();
-        $db->prepare("INSERT INTO blog_tags (site_id, name, slug) VALUES (1, :name, :slug)")->execute(['name' => $name, 'slug' => $slug]);
+        $db->prepare("INSERT INTO blog_tags (site_id, name, slug) VALUES (@site_id, :name, :slug)")->execute(['name' => $name, 'slug' => $slug]);
         Response::json(['ok' => true, 'data' => ['id' => $db->lastInsertId()]], 201);
     }
 
     public function destroy(Request $req, string $id): void
     {
         $db = Database::instance();
-        $db->prepare("DELETE FROM blog_tags WHERE id = :id")->execute(['id' => $id]);
+        $db->prepare("DELETE FROM blog_tags WHERE id = :id AND site_id = @site_id")->execute(['id' => $id]);
         Response::json(['ok' => true]);
     }
 }

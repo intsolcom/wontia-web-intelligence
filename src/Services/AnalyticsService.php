@@ -14,7 +14,7 @@ class AnalyticsService
             $device = self::detectDevice($userAgent);
             $country = $_SERVER['HTTP_CF_IPCOUNTRY'] ?? 'XX';
 
-            $db->prepare("INSERT INTO analytics_views (site_id, page_url, referrer, user_agent, ip_hash, is_internal, country, device, created_at) VALUES (1, :url, :ref, :ua, :ip, :internal, :country, :device, NOW())")
+            $db->prepare("INSERT INTO analytics_views (site_id, page_url, referrer, user_agent, ip_hash, is_internal, country, device, created_at) VALUES (@site_id, :url, :ref, :ua, :ip, :internal, :country, :device, NOW())")
                 ->execute([
                     'url' => $url,
                     'ref' => $referrer,

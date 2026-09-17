@@ -20,7 +20,7 @@ class BlogCategoryController
         if (!$name) Response::error('Name is required', 400);
         $slug = $req->input('slug') ?: \App\Controllers\Admin\PageController::slugify($name);
         $db = Database::instance();
-        $db->prepare("INSERT INTO blog_categories (site_id, name, slug, description, color, sort_order) VALUES (1, :name, :slug, :desc, :color, :sort)")
+        $db->prepare("INSERT INTO blog_categories (site_id, name, slug, description, color, sort_order) VALUES (@site_id, :name, :slug, :desc, :color, :sort)")
             ->execute(['name' => $name, 'slug' => $slug, 'desc' => $req->input('description', ''), 'color' => $req->input('color', '#BE1341'), 'sort' => (int)$req->input('sort_order', 0)]);
         Response::json(['ok' => true, 'data' => ['id' => $db->lastInsertId()]], 201);
     }
@@ -36,14 +36,14 @@ class BlogCategoryController
             if ($val !== null) { $sets[] = "$f = :$f"; $params[$f] = $f === 'sort_order' ? (int)$val : $val; }
         }
         if (empty($sets)) Response::error('No fields', 400);
-        $db->prepare("UPDATE blog_categories SET " . implode(', ', $sets) . " WHERE id = :id")->execute($params);
+        $db->prepare("UPDATE blog_categories SET " . implode(', ', $sets) . " WHERE id = :id AND site_id = @site_id")->execute($params);
         Response::json(['ok' => true]);
     }
 
     public function destroy(Request $req, string $id): void
     {
         $db = Database::instance();
-        $db->prepare("DELETE FROM blog_categories WHERE id = :id")->execute(['id' => $id]);
+        $db->prepare("DELETE FROM blog_categories WHERE id = :id AND site_id = @site_id")->execute(['id' => $id]);
         Response::json(['ok' => true]);
     }
 }
