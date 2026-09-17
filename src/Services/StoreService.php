@@ -177,7 +177,7 @@ class StoreService
         $params = [];
         if (!empty($f['status'])) { $sql .= " AND p.status = :status"; $params['status'] = $f['status']; }
         if (!empty($f['category_id'])) { $sql .= " AND p.category_id = :cat"; $params['cat'] = (int)$f['category_id']; }
-        if (!empty($f['search'])) { $sql .= " AND (p.name LIKE :q OR p.sku LIKE :q)"; $params['q'] = '%' . $f['search'] . '%'; }
+        if (!empty($f['search'])) { $sql .= " AND (p.name LIKE :q1 OR p.sku LIKE :q2)"; $params['q1'] = '%' . $f['search'] . '%'; $params['q2'] = '%' . $f['search'] . '%'; }
         if (!empty($f['featured'])) $sql .= " AND p.is_featured = 1";
         $sql .= " ORDER BY p.sort_order ASC, p.id DESC";
         $limit = (int)($f['limit'] ?? 0);
@@ -196,7 +196,7 @@ class StoreService
         $params = [];
         if (!empty($f['status'])) { $sql .= " AND p.status = :status"; $params['status'] = $f['status']; }
         if (!empty($f['category_id'])) { $sql .= " AND p.category_id = :cat"; $params['cat'] = (int)$f['category_id']; }
-        if (!empty($f['search'])) { $sql .= " AND (p.name LIKE :q OR p.sku LIKE :q)"; $params['q'] = '%' . $f['search'] . '%'; }
+        if (!empty($f['search'])) { $sql .= " AND (p.name LIKE :q1 OR p.sku LIKE :q2)"; $params['q1'] = '%' . $f['search'] . '%'; $params['q2'] = '%' . $f['search'] . '%'; }
         $stmt = $db->prepare($sql);
         $stmt->execute($params);
         return (int)$stmt->fetchColumn();
@@ -393,13 +393,13 @@ class StoreService
                     if ((int)$v['price_cents'] > 0) $unit = (int)$v['price_cents'];
                     $variantName = (string)$v['name'];
                     if ((int)$p['track_stock'] === 1) {
-                        $upd = $db->prepare("UPDATE store_variants SET stock = stock - :q WHERE id = :id AND site_id = @site_id AND stock >= :q");
-                        $upd->execute(['q' => $qty, 'id' => $vid]);
+                        $upd = $db->prepare("UPDATE store_variants SET stock = stock - :qty WHERE id = :id AND site_id = @site_id AND stock >= :minq");
+                        $upd->execute(['qty' => $qty, 'id' => $vid, 'minq' => $qty]);
                         if ($upd->rowCount() < 1) throw new \RuntimeException('Sin stock: ' . $p['name']);
                     }
                 } elseif ((int)$p['track_stock'] === 1) {
-                    $upd = $db->prepare("UPDATE store_products SET stock = stock - :q WHERE id = :id AND site_id = @site_id AND stock >= :q");
-                    $upd->execute(['q' => $qty, 'id' => $pid]);
+                    $upd = $db->prepare("UPDATE store_products SET stock = stock - :qty WHERE id = :id AND site_id = @site_id AND stock >= :minq");
+                    $upd->execute(['qty' => $qty, 'id' => $pid, 'minq' => $qty]);
                     if ($upd->rowCount() < 1) throw new \RuntimeException('Sin stock: ' . $p['name']);
                 }
                 $lineTotal = $unit * $qty;
@@ -507,8 +507,11 @@ class StoreService
         if (!empty($f['payment_status'])) { $sql .= " AND payment_status = :ps"; $params['ps'] = $f['payment_status']; }
         if (!empty($f['fulfillment_status'])) { $sql .= " AND fulfillment_status = :fs"; $params['fs'] = $f['fulfillment_status']; }
         if (!empty($f['search'])) {
-            $sql .= " AND (customer_name LIKE :q OR customer_email LIKE :q OR order_number LIKE :q OR uuid LIKE :q)";
-            $params['q'] = '%' . $f['search'] . '%';
+            $sql .= " AND (customer_name LIKE :q1 OR customer_email LIKE :q2 OR order_number LIKE :q3 OR uuid LIKE :q4)";
+            $params['q1'] = '%' . $f['search'] . '%';
+            $params['q2'] = '%' . $f['search'] . '%';
+            $params['q3'] = '%' . $f['search'] . '%';
+            $params['q4'] = '%' . $f['search'] . '%';
         }
         $sql .= " ORDER BY id DESC LIMIT " . min((int)($f['limit'] ?? 50), 200);
         $stmt = $db->prepare($sql);
