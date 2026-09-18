@@ -1103,7 +1103,6 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
 .wwi-section > section{padding:84px 0!important}
 .wwi-iq-hero-solo{display:block!important;padding:0!important}
 .wwi-iq-hero-solo .wwi-iq-hero-main{display:block;min-width:0}
-.wwi-iq-hero-solo section{padding:0!important}
 .wwi-iq-hero .wwi-iq-hero-main section{padding:0!important}
 .wwi-iq-tia{position:sticky;top:92px}
 @media(max-width:1100px){.wwi-iq-tia{position:static}}

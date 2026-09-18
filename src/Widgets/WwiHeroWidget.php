@@ -125,7 +125,7 @@ class WwiHeroWidget extends Widget
 .iqh-badge{position:absolute;display:inline-flex;align-items:center;gap:7px;padding:8px 13px;border-radius:12px;border:1px solid var(--border2);background:var(--panel);backdrop-filter:blur(12px);font-size:11.5px;font-weight:600;box-shadow:0 14px 34px rgba(0,0,0,.3);animation:iqhFloat 6s ease-in-out infinite;white-space:nowrap}
 .iqh-badge-1{top:-16px;left:-18px}
 .iqh-badge-2{top:38%;right:-22px;animation-delay:1.2s}
-.iqh-badge-3{bottom:-16px;left:12%;animation-delay:2.1s}
+.iqh-badge-3{bottom:-18px;right:16%;animation-delay:2.1s}
 .iqh-stats{position:relative;z-index:2;max-width:1200px;margin:54px auto 0;padding:0 26px;display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
 .iqh-stat{border:1px solid var(--border);border-radius:16px;background:var(--panel);backdrop-filter:blur(12px);padding:20px 22px;transition:.2s}
 .iqh-stat:hover{transform:translateY(-3px);border-color:var(--border2)}
