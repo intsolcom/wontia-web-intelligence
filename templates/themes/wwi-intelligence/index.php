@@ -19,7 +19,7 @@ $wwiNav = array_merge([
     'brand' => 'WWI',
     'logo_letter' => 'W',
     'cta' => 'Crear mi sitio',
-    'cta_url' => '#planes',
+    'cta_url' => '#empezar',
     'links' => [
         ['label' => 'Planes', 'url' => '#planes'],
         ['label' => 'Beneficios', 'url' => '#beneficios'],
@@ -348,8 +348,12 @@ endforeach; ?>
 (function(){
     var wwiPrev=!!window.__WWI_PREVIEW__;
     var r=document.querySelectorAll('.reveal');
-    var o=new IntersectionObserver(function(e){e.forEach(function(el){if(el.isIntersecting)el.classList.add('visible')})},{threshold:0.08});
-    r.forEach(function(el){o.observe(el)});
+    if('IntersectionObserver' in window){
+        var o=new IntersectionObserver(function(e){e.forEach(function(en){if(en.isIntersecting)en.target.classList.add('visible')})},{threshold:0.08});
+        r.forEach(function(el){o.observe(el)});
+    }else{
+        r.forEach(function(el){el.classList.add('visible')});
+    }
     document.querySelectorAll('.faq-q').forEach(function(q){
         q.addEventListener('click',function(){q.parentElement.classList.toggle('open')});
     });
@@ -427,7 +431,7 @@ async function wwiLoadPlans(){
             var html='';
             plans.forEach(function(p,i){
                 var feats=(p.features||[]).slice(0,8);
-                html+='<div class="card plan-card'+(i===0?' featured':'')+'"><div><div class="plan-name"><span data-source="plan:'+p.id+':name_es">'+wwiEsc(p.name_es)+'</span> <span style="color:var(--muted)">/ '+wwiEsc(p.name_en)+'</span></div><div class="plan-price" style="margin-top:8px" data-source="plan:'+p.id+':price_cop">$'+Number(p.price_cop).toLocaleString('es-CO')+' <small>'+wwiEsc(L.cop)+'</small>'+(p.price_usd?' <small>· $'+p.price_usd+' '+wwiEsc(L.usd)+'</small>':'')+'</div>'+(p.billing_type==='one_time'?'<div style="font-size:11px;color:var(--muted);margin-top:2px">'+wwiEsc(L.one)+'</div>':'<div style="font-size:11px;color:var(--muted);margin-top:2px">'+wwiEsc(L.monthly)+'</div>')+'</div><div class="plan-feats">'+feats.map(function(f,fi){return '<div data-source="plan:'+p.id+':feature:'+fi+'">'+wwiEsc(String(f).replace(/_/g,' '))+'</div>'}).join('')+'</div><a class="btn '+(i===0?'btn-primary':'btn-outline')+'" style="width:100%" href="#contacto" data-plan="'+p.id+'" data-source="plan:'+p.id+':name_es">'+wwiEsc(L.prefix)+wwiEsc(p.name_es)+'</a></div>';
+                html+='<div class="card plan-card'+(i===0?' featured':'')+'"><div><div class="plan-name"><span data-source="plan:'+p.id+':name_es">'+wwiEsc(p.name_es)+'</span> <span style="color:var(--muted)">/ '+wwiEsc(p.name_en)+'</span></div><div class="plan-price" style="margin-top:8px" data-source="plan:'+p.id+':price_cop">$'+Number(p.price_cop).toLocaleString('es-CO')+' <small>'+wwiEsc(L.cop)+'</small>'+(p.price_usd?' <small>· $'+p.price_usd+' '+wwiEsc(L.usd)+'</small>':'')+'</div>'+(p.billing_type==='one_time'?'<div style="font-size:11px;color:var(--muted);margin-top:2px">'+wwiEsc(L.one)+'</div>':'<div style="font-size:11px;color:var(--muted);margin-top:2px">'+wwiEsc(L.monthly)+'</div>')+'</div><div class="plan-feats">'+feats.map(function(f,fi){return '<div data-source="plan:'+p.id+':feature:'+fi+'">'+wwiEsc(String(f).replace(/_/g,' '))+'</div>'}).join('')+'</div><a class="btn '+(i===0?'btn-primary':'btn-outline')+'" style="width:100%" href="#empezar" data-plan="'+p.id+'" data-source="plan:'+p.id+':name_es">'+wwiEsc(L.prefix)+wwiEsc(p.name_es)+'</a></div>';
             });
             box.innerHTML=html;
         });
@@ -581,8 +585,22 @@ function wwiFlowClose(){
     document.getElementById('wwi-flow').classList.remove('open');
     if(location.hash==='#empezar')try{history.replaceState(null,'',location.pathname+location.search)}catch(e){}
 }
+function wwiFlowStartWithPlan(id){
+    wwiFlow.planId=id;
+    wwiFlow.addons=[];
+    wwiFlowOpen();
+    wwiFlowGo(4);
+}
 function wwiFlowMaybeOpen(){if(location.hash==='#empezar'&&document.getElementById('wwi-flow'))wwiFlowOpen()}
 if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',wwiFlowMaybeOpen)}else{wwiFlowMaybeOpen()}
+window.addEventListener('hashchange',wwiFlowMaybeOpen);
+document.addEventListener('click',function(e){
+    var a=e.target.closest?e.target.closest('a[href="#empezar"]'):null;
+    if(!a)return;
+    e.preventDefault();
+    if(a.getAttribute('data-plan')&&window.wwiFlowStartWithPlan){wwiFlowStartWithPlan(parseInt(a.getAttribute('data-plan'))||0)}
+    else{wwiFlowOpen()}
+});
 function wwiFlowGo(i){
     wwiFlow.idx=i;
     document.getElementById('wwi-flow-track').style.transform='translateX(-'+(i*100)+'%)';

@@ -14,7 +14,7 @@ class WwiCtaWidget extends Widget
             ['key' => 'title', 'label' => 'Titulo', 'type' => 'text', 'inline' => true, 'default' => 'Tu negocio merece estar en Internet'],
             ['key' => 'subtitle', 'label' => 'Subtitulo', 'type' => 'textarea', 'inline' => true, 'default' => 'Compra. Cuéntanos quién eres. TIA construye tu sitio web.'],
             ['key' => 'button', 'label' => 'Botón', 'type' => 'text', 'inline' => true, 'default' => 'Crear mi sitio ahora'],
-            ['key' => 'button_url', 'label' => 'URL', 'type' => 'link', 'default' => '#planes'],
+            ['key' => 'button_url', 'label' => 'URL', 'type' => 'link', 'default' => '#empezar'],
             ['key' => 'image', 'label' => 'Imagen (opcional)', 'type' => 'image', 'default' => ''],
         ];
     }
@@ -22,7 +22,7 @@ class WwiCtaWidget extends Widget
     public function render(array $config = []): string
     {
         $c = $this->mergeConfig($config);
-        $html = '<section id="contacto" style="padding:110px 0">';
+        $html = '<section id="wwi-cta-final" style="padding:110px 0">';
         $html .= '<div class="wrap" style="text-align:center">';
         $html .= '<div class="panel reveal" style="max-width:760px;margin:0 auto;padding:56px 34px;background:linear-gradient(160deg,var(--panel) 0%,rgba(139,92,246,.08) 100%);border-color:rgba(34,211,238,.35)">';
         if (!empty($c['image'])) $html .= '<img src="' . $this->esc($c['image']) . '" alt="" style="max-width:100%;border-radius:12px;margin-bottom:20px"/>';
