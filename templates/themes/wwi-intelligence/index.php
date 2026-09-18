@@ -656,6 +656,7 @@ function wwiFlowRestore(){
         if(s.domain)wwiFlow.domain=s.domain;
         if(s.prompt){wwiFlow.prompt=s.prompt;var i=document.getElementById('flow-input');if(i&&!i.value)i.value=s.prompt}
         if(s.addons)wwiFlow.addons=s.addons;
+        if(typeof s.idx==='number'&&s.idx>0)wwiFlow.idx=s.idx;
         if(s.uuid){
             fetch('/api/v1/public/previews/'+s.uuid).then(function(r){return r.json()}).then(function(d){
                 if(d.data&&d.data.status==='ready'){wwiFlow.uuid=s.uuid;wwiFlow.createdAt=s.createdAt||Date.now();wwiFlowSetPvState('ready')}
