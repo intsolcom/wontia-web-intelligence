@@ -1248,6 +1248,8 @@ class FactoryService
             'wwi.mail_pass' => '',
             'wwi.mail_from' => '',
             'wwi.mail_from_name' => 'Wontia',
+            'wwi.porkbun_api_key' => '',
+            'wwi.porkbun_secret_key' => '',
         ] as $key => $value) {
             $cfgStmt->execute(['k' => $key, 'v' => $value]);
         }

@@ -61,13 +61,18 @@ class DomainCheckerService
         }
 
         $tld = substr($name, strrpos($name, '.') + 1);
-        $result = $this->rdapLookup($name, $tld);
-        if ($result['state'] === 'ERROR') {
-            $whois = $this->whoisLookup($name, $tld);
-            if ($whois['state'] !== 'ERROR') {
-                $result = $whois;
-            } else {
-                $result = ['state' => 'CHECKING', 'message' => 'Verificación de .' . $tld . ' no disponible — se confirmará al registrar'];
+        $porkbun = $this->porkbunLookup($name);
+        if ($porkbun) {
+            $result = $porkbun;
+        } else {
+            $result = $this->rdapLookup($name, $tld);
+            if ($result['state'] === 'ERROR') {
+                $whois = $this->whoisLookup($name, $tld);
+                if ($whois['state'] !== 'ERROR') {
+                    $result = $whois;
+                } else {
+                    $result = $this->dnsLookup($name);
+                }
             }
         }
         $result['_t'] = time();
@@ -75,6 +80,64 @@ class DomainCheckerService
         @file_put_contents($cacheFile, json_encode($result));
         unset($result['_t'], $result['_ttl']);
         return $result;
+    }
+
+    private function porkbunLookup(string $name): ?array
+    {
+        $keys = $this->porkbunKeys();
+        if (!$keys) return null;
+        $ch = curl_init('https://api.porkbun.com/api/json/v3/domain/checkDomain/' . rawurlencode($name));
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 12,
+            CURLOPT_POST => true,
+            CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+            CURLOPT_POSTFIELDS => json_encode(['apikey' => $keys[0], 'secretapikey' => $keys[1]]),
+        ]);
+        $body = curl_exec($ch);
+        $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        if ($code !== 200 || !$body) return null;
+        $d = json_decode((string)$body, true);
+        if (!is_array($d) || ($d['status'] ?? '') !== 'SUCCESS') return null;
+        $resp = $d['response'] ?? [];
+        $avail = strtolower((string)($resp['avail'] ?? ''));
+        if ($avail === 'yes') {
+            return ['state' => 'AVAILABLE', 'message' => '¡Libre! (verificado con el registrador)', 'registrar' => 'Porkbun'];
+        }
+        if ($avail === 'no') {
+            $price = isset($resp['price']) ? (' — renovación $' . $resp['price'] . ' USD') : '';
+            return ['state' => 'TAKEN', 'message' => 'Registrado' . $price, 'registrar' => 'Porkbun'];
+        }
+        return null;
+    }
+
+    private function porkbunKeys(): ?array
+    {
+        $k = (string)\App\Core\Config::get('PORKBUN_API_KEY', '');
+        $s = (string)\App\Core\Config::get('PORKBUN_SECRET_KEY', '');
+        if ($k === '' || $s === '') {
+            try {
+                $stmt = \App\Core\Database::instance()->prepare("SELECT `key`, `value` FROM settings WHERE site_id = @site_id AND `key` IN ('wwi.porkbun_api_key','wwi.porkbun_secret_key')");
+                $stmt->execute();
+                foreach ($stmt->fetchAll() as $row) {
+                    if ($row['key'] === 'wwi.porkbun_api_key') $k = (string)$row['value'];
+                    else $s = (string)$row['value'];
+                }
+            } catch (\Throwable $e) {
+            }
+        }
+        return ($k !== '' && $s !== '') ? [$k, $s] : null;
+    }
+
+    private function dnsLookup(string $name): array
+    {
+        $ns = @dns_get_record($name, DNS_NS);
+        $a = @dns_get_record($name, DNS_A);
+        if (($ns && count($ns)) || ($a && count($a))) {
+            return ['state' => 'TAKEN', 'message' => 'Registrado — tiene DNS activo (se confirma con el registrador)', 'registrar' => ''];
+        }
+        return ['state' => 'CHECKING', 'message' => 'Sin DNS activo — parece libre; se confirma al registrar'];
     }
 
     private function rdapLookup(string $name, string $tld): array
