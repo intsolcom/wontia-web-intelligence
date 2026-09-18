@@ -334,8 +334,10 @@ foreach ($sections as $section):
     $wwiHide = (!empty($config['_hide_mobile']) ? ' wwi-hide-mobile' : '') . (!empty($config['_hide_tablet']) ? ' wwi-hide-tablet' : '');
     $wwiIsHero = !$wwiHeroDone && !empty($section['widget_type']) && stripos((string)$section['widget_type'], 'hero') !== false;
     if ($wwiIsHero) $wwiHeroDone = true;
+    $wwiIsWwiHero = $wwiIsHero && (string)($section['widget_type'] ?? '') === 'wwi-hero';
     echo '<div class="wwi-section' . $wwiHide . '" data-sid="' . $wwiSid . '" data-widget="' . htmlspecialchars((string)($section['widget_type'] ?? '')) . '"' . ($wwiVariant ? ' data-variant="' . $wwiVariant . '"' : '') . '>';
-    if ($wwiIsHero) echo '<div class="wwi-iq-hero"><div class="wwi-iq-hero-main">';
+    if ($wwiIsWwiHero) echo '<div class="wwi-iq-hero-solo">';
+    elseif ($wwiIsHero) echo '<div class="wwi-iq-hero"><div class="wwi-iq-hero-main">';
     if (!empty($section['widget_type']) && WidgetRegistry::get($section['widget_type'])):
         echo WidgetRegistry::render($section['widget_type'], $config);
     elseif ($section['type'] === 'custom' || $section['type'] === 'html'):
@@ -343,7 +345,8 @@ foreach ($sections as $section):
     else:
         if ($section['content']) echo '<section>' . $section['content'] . '</section>';
     endif;
-    if ($wwiIsHero) echo '</div>' . $wwiTiaPanel . '</div>';
+    if ($wwiIsWwiHero) echo '</div>';
+    elseif ($wwiIsHero) echo '</div>' . $wwiTiaPanel . '</div>';
     echo '</div>';
 endforeach; ?>
 >
@@ -1098,18 +1101,10 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
 :root[data-theme='light'] #wwi-hero-gpu{display:none}
 ::view-transition-old(root),::view-transition-new(root){animation:none;mix-blend-mode:normal}
 .wwi-section > section{padding:84px 0!important}
+.wwi-iq-hero-solo{display:block!important;padding:0!important}
+.wwi-iq-hero-solo .wwi-iq-hero-main{display:block;min-width:0}
+.wwi-iq-hero-solo section{padding:0!important}
 .wwi-iq-hero .wwi-iq-hero-main section{padding:0!important}
-.wwi-iq-hero .wwi-iq-hero-main .wrap{text-align:left!important;padding:0!important;max-width:none!important}
-.wwi-iq-hero .wwi-iq-hero-main h1{margin:0 0 20px!important;max-width:620px!important;font-size:clamp(30px,4.4vw,54px)!important;line-height:1.08!important}
-.wwi-iq-hero .wwi-iq-hero-main p{margin:0 0 26px!important;max-width:560px!important;font-size:16px!important;line-height:1.7!important}
-.wwi-iq-hero .wwi-iq-hero-main .badge{margin-bottom:20px!important}
-.wwi-iq-hero .wwi-iq-hero-main>section>.wrap>div[style*="display:flex"]{justify-content:flex-start!important;margin-bottom:16px!important}
-.wwi-iq-hero .wwi-iq-hero-main .trust-row{justify-content:flex-start!important;margin-top:20px!important}
-.wwi-iq-hero .wwi-iq-hero-main .mono[data-editable="price_note"]{font-size:12.5px!important}
-.wwi-iq-hero .wwi-iq-hero-main .wwi-grid-3{display:flex!important;flex-wrap:wrap;gap:14px!important;margin-top:30px!important;padding:0!important}
-.wwi-iq-hero .wwi-iq-hero-main .wwi-grid-3 .stat{flex:1 1 150px;text-align:left!important;padding:16px 18px!important;background:var(--panel)!important;border:1px solid var(--border)!important;border-radius:14px!important;backdrop-filter:blur(12px)}
-.wwi-iq-hero .wwi-iq-hero-main .wwi-grid-3 .stat .v{font-size:20px!important}
-.wwi-iq-hero .wwi-iq-hero-main .marquee{max-width:none!important;margin:30px 0 0!important;border-radius:14px!important}
 .wwi-iq-tia{position:sticky;top:92px}
 @media(max-width:1100px){.wwi-iq-tia{position:static}}
 .tia.is-idle .wwi-ai-orb{animation-duration:4.5s}
