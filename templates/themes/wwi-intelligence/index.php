@@ -815,7 +815,8 @@ async function wwiFlowSend(){
             wwiConfetti();
             wwiFlowSetPvState('ready');
             wwiFlowExpiryTick();
-            wwiFlowGo(1);
+            if(wwiFlow.idx===0)wwiFlowGo(1);
+            else wwiFlowChat('tia','Tu vista previa esta lista. Puedes verla en el Paso 2.');
         }else if(wwiFlowPolling===false){
             if(tr)tr.querySelector('.chat-msg').innerHTML='Generacion cancelada.';
         }else{
@@ -830,10 +831,24 @@ async function wwiFlowSend(){
         wwiFlowChat('tia','Error de conexion. Intenta de nuevo.');
     }
 }
-var wwiFlowPvTimer=null;
+var wwiFlowPvTimer=null,wwiFlowPvLoadTimer=null;
 function wwiFlowShowPreview(uuid){
     if(!uuid){wwiFlowSetPvState('empty');return}
-    document.getElementById('wwi-pv-frame').src='/api/v1/public/preview/'+uuid;
+    if(wwiFlow.createdAt&&(Date.now()-wwiFlow.createdAt)>3600000){
+        alert('Tu vista previa expiro (duran 60 minutos). Genera una nueva o usa una plantilla.');
+        wwiFlowRegenerate();
+        return;
+    }
+    var frame=document.getElementById('wwi-pv-frame');
+    var loading=document.getElementById('pv-loading');
+    if(loading)loading.style.display='flex';
+    frame.src='/api/v1/public/preview/'+uuid;
+    if(wwiFlowPvLoadTimer)clearTimeout(wwiFlowPvLoadTimer);
+    wwiFlowPvLoadTimer=setTimeout(function(){
+        if(loading&&loading.style.display!=='none'){
+            loading.innerHTML='<div style="text-align:center;color:var(--muted);font-size:13px">No pudimos cargar la vista previa.<br/><br/><button class="btn btn-primary" style="padding:9px 16px;font-size:12.5px" onclick="wwiFlowRegenerate()">Generar de nuevo</button></div>';
+        }
+    },9000);
     var open=document.getElementById('pv-open');
     if(open)open.href='/api/v1/public/preview/'+uuid;
     document.getElementById('wwi-pv-modal').classList.add('open');
@@ -843,7 +858,7 @@ function wwiFlowShowPreview(uuid){
         if(!cd)return;
         var left=Math.max(0,60-Math.floor((Date.now()-(wwiFlow.createdAt||Date.now()))/60000));
         cd.textContent='· expira en '+left+' min';
-        if(left<=0)cd.textContent='· expirada';
+        if(left<=0){cd.textContent='· expirada';wwiFlowHidePreview()}
     },1000);
 }
 function wwiFlowHidePreview(){
@@ -1100,8 +1115,6 @@ document.addEventListener('DOMContentLoaded',function(){
     if(fc)fc.addEventListener('click',wwiFlowConfirmDomain);
     var pv=document.getElementById('pv-view');
     if(pv)pv.addEventListener('click',function(){wwiFlowShowPreview(wwiFlow.uuid)});
-    var useBtn=document.getElementById('pv-use');
-    if(useBtn)useBtn.addEventListener('click',wwiFlowUsePreview);
     document.addEventListener('keydown',function(e){
         if(e.key!=='Escape')return;
         var modal=document.getElementById('wwi-pv-modal');
@@ -1431,7 +1444,8 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
 <div class="flow-modal" id="wwi-pv-modal">
   <div class="box" id="wwi-pv-box">
     <div class="flow-head"><div style="flex:1;font-size:12px;font-weight:700;letter-spacing:.06em">VISTA PREVIA TEMPORAL <span id="pv-countdown" class="mono" style="font-size:10.5px;font-weight:500;opacity:.75"></span></div><div style="display:flex;gap:4px"><button class="btn btn-ghost" style="padding:4px 10px;font-size:11px" onclick="wwiPvDevice(900)">Desktop</button><button class="btn btn-ghost" style="padding:4px 10px;font-size:11px" onclick="wwiPvDevice(700)">Tablet</button><button class="btn btn-ghost" style="padding:4px 10px;font-size:11px" onclick="wwiPvDevice(390)">Mobile</button></div><button class="flow-close" onclick="wwiFlowHidePreview()" aria-label="Cerrar">&times;</button></div>
-    <iframe id="wwi-pv-frame" src="about:blank" title="Vista previa del sitio"></iframe>
+    <iframe id="wwi-pv-frame" src="about:blank" title="Vista previa del sitio" onload="(function(){var l=document.getElementById('pv-loading');if(l)l.style.display='none';var t=window.wwiFlowPvLoadTimer;if(t)clearTimeout(t)})()"></iframe>
+    <div id="pv-loading" style="display:none;position:absolute;inset:56px 0 56px 0;align-items:center;justify-content:center;background:var(--panel)"><div class="spin" style="display:block;margin:0 auto 10px"></div><div style="text-align:center;color:var(--muted);font-size:12.5px">Cargando tu vista previa…</div></div>
     <div class="flow-actions" style="margin:0;padding:10px 14px;border-top:1px solid var(--border);justify-content:flex-end;background:var(--panel2)">
       <a class="btn btn-ghost" id="pv-open" href="#" target="_blank" rel="noopener" style="padding:9px 16px;font-size:12.5px">Abrir en pestaña nueva</a>
       <button class="btn btn-ghost" onclick="wwiFlowRegenerate()" style="padding:9px 16px;font-size:12.5px">Regenerar</button>
