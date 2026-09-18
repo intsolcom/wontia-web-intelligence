@@ -327,7 +327,7 @@ window.WWMSinit=function(root){
         if(counter)counter.textContent=(i+1)+' / '+slides.length;
         setThumbState();announce();preloadNext();restart();
         if(user&&lightboxOn&&root.__lbOpen)WWMSlightbox(root,i);
-        try{if(history.replaceState)history.replaceState(null,'','#slide-'+(i+1))}catch(e){}
+        if(user){try{if(history.replaceState)history.replaceState(null,'','#slide-'+(i+1))}catch(e){}}
         try{root.dispatchEvent(new CustomEvent('wwms:change',{detail:{index:i,count:slides.length}}))}catch(e){}
     }
     function restart(){
