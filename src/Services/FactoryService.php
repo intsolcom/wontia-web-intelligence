@@ -650,15 +650,23 @@ class FactoryService
         @file_put_contents($dir . '/' . $slug . '-' . $tenant['id'] . '.json', json_encode($payload, JSON_UNESCAPED_UNICODE));
     }
 
+    public function previewLimit(): int
+    {
+        $cfg = $this->config();
+        $limit = (int)($cfg['wwi.preview_limit_per_day'] ?? 0);
+        return $limit > 0 ? $limit : 5;
+    }
+
     public function previewAttempts(string $ip): array
     {
         if ($this->isBuilder()) return ['unlimited' => true, 'limit' => null];
         $db = Database::instance();
+        $limit = $this->previewLimit();
         $hash = md5($ip);
         $stmt = $db->prepare("SELECT attempts FROM wwi_prompt_attempts WHERE site_id = @site_id AND ip_hash = :h AND day = CURDATE()");
         $stmt->execute(['h' => $hash]);
         $used = (int)$stmt->fetchColumn();
-        return ['used' => $used, 'left' => max(0, 2 - $used), 'limit' => 2, 'unlimited' => false];
+        return ['used' => $used, 'left' => max(0, $limit - $used), 'limit' => $limit, 'unlimited' => false];
     }
 
     private function isBuilder(): bool
@@ -673,14 +681,15 @@ class FactoryService
             return ['ok' => false, 'message' => 'Cuéntame un poco más sobre tu negocio (mínimo 10 caracteres)'];
         }
         $db = Database::instance();
+        $limit = $this->previewLimit();
         if (!$skipLimit) {
             $hash = md5($ip);
             $stmt = $db->prepare("INSERT INTO wwi_prompt_attempts (site_id, ip_hash, day, attempts) VALUES (@site_id, :h, CURDATE(), 1) ON DUPLICATE KEY UPDATE attempts = attempts + 1");
             $stmt->execute(['h' => $hash]);
             $attempts = $this->previewAttempts($ip);
-            if (($attempts['used'] ?? 0) > 2) {
-                $db->prepare("UPDATE wwi_prompt_attempts SET attempts = 2 WHERE site_id = @site_id AND ip_hash = :h AND day = CURDATE()")->execute(['h' => $hash]);
-                return ['ok' => false, 'limit_reached' => true, 'message' => 'Ya usaste tus 2 intentos de hoy. Explora el catálogo de plantillas o vuelve mañana.'];
+            if (($attempts['used'] ?? 0) > $limit) {
+                $db->prepare("UPDATE wwi_prompt_attempts SET attempts = :lim WHERE site_id = @site_id AND ip_hash = :h AND day = CURDATE()")->execute(['h' => $hash, 'lim' => $limit]);
+                return ['ok' => false, 'limit_reached' => true, 'limit' => $limit, 'message' => 'Alcanzaste el límite de ' . $limit . ' vistas previas por hoy. Puedes usar una plantilla (no consume intentos) o volver mañana.'];
             }
         } else {
             $attempts = ['unlimited' => true, 'limit' => null];
@@ -1250,6 +1259,8 @@ class FactoryService
             'wwi.mail_pass' => '',
             'wwi.mail_from' => '',
             'wwi.mail_from_name' => 'Wontia',
+            'wwi.preview_limit_per_day' => '5',
+            'wwi.support_whatsapp' => '',
             'wwi.porkbun_api_key' => '',
             'wwi.porkbun_secret_key' => '',
         ] as $key => $value) {

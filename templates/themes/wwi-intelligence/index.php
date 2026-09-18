@@ -28,6 +28,15 @@ $wwiNav = array_merge([
     ],
 ], $wwiNav);
 if (!is_array($wwiNav['links'] ?? null)) $wwiNav['links'] = [];
+$wwiSupport = '';
+try {
+    $supStmt = Database::instance()->prepare("SELECT `value` FROM settings WHERE site_id = @site_id AND `key` = 'wwi.support_whatsapp' LIMIT 1");
+    $supStmt->execute();
+    $wwiSupport = preg_replace('/[^0-9]/', '', (string)$supStmt->fetchColumn());
+} catch (\Throwable $e) {
+    $wwiSupport = '';
+}
+$wwiSupportUrl = $wwiSupport !== '' ? 'https://wa.me/' . $wwiSupport . '?text=' . rawurlencode('Hola, necesito ayuda con mi sitio web') : 'mailto:hola@wontia.com?subject=' . rawurlencode('Ayuda con mi sitio web');
 ?>
 <!DOCTYPE html>
 <html lang="es" data-theme="dark">
@@ -595,18 +604,26 @@ var startBtn=document.getElementById('wwi-start');
 if(startBtn)startBtn.addEventListener('click',function(e){e.preventDefault();wwiFlowOpen()});
 </script>
 <script>
-var wwiFlow={idx:0,uuid:null,planId:null,addons:[],domain:null,attempts:0};
+var wwiFlow={idx:0,uuid:null,planId:null,planData:null,addons:[],domain:null,attempts:0,createdAt:null,prompt:''};
 try{var _sd=localStorage.getItem('wwi_domain')||'';if(_sd)wwiFlow.domain=_sd}catch(e){}
+try{var _sp=sessionStorage.getItem('wwi_flow_prompt')||'';if(_sp)wwiFlow.prompt=_sp}catch(e){}
 function wwiFlowOpen(){
     document.getElementById('wwi-flow').classList.add('open');
     if(location.hash!=='#empezar')try{history.replaceState(null,'','#empezar')}catch(e){}
-    wwiFlowGo(0);
+    wwiFlowRestore();
+    wwiFlowGo(wwiFlow.idx||0);
     wwiFlowAttempts();
     if(!wwiFlow.booted){
         wwiFlowChat('tia','¡Hola! Soy TIA. Escribe cómo quieres tu sitio web. Por ejemplo: <em>soy arquitecto y quiero que mi sitio muestre mi trayectoria y los proyectos que he ejecutado</em>.');
         wwiFlow.booted=true;
     }
+    var i=document.getElementById('flow-input');
+    if(i&&!i.value&&wwiFlow.prompt)i.value=wwiFlow.prompt;
+    if(wwiFlowExpiryTimer)clearInterval(wwiFlowExpiryTimer);
+    wwiFlowExpiryTimer=setInterval(wwiFlowExpiryTick,30000);
+    wwiFlowExpiryTick();
 }
+var wwiFlowExpiryTimer=null;
 function wwiFlowClose(){
     document.getElementById('wwi-flow').classList.remove('open');
     if(location.hash==='#empezar')try{history.replaceState(null,'',location.pathname+location.search)}catch(e){}
@@ -627,13 +644,37 @@ document.addEventListener('click',function(e){
     if(a.getAttribute('data-plan')&&window.wwiFlowStartWithPlan){wwiFlowStartWithPlan(parseInt(a.getAttribute('data-plan'))||0)}
     else{wwiFlowOpen()}
 });
+var WWI_FLOW_STEPS=['Cuentanos tu negocio','Tu vista previa','Elige plantilla','Elige tu plan','Tu dominio'];
+function wwiFlowSave(){
+    try{sessionStorage.setItem('wwi_flow_state',JSON.stringify({idx:wwiFlow.idx,uuid:wwiFlow.uuid,planId:wwiFlow.planId,domain:wwiFlow.domain,prompt:wwiFlow.prompt||'',addons:wwiFlow.addons||[]}))}catch(e){}
+}
+function wwiFlowRestore(){
+    try{
+        var s=JSON.parse(sessionStorage.getItem('wwi_flow_state')||'null');
+        if(!s)return;
+        if(s.planId)wwiFlow.planId=s.planId;
+        if(s.domain)wwiFlow.domain=s.domain;
+        if(s.prompt){wwiFlow.prompt=s.prompt;var i=document.getElementById('flow-input');if(i&&!i.value)i.value=s.prompt}
+        if(s.addons)wwiFlow.addons=s.addons;
+        if(s.uuid){
+            fetch('/api/v1/public/previews/'+s.uuid).then(function(r){return r.json()}).then(function(d){
+                if(d.data&&d.data.status==='ready'){wwiFlow.uuid=s.uuid;wwiFlow.createdAt=s.createdAt||Date.now();wwiFlowSetPvState('ready')}
+            }).catch(function(){});
+        }
+    }catch(e){}
+}
+function wwiFlowBack(){
+    if(wwiFlow.idx>0)wwiFlowGo(wwiFlow.idx-1);
+}
 function wwiFlowGo(i){
     wwiFlow.idx=i;
     document.getElementById('wwi-flow-track').style.transform='translateX(-'+(i*100)+'%)';
     document.querySelectorAll('.flow-head .dot').forEach(function(d){d.classList.toggle('on',+d.dataset.d===i)});
-    var labels=['Cuéntanos tu negocio','Tu vista previa','Elige plantilla','Elige tu plan','Tu dominio'];
     var lbl=document.getElementById('flow-step-label');
-    if(lbl)lbl.textContent='Paso '+(i+1)+' · '+labels[i];
+    if(lbl)lbl.textContent='Paso '+(i+1)+' de 5 · '+WWI_FLOW_STEPS[i];
+    var back=document.getElementById('flow-back');
+    if(back)back.disabled=(i===0);
+    if(i===1)wwiFlowSetPvState(wwiFlow.uuid?'ready':'empty');
     if(i===2)wwiFlowLoadTpls();
     if(i===3)wwiFlowLoadPlans();
     if(i===4)setTimeout(function(){
@@ -644,11 +685,34 @@ function wwiFlowGo(i){
         }
         wwiFlowRecentRender();
     },150);
+    wwiFlowSave();
+    try{document.dispatchEvent(new CustomEvent('wwi:flow',{detail:{step:i,label:WWI_FLOW_STEPS[i]}}))}catch(e){}
 }
 function wwiFlowChip(el){
     var input=document.getElementById('flow-input');
     if(input){input.value=el.textContent;wwiFlowSend()}
 }
+function wwiFlowLimitCard(){
+    var el=document.getElementById('flow-limit-card');
+    if(!el)return;
+    var wa=document.getElementById('flow-help');
+    var waHref=wa?wa.getAttribute('href'):'';
+    el.style.display='block';
+    el.innerHTML='<div class="flow-note"><strong>Alcanzaste el limite de vistas previas por hoy.</strong><br/>Puedes seguir con una plantilla lista (no consume intentos), escribirnos o volver manana.'
+        +'<div class="acts"><button class="btn btn-primary" style="padding:9px 16px;font-size:12.5px" onclick="wwiFlowGo(2)">Ver plantillas</button>'
+        +(waHref&&waHref.indexOf('http')===0?'<a class="btn btn-ghost" style="padding:9px 16px;font-size:12.5px" href="'+waHref+'" target="_blank" rel="noopener">Escribirnos por WhatsApp</a>':'')
+        +'<button class="btn btn-ghost" style="padding:9px 16px;font-size:12.5px" onclick="document.getElementById(\'flow-limit-card\').style.display=\'none\'">Entendido</button></div></div>';
+}
+function wwiFlowPhases(step){
+    var wrap=document.getElementById('flow-phases');
+    if(!wrap)return;
+    wrap.style.display='flex';
+    wrap.querySelectorAll('.ph').forEach(function(p,i){
+        p.classList.toggle('on',i===step);
+        p.classList.toggle('done',i<step);
+    });
+}
+function wwiFlowPhasesHide(){var wrap=document.getElementById('flow-phases');if(wrap)wrap.style.display='none'}
 function wwiFlowChat(who,html){
     var box=document.getElementById('flow-chat');if(!box)return null;
     var row=document.createElement('div');
@@ -665,56 +729,143 @@ async function wwiFlowAttempts(){
         var r=await fetch('/api/v1/public/previews/attempts');
         var d=await r.json();
         if(d.data&&d.data.unlimited){wwiFlow.attempts=0;if(el)el.textContent='Modo constructor: prompts ilimitados.';}
-        else{wwiFlow.attempts=(d.data&&d.data.used)||0;if(el)el.textContent='Intentos usados hoy: '+wwiFlow.attempts+' de 2.';}
+        else{
+            var used=(d.data&&d.data.used)||0,limit=(d.data&&d.data.limit)||5;
+            wwiFlow.attempts=used;
+            if(el)el.textContent='Vistas previas gratis hoy: '+(limit-used)+' de '+limit+' disponibles.';
+        }
     }catch(e){}
 }
+function wwiFlowSetPvState(state,msg){
+    var empty=document.getElementById('pv-empty'),ready=document.getElementById('pv-ready'),err=document.getElementById('pv-error');
+    if(empty)empty.style.display=state==='empty'?'block':'none';
+    if(ready)ready.style.display=state==='ready'?'block':'none';
+    if(err)err.style.display=state==='error'?'block':'none';
+    if(state==='error'&&msg){var m=document.getElementById('pv-error-msg');if(m)m.textContent=msg}
+}
+function wwiFlowExpiryTick(){
+    var el=document.getElementById('pv-expiry');
+    if(!el||!wwiFlow.createdAt)return;
+    var left=Math.max(0,60-Math.floor((Date.now()-wwiFlow.createdAt)/60000));
+    el.textContent='Muestra temporal — expira en '+left+' min. No es tu sitio final.';
+}
+var wwiFlowPolling=false;
+function wwiFlowCancel(){
+    wwiFlowPolling=false;
+    wwiFlowPhasesHide();
+    var c=document.getElementById('flow-cancel');if(c)c.style.display='none';
+    var b=document.getElementById('flow-send-btn');if(b){b.disabled=false;b.textContent='Enviar'}
+    wwiFlowChat('tia','Cancelado. Puedes intentarlo otra vez cuando quieras.');
+}
 async function wwiFlowSend(){
+    if(wwiFlowPolling)return;
     var input=document.getElementById('flow-input');
     var v=input.value.trim();
-    if(!v)return;
+    if(!v){input.focus();return}
+    wwiFlow.prompt=v;
+    try{sessionStorage.setItem('wwi_flow_prompt',v)}catch(e){}
     wwiFlowChat('user',wwiEsc(v));
     input.value='';
-    var tr=wwiFlowChat('tia','<span class="typing"><i></i><i></i><i></i></span>');
+    wwiFlowPolling=true;
+    var sendBtn=document.getElementById('flow-send-btn');
+    if(sendBtn){sendBtn.disabled=true;sendBtn.textContent='Generando…'}
+    var cancelBtn=document.getElementById('flow-cancel');
+    if(cancelBtn)cancelBtn.style.display='inline-flex';
+    wwiFlowPhases(0);
+    var tr=wwiFlowChat('tia','<span class="typing"><i></i><i></i><i></i></span> <span style="opacity:.7">esto puede tardar ~20 segundos</span>');
+    var ph=1;
+    var phTimer=setInterval(function(){wwiFlowPhases(Math.min(3,ph++))},4500);
     try{
         var r=await fetch('/api/v1/public/previews',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({prompt:v})});
         var d=await r.json();
         if(!d.ok){
+            clearInterval(phTimer);wwiFlowPhasesHide();wwiFlowPolling=false;
+            if(sendBtn){sendBtn.disabled=false;sendBtn.textContent='Enviar'}
+            if(cancelBtn)cancelBtn.style.display='none';
             wwiFlowChat('tia','⚠ '+wwiEsc(d.message||'Error'));
             wwiFlowAttempts();
-            if(d.data&&d.data.limit_reached){setTimeout(function(){wwiFlowGo(2)},1600);}
+            if(d.data&&d.data.limit_reached)wwiFlowLimitCard();
             return;
         }
         wwiFlow.uuid=d.data.uuid;
+        wwiFlow.createdAt=Date.now();
         wwiFlowAttempts();
         var ok=false;
-        for(var i=0;i<40;i++){
+        for(var i=0;i<40&&wwiFlowPolling;i++){
             await new Promise(function(res){setTimeout(res,2500)});
+            if(!wwiFlowPolling)break;
             var s=await fetch('/api/v1/public/previews/'+wwiFlow.uuid);
             var sd=await s.json();
             if(sd.data&&sd.data.status==='ready'){ok=true;break}
-            if(sd.data&&sd.data.status==='failed'){wwiFlowChat('tia','Algo falló al generar. Intenta de nuevo o usa el catálogo.');return}
+            if(sd.data&&sd.data.status==='failed'){
+                clearInterval(phTimer);wwiFlowPhasesHide();wwiFlowPolling=false;
+                if(sendBtn){sendBtn.disabled=false;sendBtn.textContent='Enviar'}
+                if(cancelBtn)cancelBtn.style.display='none';
+                if(tr)tr.querySelector('.chat-msg').innerHTML='No pudimos generar tu vista previa. Prueba con otra descripcion o usa una plantilla.';
+                wwiFlowSetPvState('error','No pudimos generar la vista previa. Intenta de nuevo o usa una plantilla lista.');
+                return;
+            }
         }
+        clearInterval(phTimer);wwiFlowPhasesHide();wwiFlowPolling=false;
+        if(cancelBtn)cancelBtn.style.display='none';
+        if(sendBtn){sendBtn.disabled=false;sendBtn.textContent='Enviar'}
         if(ok){
-            if(tr)tr.querySelector('.chat-msg').innerHTML='¡Listo! Tu vista previa está creada. 👇';
+            wwiFlowPhases(4);
+            if(tr)tr.querySelector('.chat-msg').innerHTML='¡Listo! Tu vista previa esta creada. 👇';
             wwiConfetti();
-            document.getElementById('pv-view').onclick=function(){wwiFlowShowPreview(wwiFlow.uuid)};
+            wwiFlowSetPvState('ready');
+            wwiFlowExpiryTick();
             wwiFlowGo(1);
+        }else if(wwiFlowPolling===false){
+            if(tr)tr.querySelector('.chat-msg').innerHTML='Generacion cancelada.';
         }else{
-            if(tr)tr.querySelector('.chat-msg').innerHTML='Está tardando más de lo normal. Revisa el preview o usa el catálogo.';
+            if(tr)tr.querySelector('.chat-msg').innerHTML='Esta tardando mas de lo normal. Puedes ver el preview o usar el catalogo.';
+            wwiFlowSetPvState('ready');
+            wwiFlowGo(1);
         }
-    }catch(e){wwiFlowChat('tia','Error de conexión. Intenta de nuevo.')}
+    }catch(e){
+        clearInterval(phTimer);wwiFlowPhasesHide();wwiFlowPolling=false;
+        if(sendBtn){sendBtn.disabled=false;sendBtn.textContent='Enviar'}
+        if(cancelBtn)cancelBtn.style.display='none';
+        wwiFlowChat('tia','Error de conexion. Intenta de nuevo.');
+    }
 }
+var wwiFlowPvTimer=null;
 function wwiFlowShowPreview(uuid){
+    if(!uuid){wwiFlowSetPvState('empty');return}
     document.getElementById('wwi-pv-frame').src='/api/v1/public/preview/'+uuid;
+    var open=document.getElementById('pv-open');
+    if(open)open.href='/api/v1/public/preview/'+uuid;
     document.getElementById('wwi-pv-modal').classList.add('open');
+    if(wwiFlowPvTimer)clearInterval(wwiFlowPvTimer);
+    var cd=document.getElementById('pv-countdown');
+    wwiFlowPvTimer=setInterval(function(){
+        if(!cd)return;
+        var left=Math.max(0,60-Math.floor((Date.now()-(wwiFlow.createdAt||Date.now()))/60000));
+        cd.textContent='· expira en '+left+' min';
+        if(left<=0)cd.textContent='· expirada';
+    },1000);
+}
+function wwiFlowHidePreview(){
+    document.getElementById('wwi-pv-modal').classList.remove('open');
+    if(wwiFlowPvTimer)clearInterval(wwiFlowPvTimer);
+    document.getElementById('wwi-pv-frame').src='about:blank';
+}
+function wwiFlowUsePreview(){
+    wwiFlowHidePreview();
+    wwiFlowGo(3);
+}
+function wwiFlowRegenerate(){
+    wwiFlowHidePreview();
+    wwiFlowGo(0);
+    var i=document.getElementById('flow-input');
+    if(i){i.value=wwiFlow.prompt||'';i.focus()}
 }
 function wwiFlowDiscard(){
+    wwiFlow.uuid=null;wwiFlow.createdAt=null;
     wwiFlowAttempts();
-    if(wwiFlow.attempts>=2){
-        wwiFlowGo(2);
-        return;
-    }
     document.getElementById('flow-input').value='';
+    wwiFlowSetPvState('empty');
     wwiFlowGo(0);
 }
 async function wwiFlowLoadTpls(){
@@ -758,12 +909,35 @@ async function wwiFlowLoadPlans(){
         var plans=all.filter(function(p){return core.indexOf(p.slug)>-1});
         if(plans.length<2)plans=all;
         plans=plans.slice(0,4);
-        grid.innerHTML=plans.map(function(p){return '<div class="plan-mini" onclick="wwiFlowPickPlan('+p.id+')"><div class="nm">'+wwiEsc(p.name_es)+'</div><div class="pr">$'+Number(p.price_cop).toLocaleString('es-CO')+'</div><div style="font-size:10px;color:var(--muted)">COP · pago único</div></div>'}).join('')||'Sin planes';
+        var prompt=((wwiFlow.prompt||'')+' '+((document.getElementById('flow-input')||{}).value||'')).toLowerCase();
+        var reco='web-business';
+        if(/tienda|vender|producto|ecommerce|carrito|pedido/.test(prompt))reco='ecommerce';
+        else if(/catalogo|menu|portafolio|galeria/.test(prompt))reco='web-catalog';
+        else if(/basico|sencillo|tarjeta|presentacion|empezar/.test(prompt))reco='web-starter';
+        grid.innerHTML=plans.map(function(p){
+            var feats=(p.features||[]).slice(0,5).map(function(f){return '<span>'+wwiEsc(String(f).replace(/_/g,' '))+'</span>'}).join('');
+            var isReco=p.slug===reco;
+            return '<div class="plan-mini'+(isReco?' on':'')+'" data-plan-id="'+p.id+'" onclick="wwiFlowPickPlan('+p.id+')">'+(isReco?'<span class="reco">Recomendado para ti</span>':'')
+                +'<div class="nm">'+wwiEsc(p.name_es)+'</div><div class="pr">$'+Number(p.price_cop).toLocaleString('es-CO')+'</div>'
+                +'<div style="font-size:10px;color:var(--muted)">COP · '+(p.billing_type==='monthly'?'mensual':'pago unico')+'</div>'
+                +'<div class="feats">'+feats+'</div></div>';
+        }).join('')||'Sin planes';
+        wwiFlow.plansCache=plans;
+        var note=document.getElementById('plan-reco');
+        if(note){
+            note.style.display='block';
+            note.innerHTML='<strong>Recomendado:</strong> '+(reco==='ecommerce'?'Ecommerce (vendes productos)':reco==='web-catalog'?'Web Catalog (catalogo)':reco==='web-starter'?'Web Starter (presencia basica)':'Web Business (web + blog + SEO)')
+                +'. Despues del pago creamos tu sitio y te enviamos los accesos por correo (24 h).';
+        }
     }catch(e){grid.textContent='Error cargando planes'}
 }
 function wwiFlowPickPlan(id){
     wwiFlow.planId=id;
-    document.getElementById('wwi-xs-modal').classList.add('open');
+    var cache=wwiFlow.plansCache||[];
+    for(var k=0;k<cache.length;k++){if(Number(cache[k].id)===Number(id)){wwiFlow.planData=cache[k];break}}
+    wwiFlowSave();
+    var xs=document.getElementById('wwi-xs-modal');
+    if(xs)xs.classList.add('open');else wwiFlowGo(4);
 }
 function wwiXsConfirm(add){
     document.getElementById('wwi-xs-modal').classList.remove('open');
@@ -892,25 +1066,47 @@ function wwiFlowOwnDomain(){
 }
 function wwiFlowConfirmDomain(){
     var wrap=document.getElementById('flow-order-result');
-    wrap.innerHTML='<div style="margin-top:10px"><input class="input" id="fo2-name" placeholder="Tu nombre" style="margin-bottom:8px"/><input class="input" id="fo2-email" type="email" placeholder="tu@email.com" style="margin-bottom:10px"/><button class="btn btn-primary" onclick="wwiFlowCreateOrder()">Crear mi pedido</button></div>';
+    var plan=wwiFlow.planData||null;
+    var domain=wwiFlow.domain||wwiFlowNormDomain(document.getElementById('flow-dom-input').value);
+    var planPrice=plan?Number(plan.price_cop):0;
+    var addonPrice=wwiFlow.addons&&wwiFlow.addons.length?149000:0;
+    var total=planPrice+addonPrice;
+    wrap.innerHTML='<div class="pv-sum"><div class="r"><span>Plan</span><strong>'+(plan?wwiEsc(plan.name_es):'—')+'</strong></div>'
+        +'<div class="r"><span>Dominio</span><strong>'+(domain?wwiEsc(domain):'—')+'</strong></div>'
+        +(addonPrice?'<div class="r"><span>Web Master (mensual)</span><strong>$'+Number(addonPrice).toLocaleString('es-CO')+' COP</strong></div>':'')
+        +'<div class="r big"><span>Total hoy</span><span>$'+Number(total).toLocaleString('es-CO')+' COP</span></div></div>'
+        +'<div style="margin-top:12px"><input class="input" id="fo2-name" placeholder="Tu nombre" style="margin-bottom:8px"/><input class="input" id="fo2-email" type="email" placeholder="tu@email.com" style="margin-bottom:10px"/><button class="btn btn-primary" onclick="wwiFlowCreateOrder()">Crear mi pedido</button></div>';
     setTimeout(function(){try{wrap.scrollIntoView({block:'nearest',behavior:'smooth'})}catch(e){}},100);
 }
 async function wwiFlowCreateOrder(){
     var res=document.getElementById('flow-order-result');
     var payload={plan_id:wwiFlow.planId,customer_name:document.getElementById('fo2-name').value,customer_email:document.getElementById('fo2-email').value,domain_name:wwiFlow.domain||wwiFlowNormDomain(document.getElementById('flow-dom-input').value),addons:wwiFlow.addons,locale:'es'};
     if(!payload.customer_name||!payload.customer_email){res.innerHTML='<div style="color:var(--bad);font-size:12px">Completa nombre y email.</div>';return}
+    var btn=res.querySelector('button.btn-primary');
+    if(btn){btn.disabled=true;btn.textContent='Creando pedido…'}
     try{
         var r=await fetch('/api/v1/public/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
         var d=await r.json();
         if(d.ok){
-            var demoBtn=(wwiPayMode==='dummy')?'<button class="btn btn-primary" style="margin-top:10px" onclick="wwiDummyPay(\''+d.data.uuid+'\')">Pagar (modo demo)</button>':'';
-            res.innerHTML='<div class="panel" style="padding:16px;border-color:rgba(52,211,153,.5)"><div style="color:var(--ok);font-size:13px;font-weight:600">✓ Pedido creado — '+wwiEsc(d.data.plan_name)+'</div><div class="mono" style="font-size:11px;color:var(--muted);margin-top:6px">Total $'+Number(d.data.total).toLocaleString('es-CO')+' COP'+(wwiFlow.addons.length?' · incluye Web Master':'')+'</div>'+demoBtn+'</div>';
-        }else{res.innerHTML='<div style="color:var(--bad);font-size:12px">'+wwiEsc(d.message||'Error')+'</div>'}
-    }catch(e){res.innerHTML='<div style="color:var(--bad);font-size:12px">Error de conexión</div>'}
+            var demoBtn=(wwiPayMode==='dummy')?'<button class="btn btn-primary" style="margin-top:12px" onclick="wwiDummyPay(\''+d.data.uuid+'\')">Pagar (modo demo)</button>':'';
+            res.innerHTML='<div class="flow-next"><b>✓ Pedido creado — '+wwiEsc(d.data.plan_name)+'</b><br/>Total $'+Number(d.data.total).toLocaleString('es-CO')+' COP'+(wwiFlow.addons.length?' · incluye Web Master':'')
+                +'<div style="margin-top:10px"><b>Que sigue:</b><br/>1. Completa el pago.<br/>2. Construimos tu sitio (TIA) y lo publicamos.<br/>3. Recibes los accesos de tu panel por correo (24 h).</div>'+demoBtn+'</div>';
+            try{sessionStorage.removeItem('wwi_flow_state')}catch(e){}
+        }else{res.innerHTML='<div style="color:var(--bad);font-size:12px">'+wwiEsc(d.message||'Error')+'</div>';if(btn){btn.disabled=false;btn.textContent='Crear mi pedido'}}
+    }catch(e){res.innerHTML='<div style="color:var(--bad);font-size:12px">Error de conexión</div>';if(btn){btn.disabled=false;btn.textContent='Crear mi pedido'}}
 }
 document.addEventListener('DOMContentLoaded',function(){
     var fc=document.getElementById('flow-dom-confirm');
     if(fc)fc.addEventListener('click',wwiFlowConfirmDomain);
+    var pv=document.getElementById('pv-view');
+    if(pv)pv.addEventListener('click',function(){wwiFlowShowPreview(wwiFlow.uuid)});
+    var useBtn=document.getElementById('pv-use');
+    if(useBtn)useBtn.addEventListener('click',wwiFlowUsePreview);
+    document.addEventListener('keydown',function(e){
+        if(e.key!=='Escape')return;
+        var modal=document.getElementById('wwi-pv-modal');
+        if(modal&&modal.classList.contains('open'))wwiFlowHidePreview();
+    });
     var di=document.getElementById('flow-dom-input');
     if(di){
         var dt=null;
@@ -1093,6 +1289,28 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
 .chip:focus-visible,.dom-chip:focus-visible,.btn:focus-visible,.flow-close:focus-visible,.input:focus-visible{outline:2px solid var(--accent2);outline-offset:2px}
 @media(prefers-reduced-motion:reduce){.flow-track{transition:none}.btn-pulse{animation:none}.typing i{animation:none}.chat-ava::after{animation:none}.chip:hover,.tpl-card:hover,.plan-mini:hover{transform:none}}
 @media(max-width:720px){.flow-grid{grid-template-columns:repeat(2,1fr)}.flow-slide{padding:22px 18px}.chat-msg{max-width:88%}}
+.flow-back{background:none;border:1px solid var(--border2);color:var(--muted);width:28px;height:28px;border-radius:9px;font-size:17px;line-height:1;cursor:pointer;flex-shrink:0;transition:.15s}
+.flow-back:hover:not(:disabled){color:var(--text);border-color:var(--accent2)}
+.flow-back:disabled{opacity:.3;cursor:not-allowed}
+.flow-help{width:28px;height:28px;border-radius:50%;border:1px solid var(--border2);color:var(--muted);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;text-decoration:none;flex-shrink:0;transition:.15s}
+.flow-help:hover{color:var(--text);border-color:var(--accent2)}
+.flow-phases{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 4px}
+.flow-phases .ph{font-size:11px;color:var(--muted);border:1px solid var(--border);border-radius:999px;padding:5px 11px;transition:.25s}
+.flow-phases .ph.on{color:var(--text);border-color:var(--accent2);background:linear-gradient(120deg,rgba(124,60,255,.16),rgba(84,190,255,.1))}
+.flow-phases .ph.done{color:var(--ok);border-color:rgba(53,212,154,.4)}
+.flow-note{margin:12px 0;padding:12px 14px;border:1px solid var(--border2);border-radius:12px;background:var(--panel2);font-size:12.5px;color:var(--muted);line-height:1.6}
+.flow-note strong{color:var(--text)}
+.flow-note .acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.plan-mini .feats{display:flex;flex-direction:column;gap:3px;margin:8px 0 10px;text-align:left}
+.plan-mini .feats span{font-size:10.5px;color:var(--muted)}
+.plan-mini .feats span::before{content:'✓ ';color:var(--ok)}
+.plan-mini .reco{position:absolute;top:-9px;left:50%;transform:translateX(-50%);font-size:9.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;background:linear-gradient(120deg,#7c3cff,#b78cff);color:#fff;border-radius:999px;padding:3px 10px;white-space:nowrap}
+.plan-mini{position:relative}
+.pv-sum{margin-top:14px;border:1px solid var(--border);border-radius:12px;padding:14px 16px;background:var(--panel2);font-size:12.5px}
+.pv-sum .r{display:flex;justify-content:space-between;padding:4px 0}
+.pv-sum .r.big{border-top:1px solid var(--border);margin-top:6px;padding-top:10px;font-size:15px;font-weight:800}
+.flow-next{margin-top:14px;border:1px solid rgba(53,212,154,.4);border-radius:12px;padding:14px 16px;background:rgba(53,212,154,.07);font-size:12.5px;line-height:1.7}
+.flow-next b{color:var(--text)}
 </style>
 <style>
 #wwi-hero-gpu{position:absolute;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;opacity:0;transition:opacity 1.2s ease}
@@ -1129,44 +1347,68 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
 <div class="flow-overlay" id="wwi-flow">
   <div class="flow-shell">
     <div class="flow-head">
-      <div class="step-label" id="flow-step-label">Paso 1 · Cuéntanos</div>
+      <button class="flow-back" id="flow-back" onclick="wwiFlowBack()" aria-label="Atras" title="Atras">&#8249;</button>
+      <div class="step-label" id="flow-step-label">Paso 1 de 5 · Cuentanos</div>
       <div class="dots"><div class="dot on" data-d="0"></div><div class="dot" data-d="1"></div><div class="dot" data-d="2"></div><div class="dot" data-d="3"></div><div class="dot" data-d="4"></div></div>
+      <a class="flow-help" id="flow-help" href="<?= htmlspecialchars($wwiSupportUrl) ?>" target="_blank" rel="noopener" title="¿Necesitas ayuda?" aria-label="¿Necesitas ayuda?">?</a>
       <button class="flow-close" onclick="wwiFlowClose()" aria-label="Cerrar">&times;</button>
     </div>
     <div class="flow-track" id="wwi-flow-track">
       <div class="flow-slide" id="fs-prompt">
         <div class="flow-h1">Hablemos de tu sitio web</div>
-        <div class="flow-sub">TIA construirá una vista previa a partir de lo que le cuentes. No necesitas saber de diseño. <span id="flow-voice-note"></span></div>
+        <div class="flow-sub">TIA construira una vista previa a partir de lo que le cuentes. No necesitas saber de diseno. <span id="flow-voice-note"></span></div>
         <div class="chat-box" id="flow-chat"></div>
+        <div class="flow-phases" id="flow-phases" style="display:none" role="status" aria-live="polite">
+          <span class="ph" data-ph="0">Analizando tu negocio</span>
+          <span class="ph" data-ph="1">Disenando la estructura</span>
+          <span class="ph" data-ph="2">Generando contenido</span>
+          <span class="ph" data-ph="3">Aplicando estilo</span>
+        </div>
         <div class="chips" id="flow-chips">
           <button class="chip" onclick="wwiFlowChip(this)">Soy arquitecto y quiero mostrar mi trayectoria y proyectos</button>
           <button class="chip" onclick="wwiFlowChip(this)">Tengo un restaurante y quiero mostrar mi menú y reservas</button>
           <button class="chip" onclick="wwiFlowChip(this)">Soy abogado y quiero ofrecer consultas en línea</button>
         </div>
-        <div class="chat-in"><input class="input" id="flow-input" placeholder="Escribe cómo quieres tu sitio web…" onkeydown="if(event.key==='Enter')wwiFlowSend()"/><button class="btn btn-ghost" id="flow-mic" title="Dictar por voz" aria-label="Dictar por voz">🎤</button><button class="btn btn-primary btn-pulse" onclick="wwiFlowSend()">Enviar</button></div>
+        <div class="chat-in"><input class="input" id="flow-input" placeholder="Escribe cómo quieres tu sitio web…" onkeydown="if(event.key==='Enter')wwiFlowSend()"/><button class="btn btn-ghost" id="flow-mic" title="Dictar por voz" aria-label="Dictar por voz">🎤</button><button class="btn btn-primary btn-pulse" id="flow-send-btn" onclick="wwiFlowSend()">Enviar</button><button class="btn btn-ghost" id="flow-cancel" style="display:none" onclick="wwiFlowCancel()">Cancelar</button></div>
         <div class="flow-sub" id="flow-attempts" style="margin-top:12px"></div>
+        <div id="flow-limit-card" style="display:none"></div>
         <div class="trust-row"><span>Vista previa gratis</span><span>Sin tarjeta de crédito</span><span>Listo en minutos</span></div>
         <div class="flow-actions"><button class="btn btn-ghost" onclick="wwiFlowGo(2)">Prefiero ver plantillas</button></div>
       </div>
       <div class="flow-slide" id="fs-preview">
-        <div class="flow-h1" id="pv-title">Tu vista previa está lista</div>
-        <div class="flow-sub">Esta es una muestra temporal (expira en 60 min). No es tu sitio final.</div>
-        <div class="flow-actions">
-          <button class="btn btn-primary" id="pv-view">Ver preview</button>
-          <button class="btn btn-ghost" onclick="wwiFlowGo(0)">Editar el prompt</button>
-          <button class="btn btn-ghost" onclick="wwiFlowDiscard()">Descartar, probar otro prompt</button>
+        <div id="pv-empty" style="display:none">
+          <div class="flow-h1">Aun no tienes una vista previa</div>
+          <div class="flow-sub">Cuentale a TIA sobre tu negocio y te mostramos una muestra en segundos. Tambien puedes partir de una plantilla lista.</div>
+          <div class="flow-actions"><button class="btn btn-primary" onclick="wwiFlowGo(0)">Ir al chat</button><button class="btn btn-ghost" onclick="wwiFlowGo(2)">Ver plantillas</button></div>
         </div>
-        <div class="flow-sub" style="margin-top:18px" id="pv-note"></div>
+        <div id="pv-error" style="display:none">
+          <div class="flow-h1">No pudimos generar tu vista previa</div>
+          <div class="flow-sub" id="pv-error-msg">Intenta de nuevo o usa una plantilla lista.</div>
+          <div class="flow-actions"><button class="btn btn-primary" onclick="wwiFlowGo(0)">Reintentar</button><button class="btn btn-ghost" onclick="wwiFlowGo(2)">Ver plantillas</button></div>
+        </div>
+        <div id="pv-ready" style="display:none">
+          <div class="flow-h1" id="pv-title">Tu vista previa esta lista</div>
+          <div class="flow-sub" id="pv-expiry">Muestra temporal — no es tu sitio final.</div>
+          <div class="flow-actions">
+            <button class="btn btn-primary" id="pv-view">Ver preview</button>
+            <button class="btn btn-ghost" id="pv-use" onclick="wwiFlowUsePreview()">Me gusta, elegir plan</button>
+            <button class="btn btn-ghost" onclick="wwiFlowGo(0)">Editar el prompt</button>
+            <button class="btn btn-ghost" onclick="wwiFlowDiscard()">Descartar, probar otro prompt</button>
+          </div>
+          <div class="flow-sub" style="margin-top:18px" id="pv-note"></div>
+        </div>
       </div>
       <div class="flow-slide" id="fs-templates">
         <div class="flow-h1">O elige una plantilla lista</div>
-        <div class="flow-sub">Diseños por sector listos para usar. TIA los adapta a tu negocio.</div>
+        <div class="flow-sub">Disenos por sector listos para usar. TIA los adapta a tu negocio. <strong>Usar plantilla no consume intentos.</strong></div>
+        <div id="tpl-why" class="flow-note" style="display:none"></div>
         <div class="flow-grid" id="flow-tpl-grid">Cargando…</div>
       </div>
       <div class="flow-slide" id="fs-plans">
         <div class="flow-h1">Elige tu plan</div>
-        <div class="flow-sub">Todo incluido. Dominio el primer año. Sin sorpresas.</div>
+        <div class="flow-sub">Pago unico · dominio el primer ano · sitio online en 24 h. Sin sorpresas.</div>
         <div class="flow-grid" id="flow-plans-grid">Cargando…</div>
+        <div id="plan-reco" class="flow-note" style="display:none"></div>
       </div>
       <div class="flow-slide" id="fs-domain">
         <div class="flow-h1">¿Qué dominio quieres?</div>
@@ -1188,8 +1430,13 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
 </div>
 <div class="flow-modal" id="wwi-pv-modal">
   <div class="box" id="wwi-pv-box">
-    <div class="flow-head"><div style="flex:1;font-size:12px;font-weight:700;letter-spacing:.06em">VISTA PREVIA TEMPORAL</div><div style="display:flex;gap:4px"><button class="btn btn-ghost" style="padding:4px 10px;font-size:11px" onclick="wwiPvDevice(900)">Desktop</button><button class="btn btn-ghost" style="padding:4px 10px;font-size:11px" onclick="wwiPvDevice(700)">Tablet</button><button class="btn btn-ghost" style="padding:4px 10px;font-size:11px" onclick="wwiPvDevice(390)">Mobile</button></div><button class="flow-close" onclick="document.getElementById('wwi-pv-modal').classList.remove('open')">&times;</button></div>
-    <iframe id="wwi-pv-frame" src="about:blank"></iframe>
+    <div class="flow-head"><div style="flex:1;font-size:12px;font-weight:700;letter-spacing:.06em">VISTA PREVIA TEMPORAL <span id="pv-countdown" class="mono" style="font-size:10.5px;font-weight:500;opacity:.75"></span></div><div style="display:flex;gap:4px"><button class="btn btn-ghost" style="padding:4px 10px;font-size:11px" onclick="wwiPvDevice(900)">Desktop</button><button class="btn btn-ghost" style="padding:4px 10px;font-size:11px" onclick="wwiPvDevice(700)">Tablet</button><button class="btn btn-ghost" style="padding:4px 10px;font-size:11px" onclick="wwiPvDevice(390)">Mobile</button></div><button class="flow-close" onclick="wwiFlowHidePreview()" aria-label="Cerrar">&times;</button></div>
+    <iframe id="wwi-pv-frame" src="about:blank" title="Vista previa del sitio"></iframe>
+    <div class="flow-actions" style="margin:0;padding:10px 14px;border-top:1px solid var(--border);justify-content:flex-end;background:var(--panel2)">
+      <a class="btn btn-ghost" id="pv-open" href="#" target="_blank" rel="noopener" style="padding:9px 16px;font-size:12.5px">Abrir en pestaña nueva</a>
+      <button class="btn btn-ghost" onclick="wwiFlowRegenerate()" style="padding:9px 16px;font-size:12.5px">Regenerar</button>
+      <button class="btn btn-primary" onclick="wwiFlowUsePreview()" style="padding:9px 18px;font-size:12.5px">Usar esta vista y elegir plan</button>
+    </div>
   </div>
 </div>
 <div class="flow-modal" id="wwi-xs-modal">
