@@ -56,7 +56,7 @@ install/       schema.sql · seed.sql · seed-wontia-php.php · seed-wontia-evol
 **v1 (landing original):** `hero`, `features`, `tia`, `aip`, `howitworks`, `pricing`, `cta`, `footer`
 **v2 (evolucionados):** `hero-evolved`, `differentiator`, `tiacommand`, `wontia-business`, `domain-arch`, `food-security`, `platform-arch`, `trust`, `future-vision`
 **v3 (AIS):** `ais-hero`, `ais-concept`
-**Otros:** `code-embed` (CodeEmbedWidget)
+**Otros:** `code-embed` (CodeEmbedWidget), `media-slider` (MediaSliderWidget — slider de imágenes/videos insertable en cualquier sección: ancho 100/66/33% con alineación y 100% en móvil, 6 estilos de miniaturas `dots/thumbs/bars/numbers/pill/film`, autoplay con pausa WCAG, facade YouTube/Vimeo + mp4, lightbox con teclado, aspect ratio 16:9/4:3/1:1/21:9/auto, swipe/drag/teclado + ARIA, deep-link `#slide-N`, overlay con CTA, lazy loading)
 
 ### Contrato base (Widget.php)
 
