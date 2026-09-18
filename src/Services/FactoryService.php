@@ -86,6 +86,7 @@ class FactoryService
         $rows = $db->query("SELECT `key`, `value` FROM settings WHERE site_id = @site_id AND `key` LIKE 'wwi.%' ORDER BY `key` ASC")->fetchAll();
         $out = [];
         foreach ($rows as $row) $out[$row['key']] = $row['value'];
+        if (!empty($out['wwi.porkbun_secret_key'])) $out['wwi.porkbun_secret_key'] = '••••';
         return $out;
     }
 
@@ -95,6 +96,7 @@ class FactoryService
         $updated = 0;
         foreach ($kv as $key => $value) {
             if (!str_starts_with((string)$key, 'wwi.')) continue;
+            if ((string)$key === 'wwi.porkbun_secret_key' && (string)$value === '••••') continue;
             $stmt = $db->prepare("INSERT INTO settings (site_id, `key`, `value`) VALUES (@site_id, :k, :v) ON DUPLICATE KEY UPDATE `value` = :v2");
             $stmt->execute(['k' => $key, 'v' => (string)$value, 'v2' => (string)$value]);
             $updated++;
