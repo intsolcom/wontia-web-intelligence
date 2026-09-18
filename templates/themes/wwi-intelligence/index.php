@@ -172,6 +172,23 @@ main{position:relative;z-index:1}
 .dom-chip:hover{border-color:var(--accent2);color:var(--accent2)}
 .dom-chip.sel{border-color:var(--accent2);background:rgba(124,60,255,.12)}
 .dom-row{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}
+.dom-card{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--border);border-radius:14px;padding:14px 16px;background:var(--panel2);animation:iqFade .28s ease}
+.dom-card .ic{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;flex-shrink:0}
+.dom-card.ok .ic{background:rgba(52,211,153,.15);color:#34d399}
+.dom-card.bad .ic{background:rgba(248,113,113,.15);color:#f87171}
+.dom-card.warn .ic{background:rgba(251,191,36,.15);color:#fbbf24}
+.dom-card .t{font-weight:700;font-size:14px}
+.dom-card .d{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.55}
+.dom-card .pr{font-family:'JetBrains Mono',monospace;font-size:11.5px;margin-top:7px;color:var(--text)}
+.dom-card .acts{display:flex;gap:8px;margin-top:11px;flex-wrap:wrap}
+.dom-tld{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--border2);border-radius:10px;padding:8px 12px;font-size:12px;cursor:pointer;background:var(--panel2);color:var(--text);font-family:inherit;transition:.15s}
+.dom-tld:hover{border-color:var(--accent2);transform:translateY(-1px)}
+.dom-tld.ok{border-color:rgba(52,211,153,.5)}
+.dom-tld.warn{border-color:rgba(251,191,36,.45)}
+.dom-tld.bad{opacity:.6}
+.dom-tld .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dom-recent{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:10px;font-size:11px;color:var(--muted)}
+@keyframes iqFade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 .domain-box{display:flex;gap:10px;max-width:580px;margin:0 auto}
 .domain-box .input{flex:1}
 .domain-result{margin-top:12px;font-size:12.5px;min-height:20px;font-family:'JetBrains Mono',monospace}
@@ -571,6 +588,7 @@ if(startBtn)startBtn.addEventListener('click',function(e){e.preventDefault();wwi
 </script>
 <script>
 var wwiFlow={idx:0,uuid:null,planId:null,addons:[],domain:null,attempts:0};
+try{var _sd=localStorage.getItem('wwi_domain')||'';if(_sd)wwiFlow.domain=_sd}catch(e){}
 function wwiFlowOpen(){
     document.getElementById('wwi-flow').classList.add('open');
     if(location.hash!=='#empezar')try{history.replaceState(null,'','#empezar')}catch(e){}
@@ -610,6 +628,14 @@ function wwiFlowGo(i){
     if(lbl)lbl.textContent='Paso '+(i+1)+' · '+labels[i];
     if(i===2)wwiFlowLoadTpls();
     if(i===3)wwiFlowLoadPlans();
+    if(i===4)setTimeout(function(){
+        var el=document.getElementById('flow-dom-input');
+        if(el){
+            if(!el.value){try{var saved=localStorage.getItem('wwi_domain')||'';if(saved)el.value=saved}catch(e){}}
+            el.focus();
+        }
+        wwiFlowRecentRender();
+    },150);
 }
 function wwiFlowChip(el){
     var input=document.getElementById('flow-input');
@@ -736,41 +762,123 @@ function wwiXsConfirm(add){
     wwiFlow.addons=add?['web-master']:[];
     wwiFlowGo(4);
 }
-async function wwiFlowCheckDomain(){
+function wwiFlowNormDomain(v){
+    var s=String(v||'').trim().toLowerCase();
+    s=s.replace(/^https?:\/\//,'').replace(/^www\./,'');
+    s=s.split('/')[0].split('?')[0].split('#')[0].split('@').pop();
+    s=s.replace(/[^a-z0-9.\-]/g,'').replace(/\.+/g,'.').replace(/^\.+|\.+$/g,'');
+    return s;
+}
+function wwiFlowRecentLoad(){try{return JSON.parse(localStorage.getItem('wwi_dom_recent')||'[]')}catch(e){return[]}}
+function wwiFlowRecentPush(name){var l=wwiFlowRecentLoad().filter(function(x){return x!==name});l.unshift(name);l=l.slice(0,5);try{localStorage.setItem('wwi_dom_recent',JSON.stringify(l))}catch(e){}wwiFlowRecentRender()}
+function wwiFlowRecentRender(){
+    var el=document.getElementById('flow-dom-recent');if(!el)return;
+    var l=wwiFlowRecentLoad();
+    if(!l.length){el.innerHTML='';return}
+    el.innerHTML='<span style="opacity:.75">Recientes:</span>'+l.map(function(n){return '<button class="dom-chip" style="padding:4px 10px;font-size:11px" onclick="wwiFlowPickDom(\''+wwiEsc(n)+'\')">'+wwiEsc(n)+'</button>'}).join('')+'<button class="dom-chip" style="padding:4px 10px;font-size:11px" onclick="wwiFlowRecentClear()">limpiar</button>';
+}
+function wwiFlowRecentClear(){try{localStorage.removeItem('wwi_dom_recent')}catch(e){}wwiFlowRecentRender()}
+function wwiFlowDomCard(cls,ic,title,desc,actions){
+    return '<div class="dom-card '+cls+'"><div class="ic">'+ic+'</div><div style="flex:1"><div class="t">'+title+'</div><div class="d">'+(desc||'')+'</div>'+(actions||'')+'</div></div>';
+}
+function wwiFlowShowConfirm(name){
+    var w=document.getElementById('flow-dom-confirm-wrap');
+    var b=document.getElementById('flow-dom-confirm');
+    if(w)w.style.display='flex';
+    if(b)b.textContent=name?('Confirmar '+name+' y continuar'):'Confirmar dominio y continuar';
+}
+function wwiFlowTldChips(s,name){
+    var row=document.getElementById('flow-dom-sugg');
+    if(!row||!s.suggestions||!s.suggestions.length)return;
+    var base=name.split('.')[0];
+    row.innerHTML='<div style="width:100%;font-size:11px;color:var(--muted);margin-bottom:2px">Otras extensiones para <strong>'+wwiEsc(base)+'</strong>:</div>'+s.suggestions.map(function(x){
+        var ok=x.state==='AVAILABLE';
+        var cls=ok?'ok':(x.state==='CHECKING'?'warn':'bad');
+        var dot=ok?'#34d399':(x.state==='CHECKING'?'#fbbf24':'#f87171');
+        var price=ok&&x.price_reg!=null?'<span class="mono" style="font-size:10px">$'+x.price_reg+'/año</span>':'<span style="font-size:10px;opacity:.7">'+(x.state==='CHECKING'?'confirmar':'no disp.')+'</span>';
+        return '<button class="dom-tld '+cls+'" onclick="wwiFlowPickDom(\''+wwiEsc(x.name)+'\')" '+(x.state==='TAKEN'?'':'')+'><span class="dot" style="background:'+dot+'"></span><span>'+wwiEsc(x.name)+'</span>'+price+'</button>';
+    }).join('');
+}
+async function wwiFlowCheckDomain(opts){
+    opts=opts||{};
     var input=document.getElementById('flow-dom-input');
+    var btn=document.getElementById('flow-dom-btn');
     var res=document.getElementById('flow-dom-result');
-    var name=input.value.trim();
-    if(!name)return;
-    res.textContent='Verificando…';
+    var name=wwiFlowNormDomain(input?input.value:'');
+    if(input&&input.value!==name)input.value=name;
+    if(!name){res.innerHTML=wwiFlowDomCard('bad','✕','Escribe un dominio','Ejemplo: tunegocio.com');return}
+    if(!/^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(name)||name.length>80){res.innerHTML=wwiFlowDomCard('bad','✕','Formato inválido','Usa solo letras, números, guiones y al menos una extensión. Ejemplo: tunegocio.com');return}
+    if(btn){btn.disabled=true;btn.textContent='Verificando…'}
+    res.innerHTML=wwiFlowDomCard('warn','⏳','Verificando '+wwiEsc(name)+'…','Consultando el registrador, un momento.');
     try{
         var r=await fetch('/api/v1/public/domain/check?name='+encodeURIComponent(name));
         var d=await r.json();
         var s=d.data||{};
+        wwiFlowRecentPush(name);
+        var priceLine=(s.price_reg!=null?'<div class="pr">Registro $'+s.price_reg+' USD · Renovación $'+(s.price_ren!=null?s.price_ren:s.price_reg)+' USD</div>':'');
         if(s.state==='AVAILABLE'){
             wwiFlow.domain=name;
-            res.innerHTML='<span style="color:var(--ok)">✓ '+wwiEsc(name)+' está disponible.</span>';
-            document.getElementById('flow-dom-confirm-wrap').style.display='flex';
+            try{localStorage.setItem('wwi_domain',name)}catch(e){}
+            res.innerHTML=wwiFlowDomCard('ok','✓','¡Dominio disponible!','Puedes usarlo para tu sitio.',priceLine+'<div class="acts"><button class="btn btn-primary" style="padding:8px 16px;font-size:13px" onclick="wwiFlowConfirmDomain()">Usar este dominio</button><button class="btn btn-ghost" style="padding:8px 16px;font-size:13px" onclick="document.getElementById(\'flow-dom-input\').select()">Probar otro</button></div>');
+            wwiFlowShowConfirm(name);
+        }else if(s.state==='TAKEN'){
+            wwiFlow.domain=null;
+            res.innerHTML=wwiFlowDomCard('bad','✕','Dominio no disponible','Ya está registrado. Prueba con otro o elige una alternativa:',priceLine+'<div class="acts"><button class="btn btn-ghost" style="padding:8px 16px;font-size:13px" onclick="document.getElementById(\'flow-dom-input\').value=\'\';document.getElementById(\'flow-dom-input\').focus()">Buscar otro</button></div>');
+            wwiFlowTldChips(s,name);
+            if(!opts.noSuggest)wwiFlowSuggestDomains(name,true);
+        }else if(s.state==='CHECKING'){
+            wwiFlow.domain=name;
+            try{localStorage.setItem('wwi_domain',name)}catch(e){}
+            res.innerHTML=wwiFlowDomCard('warn','⏳','Parece libre','Sin DNS activo. Este TLD no tiene verificación en línea: se confirma al registrar.',priceLine+'<div class="acts"><button class="btn btn-primary" style="padding:8px 16px;font-size:13px" onclick="wwiFlowConfirmDomain()">Usar de todas formas</button></div>');
+            wwiFlowShowConfirm(name);
+            wwiFlowTldChips(s,name);
+        }else if(s.state==='INVALID'){
+            res.innerHTML=wwiFlowDomCard('bad','✕','Dominio inválido','Revisa el nombre e intenta de nuevo. Ejemplo: tunegocio.com');
         }else{
-            res.innerHTML='<span style="color:var(--bad)">'+wwiEsc(s.state)+' — '+wwiEsc(s.message||'')+'</span>';
+            res.innerHTML=wwiFlowDomCard('warn','!','No pudimos verificar',wwiEsc(s.message||'Intenta de nuevo en unos segundos.')+'<div class="acts"><button class="btn btn-ghost" style="padding:8px 16px;font-size:13px" onclick="wwiFlowCheckDomain()">Reintentar</button></div>');
         }
-    }catch(e){res.textContent='No se pudo verificar.'}
+    }catch(e){res.innerHTML=wwiFlowDomCard('bad','✕','Sin conexión','No se pudo verificar. Revisa tu internet e intenta de nuevo.')}
+    if(btn){btn.disabled=false;btn.textContent='Verificar'}
 }
-async function wwiFlowSuggestDomains(){
+async function wwiFlowSuggestDomains(base,auto){
     var input=document.getElementById('flow-dom-input');
-    var business=input.value.trim()||wwiFlow.bizName||'mi negocio';
-    wwiFlowChat('tia','Sugiriendo dominios…');
-    var res=document.getElementById('flow-dom-sugg');
+    var biz=base||wwiFlowNormDomain(input?input.value:'')||wwiFlow.bizName||'mi negocio';
+    var row=document.getElementById('flow-dom-sugg');
+    if(row)row.innerHTML='<div style="width:100%;font-size:11px;color:var(--muted)">✨ TIA está buscando alternativas disponibles…</div>';
     try{
-        var r=await fetch('/api/v1/public/previews/suggest-domains',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({business:business})});
+        var r=await fetch('/api/v1/public/previews/suggest-domains',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({business:biz})});
         var d=await r.json();
-        var list=d.data||[];
-        res.innerHTML=list.map(function(x){return '<button class="dom-chip" onclick="wwiFlowPickDom(\''+wwiEsc(x)+'\')">'+wwiEsc(x)+'</button>'}).join('');
-    }catch(e){res.textContent='No se pudo sugerir.'}
+        var list=(d.data||[]).slice(0,6);
+        if(!list.length){if(row)row.innerHTML='<div style="width:100%;font-size:11px;color:var(--muted)">Sin sugerencias por ahora. Prueba otro nombre.</div>';return}
+        var checks=await Promise.all(list.map(function(n){return fetch('/api/v1/public/domain/check?name='+encodeURIComponent(n)).then(function(x){return x.json()}).then(function(j){return {name:n,data:j.data||{}}}).catch(function(){return {name:n,data:{state:'ERROR'}}})}));
+        var avail=checks.filter(function(c){return c.data.state==='AVAILABLE'||c.data.state==='CHECKING'});
+        var taken=checks.filter(function(c){return c.data.state==='TAKEN'});
+        var html='<div style="width:100%;font-size:11px;color:var(--muted);margin-bottom:2px">'+(auto?'Alternativas disponibles:':'Sugerencias de TIA:')+'</div>';
+        html+=avail.map(function(c){
+            var ok=c.data.state==='AVAILABLE';
+            var pr=c.data.price_reg!=null?'<span class="mono" style="font-size:10px">$'+c.data.price_reg+'/año</span>':'<span style="font-size:10px;opacity:.7">confirmar</span>';
+            return '<button class="dom-tld '+(ok?'ok':'warn')+'" onclick="wwiFlowPickDom(\''+wwiEsc(c.name)+'\')"><span class="dot" style="background:'+(ok?'#34d399':'#fbbf24')+'"></span><span>'+wwiEsc(c.name)+'</span>'+pr+'</button>';
+        }).join('');
+        if(!avail.length)html+='<div style="width:100%;font-size:12px;color:var(--muted)">Ninguna sugerencia está libre. Escribe otro nombre.</div>';
+        if(taken.length)html+='<div style="width:100%;font-size:10px;color:var(--muted);margin-top:4px">'+taken.length+' alternativa(s) también ocupadas.</div>';
+        if(row)row.innerHTML=html;
+    }catch(e){if(row)row.innerHTML='<div style="width:100%;font-size:11px;color:var(--muted)">No se pudieron cargar sugerencias.</div>'}
 }
 function wwiFlowPickDom(name){
-    document.getElementById('flow-dom-input').value=name;
-    document.querySelectorAll('#flow-dom-sugg .dom-chip').forEach(function(c){c.classList.toggle('sel',c.textContent===name)});
-    wwiFlowCheckDomain();
+    var input=document.getElementById('flow-dom-input');
+    if(input)input.value=name;
+    wwiFlowCheckDomain({noSuggest:true});
+}
+function wwiFlowOwnDomain(){
+    var res=document.getElementById('flow-dom-result');
+    var input=document.getElementById('flow-dom-input');
+    var cur=input?wwiFlowNormDomain(input.value):'';
+    wwiFlow.ownDomain=true;
+    wwiFlow.domain=cur;
+    try{localStorage.setItem('wwi_domain',cur)}catch(e){}
+    res.innerHTML=wwiFlowDomCard('warn','🔗','Usar tu dominio actual','Escríbelo arriba (ej. tunegocio.com) y lo conectaremos: deberás apuntar el DNS a nuestro servidor. Te guiamos por correo.','<div class="acts"><button class="btn btn-primary" style="padding:8px 16px;font-size:13px" onclick="wwiFlowConfirmDomain()">Continuar con mi dominio</button></div>');
+    wwiFlowShowConfirm(cur);
+    if(input)input.focus();
 }
 function wwiFlowConfirmDomain(){
     var wrap=document.getElementById('flow-order-result');
@@ -778,7 +886,7 @@ function wwiFlowConfirmDomain(){
 }
 async function wwiFlowCreateOrder(){
     var res=document.getElementById('flow-order-result');
-    var payload={plan_id:wwiFlow.planId,customer_name:document.getElementById('fo2-name').value,customer_email:document.getElementById('fo2-email').value,domain_name:wwiFlow.domain||document.getElementById('flow-dom-input').value,addons:wwiFlow.addons,locale:'es'};
+    var payload={plan_id:wwiFlow.planId,customer_name:document.getElementById('fo2-name').value,customer_email:document.getElementById('fo2-email').value,domain_name:wwiFlow.domain||wwiFlowNormDomain(document.getElementById('flow-dom-input').value),addons:wwiFlow.addons,locale:'es'};
     if(!payload.customer_name||!payload.customer_email){res.innerHTML='<div style="color:var(--bad);font-size:12px">Completa nombre y email.</div>';return}
     try{
         var r=await fetch('/api/v1/public/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
@@ -792,6 +900,20 @@ async function wwiFlowCreateOrder(){
 document.addEventListener('DOMContentLoaded',function(){
     var fc=document.getElementById('flow-dom-confirm');
     if(fc)fc.addEventListener('click',wwiFlowConfirmDomain);
+    var di=document.getElementById('flow-dom-input');
+    if(di){
+        var dt=null;
+        di.addEventListener('input',function(){
+            clearTimeout(dt);
+            var v=wwiFlowNormDomain(di.value);
+            if(v.indexOf('.')<0||v.length<5)return;
+            dt=setTimeout(function(){
+                if(di.value!==v)di.value=v;
+                wwiFlowCheckDomain({noSuggest:true});
+            },650);
+        });
+        di.addEventListener('blur',function(){var v=wwiFlowNormDomain(di.value);if(v&&di.value!==v)di.value=v});
+    }
     var mic=document.getElementById('flow-mic');
     var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
     if(mic&&SR){
@@ -1043,11 +1165,15 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
       </div>
       <div class="flow-slide" id="fs-domain">
         <div class="flow-h1">¿Qué dominio quieres?</div>
-        <div class="flow-sub">Escríbelo o deja que TIA te sugiera opciones.</div>
-        <div class="chat-in"><input class="input" id="flow-dom-input" placeholder="tunegocio.com" onkeydown="if(event.key==='Enter')wwiFlowCheckDomain()"/><button class="btn btn-primary" onclick="wwiFlowCheckDomain()">Verificar</button></div>
-        <div class="flow-actions"><button class="btn btn-ghost" onclick="wwiFlowSuggestDomains()">Sugerir nombres con TIA</button></div>
+        <div class="flow-sub">Escríbelo y lo verificamos al instante con el registrador. También puedes dejar que TIA te sugiera opciones.</div>
+        <div class="chat-in"><input class="input" id="flow-dom-input" placeholder="tunegocio.com" autocomplete="off" spellcheck="false" aria-label="Dominio" onkeydown="if(event.key==='Enter'){event.preventDefault();wwiFlowCheckDomain()}"/><button class="btn btn-primary" id="flow-dom-btn" onclick="wwiFlowCheckDomain()">Verificar</button></div>
+        <div class="flow-actions" style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-ghost" onclick="wwiFlowSuggestDomains()">✨ Sugerir nombres con TIA</button>
+          <button class="btn btn-ghost" onclick="wwiFlowOwnDomain()">Ya tengo dominio</button>
+        </div>
+        <div class="dom-recent" id="flow-dom-recent"></div>
+        <div id="flow-dom-result" role="status" aria-live="polite" style="margin-top:14px"></div>
         <div class="dom-row" id="flow-dom-sugg"></div>
-        <div id="flow-dom-result" class="flow-sub" style="margin-top:14px"></div>
         <div class="flow-actions" id="flow-dom-confirm-wrap" style="display:none"><button class="btn btn-primary" id="flow-dom-confirm">Confirmar dominio y continuar</button></div>
         <div id="flow-order-result" style="margin-top:14px"></div>
       </div>

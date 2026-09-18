@@ -11,6 +11,25 @@ class DomainCheckerService
         'org' => 'https://rdap.publicinterestregistry.org/rdap',
     ];
 
+    public function allowCheck(string $ip, int $maxPerMinute = 30): bool
+    {
+        if ($ip === '') return true;
+        $dir = (defined('ROOT_DIR') ? ROOT_DIR : sys_get_temp_dir()) . '/cache';
+        if (!is_dir($dir)) @mkdir($dir, 0777, true);
+        $file = $dir . '/rate_domain_' . md5($ip) . '.json';
+        $now = time();
+        $data = ['t' => $now, 'n' => 0];
+        if (file_exists($file)) {
+            $prev = json_decode((string)@file_get_contents($file), true);
+            if (is_array($prev) && isset($prev['t']) && ($now - (int)$prev['t']) < 60) {
+                $data = ['t' => (int)$prev['t'], 'n' => (int)($prev['n'] ?? 0)];
+            }
+        }
+        $data['n']++;
+        @file_put_contents($file, json_encode($data));
+        return $data['n'] <= $maxPerMinute;
+    }
+
     public function check(string $rawName): array
     {
         $name = strtolower(trim((string)$rawName));

@@ -116,7 +116,12 @@ $router->get('/api/v1/public/preview/{uuid}', [\App\Controllers\Admin\FactoryCon
 $router->post('/api/v1/public/previews/suggest-domains', [\App\Controllers\Admin\FactoryController::class, 'publicSuggestDomains']);
 $router->get('/api/v1/public/domain/check', function ($request) {
     $name = (string)($request->get('name', ''));
-    Response::json(['ok' => true, 'data' => (new \App\Services\DomainCheckerService())->check($name)]);
+    $svc = new \App\Services\DomainCheckerService();
+    if (!$svc->allowCheck((string)$request->ip())) {
+        Response::error('Demasiadas verificaciones seguidas. Espera un minuto e intenta de nuevo.', 429);
+        return;
+    }
+    Response::json(['ok' => true, 'data' => $svc->check($name)]);
 });
 
 $router->get('/api/v1/public/store/config', [\App\Controllers\StorePublicController::class, 'config']);
