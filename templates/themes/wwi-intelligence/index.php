@@ -188,6 +188,11 @@ main{position:relative;z-index:1}
 .dom-tld.bad{opacity:.6}
 .dom-tld .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
 .dom-recent{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:10px;font-size:11px;color:var(--muted)}
+#fs-domain .flow-sub{margin-bottom:16px}
+#fs-domain .dom-card{padding:12px 14px}
+#fs-domain .flow-actions{margin-top:12px}
+#fs-domain .dom-row{margin-top:10px}
+#fs-domain .flow-h1{font-size:22px}
 @keyframes iqFade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 .domain-box{display:flex;gap:10px;max-width:580px;margin:0 auto}
 .domain-box .input{flex:1}
@@ -786,6 +791,7 @@ function wwiFlowShowConfirm(name){
     var b=document.getElementById('flow-dom-confirm');
     if(w)w.style.display='flex';
     if(b)b.textContent=name?('Confirmar '+name+' y continuar'):'Confirmar dominio y continuar';
+    if(w)setTimeout(function(){try{w.scrollIntoView({block:'nearest',behavior:'smooth'})}catch(e){}},140);
 }
 function wwiFlowTldChips(s,name){
     var row=document.getElementById('flow-dom-sugg');
@@ -884,6 +890,7 @@ function wwiFlowOwnDomain(){
 function wwiFlowConfirmDomain(){
     var wrap=document.getElementById('flow-order-result');
     wrap.innerHTML='<div style="margin-top:10px"><input class="input" id="fo2-name" placeholder="Tu nombre" style="margin-bottom:8px"/><input class="input" id="fo2-email" type="email" placeholder="tu@email.com" style="margin-bottom:10px"/><button class="btn btn-primary" onclick="wwiFlowCreateOrder()">Crear mi pedido</button></div>';
+    setTimeout(function(){try{wrap.scrollIntoView({block:'nearest',behavior:'smooth'})}catch(e){}},100);
 }
 async function wwiFlowCreateOrder(){
     var res=document.getElementById('flow-order-result');
@@ -1039,6 +1046,7 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
 .flow-overlay{position:fixed;inset:0;z-index:999;background:var(--overlay);backdrop-filter:blur(18px);display:none;align-items:center;justify-content:center;padding:20px}
 .flow-overlay.open{display:flex}
 .flow-shell{width:100%;max-width:880px;height:min(660px,92vh);background:linear-gradient(var(--panel),var(--panel)) padding-box,linear-gradient(135deg,rgba(124,60,255,.6),rgba(84,190,255,.45)) border-box;border:1px solid transparent;border-radius:22px;overflow:hidden;display:flex;flex-direction:column;position:relative;box-shadow:0 40px 110px rgba(4,4,18,.7)}
+@supports(height:100dvh){.flow-shell{height:min(660px,calc(100dvh - 32px))}}
 .flow-head{display:flex;align-items:center;gap:14px;padding:17px 24px;border-bottom:1px solid var(--border);position:relative;background:var(--soft)}
 .flow-head .step-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--accent2)}
 .flow-head .dots{display:flex;gap:7px;flex:1}
@@ -1046,8 +1054,10 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
 .flow-head .dot.on{background:linear-gradient(120deg,#7c3cff,#b78cff)}
 .flow-close{background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;line-height:1;transition:color .15s}
 .flow-close:hover{color:var(--text)}
-.flow-track{flex:1;display:flex;transition:transform .4s cubic-bezier(.22,1,.36,1);will-change:transform}
-.flow-slide{min-width:100%;padding:30px 36px;overflow-y:auto;box-sizing:border-box}
+.flow-track{flex:1;display:flex;transition:transform .4s cubic-bezier(.22,1,.36,1);will-change:transform;min-height:0;overflow:hidden}
+.flow-slide{min-width:100%;padding:30px 36px 34px;overflow-y:auto;overflow-x:hidden;box-sizing:border-box;height:100%;min-height:0;overscroll-behavior:contain;scrollbar-width:thin}
+.flow-slide::-webkit-scrollbar{width:8px}
+.flow-slide::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
 .flow-h1{font-size:24px;font-weight:800;letter-spacing:-.02em;margin-bottom:9px}
 .flow-sub{font-size:14px;color:var(--muted);margin-bottom:22px;line-height:1.7;max-width:580px}
 .chat-box{display:flex;flex-direction:column;gap:13px;margin-bottom:17px;max-height:290px;overflow-y:auto;padding-right:4px}
