@@ -843,7 +843,8 @@ async function wwiFlowCheckDomain(opts){
 async function wwiFlowSuggestDomains(base,auto){
     var input=document.getElementById('flow-dom-input');
     var biz=base||wwiFlowNormDomain(input?input.value:'')||wwiFlow.bizName||'mi negocio';
-    var row=document.getElementById('flow-dom-sugg');
+    var row=document.getElementById('flow-dom-tia');
+    if(!row)row=document.getElementById('flow-dom-sugg');
     if(row)row.innerHTML='<div style="width:100%;font-size:11px;color:var(--muted)">✨ TIA está buscando alternativas disponibles…</div>';
     try{
         var r=await fetch('/api/v1/public/previews/suggest-domains',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({business:biz})});
@@ -1174,6 +1175,7 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
         <div class="dom-recent" id="flow-dom-recent"></div>
         <div id="flow-dom-result" role="status" aria-live="polite" style="margin-top:14px"></div>
         <div class="dom-row" id="flow-dom-sugg"></div>
+        <div class="dom-row" id="flow-dom-tia"></div>
         <div class="flow-actions" id="flow-dom-confirm-wrap" style="display:none"><button class="btn btn-primary" id="flow-dom-confirm">Confirmar dominio y continuar</button></div>
         <div id="flow-order-result" style="margin-top:14px"></div>
       </div>

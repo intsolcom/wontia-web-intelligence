@@ -44,6 +44,16 @@ class DomainCheckerService
         $result = $this->lookup($name);
         $result['name'] = $name;
 
+        $costs = $this->costEngine();
+        $parts = explode('.', $name);
+        $lastTld = end($parts);
+        $twoLevel = count($parts) >= 3 ? ($parts[count($parts) - 2] . '.' . $lastTld) : null;
+        $costKey = ($twoLevel && isset($costs[$twoLevel])) ? $twoLevel : $lastTld;
+        if (isset($costs[$costKey])) {
+            $result['price_reg'] = (float)$costs[$costKey]['reg'];
+            $result['price_ren'] = (float)$costs[$costKey]['ren'];
+        }
+
         $sld = substr($name, 0, strpos($name, '.'));
         $costs = $this->costEngine();
         $suggestions = [];
