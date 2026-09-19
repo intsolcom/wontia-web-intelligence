@@ -1465,3 +1465,7 @@
     }
 })();
 </script>
+<?php if (\App\Core\Session::isLoggedIn()): ?>
+<link rel="stylesheet" href="/assets/css/builder.css?v=<?= @filemtime(ROOT_DIR . '/public/assets/css/builder.css') ?: time() ?>"/>
+<script src="/assets/js/builder.js?v=<?= @filemtime(ROOT_DIR . '/public/assets/js/builder.js') ?: time() ?>" defer></script>
+<?php endif; ?>

@@ -296,6 +296,18 @@ main{position:relative;z-index:1}
 </nav>
 <main>
 <?php
+$wwiBuilderHtml = '';
+try {
+    $wwiBuilderSvc = new \App\Services\BuilderService();
+    if ($wwiBuilderSvc->ready() && $wwiBuilderSvc->hasLayout((int)$page['id'])) {
+        $wwiBuilderHtml = $wwiBuilderSvc->renderPage((int)$page['id']);
+    }
+} catch (\Throwable $e) {
+    $wwiBuilderHtml = '';
+}
+if ($wwiBuilderHtml !== ''):
+    echo $wwiBuilderHtml;
+else:
 $wwiAbIds = [];
 foreach ($sections as $s) {
     if (!empty($s['widget_type']) && WidgetRegistry::get($s['widget_type'])) $wwiAbIds[] = (int)($s['id'] ?? 0);
@@ -357,8 +369,8 @@ foreach ($sections as $section):
     if ($wwiIsWwiHero) echo '</div>';
     elseif ($wwiIsHero) echo '</div>' . $wwiTiaPanel . '</div>';
     echo '</div>';
-endforeach; ?>
->
+endforeach;
+endif; ?>
 </main>
 <script>
 (function(){

@@ -533,13 +533,16 @@ class FactoryService
     public function runDueJobs(int $limit = 5): array
     {
         $db = Database::instance();
+        $db->exec("UPDATE wwi_jobs SET status = 'retrying' WHERE status = 'running' AND locked_at < (NOW() - INTERVAL 10 MINUTE) AND attempts < max_attempts");
         $stmt = $db->prepare("SELECT * FROM wwi_jobs WHERE site_id = @site_id AND status IN ('queued','retrying') AND attempts < max_attempts ORDER BY id ASC LIMIT :lim");
         $stmt->bindValue(':lim', $limit, \PDO::PARAM_INT);
         $stmt->execute();
         $jobs = $stmt->fetchAll();
         $ran = 0;
         foreach ($jobs as $job) {
-            $db->prepare("UPDATE wwi_jobs SET status = 'running', locked_at = NOW() WHERE id = :id")->execute(['id' => $job['id']]);
+            $claim = $db->prepare("UPDATE wwi_jobs SET status = 'running', locked_at = NOW() WHERE id = :id AND status IN ('queued','retrying')");
+            $claim->execute(['id' => $job['id']]);
+            if ($claim->rowCount() < 1) continue;
             $payload = json_decode((string)$job['payload'], true) ?: [];
             try {
                 $result = $this->dispatchJob($job['type'], $payload);

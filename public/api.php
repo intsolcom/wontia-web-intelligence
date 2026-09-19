@@ -336,6 +336,26 @@ $router->group('/api/v1/admin', function (Router $r) {
     $r->get('/store/settings', [\App\Controllers\Admin\StoreController::class, 'settings']);
     $r->put('/store/settings', [\App\Controllers\Admin\StoreController::class, 'settingsSave']);
 
+    $r->get('/builder/tree', [\App\Controllers\Admin\BuilderController::class, 'tree']);
+    $r->get('/builder/palette', [\App\Controllers\Admin\BuilderController::class, 'palette']);
+    $r->post('/builder/ensure-tables', [\App\Controllers\Admin\BuilderController::class, 'ensureTables']);
+    $r->post('/builder/rows', [\App\Controllers\Admin\BuilderController::class, 'createRow']);
+    $r->patch('/builder/{type}/node/{id}', [\App\Controllers\Admin\BuilderController::class, 'updateNode']);
+    $r->delete('/builder/{type}/node/{id}', [\App\Controllers\Admin\BuilderController::class, 'deleteNode']);
+    $r->post('/builder/columns', [\App\Controllers\Admin\BuilderController::class, 'createColumn']);
+    $r->post('/builder/blocks', [\App\Controllers\Admin\BuilderController::class, 'createBlock']);
+    $r->patch('/builder/blocks/{id}', [\App\Controllers\Admin\BuilderController::class, 'updateBlock']);
+    $r->post('/builder/blocks/{id}/duplicate', [\App\Controllers\Admin\BuilderController::class, 'duplicateBlock']);
+    $r->post('/builder/blocks/{id}/move', [\App\Controllers\Admin\BuilderController::class, 'moveBlock']);
+    $r->post('/builder/reorder/{type}', [\App\Controllers\Admin\BuilderController::class, 'reorder']);
+    $r->post('/builder/convert', [\App\Controllers\Admin\BuilderController::class, 'convert']);
+    $r->post('/builder/publish', [\App\Controllers\Admin\BuilderController::class, 'publish']);
+    $r->get('/builder/revisions', [\App\Controllers\Admin\BuilderController::class, 'revisions']);
+    $r->post('/builder/revisions/{id}/restore', [\App\Controllers\Admin\BuilderController::class, 'restoreRevision']);
+    $r->get('/builder/trash', [\App\Controllers\Admin\BuilderController::class, 'trash']);
+    $r->post('/builder/trash/{id}/restore', [\App\Controllers\Admin\BuilderController::class, 'restoreTrash']);
+    $r->get('/builder/render', [\App\Controllers\Admin\BuilderController::class, 'render']);
+
     $r->get('/media', [\App\Controllers\Admin\MediaController::class, 'index']);    $r->post('/media/upload', [\App\Controllers\Admin\MediaController::class, 'upload']);
     $r->delete('/media/{id}', [\App\Controllers\Admin\MediaController::class, 'destroy']);
 
