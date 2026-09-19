@@ -424,7 +424,7 @@ class BuilderService
     {
         $tree = $this->tree($pageId);
         if (!$tree['rows']) return '';
-        $html = '';
+        $html = $this->baseCss();
         foreach ($tree['rows'] as $row) {
             if ((int)$row['is_active'] !== 1) continue;
             $rowStyle = $this->styleAttr($row['layout'] ?? [], ['background', 'padding_top', 'padding_bottom', 'min_height']);
@@ -445,6 +445,37 @@ class BuilderService
             $html .= '</div></div>';
         }
         return $html;
+    }
+
+    private static bool $baseCssPrinted = false;
+
+    private function baseCss(): string
+    {
+        if (self::$baseCssPrinted) return '';
+        self::$baseCssPrinted = true;
+        return '<style id="wwi-b-css">'
+            . '.wwi-b-row{width:100%;position:relative}'
+            . '.wwi-b-row-inner{display:flex;flex-wrap:wrap;gap:26px;max-width:1200px;margin:0 auto;padding:0 24px;align-items:flex-start}'
+            . '.wwi-b-col{min-width:0;flex-grow:0;flex-shrink:0}'
+            . '.wwi-b-slot{display:flex;flex-direction:column;gap:18px}'
+            . '.wwi-b-block{min-width:0}'
+            . '.wwi-b-text>:first-child{margin-top:0}'
+            . '.wwi-b-text>:last-child{margin-bottom:0}'
+            . '.wwi-b-text h1,.wwi-b-text h2,.wwi-b-text h3{margin:0 0 12px;line-height:1.15;letter-spacing:-.02em}'
+            . '.wwi-b-text p{margin:0 0 14px;line-height:1.7}'
+            . '.wwi-b-text ul,.wwi-b-text ol{margin:0 0 14px 20px;line-height:1.7}'
+            . '.wwi-b-figure{margin:0}'
+            . '.wwi-b-figure img{max-width:100%;height:auto;display:block;border-radius:12px}'
+            . '.wwi-b-figure figcaption{font-size:12px;opacity:.7;margin-top:8px}'
+            . '.wwi-b-divider{border:0;border-top:1px solid rgba(128,128,150,.25);margin:14px 0}'
+            . '.wwi-b-video{width:100%}'
+            . '.wwi-b-play{cursor:pointer}'
+            . '.wwi-b-block .btn{display:inline-block}'
+            . '@media(max-width:900px){.wwi-b-row-inner{gap:18px}.wwi-b-col{flex:1 1 100%!important;max-width:100%!important}}'
+            . '@media(min-width:901px){.wwi-hide-desktop{display:none!important}}'
+            . '@media(min-width:721px) and (max-width:900px){.wwi-hide-tablet{display:none!important}}'
+            . '@media(max-width:720px){.wwi-hide-mobile{display:none!important}}'
+            . '</style>';
     }
 
     private function renderBlock(array $b): string

@@ -147,7 +147,20 @@ if ($brandPrimary && preg_match('/^#[0-9a-fA-F]{6}$/', (string)$brandPrimary)):
 </nav>
 
 <main>
-    <?php foreach ($sections as $section):
+    <?php
+    $wwiBuilderHtml = '';
+    try {
+        $wwiBuilderSvc = new \App\Services\BuilderService();
+        if ($wwiBuilderSvc->ready() && $wwiBuilderSvc->hasLayout((int)$page['id'])) {
+            $wwiBuilderHtml = $wwiBuilderSvc->renderPage((int)$page['id']);
+        }
+    } catch (\Throwable $e) {
+        $wwiBuilderHtml = '';
+    }
+    if ($wwiBuilderHtml !== ''):
+        echo $wwiBuilderHtml;
+    else:
+    foreach ($sections as $section):
         if (!empty($section['widget_type']) && WidgetRegistry::get($section['widget_type'])):
             $config = json_decode($section['config'] ?? '{}', true) ?: [];
             echo WidgetRegistry::render($section['widget_type'], $config);
@@ -157,8 +170,11 @@ if ($brandPrimary && preg_match('/^#[0-9a-fA-F]{6}$/', (string)$brandPrimary)):
             echo "\n<!-- Section type: " . htmlspecialchars($section['type']) . ' | BRICK: ' . htmlspecialchars($section['widget_type'] ?? 'none') . " -->\n";
             if ($section['content']) echo '<section class="section">' . $section['content'] . '</section>';
         endif;
-    endforeach; ?>
+    endforeach;
+    endif; ?>
 </main>
+
+<?php require ROOT_DIR . '/templates/themes/_shared/live-editor.php'; ?>
 
 <?= CookieConsentService::render() ?>
 
