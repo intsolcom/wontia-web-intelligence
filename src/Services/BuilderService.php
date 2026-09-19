@@ -447,6 +447,35 @@ class BuilderService
         return $html;
     }
 
+    public function normalizeRow(int $rowId): void
+    {
+        $db = Database::instance();
+        $stmt = $db->prepare("SELECT id, span FROM wwi_page_columns WHERE row_id = :rid AND site_id = @site_id ORDER BY sort_order ASC, id ASC");
+        $stmt->execute(['rid' => $rowId]);
+        $cols = $stmt->fetchAll();
+        $n = count($cols);
+        if ($n < 1) return;
+        if ($n === 1) {
+            $db->prepare("UPDATE wwi_page_columns SET span = 12 WHERE id = :id AND site_id = @site_id")->execute(['id' => (int)$cols[0]['id']]);
+            return;
+        }
+        $total = 0;
+        foreach ($cols as $c) $total += max(1, (int)$c['span']);
+        $acc = 0;
+        $upd = $db->prepare("UPDATE wwi_page_columns SET span = :span WHERE id = :id AND site_id = @site_id");
+        foreach ($cols as $i => $c) {
+            if ($i === $n - 1) {
+                $span = 12 - $acc;
+            } else {
+                $span = (int)floor((max(1, (int)$c['span']) / max(1, $total)) * 12);
+                $span = max(1, min(12 - ($n - 1 - $i) - $acc, $span));
+            }
+            $span = max(1, min(12, $span));
+            $acc += $span;
+            $upd->execute(['span' => $span, 'id' => (int)$c['id']]);
+        }
+    }
+
     private static bool $baseCssPrinted = false;
 
     private function baseCss(): string

@@ -195,7 +195,7 @@
         var startX = e.clientX;
         var s1 = parseInt(col.getAttribute('data-span'), 10);
         var s2 = parseInt(next.getAttribute('data-span'), 10);
-        var total = s1 + s2;
+        var total = Math.min(12, s1 + s2);
         col.style.transition = 'none'; next.style.transition = 'none';
         function move(ev) {
             var dx = ev.clientX - startX;

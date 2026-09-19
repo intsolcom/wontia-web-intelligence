@@ -82,7 +82,9 @@ class BuilderController
     public function createColumn(Request $req): void
     {
         $d = $req->json();
-        $colId = $this->svc()->createColumn((int)($d['row_id'] ?? 0), (int)($d['span'] ?? 12), (int)($d['position'] ?? -1), (array)($d['layout'] ?? []));
+        $rowId = (int)($d['row_id'] ?? 0);
+        $colId = $this->svc()->createColumn($rowId, (int)($d['span'] ?? 12), (int)($d['position'] ?? -1), (array)($d['layout'] ?? []));
+        $this->svc()->normalizeRow($rowId);
         Response::json(['ok' => true, 'data' => ['column_id' => $colId]], 201);
     }
 
