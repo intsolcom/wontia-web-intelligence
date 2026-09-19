@@ -142,7 +142,7 @@
             var id = parseInt(block.getAttribute('data-block'), 10);
             var act = btn.getAttribute('data-a');
             if (act === 'del') removeBlock(block, id, slot);
-            else if (act === 'dup') api('/api/v1/admin/builder/blocks/' + id + '/duplicate', { method: 'POST' }).then(function (r) { if (r.ok) { reloadSlot(slot); toast('Duplicado'); } });
+            else if (act === 'dup') api('/api/v1/admin/builder/blocks/' + id + '/duplicate', { method: 'POST' }).then(function (r) { if (r.ok) { reloadSlot(slot); toast('Duplicado'); } else toast(r.message || 'No se pudo duplicar'); });
             else if (act === 'up' || act === 'down') moveSibling(block, act === 'up' ? -1 : 1);
         });
         block.addEventListener('click', function (e) {
@@ -353,14 +353,20 @@
 
     function moveSibling(block, dir) {
         var slot = block.parentNode;
-        var sib = dir < 0 ? block.previousElementSibling : block.nextElementSibling;
-        while (sib && !sib.classList.contains('wwi-b-block')) sib = dir < 0 ? sib.previousElementSibling : sib.nextElementSibling;
-        if (!sib) return;
-        var ids = $$(':scope > .wwi-b-block', slot).map(function (b) { return parseInt(b.getAttribute('data-block'), 10); });
+        var blocks = $$(':scope > .wwi-b-block', slot);
+        var ids = blocks.map(function (b) { return parseInt(b.getAttribute('data-block'), 10); });
         var id = parseInt(block.getAttribute('data-block'), 10);
-        var i = ids.indexOf(id), j = ids.indexOf(parseInt(sib.getAttribute('data-block'), 10));
-        ids.splice(i, 1); ids.splice(j, 0, id);
-        api('/api/v1/admin/builder/reorder/block', { method: 'POST', body: { items: ids } }).then(function (r) { if (r.ok) location.reload(); });
+        var i = ids.indexOf(id);
+        if (i < 0) return;
+        var j = i + dir;
+        if (j < 0 || j >= ids.length) return;
+        ids.splice(i, 1);
+        ids.splice(j, 0, id);
+        setStatus('Moviendo…');
+        api('/api/v1/admin/builder/reorder/block', { method: 'POST', body: { items: ids } }).then(function (r) {
+            if (r.ok) { toast('Movido'); setStatus('Guardado ✓'); setTimeout(function () { location.reload(); }, 250); }
+            else { toast(r.message || 'No se pudo mover'); setStatus('Error'); }
+        });
     }
 
     function reloadSlot(slot) {
