@@ -99,13 +99,31 @@
         $$('.wwi-b-row').forEach(function (row, i) {
             if (!row.querySelector(':scope > .wb-row-tag')) {
                 var t = document.createElement('span'); t.className = 'wb-row-tag'; t.textContent = 'Fila ' + (i + 1); row.appendChild(t);
+                var acts = document.createElement('span'); acts.className = 'wb-row-acts';
+                acts.innerHTML = '<button type="button" data-ra="add-row" title="Añadir fila debajo">+ Fila</button>'
+                    + '<button type="button" data-ra="add-col" title="Añadir columna">+ Col</button>'
+                    + '<button type="button" data-ra="del-row" title="Eliminar fila">🗑</button>';
+                row.appendChild(acts);
+                acts.addEventListener('click', function (e) {
+                    var b = e.target.closest('button[data-ra]'); if (!b) return;
+                    e.stopPropagation();
+                    var a = b.getAttribute('data-ra');
+                    if (a === 'add-row') addRow(row, i + 1);
+                    else if (a === 'add-col') addColumn(row);
+                    else if (a === 'del-row') deleteRow(row);
+                });
             }
             $$(':scope > .wwi-b-row-inner > .wwi-b-col', row).forEach(function (col) {
                 if (!col.querySelector(':scope > .wb-col-tag')) {
                     var c = document.createElement('span'); c.className = 'wb-col-tag'; c.textContent = col.getAttribute('data-span') + '/12'; col.appendChild(c);
+                    var del = document.createElement('button'); del.type = 'button'; del.className = 'wb-col-del'; del.title = 'Eliminar columna'; del.textContent = '🗑';
+                    col.appendChild(del);
+                    del.addEventListener('click', function (e) { e.stopPropagation(); deleteColumn(col); });
                 }
                 if (!col.querySelector(':scope > .wb-col-resize')) {
-                    var rz = document.createElement('span'); rz.className = 'wb-col-resize'; col.appendChild(rz);
+                    var rz = document.createElement('span'); rz.className = 'wb-col-resize';
+                    rz.addEventListener('pointerdown', function (e) { startColResize(e, col); });
+                    col.appendChild(rz);
                 }
                 $$(':scope > .wwi-b-slot', col).forEach(function (slot) {
                     $$(':scope > .wwi-b-block', slot).forEach(function (block) { decorateBlock(block, slot); });
@@ -113,6 +131,99 @@
                 });
             });
         });
+        // + Fila al final del árbol
+        var lastRow = $$('.wwi-b-row').pop();
+        if (lastRow && !$('#wb-add-row-end')) {
+            var end = document.createElement('button');
+            end.type = 'button'; end.id = 'wb-add-row-end'; end.className = 'wb-add wb-inline'; end.textContent = '+ Fila';
+            end.title = 'Añadir una fila al final';
+            end.addEventListener('click', function () { addRow(lastRow, 9999); });
+            lastRow.parentNode.insertBefore(end, lastRow.nextSibling);
+        }
+    }
+
+    function addRow(refRow, position) {
+        var pageRows = $$('.wwi-b-row');
+        var pos = position >= 9999 ? pageRows.length : position;
+        setStatus('Añadiendo fila…');
+        api('/api/v1/admin/builder/rows', { method: 'POST', body: { page_id: PAGE_ID, position: pos, columns: 1 } }).then(function (r) {
+            if (r.ok) { toast('Fila añadida'); setTimeout(function () { location.reload(); }, 250); }
+            else { toast(r.message || 'Error al añadir fila'); setStatus('Error'); }
+        });
+    }
+
+    function addColumn(row) {
+        var rowId = parseInt(row.getAttribute('data-row'), 10);
+        var cols = $$(':scope > .wwi-b-row-inner > .wwi-b-col', row).length;
+        if (cols >= 4) { toast('Máximo 4 columnas por fila'); return; }
+        var span = Math.max(2, Math.floor(12 / (cols + 1)));
+        setStatus('Añadiendo columna…');
+        api('/api/v1/admin/builder/columns', { method: 'POST', body: { row_id: rowId, span: span } }).then(function (r) {
+            if (r.ok) { toast('Columna añadida'); setTimeout(function () { location.reload(); }, 250); }
+            else { toast(r.message || 'Error'); }
+        });
+    }
+
+    function deleteRow(row) {
+        var rowId = parseInt(row.getAttribute('data-row'), 10);
+        toast('Eliminando fila…');
+        api('/api/v1/admin/builder/row/node/' + rowId + '?page_id=' + PAGE_ID, { method: 'DELETE' }).then(function (r) {
+            if (r.ok) { row.remove(); toast('Fila eliminada'); setStatus('Eliminado'); }
+            else toast(r.message || 'Error');
+        });
+    }
+
+    function deleteColumn(col) {
+        var colId = parseInt(col.getAttribute('data-col'), 10);
+        var row = col.parentNode;
+        if ($$(':scope > .wwi-b-col', row).length <= 1) { toast('La fila necesita al menos una columna'); return; }
+        api('/api/v1/admin/builder/column/node/' + colId + '?page_id=' + PAGE_ID, { method: 'DELETE' }).then(function (r) {
+            if (r.ok) { col.remove(); toast('Columna eliminada'); }
+            else toast(r.message || 'Error');
+        });
+    }
+
+    // Redimensionado de columnas (arrastre del borde)
+    function startColResize(e, col) {
+        e.preventDefault(); e.stopPropagation();
+        var row = col.parentNode;
+        var cols = $$(':scope > .wwi-b-col', row);
+        var idx = cols.indexOf(col);
+        var next = cols[idx + 1];
+        if (!next) { toast('No hay columna a la derecha'); return; }
+        var rowW = row.getBoundingClientRect().width || 1;
+        var startX = e.clientX;
+        var s1 = parseInt(col.getAttribute('data-span'), 10);
+        var s2 = parseInt(next.getAttribute('data-span'), 10);
+        var total = s1 + s2;
+        col.style.transition = 'none'; next.style.transition = 'none';
+        function move(ev) {
+            var dx = ev.clientX - startX;
+            var delta = Math.round((dx / rowW) * 12);
+            var n1 = Math.max(2, Math.min(total - 2, s1 + delta));
+            var n2 = total - n1;
+            col.style.flexBasis = ((n1 / 12) * 100) + '%'; col.style.maxWidth = ((n1 / 12) * 100) + '%';
+            next.style.flexBasis = ((n2 / 12) * 100) + '%'; next.style.maxWidth = ((n2 / 12) * 100) + '%';
+            col.__n1 = n1; col.__n2 = n2;
+        }
+        function up() {
+            document.removeEventListener('pointermove', move);
+            document.removeEventListener('pointerup', up);
+            col.style.transition = ''; next.style.transition = '';
+            var n1 = col.__n1, n2 = col.__n2;
+            if (!n1 || n1 === s1) return;
+            api('/api/v1/admin/builder/column/node/' + col.getAttribute('data-col'), { method: 'PATCH', body: { span: n1 } })
+                .then(function () { return api('/api/v1/admin/builder/column/node/' + next.getAttribute('data-col'), { method: 'PATCH', body: { span: n2 } }); })
+                .then(function () {
+                    col.setAttribute('data-span', n1); next.setAttribute('data-span', n2);
+                    var t1 = col.querySelector('.wb-col-tag'), t2 = next.querySelector('.wb-col-tag');
+                    if (t1) t1.textContent = n1 + '/12';
+                    if (t2) t2.textContent = n2 + '/12';
+                    toast('Columnas ' + n1 + '/' + n2);
+                });
+        }
+        document.addEventListener('pointermove', move);
+        document.addEventListener('pointerup', up);
     }
 
     function decorateBlock(block, slot) {
@@ -151,30 +262,134 @@
             e.preventDefault(); e.stopPropagation();
             select(block);
         });
+        block.addEventListener('dblclick', function (e) {
+            if (!S.on) return;
+            var textEl = block.querySelector('.wwi-b-text');
+            if (textEl) { e.preventDefault(); e.stopPropagation(); inlineEdit(block, textEl); return; }
+            var link = block.querySelector('a.btn');
+            if (link) {
+                e.preventDefault(); e.stopPropagation();
+                var lbl = prompt('Texto del botón:', link.textContent);
+                if (lbl === null) return;
+                var id = parseInt(block.getAttribute('data-block'), 10);
+                api('/api/v1/admin/builder/blocks/' + id, { method: 'PATCH', body: { props: { label: lbl, href: link.getAttribute('href') || '#', style: 'primary' } } })
+                    .then(function (r) { if (r.ok) { link.textContent = lbl; toast('Botón actualizado'); } });
+            }
+        });
+    }
+
+    // Edición de texto in situ (doble clic)
+    function inlineEdit(block, el) {
+        if (el.getAttribute('contenteditable') === 'true') return;
+        var original = el.innerHTML;
+        el.setAttribute('contenteditable', 'true');
+        el.classList.add('wb-inline');
+        el.focus();
+        try {
+            var sel = window.getSelection(); var range = document.createRange();
+            range.selectNodeContents(el); range.collapse(false);
+            sel.removeAllRanges(); sel.addRange(range);
+        } catch (e) { }
+        var mini = document.createElement('div');
+        mini.className = 'wb-inline-bar';
+        mini.innerHTML = '<span>Editando texto</span>'
+            + '<button type="button" data-i="bold" title="Negrita"><b>B</b></button>'
+            + '<button type="button" data-i="italic" title="Cursiva"><i>I</i></button>'
+            + '<button type="button" data-i="h2" title="Título">H2</button>'
+            + '<button type="button" data-i="p" title="Párrafo">P</button>'
+            + '<button type="button" data-i="link" title="Enlace">🔗</button>'
+            + '<button type="button" data-i="done">Listo</button>'
+            + '<button type="button" data-i="cancel">Cancelar</button>';
+        el.parentNode.insertBefore(mini, el);
+        var finished = false;
+        function finish(save) {
+            if (finished) return; finished = true;
+            el.removeAttribute('contenteditable');
+            el.classList.remove('wb-inline');
+            if (mini.parentNode) mini.remove();
+            if (!save) { el.innerHTML = original; return; }
+            if (el.innerHTML === original) return;
+            var id = parseInt(block.getAttribute('data-block'), 10);
+            setStatus('Guardando…');
+            api('/api/v1/admin/builder/blocks/' + id, { method: 'PATCH', body: { props: { html: el.innerHTML } } }).then(function (r) {
+                if (r.ok) { toast('Texto guardado ✓'); setStatus('Guardado ✓'); }
+                else { toast(r.message || 'Error al guardar'); el.innerHTML = original; setStatus('Error'); }
+            });
+        }
+        mini.addEventListener('mousedown', function (e) { e.preventDefault(); });
+        mini.addEventListener('click', function (e) {
+            var b = e.target.closest('button[data-i]'); if (!b) return;
+            var a = b.getAttribute('data-i');
+            if (a === 'done') finish(true);
+            else if (a === 'cancel') finish(false);
+            else if (a === 'link') { var u = prompt('URL del enlace:'); if (u) { el.focus(); document.execCommand('createLink', false, u); } }
+            else if (a === 'h2') { el.focus(); document.execCommand('formatBlock', false, '<h2>'); }
+            else if (a === 'p') { el.focus(); document.execCommand('formatBlock', false, '<p>'); }
+            else { el.focus(); document.execCommand(a, false, null); }
+        });
+        el.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') { e.preventDefault(); finish(false); }
+            else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); finish(true); }
+        });
+        el.addEventListener('blur', function () { setTimeout(function () { if (!mini.contains(document.activeElement)) finish(true); }, 180); });
     }
 
     function ensureAdd(slot) {
+        // El slot completo es zona de soltado con línea de inserción según la posición del cursor
+        if (!slot.__wbDrop) {
+            slot.__wbDrop = 1;
+            slot.addEventListener('dragover', function (e) {
+                if (!S.drag && !S.paletteDrag) return;
+                e.preventDefault();
+                var addBtn = slot.querySelector(':scope > .wb-add');
+                if (addBtn) addBtn.classList.add('wb-drop');
+                var line = slot.querySelector(':scope > .wb-drop-line') || document.createElement('div');
+                line.className = 'wb-drop-line';
+                var blocks = $$(':scope > .wwi-b-block', slot);
+                var after = null;
+                for (var i = 0; i < blocks.length; i++) {
+                    var r = blocks[i].getBoundingClientRect();
+                    if (e.clientY < r.top + r.height / 2) { after = blocks[i]; break; }
+                }
+                if (after) slot.insertBefore(line, after);
+                else slot.insertBefore(line, addBtn || null);
+                slot.__dropPos = after ? blocks.indexOf(after) : blocks.length;
+            });
+            slot.addEventListener('dragleave', function (e) {
+                if (slot.contains(e.relatedTarget)) return;
+                var addBtn = slot.querySelector(':scope > .wb-add');
+                if (addBtn) addBtn.classList.remove('wb-drop');
+                var l = slot.querySelector(':scope > .wb-drop-line'); if (l) l.remove();
+            });
+            slot.addEventListener('drop', function (e) {
+                e.preventDefault();
+                var addBtn = slot.querySelector(':scope > .wb-add');
+                if (addBtn) addBtn.classList.remove('wb-drop');
+                var l = slot.querySelector(':scope > .wb-drop-line'); if (l) l.remove();
+                var slotId = parseInt(slot.getAttribute('data-slot'), 10);
+                var pos = typeof slot.__dropPos === 'number' ? slot.__dropPos : 9999;
+                if (S.paletteDrag) {
+                    var p = S.paletteDrag; S.paletteDrag = null;
+                    var payload = p.kind === 'brick'
+                        ? { slot_id: slotId, type: 'brick', brick_slug: p.slug, props: {}, position: pos }
+                        : { slot_id: slotId, type: p.type, props: defaultProps(p.type), position: pos };
+                    setStatus('Insertando…');
+                    api('/api/v1/admin/builder/blocks', { method: 'POST', body: payload }).then(function (r) {
+                        if (r.ok) { toast('Bloque añadido'); location.reload(); } else { toast(r.message || 'Error'); setStatus('Error'); }
+                    });
+                    return;
+                }
+                if (!S.drag) return;
+                api('/api/v1/admin/builder/blocks/' + S.drag.id + '/move', { method: 'POST', body: { slot_id: slotId, position: pos } })
+                    .then(function (r) { if (r.ok) { toast('Movido'); location.reload(); } else toast(r.message || 'Error'); });
+            });
+        }
         if (slot.querySelector(':scope > .wb-add')) return;
         var a = document.createElement('button');
         a.type = 'button'; a.className = 'wb-add'; a.innerHTML = '+';
         a.setAttribute('aria-label', 'Añadir bloque');
         a.title = 'Añadir bloque';
         a.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); openPalette(slot); });
-        slot.addEventListener('dragover', function (e) {
-            e.preventDefault();
-            a.classList.add('wb-drop');
-            var line = slot.querySelector(':scope > .wb-drop-line') || document.createElement('div');
-            line.className = 'wb-drop-line';
-            slot.insertBefore(line, a);
-        });
-        slot.addEventListener('dragleave', function (e) { if (!slot.contains(e.relatedTarget)) { a.classList.remove('wb-drop'); clearDropLines(); } });
-        slot.addEventListener('drop', function (e) {
-            e.preventDefault(); a.classList.remove('wb-drop'); clearDropLines();
-            if (!S.drag) return;
-            var pos = $$(':scope > .wwi-b-block', slot).length;
-            api('/api/v1/admin/builder/blocks/' + S.drag.id + '/move', { method: 'POST', body: { slot_id: parseInt(slot.getAttribute('data-slot'), 10), position: pos } })
-                .then(function (r) { if (r.ok) { toast('Movido'); location.reload(); } });
-        });
         slot.appendChild(a);
     }
 
@@ -225,9 +440,14 @@
         var h = '';
         if (type === 'text') {
             h += '<div class="wb-f"><label>Texto</label><div class="wb-rte-tools">'
-                + '<button type="button" data-c="bold"><b>B</b></button><button type="button" data-c="italic"><i>I</i></button><button type="button" data-c="underline"><u>U</u></button>'
-                + '<button type="button" data-c="formatBlock" data-v="h2">H2</button><button type="button" data-c="formatBlock" data-v="h3">H3</button><button type="button" data-c="formatBlock" data-v="p">P</button>'
-                + '<button type="button" data-c="insertUnorderedList">•</button><button type="button" data-c="createLink">🔗</button><button type="button" data-c="removeFormat">✕</button>'
+                + '<button type="button" data-c="bold" title="Negrita"><b>B</b></button><button type="button" data-c="italic" title="Cursiva"><i>I</i></button><button type="button" data-c="underline" title="Subrayado"><u>U</u></button><button type="button" data-c="strikeThrough" title="Tachado"><s>S</s></button>'
+                + '<button type="button" data-c="formatBlock" data-v="h1" title="Título 1">H1</button><button type="button" data-c="formatBlock" data-v="h2" title="Título 2">H2</button><button type="button" data-c="formatBlock" data-v="h3" title="Título 3">H3</button><button type="button" data-c="formatBlock" data-v="p" title="Párrafo">P</button>'
+                + '<button type="button" data-c="formatBlock" data-v="blockquote" title="Cita">❝</button>'
+                + '<button type="button" data-c="insertUnorderedList" title="Lista">•</button><button type="button" data-c="insertOrderedList" title="Lista numerada">1.</button>'
+                + '<button type="button" data-c="justifyLeft" title="Izquierda">⯇</button><button type="button" data-c="justifyCenter" title="Centro">≡</button><button type="button" data-c="justifyRight" title="Derecha">⯈</button>'
+                + '<button type="button" data-c="createLink" title="Enlace">🔗</button><button type="button" data-c="unlink" title="Quitar enlace">⛓</button>'
+                + '<button type="button" data-c="foreColor" data-v="#7c3cff" title="Color acento">A</button><button type="button" data-c="hiliteColor" data-v="rgba(183,140,255,.35)" title="Resaltado">▨</button>'
+                + '<button type="button" data-c="removeFormat" title="Limpiar formato">✕</button>'
                 + '</div><div class="wb-rte" id="wb-rte" contenteditable="true">' + (props.html || '') + '</div></div>';
             h += alignField();
         } else if (type === 'image') {
@@ -274,6 +494,7 @@
                     try {
                         if (c === 'createLink') { var u = prompt('URL del enlace:'); if (u) document.execCommand(c, false, u); }
                         else if (c === 'formatBlock') document.execCommand(c, false, '<' + v + '>');
+                        else if (v) document.execCommand(c, false, v);
                         else document.execCommand(c, false, null);
                     } catch (e) { }
                 });
@@ -414,14 +635,22 @@
         var atomic = (data.atomic || []).filter(function (a) { return !q || a.label.toLowerCase().indexOf(q) > -1; });
         var bricks = (data.bricks || []).filter(function (b) { return !q || b.label.toLowerCase().indexOf(q) > -1 || b.slug.indexOf(q) > -1; });
         var h = '';
-        if (atomic.length) h += '<div class="wb-sec-t">Elementos</div><div class="wb-grid">' + atomic.map(function (a) {
-            return '<button type="button" class="wb-item" data-kind="atomic" data-type="' + a.type + '"><i>' + esc(a.icon) + '</i><span>' + esc(a.label) + '</span></button>';
+        if (atomic.length) h += '<div class="wb-sec-t">Elementos <span style="text-transform:none;letter-spacing:0;font-weight:500">(haz clic o arrastra al sitio)</span></div><div class="wb-grid">' + atomic.map(function (a) {
+            return '<button type="button" class="wb-item" draggable="true" data-kind="atomic" data-type="' + a.type + '"><i>' + esc(a.icon) + '</i><span>' + esc(a.label) + '</span></button>';
         }).join('') + '</div>';
         if (bricks.length) h += '<div class="wb-sec-t">Bricks (' + bricks.length + ')</div><div class="wb-grid">' + bricks.map(function (b) {
-            return '<button type="button" class="wb-item" data-kind="brick" data-slug="' + esc(b.slug) + '"><i>▦</i><span>' + esc(b.label) + '</span></button>';
+            return '<button type="button" class="wb-item" draggable="true" data-kind="brick" data-slug="' + esc(b.slug) + '"><i>▦</i><span>' + esc(b.label) + '</span></button>';
         }).join('') + '</div>';
         if (!h) h = '<div style="color:#9c96c4;font-size:12.5px;padding:10px">Sin resultados.</div>';
         body.innerHTML = h;
+        body.addEventListener('dragstart', function (e) {
+            var it = e.target.closest('.wb-item'); if (!it) return;
+            S.paletteDrag = { kind: it.getAttribute('data-kind'), type: it.getAttribute('data-type'), slug: it.getAttribute('data-slug') };
+            if (e.dataTransfer) { try { e.dataTransfer.setData('text/plain', 'palette'); e.dataTransfer.effectAllowed = 'copy'; } catch (x) { } }
+            var box = $('#wb-palette'); if (box) box.classList.remove('wb-open');
+            toast('Suelta el bloque en el lugar deseado');
+        });
+        body.addEventListener('dragend', function () { S.paletteDrag = null; });
         body.addEventListener('click', function (e) {
             var it = e.target.closest('.wb-item'); if (!it) return;
             var slot = S.slot; if (!slot) return;
