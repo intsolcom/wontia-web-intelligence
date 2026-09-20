@@ -361,7 +361,7 @@ window.wwiHeroChip=function(el){
         shop:['hero','gallery','pricing','faq','contact','footer'],
         agency:['hero','features','testimonials','pricing','faq','contact','footer']
     };
-    var DEFAULT=['hero','features','gallery','pricing','contact','footer'];
+    var DEFAULT=[{type:'hero'},{type:'features'},{type:'gallery'},{type:'pricing'},{type:'contact'},{type:'footer'}];
     var sector='restaurant';
     var canvas=document.getElementById('iqb-canvas');
     var palette=document.getElementById('iqb-palette');
@@ -373,7 +373,13 @@ window.wwiHeroChip=function(el){
     function snap(){return JSON.parse(JSON.stringify(state))}
     function push(){hist=hist.slice(0,hi+1);hist.push(snap());if(hist.length>40)hist.shift();hi=hist.length-1}
     function save(){try{localStorage.setItem('wwi_hero_layout',JSON.stringify(state))}catch(e){}}
-    function load(){try{var s=JSON.parse(localStorage.getItem('wwi_hero_layout')||'null');if(s&&s.length)state=s}catch(e){}if(!state.length)state=DEFAULT.slice()}
+    function load(){
+        try{
+            var s=JSON.parse(localStorage.getItem('wwi_hero_layout')||'null');
+            if(s&&s.length)state=s.map(function(x){return typeof x==='string'?{type:x}:x});
+        }catch(e){}
+        if(!state.length)state=DEFAULT.slice();
+    }
     function say(t){if(live)live.textContent=t}
     function score(){
         var types={},n=state.filter(function(s){return !s.hidden}).length;
