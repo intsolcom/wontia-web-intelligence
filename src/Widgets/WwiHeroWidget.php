@@ -177,6 +177,64 @@ class WwiHeroWidget extends Widget
 .iqb-toast button{background:none;border:none;color:var(--accent2);font:inherit;font-size:11.5px;font-weight:800;cursor:pointer;padding:0}
 .iqb-drop{height:3px;border-radius:2px;background:var(--accent2);box-shadow:0 0 12px var(--accent2);margin:-4px 2px}
 .iqb-empty{padding:30px 14px;text-align:center;color:var(--muted);font-size:11.5px;border:1px dashed var(--border2);border-radius:10px}
+.iqb-nav{position:sticky;top:0;z-index:6;display:flex;align-items:center;gap:10px;padding:8px 10px;margin:-14px -12px 10px;background:var(--panel2);border-bottom:1px solid var(--border);backdrop-filter:blur(8px);font-size:10.5px}
+.iqb-nav b{font-size:11px;font-weight:800;letter-spacing:-.01em;white-space:nowrap}
+.iqb-nav-links{display:flex;gap:9px;flex:1;overflow:hidden}
+.iqb-nav-links a{color:var(--muted);text-decoration:none;white-space:nowrap}
+.iqb-nav-links a:hover{color:var(--text)}
+.iqb-nav-b{border:0;border-radius:7px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font:inherit;font-size:10px;font-weight:700;padding:5px 9px;cursor:pointer;white-space:nowrap}
+.iqb-sec-body{border-radius:10px;overflow:hidden}
+.iqb-s{padding:16px 14px;background:var(--panel);border-bottom:1px solid var(--border);font-size:11px}
+.iqb-s h4{margin:0 0 10px;font-size:12.5px;font-weight:800;letter-spacing:-.01em}
+.iqb-s p{margin:0;color:var(--muted);line-height:1.5}
+.iqb-s-hero{padding:22px 16px;background:linear-gradient(140deg,rgba(124,60,255,.22),rgba(84,190,255,.12));border-bottom:1px solid var(--border)}
+.iqb-s-tag{display:inline-block;font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--accent2);border:1px solid var(--border2);border-radius:999px;padding:2px 8px;margin-bottom:8px}
+.iqb-s-hero h3{margin:0 0 6px;font-size:17px;font-weight:800;line-height:1.2;letter-spacing:-.02em}
+.iqb-s-hero p{font-size:11px;color:var(--muted);max-width:280px;margin-bottom:12px}
+.iqb-s-btns{display:flex;gap:7px;flex-wrap:wrap}
+.iqb-s-b{border:0;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font:inherit;font-size:10.5px;font-weight:700;padding:7px 12px;cursor:pointer;text-decoration:none;display:inline-block}
+.iqb-s-b.ghost{background:transparent;border:1px solid var(--border2);color:var(--text)}
+.iqb-s-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.iqb-s-card{border:1px solid var(--border);border-radius:9px;padding:9px;background:var(--panel2);display:flex;flex-direction:column;gap:3px;position:relative}
+.iqb-s-card.feat{border-color:var(--accent2);box-shadow:0 0 0 1px rgba(183,140,255,.3)}
+.iqb-s-card i{font-style:normal;font-size:13px;color:var(--accent2)}
+.iqb-s-card b{font-size:10.5px}
+.iqb-s-card span{font-size:9.5px;color:var(--muted);line-height:1.4}
+.iqb-s-card .pr{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:800}
+.iqb-s-card .pr small{font-size:9px;color:var(--muted);font-weight:500}
+.iqb-s-card .iqb-s-b{margin-top:6px;font-size:9.5px;padding:5px 8px;text-align:center}
+.iqb-s-gal{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.iqb-s-gal img{width:100%;height:56px;object-fit:cover;border-radius:7px;display:block}
+.iqb-s-video{position:relative;border-radius:9px;overflow:hidden}
+.iqb-s-video img{width:100%;height:96px;object-fit:cover;display:block}
+.iqb-s-play{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(6,6,16,.35);border:0;color:#fff;font-size:22px;cursor:pointer}
+.iqb-s-q{display:flex;align-items:center;gap:6px;margin-bottom:5px}
+.iqb-s-q i{width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-style:normal;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.iqb-s-q b{display:block;font-size:10px}
+.iqb-s-q span{font-size:9px;color:var(--muted)}
+.iqb-s-card p{font-size:10px;font-style:italic}
+.iqb-s-faq .iqb-s-f{border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:6px;cursor:pointer;background:var(--panel2)}
+.iqb-s-faq .iqb-s-f b{display:flex;justify-content:space-between;align-items:center;font-size:10.5px}
+.iqb-s-faq .iqb-s-f i{font-style:normal;color:var(--accent2)}
+.iqb-s-faq .iqb-s-f p{display:none;margin-top:6px;font-size:10px}
+.iqb-s-faq .iqb-s-f.open p{display:block}
+.iqb-s-faq .iqb-s-f.open i{transform:rotate(45deg)}
+.iqb-s-contact{display:grid;grid-template-columns:1.2fr 1fr;gap:10px}
+.iqb-s-fields{display:flex;flex-direction:column;gap:5px}
+.iqb-s-fields input,.iqb-s-fields textarea{border:1px solid var(--border);border-radius:7px;background:var(--bg);color:var(--muted);font:inherit;font-size:10px;padding:6px 8px;pointer-events:none}
+.iqb-s-fields textarea{min-height:38px;resize:none}
+.iqb-s-contact ul{margin:0;padding-left:14px;font-size:10px;color:var(--muted);line-height:1.7}
+.iqb-s-cta{display:flex;align-items:center;justify-content:space-between;gap:10px;background:linear-gradient(120deg,rgba(124,60,255,.2),rgba(84,190,255,.12))}
+.iqb-s-cta b{font-size:12px}
+.iqb-s-footer{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--panel2)}
+.iqb-s-footer b{display:block;font-size:11px}
+.iqb-s-footer span{font-size:9.5px;color:var(--muted)}
+.iqb-s-links{display:flex;gap:8px;margin-left:auto}
+.iqb-s-links a{font-size:9.5px;color:var(--muted);text-decoration:none}
+.iqb-s-links a:hover{color:var(--text)}
+.iqb-s-copy{width:100%;font-size:9px;opacity:.7}
+.iqb-sec.iqb-flash{animation:iqbFlash 1.4s ease}
+@keyframes iqbFlash{0%,100%{box-shadow:none}30%{box-shadow:0 0 0 2px var(--accent2),0 0 30px rgba(183,140,255,.5)}}
 .iqb-new{animation:iqbIn .35s ease}
 .iqb-live{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 @keyframes iqbIn{from{opacity:0;transform:translateY(-7px)}to{opacity:1;transform:none}}
@@ -245,23 +303,58 @@ window.wwiHeroChip=function(el){
     var i=document.getElementById('iqh-prompt-input');
     if(i)i.value=el.getAttribute('data-prompt')||el.textContent;
     document.querySelectorAll('.iqh-chip').forEach(function(c){c.classList.toggle('on',c===el)});
+    var k=el.getAttribute('data-mock');
+    if(k&&window.__iqbSetSector)window.__iqbSetSector(k);
     if(window.wwiHeroPrompt)wwiHeroPrompt();
 };
 (function(){
     var root=document.getElementById('iqb');
     if(!root||root.__init)return;root.__init=1;
-    var BRICKS={
-        hero:{l:'Hero',i:'\u25A3',w:'<div class="b acc tall"></div><div class="r"><div class="b line"></div><div class="b line short"></div></div>'},
-        features:{l:'Servicios',i:'\u25A4',w:'<div class="r"><div class="b sq"></div><div class="b sq"></div><div class="b sq"></div></div><div class="r"><div class="b line"></div><div class="b line"></div><div class="b line"></div></div>'},
-        gallery:{l:'Galeria',i:'\u25A6',w:'<div class="r"><div class="b sq"></div><div class="b sq"></div><div class="b sq"></div></div>'},
-        video:{l:'Video',i:'\u25B6',w:'<div class="b acc tall" style="display:flex;align-items:center;justify-content:center"><span style="color:#fff;font-size:15px">\u25B6</span></div>'},
-        pricing:{l:'Precios',i:'$',w:'<div class="r"><div class="b sq"></div><div class="b sq acc"></div><div class="b sq"></div></div>'},
-        testimonials:{l:'Testimonios',i:'\u275D',w:'<div class="r"><div class="b sq"></div><div class="b sq"></div></div><div class="cap">"Excelente servicio"</div>'},
-        faq:{l:'FAQ',i:'?',w:'<div class="b line"></div><div class="b line"></div><div class="b line short"></div>'},
-        contact:{l:'Contacto',i:'\u2709',w:'<div class="r"><div class="b line"></div><div class="b line"></div></div><div class="b ctr" style="min-height:16px;background:linear-gradient(120deg,rgba(124,60,255,.5),rgba(84,190,255,.35));border-color:transparent"></div>'},
-        cta:{l:'CTA',i:'\u279C',w:'<div class="b ctr tall" style="background:linear-gradient(120deg,rgba(124,60,255,.45),rgba(84,190,255,.3));border-color:transparent"></div><div class="b ctr line short"></div>'},
-        footer:{l:'Footer',i:'\u25AC',w:'<div class="r"><div class="b line"></div><div class="b line"></div><div class="b line"></div><div class="b line"></div></div><div class="b line short"></div>'}
+    var U='https://images.unsplash.com/photo-';
+    var PACKS={
+        restaurant:{name:'Sabor Local',tag:'Cocina artesanal',hero:'El autentico sabor del pan artesanal',sub:'Masa madre, hornada diaria y cafe de origen en el corazon de Salento.',cta:'Reservar mesa',
+            services:[['\u25C6','Panaderia','Masa madre horneada cada manana'],['\u2615','Cafeteria','Cafe de origen y reposteria'],['\u25CE','Eventos','Catering para tus celebraciones']],
+            gallery:[U+'1509440159596-0249088772ff?w=600&q=70',U+'1504674900247-0877df9cc836?w=600&q=70',U+'1517248135467-4c7edcad34c4?w=600&q=70'],
+            plans:[['Basico','29','3 productos'],['Popular','59','10 productos'],['Premium','99','Catalogo completo']],
+            quotes:[['Ana M.','Cliente frecuente','El mejor pan de la ciudad, sin duda'],['Luis R.','Chef','Ingredientes impecables y frescos']],
+            faq:[['Hacen domicilios?','Si, entregamos en 30 minutos en el centro.'],['Tienen opciones sin gluten?','Si, horneamos en area separada.']],
+            contact:['Calle 12 #4-56, Salento','+57 300 123 4567','hola@saborlocal.co'],
+            cta:'Listo para probar nuestro pan?',ctaBtn:'Pedir ahora'},
+        law:{name:'Estudio Juridico',tag:'Asesoria legal',hero:'Defendemos tus derechos con precision',sub:'Consultas en linea, contratos y representacion con respuesta en 24 horas.',cta:'Agendar consulta',
+            services:[['\u2696','Derecho civil','Contratos, sucesiones y familia'],['\u25A4','Derecho laboral','Despidos, liquidaciones y acuerdos'],['\u25C7','Empresas','Constitucion y cumplimiento']],
+            gallery:[U+'1589829545856-d10d557cf95f?w=600&q=70',U+'1521791136064-7986c2920216?w=600&q=70',U+'1450101499163-c8848c66ca85?w=600&q=70'],
+            plans:[['Consulta','49','1 hora de asesoria'],['Contrato','199','Revision y firma'],['Representacion','499','Caso completo']],
+            quotes:[['Marta G.','Cliente','Resolvieron mi caso en dos semanas'],['Jorge P.','Empresa','Claridad y transparencia total']],
+            faq:[['La primera consulta tiene costo?','No, la primera orientacion es gratuita.'],['Atienden en linea?','Si, por videollamada y correo.']],
+            contact:['Av. 6 #10-22, Bogota','+57 601 555 0123','contacto@estudiojuridico.co'],
+            cta:'Necesitas asesoria hoy?',ctaBtn:'Hablar con un abogado'},
+        shop:{name:'Tienda Nova',tag:'Envio nacional',hero:'Productos que llegan a tu puerta',sub:'Catalogo curado, pago seguro y envios a todo el pais en 2 a 5 dias.',cta:'Comprar ahora',
+            services:[['\u2605','Destacados','Lo mas vendido del mes'],['\u21BB','Devoluciones','30 dias sin preguntas'],['\u2708','Envio gratis','En compras sobre $150.000']],
+            gallery:[U+'1441986300917-64674bd600d8?w=600&q=70',U+'1472851294608-062f824d29cc?w=600&q=70',U+'1560343090-f0409e92791a?w=600&q=70'],
+            plans:[['Basico','29','3 productos'],['Popular','59','10 productos'],['Premium','99','Catalogo completo']],
+            quotes:[['Sofia L.','Compradora','Llego en dos dias y perfecto'],['Andres C.','Cliente','La tienda mas facil de usar']],
+            faq:[['Cuanto tarda el envio?','Entre 2 y 5 dias habiles.'],['Puedo pagar contra entrega?','Si, en ciudades principales.']],
+            contact:['Cra 7 #45-10, Medellin','+57 310 888 2211','ventas@tiendanova.co'],
+            cta:'Tu pedido esta a un clic',ctaBtn:'Ver catalogo'},
+        fitness:{name:'Pulse Fitness',tag:'Entrena con proposito',hero:'Transforma tu cuerpo en 12 semanas',sub:'Planes personalizados, seguimiento y comunidad que te empuja a mas.',cta:'Probar gratis',
+            services:[['\u26A1','Funcional','Fuerza y movilidad en grupo'],['\u2665','Cardio','Quema y resistencia guiada'],['\u25CE','Nutricion','Plan segun tu objetivo']],
+            gallery:[U+'1534438327276-14e5300c3a48?w=600&q=70',U+'1517836357463-d25dfeac3438?w=600&q=70',U+'1544367567-0f2fcb009e0b?w=600&q=70'],
+            plans:[['Basico','39','Acceso libre'],['Popular','69','Clases + plan'],['Premium','119','Coach personal']],
+            quotes:[['Camilo R.','Miembro','Baje 8 kilos en 3 meses'],['Valeria T.','Miembro','El mejor ambiente para entrenar']],
+            faq:[['Hay clase de prueba?','Si, una semana completa gratis.'],['Necesito experiencia?','No, adaptamos el plan a tu nivel.']],
+            contact:['Calle 50 #12-30, Cali','+57 315 222 3344','hola@pulsefitness.co'],
+            cta:'Empieza hoy tu cambio',ctaBtn:'Reservar clase'},
+        default:{name:'Mi Negocio',tag:'Bienvenido',hero:'Tu negocio online, listo hoy',sub:'Cuentale a TIA sobre tu negocio y mira tu sitio en minutos.',cta:'Empezar',
+            services:[['\u25C6','Servicio 1','Describe tu propuesta de valor'],['\u25A4','Servicio 2','Explica el beneficio principal'],['\u25CE','Servicio 3','Muestra el resultado que entregas']],
+            gallery:[U+'1522199755839-a2bacb67c546?w=600&q=70',U+'1467232004584-a241de8bcf5d?w=600&q=70',U+'1551434678-e076c223a692?w=600&q=70'],
+            plans:[['Basico','29','Esencial'],['Popular','59','Recomendado'],['Premium','99','Completo']],
+            quotes:[['Cliente A.','Sector','Un servicio excelente'],['Cliente B.','Sector','Los recomiendo siempre']],
+            faq:[['Pregunta frecuente 1','Respuesta clara y util.'],['Pregunta frecuente 2','Respuesta clara y util.']],
+            contact:['Tu direccion','+57 300 000 0000','hola@minegocio.co'],
+            cta:'Listo para empezar?',ctaBtn:'Contactar'}
     };
+    var LABELS={hero:'Hero',features:'Servicios',gallery:'Galeria',video:'Video',pricing:'Precios',testimonials:'Testimonios',faq:'FAQ',contact:'Contacto',cta:'CTA',footer:'Footer'};
+    var ICONS={hero:'\u25A3',features:'\u25A4',gallery:'\u25A6',video:'\u25B6',pricing:'$',testimonials:'\u275D',faq:'?',contact:'\u2709',cta:'\u279C',footer:'\u25AC'};
     var TEMPLATES={
         restaurant:['hero','features','gallery','testimonials','pricing','contact','footer'],
         portfolio:['hero','gallery','features','testimonials','cta','footer'],
@@ -269,6 +362,7 @@ window.wwiHeroChip=function(el){
         agency:['hero','features','testimonials','pricing','faq','contact','footer']
     };
     var DEFAULT=['hero','features','gallery','pricing','contact','footer'];
+    var sector='restaurant';
     var canvas=document.getElementById('iqb-canvas');
     var palette=document.getElementById('iqb-palette');
     var stat=document.getElementById('iqb-stat');
@@ -296,49 +390,146 @@ window.wwiHeroChip=function(el){
         clearTimeout(root.__tt);
         root.__tt=setTimeout(function(){toast.classList.remove('show')},undo?4200:1800);
     }
+    function sec(type,pack){
+        var p=pack||PACKS[sector]||PACKS.default;
+        var id='iqb-s-'+type;
+        if(type==='hero'){
+            return '<section class="iqb-s iqb-s-hero" data-sec="hero" id="'+id+'"><span class="iqb-s-tag">'+p.tag+'</span><h3>'+p.hero+'</h3><p>'+p.sub+'</p><div class="iqb-s-btns"><button type="button" class="iqb-s-b" data-wizard="1">'+p.cta+'</button><a class="iqb-s-b ghost" href="#'+id+'" data-scroll="#iqb-s-features">Ver servicios</a></div></section>';
+        }
+        if(type==='features'){
+            return '<section class="iqb-s" data-sec="features" id="'+id+'"><h4>Servicios</h4><div class="iqb-s-cards">'
+                +p.services.map(function(s){return '<div class="iqb-s-card"><i>'+s[0]+'</i><b>'+s[1]+'</b><span>'+s[2]+'</span></div>'}).join('')
+                +'</div></section>';
+        }
+        if(type==='gallery'){
+            return '<section class="iqb-s" data-sec="gallery" id="'+id+'"><h4>Galeria</h4><div class="iqb-s-gal">'
+                +p.gallery.map(function(u,i){return '<img src="'+u+'" alt="Trabajo '+(i+1)+'" loading="lazy"/>'}).join('')
+                +'</div></section>';
+        }
+        if(type==='video'){
+            return '<section class="iqb-s" data-sec="video" id="'+id+'"><h4>Video</h4><div class="iqb-s-video"><img src="'+p.gallery[0]+'" alt="Video" loading="lazy"/><button type="button" class="iqb-s-play" data-wizard="1" aria-label="Reproducir video">\u25B6</button></div></section>';
+        }
+        if(type==='pricing'){
+            return '<section class="iqb-s" data-sec="pricing" id="'+id+'"><h4>Precios</h4><div class="iqb-s-cards">'
+                +p.plans.map(function(pl,i){return '<div class="iqb-s-card'+(i===1?' feat':'')+'"><b>'+pl[0]+'</b><div class="pr">$'+pl[1]+'<small>/mes</small></div><span>'+pl[2]+'</span><button type="button" class="iqb-s-b" data-wizard="1">Elegir</button></div>'}).join('')
+                +'</div></section>';
+        }
+        if(type==='testimonials'){
+            return '<section class="iqb-s" data-sec="testimonials" id="'+id+'"><h4>Testimonios</h4><div class="iqb-s-cards">'
+                +p.quotes.map(function(q){return '<div class="iqb-s-card"><div class="iqb-s-q"><i>'+q[0].charAt(0)+'</i><div><b>'+q[0]+'</b><span>'+q[1]+'</span></div></div><p>\u201C'+q[2]+'\u201D</p></div>'}).join('')
+                +'</div></section>';
+        }
+        if(type==='faq'){
+            return '<section class="iqb-s" data-sec="faq" id="'+id+'"><h4>Preguntas frecuentes</h4><div class="iqb-s-faq">'
+                +p.faq.map(function(f){return '<div class="iqb-s-f" data-faq="1"><b>'+f[0]+'<i>+</i></b><p>'+f[1]+'</p></div>'}).join('')
+                +'</div></section>';
+        }
+        if(type==='contact'){
+            return '<section class="iqb-s" data-sec="contact" id="'+id+'"><h4>Contacto</h4><div class="iqb-s-contact"><div class="iqb-s-fields">'
+                +'<input type="text" placeholder="Tu nombre" readonly tabindex="-1"/><input type="email" placeholder="tu@email.com" readonly tabindex="-1"/><textarea placeholder="Cuentanos que necesitas" readonly tabindex="-1"></textarea><button type="button" class="iqb-s-b" data-wizard="1">Enviar mensaje</button>'
+                +'</div><ul>'+p.contact.map(function(c){return '<li>'+c+'</li>'}).join('')+'</ul></div></section>';
+        }
+        if(type==='cta'){
+            return '<section class="iqb-s iqb-s-cta" data-sec="cta" id="'+id+'"><b>'+p.cta+'</b><button type="button" class="iqb-s-b" data-wizard="1">'+p.ctaBtn+'</button></section>';
+        }
+        if(type==='footer'){
+            return '<section class="iqb-s iqb-s-footer" data-sec="footer" id="'+id+'"><div><b>'+p.name+'</b><span>'+p.tag+'</span></div><div class="iqb-s-links"><a href="#iqb-s-features" data-scroll="#iqb-s-features">Servicios</a><a href="#iqb-s-gallery" data-scroll="#iqb-s-gallery">Galeria</a><a href="#iqb-s-contact" data-scroll="#iqb-s-contact">Contacto</a></div><span class="iqb-s-copy">\u00A9 '+new Date().getFullYear()+' '+p.name+'</span></section>';
+        }
+        return '';
+    }
+    function navHtml(){
+        var p=PACKS[sector]||PACKS.default;
+        var links=[];
+        if(state.some(function(s){return s.type==='features'&&!s.hidden}))links.push(['#iqb-s-features','Servicios']);
+        if(state.some(function(s){return s.type==='gallery'&&!s.hidden}))links.push(['#iqb-s-gallery','Galeria']);
+        if(state.some(function(s){return s.type==='pricing'&&!s.hidden}))links.push(['#iqb-s-pricing','Precios']);
+        if(state.some(function(s){return s.type==='contact'&&!s.hidden}))links.push(['#iqb-s-contact','Contacto']);
+        return '<nav class="iqb-nav"><b>'+p.name+'</b><span class="iqb-nav-links">'
+            +links.map(function(l){return '<a href="'+l[0]+'" data-scroll="'+l[0]+'">'+l[1]+'</a>'}).join('')
+            +'</span><button type="button" class="iqb-nav-b" data-wizard="1">'+p.ctaBtn+'</button></nav>';
+    }
     function render(newIdx){
         if(!canvas)return;
         if(!state.length){
-            canvas.innerHTML='<div class="iqb-empty">Tu sitio esta vacio. Arrastra o haz clic en un brick de la derecha para agregarlo.</div>';
+            canvas.innerHTML='<div class="iqb-empty">Tu sitio esta vacio. Haz clic en una seccion de la derecha para agregarla.</div>';
         }else{
-            canvas.innerHTML=state.map(function(s,idx){
-                var b=BRICKS[s.type]||{l:s.type,i:'\u25A2',w:'<div class="b line"></div>'};
-                return '<div class="iqb-sec'+(idx===sel?' on':'')+(s.hidden?' hidden-sec':'')+(idx===newIdx?' iqb-new':'')+'" data-idx="'+idx+'" data-type="'+s.type+'" draggable="true" role="listitem" tabindex="0" aria-label="Seccion '+b.l+'">'
-                    +'<div class="iqb-sec-tools"><span class="lb">'+b.l+'</span>'
+            var pack=PACKS[sector]||PACKS.default;
+            canvas.innerHTML=navHtml()+state.map(function(s,idx){
+                var label=LABELS[s.type]||s.type;
+                return '<div class="iqb-sec'+(idx===sel?' on':'')+(s.hidden?' hidden-sec':'')+(idx===newIdx?' iqb-new':'')+'" data-idx="'+idx+'" data-type="'+s.type+'" draggable="true" role="listitem" tabindex="0" aria-label="Seccion '+label+'">'
+                    +'<div class="iqb-sec-tools"><span class="lb">'+label+'</span>'
                     +'<button type="button" data-act="up" title="Subir" aria-label="Subir">\u2191</button>'
                     +'<button type="button" data-act="down" title="Bajar" aria-label="Bajar">\u2193</button>'
                     +'<button type="button" data-act="dup" title="Duplicar" aria-label="Duplicar">\u29C9</button>'
                     +'<button type="button" data-act="hide" title="'+(s.hidden?'Mostrar':'Ocultar')+'" aria-label="Ocultar">'+(s.hidden?'\u25CC':'\u{1F441}')+'</button>'
                     +'<button type="button" data-act="del" title="Eliminar" aria-label="Eliminar">\u{1F5D1}</button>'
-                    +'</div><div class="iqb-wire">'+b.w+'</div></div>';
+                    +'</div><div class="iqb-sec-body">'+sec(s.type,pack)+'</div></div>';
             }).join('');
         }
         if(stat)stat.textContent=state.length+' secciones \u00B7 score '+score();
         if(pct)pct.textContent=score()+'%';
         save();
-        try{root.dispatchEvent(new CustomEvent('iqb:change',{detail:{sections:state.slice()}}))}catch(e){}
+        try{root.dispatchEvent(new CustomEvent('iqb:change',{detail:{sections:state.slice(),sector:sector}}))}catch(e){}
+    }
+    function setSector(k){
+        if(!PACKS[k])return;
+        sector=k;
+        render();
+        say('Contenido actualizado: '+PACKS[k].name);
+    }
+    window.__iqbSetSector=setSector;
+    function highlight(type){
+        var el=canvas.querySelector('.iqb-sec[data-type="'+type+'"]');
+        if(!el){add(type,state.length);return}
+        try{canvas.scrollTo({top:el.offsetTop-60,behavior:'smooth'})}catch(e){canvas.scrollTop=el.offsetTop-60}
+        el.classList.add('iqb-flash');
+        setTimeout(function(){el.classList.remove('iqb-flash')},1400);
+        say((LABELS[type]||type)+' ya esta en tu sitio');
+        toastMsg('Ya esta en tu sitio \u2014 usa Shift+clic para duplicar');
     }
     function add(type,at){
         state.splice(at,0,{type:type});
-        sel=at;push();render(at);say('Brick '+((BRICKS[type]||{}).l||type)+' agregado');
+        sel=at;push();render(at);say('Seccion '+((LABELS[type]||type))+' agregada');
         toastMsg('Brick a\u00F1adido');
     }
     function undoFn(){if(hi>0){hi--;state=JSON.parse(JSON.stringify(hist[hi]));render();toastMsg('Deshecho')}}
     function redoFn(){if(hi<hist.length-1){hi++;state=JSON.parse(JSON.stringify(hist[hi]));render();toastMsg('Rehecho')}}
     function reset(){state=DEFAULT.slice();sel=-1;push();render();toastMsg('Layout reiniciado')}
     if(palette){
-        Object.keys(BRICKS).forEach(function(k){
-            var b=BRICKS[k];
+        Object.keys(LABELS).forEach(function(k){
             var btn=document.createElement('button');
             btn.type='button';btn.className='iqb-brick';btn.draggable=true;btn.setAttribute('data-type',k);
-            btn.innerHTML='<span class="ic">'+b.i+'</span>'+b.l;
-            btn.addEventListener('click',function(){add(k,sel>=0?sel+1:state.length)});
+            btn.innerHTML='<span class="ic">'+ICONS[k]+'</span>'+LABELS[k];
+            btn.addEventListener('click',function(e){
+                var exists=state.some(function(s){return s.type===k&&!s.hidden});
+                if(exists&&!e.shiftKey){highlight(k);return}
+                add(k,sel>=0?sel+1:state.length);
+            });
             btn.addEventListener('dragstart',function(e){dragType=k;dragIdx=-1;if(e.dataTransfer){e.dataTransfer.effectAllowed='copy';try{e.dataTransfer.setData('text/plain',k)}catch(x){}}});
             btn.addEventListener('dragend',function(){dragType='';render()});
             palette.appendChild(btn);
         });
     }
     canvas.addEventListener('click',function(e){
+        var sc=e.target.closest?e.target.closest('[data-scroll]'):null;
+        if(sc){
+            e.preventDefault();
+            var target=canvas.querySelector(sc.getAttribute('data-scroll'));
+            if(target){try{canvas.scrollTo({top:target.offsetTop-54,behavior:'smooth'})}catch(x){canvas.scrollTop=target.offsetTop-54}}
+            return;
+        }
+        var faq=e.target.closest?e.target.closest('[data-faq]'):null;
+        if(faq){faq.classList.toggle('open');return}
+        var wiz=e.target.closest?e.target.closest('[data-wizard]'):null;
+        if(wiz){
+            var pack=PACKS[sector]||PACKS.default;
+            if(window.wwiFlowOpen){
+                wwiFlowOpen();
+                var fi=document.getElementById('flow-input');
+                if(fi){fi.value='Quiero un sitio como '+pack.name+': '+pack.hero+'. '+pack.sub;if(window.wwiFlowSend)wwiFlowSend()}
+            }
+            return;
+        }
         var t=e.target.closest?e.target.closest('button[data-act]'):null;
         var sec=e.target.closest?e.target.closest('.iqb-sec'):null;
         if(t&&sec){
@@ -355,7 +546,7 @@ window.wwiHeroChip=function(el){
             }
             return;
         }
-        if(sec){sel=parseInt(sec.getAttribute('data-idx'));render();say('Seccion '+((BRICKS[state[sel].type]||{}).l||'')+' seleccionada')}
+        if(sec){sel=parseInt(sec.getAttribute('data-idx'));render();say('Seccion '+((LABELS[state[sel].type]||''))+' seleccionada')}
     });
     canvas.addEventListener('dragstart',function(e){
         var sec=e.target.closest?e.target.closest('.iqb-sec'):null;
@@ -428,7 +619,7 @@ window.wwiHeroChip=function(el){
     });
     var use=document.getElementById('iqb-use');
     if(use)use.addEventListener('click',function(){
-        var names=state.filter(function(s){return !s.hidden}).map(function(s){return (BRICKS[s.type]||{}).l||s.type});
+        var names=state.filter(function(s){return !s.hidden}).map(function(s){return LABELS[s.type]||s.type});
         var prompt='Quiero un sitio con estas secciones: '+names.join(', ')+'.';
         var i=document.getElementById('iqh-prompt-input');
         if(i)i.value=prompt;
