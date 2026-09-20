@@ -238,6 +238,12 @@ class WwiHeroWidget extends Widget
 .iqb-s-copy{width:100%;font-size:9px;opacity:.7}
 .iqb-sec.iqb-flash{animation:iqbFlash 1.4s ease}
 @keyframes iqbFlash{0%,100%{box-shadow:none}30%{box-shadow:0 0 0 2px var(--accent2),0 0 30px rgba(183,140,255,.5)}}
+.iqb-tour-cap{position:absolute;left:50%;bottom:52px;transform:translateX(-50%) translateY(6px);z-index:9;background:rgba(10,8,24,.94);border:1px solid rgba(183,140,255,.45);color:#fff;font:600 11px/1.4 'Inter',system-ui,sans-serif;border-radius:999px;padding:7px 15px;opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;white-space:nowrap;box-shadow:0 12px 30px rgba(0,0,0,.5)}
+.iqb-tour-cap.on{opacity:1;transform:translateX(-50%)}
+.iqb-tour-hi{position:relative;z-index:9;box-shadow:0 0 0 2px var(--accent2),0 0 26px rgba(183,140,255,.55)!important;border-radius:10px;animation:iqbTourPulse 1.6s ease-in-out infinite}
+@keyframes iqbTourPulse{0%,100%{box-shadow:0 0 0 2px var(--accent2),0 0 18px rgba(183,140,255,.4)}50%{box-shadow:0 0 0 3px var(--accent2),0 0 34px rgba(183,140,255,.7)}}
+#iqb-tour.on{color:#fff;border-color:var(--accent2);background:linear-gradient(135deg,var(--accent),var(--accent2))}
+@media(prefers-reduced-motion:reduce){.iqb-tour-hi{animation:none}}
 .iqb-new{animation:iqbIn .35s ease}
 .iqb-live{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 @keyframes iqbIn{from{opacity:0;transform:translateY(-7px)}to{opacity:1;transform:none}}
@@ -633,14 +639,87 @@ window.wwiHeroChip=function(el){
         var t=tpl.value;if(!t||!TEMPLATES[t])return;
         state=TEMPLATES[t].map(function(x){return {type:x}});sel=-1;push();render();toastMsg('Plantilla aplicada');tpl.value='';
     });
-    var use=document.getElementById('iqb-use');
-    if(use)use.addEventListener('click',function(){
+    var use=document.getElementById('iqb-use');    if(use)use.addEventListener('click',function(){
         var names=state.filter(function(s){return !s.hidden}).map(function(s){return LABELS[s.type]||s.type});
         var prompt='Quiero un sitio con estas secciones: '+names.join(', ')+'.';
         var i=document.getElementById('iqh-prompt-input');
         if(i)i.value=prompt;
         if(window.wwiHeroPrompt)wwiHeroPrompt({preventDefault:function(){}});
     });
+
+    // ── Tour automatico (attract loop) ──
+    var tourBtn=document.getElementById('iqb-tour');
+    var tourCap=document.getElementById('iqb-tour-cap');
+    var tour={on:false,step:0,timer:null,saved:null,paused:false,booted:false};
+    var TOUR=[
+        {sel:'.iqb-palette',cap:'Elige un brick de la paleta',ms:2300},
+        {ins:'features',sel:'.iqb-sec[data-type="features"]',cap:'Se inserta con contenido real',ms:2700},
+        {sel:'.iqb-sec[data-type="features"] .iqb-sec-tools',cap:'Mueve, duplica, oculta o elimina',ms:2600},
+        {dev:'mobile',sel:'.iqb-dev[data-dev="mobile"]',cap:'Mira como se ve en movil',ms:2200},
+        {dev:'desktop',sel:'.iqb-dev[data-dev="desktop"]',cap:'Y de vuelta al escritorio',ms:2000},
+        {tpl:'shop',sel:'#iqb-tpl',cap:'Aplica una plantilla por sector',ms:2600},
+        {sel:'.iqb-stat',cap:'Score en vivo mientras construyes',ms:2200},
+        {sel:'#iqb-use',cap:'Y crea tu sitio con esta estructura',ms:2600},
+        {reset:1,cap:'TIA construye tu sitio en minutos',ms:2400}
+    ];
+    function tourClearHi(){root.querySelectorAll('.iqb-tour-hi').forEach(function(e){e.classList.remove('iqb-tour-hi')})}
+    function tourHi(sel){
+        tourClearHi();
+        var el=sel?root.querySelector(sel):null;
+        if(el){el.classList.add('iqb-tour-hi');if(el.scrollIntoView){try{el.scrollIntoView({block:'nearest',inline:'nearest',behavior:'smooth'})}catch(e){}}}
+    }
+    function tourCaption(t){if(tourCap){tourCap.textContent=t||'';tourCap.classList.toggle('on',!!t)}}
+    function tourStop(restore){
+        if(tour.timer)clearTimeout(tour.timer);
+        tour.timer=null;tour.on=false;tour.paused=false;
+        tourClearHi();tourCaption('');
+        if(tourBtn){tourBtn.classList.remove('on');tourBtn.innerHTML='\u25B6';tourBtn.title='Ver tour automatico'}
+        if(restore&&tour.saved){state=JSON.parse(JSON.stringify(tour.saved));sel=-1;push();render()}
+    }
+    function tourPause(){if(tour.on){tour.paused=true;if(tour.timer)clearTimeout(tour.timer)}}
+    function tourResume(){if(tour.on&&tour.paused){tour.paused=false;tourNext()}}
+    function tourNext(){
+        if(!tour.on||tour.paused)return;
+        if(tour.step>=TOUR.length){
+            tour.step=0;
+            state=JSON.parse(JSON.stringify(tour.saved));sel=-1;render();
+        }
+        var st=TOUR[tour.step++];
+        if(st.ins&&!state.some(function(s){return s.type===st.ins&&!s.hidden})){state.push({type:st.ins});render(state.length-1)}
+        if(st.dev){
+            root.querySelectorAll('.iqb-dev').forEach(function(x){x.classList.toggle('on',x.getAttribute('data-dev')===st.dev)});
+            canvas.setAttribute('data-device',st.dev);
+        }
+        if(st.tpl&&TEMPLATES[st.tpl]){state=TEMPLATES[st.tpl].map(function(x){return {type:x}});sel=-1;render()}
+        if(st.reset){state=DEFAULT.slice();sel=-1;render()}
+        tourHi(st.sel);
+        tourCaption(st.cap);
+        tour.timer=setTimeout(tourNext,st.ms||2300);
+    }
+    function tourStart(){
+        if(tour.on)return;
+        if(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches){toastMsg('Tour desactivado por accesibilidad');return}
+        tour.saved=JSON.parse(JSON.stringify(state));
+        tour.on=true;tour.step=0;tour.paused=false;
+        if(tourBtn){tourBtn.classList.add('on');tourBtn.innerHTML='\u275A\u275A';tourBtn.title='Detener tour'}
+        tourNext();
+    }
+    if(tourBtn)tourBtn.addEventListener('click',function(e){e.stopPropagation();tour.on?tourStop(true):tourStart()});
+    root.addEventListener('mouseenter',tourPause);
+    root.addEventListener('mouseleave',tourResume);
+    root.addEventListener('click',function(e){if(tour.on&&!e.target.closest('#iqb-tour'))tourStop(false)});
+    root.addEventListener('keydown',function(e){if(tour.on&&e.key!=='Tab')tourStop(false)});
+    if('IntersectionObserver' in window&&!window.__iqbTourSeen){
+        var tio=new IntersectionObserver(function(entries){
+            entries.forEach(function(en){
+                if(en.isIntersecting&&!tour.booted&&!tour.on){
+                    tour.booted=true;window.__iqbTourSeen=1;
+                    setTimeout(function(){if(!tour.on)tourStart()},1400);
+                }
+            });
+        },{threshold:0.45});
+        tio.observe(root);
+    }
     load();push();render();
 })();
 }</script>
@@ -718,6 +797,7 @@ HTML;
         $html .= '<button type="button" class="iqb-t" data-act="undo" title="Deshacer (Ctrl+Z)" aria-label="Deshacer">&#8630;</button>';
         $html .= '<button type="button" class="iqb-t" data-act="redo" title="Rehacer (Ctrl+Y)" aria-label="Rehacer">&#8631;</button>';
         $html .= '<button type="button" class="iqb-t" data-act="reset" title="Reiniciar" aria-label="Reiniciar">&#10226;</button>';
+        $html .= '<button type="button" class="iqb-t" id="iqb-tour" title="Ver tour automatico" aria-label="Ver tour automatico">&#9654;</button>';
         $html .= '<span class="iqb-sep"></span>';
         $html .= '<button type="button" class="iqb-t iqb-dev on" data-dev="desktop" title="Escritorio" aria-label="Escritorio">&#9647;</button>';
         $html .= '<button type="button" class="iqb-t iqb-dev" data-dev="tablet" title="Tablet" aria-label="Tablet">&#9649;</button>';
@@ -728,6 +808,7 @@ HTML;
         $html .= '<button type="button" class="iqb-use" id="iqb-use">Usar esta estructura</button>';
         $html .= '</div>';
         $html .= '<div class="iqb-toast" id="iqb-toast" aria-hidden="true"></div>';
+        $html .= '<div class="iqb-tour-cap" id="iqb-tour-cap" role="status" aria-live="polite"></div>';
         $html .= '<span class="iqb-live" id="iqb-live" role="status" aria-live="polite"></span>';
         $html .= '</div>';
         $html .= '<div class="iqh-badge iqh-badge-1">🔒 SSL incluido</div>';
