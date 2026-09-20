@@ -187,10 +187,13 @@ class WwiHeroWidget extends Widget
 .iqb-s{padding:16px 14px;background:var(--panel);border-bottom:1px solid var(--border);font-size:11px}
 .iqb-s h4{margin:0 0 10px;font-size:12.5px;font-weight:800;letter-spacing:-.01em}
 .iqb-s p{margin:0;color:var(--muted);line-height:1.5}
-.iqb-s-hero{padding:22px 16px;background:linear-gradient(140deg,rgba(124,60,255,.22),rgba(84,190,255,.12));border-bottom:1px solid var(--border)}
-.iqb-s-tag{display:inline-block;font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--accent2);border:1px solid var(--border2);border-radius:999px;padding:2px 8px;margin-bottom:8px}
-.iqb-s-hero h3{margin:0 0 6px;font-size:17px;font-weight:800;line-height:1.2;letter-spacing:-.02em}
-.iqb-s-hero p{font-size:11px;color:var(--muted);max-width:280px;margin-bottom:12px}
+.iqb-s-hero{position:relative;overflow:hidden;padding:26px 16px;background:linear-gradient(140deg,rgba(124,60,255,.28),rgba(84,190,255,.16));border-bottom:1px solid var(--border);min-height:168px;display:flex;align-items:flex-end}
+.iqb-s-bg{position:absolute;inset:0;background-size:cover;background-position:center;opacity:.5;filter:saturate(.9)}
+.iqb-s-hero::after{content:'';position:absolute;inset:0;background:linear-gradient(to top,rgba(8,6,20,.92) 8%,rgba(8,6,20,.55) 55%,rgba(8,6,20,.35));pointer-events:none}
+.iqb-s-hero-in{position:relative;z-index:2;width:100%}
+.iqb-s-tag{display:inline-block;font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#fff;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);border-radius:999px;padding:2px 8px;margin-bottom:8px;backdrop-filter:blur(4px)}
+.iqb-s-hero h3{margin:0 0 6px;font-size:17px;font-weight:800;line-height:1.2;letter-spacing:-.02em;color:#fff}
+.iqb-s-hero p{font-size:11px;color:rgba(255,255,255,.82);max-width:290px;margin-bottom:12px}
 .iqb-s-btns{display:flex;gap:7px;flex-wrap:wrap}
 .iqb-s-b{border:0;border-radius:8px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font:inherit;font-size:10.5px;font-weight:700;padding:7px 12px;cursor:pointer;text-decoration:none;display:inline-block}
 .iqb-s-b.ghost{background:transparent;border:1px solid var(--border2);color:var(--text)}
@@ -312,7 +315,7 @@ window.wwiHeroChip=function(el){
     if(!root||root.__init)return;root.__init=1;
     var U='https://images.unsplash.com/photo-';
     var PACKS={
-        restaurant:{name:'Sabor Local',tag:'Cocina artesanal',hero:'El autentico sabor del pan artesanal',sub:'Masa madre, hornada diaria y cafe de origen en el corazon de Salento.',cta:'Reservar mesa',
+        restaurant:{name:'Sabor Local',tag:'Cocina artesanal',heroImg:U+'1517248135467-4c7edcad34c4?w=900&q=70',hero:'El autentico sabor del pan artesanal',sub:'Masa madre, hornada diaria y cafe de origen en el corazon de Salento.',cta:'Reservar mesa',
             services:[['\u25C6','Panaderia','Masa madre horneada cada manana'],['\u2615','Cafeteria','Cafe de origen y reposteria'],['\u25CE','Eventos','Catering para tus celebraciones']],
             gallery:[U+'1509440159596-0249088772ff?w=600&q=70',U+'1504674900247-0877df9cc836?w=600&q=70',U+'1517248135467-4c7edcad34c4?w=600&q=70'],
             plans:[['Basico','29','3 productos'],['Popular','59','10 productos'],['Premium','99','Catalogo completo']],
@@ -320,7 +323,7 @@ window.wwiHeroChip=function(el){
             faq:[['Hacen domicilios?','Si, entregamos en 30 minutos en el centro.'],['Tienen opciones sin gluten?','Si, horneamos en area separada.']],
             contact:['Calle 12 #4-56, Salento','+57 300 123 4567','hola@saborlocal.co'],
             cta:'Listo para probar nuestro pan?',ctaBtn:'Pedir ahora'},
-        law:{name:'Estudio Juridico',tag:'Asesoria legal',hero:'Defendemos tus derechos con precision',sub:'Consultas en linea, contratos y representacion con respuesta en 24 horas.',cta:'Agendar consulta',
+        law:{name:'Estudio Juridico',tag:'Asesoria legal',heroImg:U+'1505664194779-8beaceb93744?w=900&q=70',hero:'Defendemos tus derechos con precision',sub:'Consultas en linea, contratos y representacion con respuesta en 24 horas.',cta:'Agendar consulta',
             services:[['\u2696','Derecho civil','Contratos, sucesiones y familia'],['\u25A4','Derecho laboral','Despidos, liquidaciones y acuerdos'],['\u25C7','Empresas','Constitucion y cumplimiento']],
             gallery:[U+'1589829545856-d10d557cf95f?w=600&q=70',U+'1521791136064-7986c2920216?w=600&q=70',U+'1450101499163-c8848c66ca85?w=600&q=70'],
             plans:[['Consulta','49','1 hora de asesoria'],['Contrato','199','Revision y firma'],['Representacion','499','Caso completo']],
@@ -328,7 +331,7 @@ window.wwiHeroChip=function(el){
             faq:[['La primera consulta tiene costo?','No, la primera orientacion es gratuita.'],['Atienden en linea?','Si, por videollamada y correo.']],
             contact:['Av. 6 #10-22, Bogota','+57 601 555 0123','contacto@estudiojuridico.co'],
             cta:'Necesitas asesoria hoy?',ctaBtn:'Hablar con un abogado'},
-        shop:{name:'Tienda Nova',tag:'Envio nacional',hero:'Productos que llegan a tu puerta',sub:'Catalogo curado, pago seguro y envios a todo el pais en 2 a 5 dias.',cta:'Comprar ahora',
+        shop:{name:'Tienda Nova',tag:'Envio nacional',heroImg:U+'1441984904996-e0b6ba687e04?w=900&q=70',hero:'Productos que llegan a tu puerta',sub:'Catalogo curado, pago seguro y envios a todo el pais en 2 a 5 dias.',cta:'Comprar ahora',
             services:[['\u2605','Destacados','Lo mas vendido del mes'],['\u21BB','Devoluciones','30 dias sin preguntas'],['\u2708','Envio gratis','En compras sobre $150.000']],
             gallery:[U+'1441986300917-64674bd600d8?w=600&q=70',U+'1472851294608-062f824d29cc?w=600&q=70',U+'1560343090-f0409e92791a?w=600&q=70'],
             plans:[['Basico','29','3 productos'],['Popular','59','10 productos'],['Premium','99','Catalogo completo']],
@@ -336,7 +339,7 @@ window.wwiHeroChip=function(el){
             faq:[['Cuanto tarda el envio?','Entre 2 y 5 dias habiles.'],['Puedo pagar contra entrega?','Si, en ciudades principales.']],
             contact:['Cra 7 #45-10, Medellin','+57 310 888 2211','ventas@tiendanova.co'],
             cta:'Tu pedido esta a un clic',ctaBtn:'Ver catalogo'},
-        fitness:{name:'Pulse Fitness',tag:'Entrena con proposito',hero:'Transforma tu cuerpo en 12 semanas',sub:'Planes personalizados, seguimiento y comunidad que te empuja a mas.',cta:'Probar gratis',
+        fitness:{name:'Pulse Fitness',tag:'Entrena con proposito',heroImg:U+'1571019613454-1cb2f99b2d8b?w=900&q=70',hero:'Transforma tu cuerpo en 12 semanas',sub:'Planes personalizados, seguimiento y comunidad que te empuja a mas.',cta:'Probar gratis',
             services:[['\u26A1','Funcional','Fuerza y movilidad en grupo'],['\u2665','Cardio','Quema y resistencia guiada'],['\u25CE','Nutricion','Plan segun tu objetivo']],
             gallery:[U+'1534438327276-14e5300c3a48?w=600&q=70',U+'1517836357463-d25dfeac3438?w=600&q=70',U+'1544367567-0f2fcb009e0b?w=600&q=70'],
             plans:[['Basico','39','Acceso libre'],['Popular','69','Clases + plan'],['Premium','119','Coach personal']],
@@ -344,7 +347,7 @@ window.wwiHeroChip=function(el){
             faq:[['Hay clase de prueba?','Si, una semana completa gratis.'],['Necesito experiencia?','No, adaptamos el plan a tu nivel.']],
             contact:['Calle 50 #12-30, Cali','+57 315 222 3344','hola@pulsefitness.co'],
             cta:'Empieza hoy tu cambio',ctaBtn:'Reservar clase'},
-        default:{name:'Mi Negocio',tag:'Bienvenido',hero:'Tu negocio online, listo hoy',sub:'Cuentale a TIA sobre tu negocio y mira tu sitio en minutos.',cta:'Empezar',
+        default:{name:'Mi Negocio',tag:'Bienvenido',heroImg:U+'1460925895917-afdab827c52f?w=900&q=70',hero:'Tu negocio online, listo hoy',sub:'Cuentale a TIA sobre tu negocio y mira tu sitio en minutos.',cta:'Empezar',
             services:[['\u25C6','Servicio 1','Describe tu propuesta de valor'],['\u25A4','Servicio 2','Explica el beneficio principal'],['\u25CE','Servicio 3','Muestra el resultado que entregas']],
             gallery:[U+'1522199755839-a2bacb67c546?w=600&q=70',U+'1467232004584-a241de8bcf5d?w=600&q=70',U+'1551434678-e076c223a692?w=600&q=70'],
             plans:[['Basico','29','Esencial'],['Popular','59','Recomendado'],['Premium','99','Completo']],
@@ -400,7 +403,10 @@ window.wwiHeroChip=function(el){
         var p=pack||PACKS[sector]||PACKS.default;
         var id='iqb-s-'+type;
         if(type==='hero'){
-            return '<section class="iqb-s iqb-s-hero" data-sec="hero" id="'+id+'"><span class="iqb-s-tag">'+p.tag+'</span><h3>'+p.hero+'</h3><p>'+p.sub+'</p><div class="iqb-s-btns"><button type="button" class="iqb-s-b" data-wizard="1">'+p.cta+'</button><a class="iqb-s-b ghost" href="#'+id+'" data-scroll="#iqb-s-features">Ver servicios</a></div></section>';
+            return '<section class="iqb-s iqb-s-hero" data-sec="hero" id="'+id+'">'
+                +'<div class="iqb-s-bg" style="background-image:url('+(p.heroImg||'')+')" aria-hidden="true"></div>'
+                +'<div class="iqb-s-hero-in"><span class="iqb-s-tag">'+p.tag+'</span><h3>'+p.hero+'</h3><p>'+p.sub+'</p>'
+                +'<div class="iqb-s-btns"><button type="button" class="iqb-s-b" data-wizard="1">'+p.cta+'</button><a class="iqb-s-b ghost" href="#'+id+'" data-scroll="#iqb-s-features">Ver servicios</a></div></div></section>';
         }
         if(type==='features'){
             return '<section class="iqb-s" data-sec="features" id="'+id+'"><h4>Servicios</h4><div class="iqb-s-cards">'
