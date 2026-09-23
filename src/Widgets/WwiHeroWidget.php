@@ -246,6 +246,15 @@ class WwiHeroWidget extends Widget
 @media(prefers-reduced-motion:reduce){.iqb-tour-hi{animation:none}}
 .iqb-new{animation:iqbIn .35s ease}
 .iqb-live{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.iqb-pill{position:absolute;right:12px;bottom:12px;z-index:11;display:flex;gap:6px}
+.iqb-pill button{border:1px solid rgba(255,255,255,.22);background:rgba(10,8,24,.86);backdrop-filter:blur(10px);color:#fff;font:600 11px/1 'Inter',system-ui,sans-serif;border-radius:999px;padding:9px 14px;cursor:pointer;box-shadow:0 12px 28px rgba(0,0,0,.45);transition:.18s}
+.iqb-pill button:hover{transform:translateY(-1px)}
+.iqb-pill button.main{background:linear-gradient(135deg,var(--accent),var(--accent2));border-color:transparent}
+.iqb[data-mode="view"] .iqb-palette,.iqb[data-mode="view"] .iqb-bar{display:none}
+.iqb[data-mode="view"] .iqb-body{grid-template-columns:1fr}
+.iqb[data-mode="edit"] .iqb-pill .main{display:none}
+.iqb-badge-soft{position:absolute;left:12px;top:44px;z-index:10;font:700 9.5px/1 'Inter',system-ui,sans-serif;letter-spacing:.07em;text-transform:uppercase;color:#fff;background:rgba(10,8,24,.7);border:1px solid rgba(255,255,255,.18);border-radius:999px;padding:5px 10px;backdrop-filter:blur(8px)}
+.iqb[data-mode="edit"] .iqb-badge-soft{display:none}
 @keyframes iqbIn{from{opacity:0;transform:translateY(-7px)}to{opacity:1;transform:none}}
 @media(max-width:1020px){
 .iqb-body{grid-template-columns:1fr}
@@ -705,6 +714,16 @@ window.wwiHeroChip=function(el){
         tourNext();
     }
     if(tourBtn)tourBtn.addEventListener('click',function(e){e.stopPropagation();tour.on?tourStop(true):tourStart()});
+    var editBtn=document.getElementById('iqb-edit');
+    var doneBtn=document.getElementById('iqb-done');
+    var tourPill=document.getElementById('iqb-tour-pill');
+    function iqbMode(m){
+        root.setAttribute('data-mode',m);
+        if(m==='edit'){render();say('Modo personalizar: agrega, mueve o elimina secciones')}
+    }
+    if(editBtn)editBtn.addEventListener('click',function(e){e.stopPropagation();iqbMode('edit')});
+    if(doneBtn)doneBtn.addEventListener('click',function(e){e.stopPropagation();iqbMode('view')});
+    if(tourPill)tourPill.addEventListener('click',function(e){e.stopPropagation();tourStart()});
     root.addEventListener('mouseenter',tourPause);
     root.addEventListener('mouseleave',tourResume);
     root.addEventListener('click',function(e){if(tour.on&&!e.target.closest('#iqb-tour'))tourStop(false)});
@@ -724,6 +743,44 @@ window.wwiHeroChip=function(el){
 })();
 }</script>
 HTML;
+    }
+
+    public function renderDemo(array $config = []): string
+    {
+        $url = (string)($config['url'] ?? 'tunegocio.com');
+        $html = $this->assets();
+        $html .= '<div class="iqb" id="iqb" data-mode="view">';
+        $html .= '<div class="iqb-chrome"><i></i><i></i><i></i><span class="iqb-url" data-editable="mock_url">' . $this->esc($url) . '</span><span class="iqb-live" id="iqh-pct">100%</span></div>';
+        $html .= '<span class="iqb-badge-soft">Sitio de ejemplo \u00B7 creado con TIA</span>';
+        $html .= '<div class="iqb-body">';
+        $html .= '<div class="iqb-canvas" id="iqb-canvas" data-device="desktop" role="list" aria-label="Sitio de ejemplo"></div>';
+        $html .= '<div class="iqb-palette" id="iqb-palette" aria-label="Bricks disponibles"><div class="iqb-palette-head">A\u00F1adir secci\u00F3n</div></div>';
+        $html .= '</div>';
+        $html .= '<div class="iqb-bar">';
+        $html .= '<button type="button" class="iqb-t" data-act="undo" title="Deshacer (Ctrl+Z)" aria-label="Deshacer">&#8630;</button>';
+        $html .= '<button type="button" class="iqb-t" data-act="redo" title="Rehacer (Ctrl+Y)" aria-label="Rehacer">&#8631;</button>';
+        $html .= '<button type="button" class="iqb-t" data-act="reset" title="Reiniciar" aria-label="Reiniciar">&#10226;</button>';
+        $html .= '<button type="button" class="iqb-t" id="iqb-tour" title="Ver tour automatico" aria-label="Ver tour automatico">&#9654;</button>';
+        $html .= '<span class="iqb-sep"></span>';
+        $html .= '<button type="button" class="iqb-t iqb-dev on" data-dev="desktop" title="Escritorio" aria-label="Escritorio">&#9647;</button>';
+        $html .= '<button type="button" class="iqb-t iqb-dev" data-dev="tablet" title="Tablet" aria-label="Tablet">&#9649;</button>';
+        $html .= '<button type="button" class="iqb-t iqb-dev" data-dev="mobile" title="Movil" aria-label="Movil">&#9646;</button>';
+        $html .= '<span class="iqb-sep"></span>';
+        $html .= '<select class="iqb-tpl" id="iqb-tpl" aria-label="Plantillas rapidas"><option value="">Plantilla…</option><option value="restaurant">Restaurante</option><option value="portfolio">Portafolio</option><option value="shop">Tienda</option><option value="agency">Agencia</option></select>';
+        $html .= '<span class="iqb-stat" id="iqb-stat">6 secciones</span>';
+        $html .= '<button type="button" class="iqb-use" id="iqb-use">Usar esta estructura</button>';
+        $html .= '<button type="button" class="iqb-t" id="iqb-done" title="Terminar de personalizar" aria-label="Terminar">&#10003;</button>';
+        $html .= '</div>';
+        $html .= '<div class="iqb-pill">';
+        $html .= '<button type="button" class="main" id="iqb-edit">&#10024; Personalizar</button>';
+        $html .= '<button type="button" id="iqb-tour-pill">&#9654; Tour</button>';
+        $html .= '</div>';
+        $html .= '<div class="iqb-toast" id="iqb-toast" aria-hidden="true"></div>';
+        $html .= '<div class="iqb-tour-cap" id="iqb-tour-cap" role="status" aria-live="polite"></div>';
+        $html .= '<span class="iqb-live" id="iqb-live" role="status" aria-live="polite"></span>';
+        $html .= '</div>';
+        $html .= $this->js();
+        return $html;
     }
 
     public function render(array $config = []): string
@@ -787,30 +844,7 @@ HTML;
         $html .= '</div>';
 
         $html .= '<div class="iqh-visual">';
-        $html .= '<div class="iqb" id="iqb">';
-        $html .= '<div class="iqb-chrome"><i></i><i></i><i></i><span class="iqb-url" data-editable="mock_url">' . $this->esc($c['mock_url']) . '</span><span class="iqb-live" id="iqh-pct">78%</span></div>';
-        $html .= '<div class="iqb-body">';
-        $html .= '<div class="iqb-canvas" id="iqb-canvas" data-device="desktop" role="list" aria-label="Secciones de la demo"></div>';
-        $html .= '<div class="iqb-palette" id="iqb-palette" aria-label="Bricks disponibles"><div class="iqb-palette-head">Bricks · arrastra o haz clic</div></div>';
-        $html .= '</div>';
-        $html .= '<div class="iqb-bar">';
-        $html .= '<button type="button" class="iqb-t" data-act="undo" title="Deshacer (Ctrl+Z)" aria-label="Deshacer">&#8630;</button>';
-        $html .= '<button type="button" class="iqb-t" data-act="redo" title="Rehacer (Ctrl+Y)" aria-label="Rehacer">&#8631;</button>';
-        $html .= '<button type="button" class="iqb-t" data-act="reset" title="Reiniciar" aria-label="Reiniciar">&#10226;</button>';
-        $html .= '<button type="button" class="iqb-t" id="iqb-tour" title="Ver tour automatico" aria-label="Ver tour automatico">&#9654;</button>';
-        $html .= '<span class="iqb-sep"></span>';
-        $html .= '<button type="button" class="iqb-t iqb-dev on" data-dev="desktop" title="Escritorio" aria-label="Escritorio">&#9647;</button>';
-        $html .= '<button type="button" class="iqb-t iqb-dev" data-dev="tablet" title="Tablet" aria-label="Tablet">&#9649;</button>';
-        $html .= '<button type="button" class="iqb-t iqb-dev" data-dev="mobile" title="Movil" aria-label="Movil">&#9646;</button>';
-        $html .= '<span class="iqb-sep"></span>';
-        $html .= '<select class="iqb-tpl" id="iqb-tpl" aria-label="Plantillas rapidas"><option value="">Plantilla…</option><option value="restaurant">Restaurante</option><option value="portfolio">Portafolio</option><option value="shop">Tienda</option><option value="agency">Agencia</option></select>';
-        $html .= '<span class="iqb-stat" id="iqb-stat">6 secciones</span>';
-        $html .= '<button type="button" class="iqb-use" id="iqb-use">Usar esta estructura</button>';
-        $html .= '</div>';
-        $html .= '<div class="iqb-toast" id="iqb-toast" aria-hidden="true"></div>';
-        $html .= '<div class="iqb-tour-cap" id="iqb-tour-cap" role="status" aria-live="polite"></div>';
-        $html .= '<span class="iqb-live" id="iqb-live" role="status" aria-live="polite"></span>';
-        $html .= '</div>';
+        $html .= $this->renderDemo(['url' => (string)$c['mock_url']]);
         $html .= '<div class="iqh-badge iqh-badge-1">🔒 SSL incluido</div>';
         $html .= '<div class="iqh-badge iqh-badge-2">🌐 Dominio .com</div>';
         $html .= '<div class="iqh-badge iqh-badge-3">⚡ Online en 24h</div>';
