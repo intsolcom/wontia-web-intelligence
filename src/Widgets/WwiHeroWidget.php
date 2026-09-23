@@ -35,6 +35,7 @@ class WwiHeroWidget extends Widget
             ['key' => 'price_note', 'label' => 'Texto de precio', 'type' => 'text', 'inline' => true, 'default' => 'desde $299.000 COP · pago único · dominio el primer año'],
             ['key' => 'social_text', 'label' => 'Prueba social', 'type' => 'text', 'default' => '★ 4.9 · Negocios en 12 países'],
             ['key' => 'mock_url', 'label' => 'URL del mockup', 'type' => 'text', 'default' => 'tunegocio.com'],
+            ['key' => 'show_demo', 'label' => 'Mostrar demo interactiva (1/0)', 'type' => 'text', 'default' => '1'],
             ['key' => 'stats', 'label' => 'Estadísticas', 'type' => 'repeater', 'fields' => [
                 ['key' => 'value', 'label' => 'Valor', 'type' => 'text'],
                 ['key' => 'label', 'label' => 'Etiqueta', 'type' => 'text'],
@@ -76,6 +77,7 @@ class WwiHeroWidget extends Widget
 .iqh-orb-a{width:520px;height:520px;left:-140px;top:-160px;background:radial-gradient(circle at 30% 30%,var(--accent),transparent 62%);animation:iqhFloat 14s ease-in-out infinite}
 .iqh-orb-b{width:460px;height:460px;right:-120px;top:-40px;background:radial-gradient(circle at 60% 40%,var(--accent2),transparent 62%);animation:iqhFloat 18s ease-in-out infinite reverse}
 .iqh-wrap{position:relative;z-index:2;max-width:1200px;margin:0 auto;padding:0 26px;display:grid;grid-template-columns:1.04fr .96fr;gap:58px;align-items:center}
+.iqh-wrap.iqh-solo{grid-template-columns:1fr;max-width:860px;gap:0}
 .iqh-eyebrow{display:inline-flex;align-items:center;gap:9px;padding:7px 15px;border:1px solid var(--border2);border-radius:999px;background:var(--panel);backdrop-filter:blur(10px);font-size:12px;font-weight:600;color:var(--muted);letter-spacing:.01em}
 .iqh-dot{width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 0 rgba(53,212,154,.55);animation:iqhPulse 2.2s infinite;flex-shrink:0}
 .iqh-title{font-size:clamp(34px,4.7vw,58px);line-height:1.05;letter-spacing:-.032em;font-weight:800;margin:18px 0 16px;max-width:620px;text-wrap:balance}
@@ -791,10 +793,11 @@ HTML;
         $t2 = $this->esc(trim((string)($titleParts[1] ?? '')));
 
         $html = $this->assets();
+        $showDemo = (string)($c['show_demo'] ?? '1') !== '0';
         $html .= '<section class="iqh" id="iqh-hero">';
         $html .= '<div class="iqh-bg" aria-hidden="true"><div class="iqh-grid"></div><div class="iqh-orb iqh-orb-a"></div><div class="iqh-orb iqh-orb-b"></div></div>';
 
-        $html .= '<div class="iqh-wrap">';
+        $html .= '<div class="iqh-wrap' . ($showDemo ? '' : ' iqh-solo') . '">';
         $html .= '<div class="iqh-copy">';
         if ($c['badge']) {
             $html .= '<div class="iqh-eyebrow"><span class="iqh-dot"></span><span data-editable="badge">' . $this->esc($c['badge']) . '</span></div>';
@@ -843,12 +846,14 @@ HTML;
         }
         $html .= '</div>';
 
-        $html .= '<div class="iqh-visual">';
-        $html .= $this->renderDemo(['url' => (string)$c['mock_url']]);
-        $html .= '<div class="iqh-badge iqh-badge-1">🔒 SSL incluido</div>';
-        $html .= '<div class="iqh-badge iqh-badge-2">🌐 Dominio .com</div>';
-        $html .= '<div class="iqh-badge iqh-badge-3">⚡ Online en 24h</div>';
-        $html .= '</div>';
+        if ($showDemo) {
+            $html .= '<div class="iqh-visual">';
+            $html .= $this->renderDemo(['url' => (string)$c['mock_url']]);
+            $html .= '<div class="iqh-badge iqh-badge-1">🔒 SSL incluido</div>';
+            $html .= '<div class="iqh-badge iqh-badge-2">🌐 Dominio .com</div>';
+            $html .= '<div class="iqh-badge iqh-badge-3">⚡ Online en 24h</div>';
+            $html .= '</div>';
+        }
         $html .= '</div>';
 
         $stats = $this->safeJson($c['stats'] ?? []);

@@ -198,13 +198,23 @@
             clearRowDrop();
             var from = ids.indexOf(S.rowDrag);
             if (from < 0) return;
+            var draggedId = S.rowDrag;
             ids.splice(from, 1);
             if (from < target) target--;
-            ids.splice(target, 0, S.rowDrag);
+            ids.splice(target, 0, draggedId);
             S.rowDrag = null;
-            setStatus('Moviendo sección…');
+            var rowEl = document.querySelector('.wwi-b-row[data-row="' + draggedId + '"]');
+            if (rowEl && rowEl.parentNode === parent) {
+                var current = $$('.wwi-b-row', parent).filter(function (r) { return r !== rowEl; });
+                parent.insertBefore(rowEl, current[target] || parent.querySelector('#wb-add-row-end') || null);
+                $$('.wwi-b-row', parent).forEach(function (r, i) {
+                    var t = r.querySelector(':scope > .wb-row-tag');
+                    if (t) t.textContent = 'Fila ' + (i + 1);
+                });
+            }
+            setStatus('Guardando…');
             api('/api/v1/admin/builder/reorder/row', { method: 'POST', body: { items: ids } }).then(function (r) {
-                if (r.ok) { toast('Sección movida'); setStatus('Guardado ✓'); setTimeout(function () { location.reload(); }, 250); }
+                if (r.ok) { toast('Sección movida'); setStatus('Guardado ✓'); }
                 else { toast(r.message || 'No se pudo mover'); setStatus('Error'); }
             });
         });
@@ -450,8 +460,13 @@
                     return;
                 }
                 if (!S.drag) return;
+                var blockEl = document.querySelector('.wwi-b-block[data-block="' + S.drag.id + '"]');
+                var pos = typeof slot.__dropPos === 'number' ? slot.__dropPos : 9999;
+                if (blockEl) reparentBlock(blockEl, slot, pos);
+                setStatus('Guardando…');
                 api('/api/v1/admin/builder/blocks/' + S.drag.id + '/move', { method: 'POST', body: { slot_id: slotId, position: pos } })
-                    .then(function (r) { if (r.ok) { toast('Movido'); location.reload(); } else toast(r.message || 'Error'); });
+                    .then(function (r) { if (r.ok) { toast('Bloque movido'); setStatus('Guardado ✓'); } else toast(r.message || 'Error'); });
+                S.drag = null;
             });
         }
         if (slot.querySelector(':scope > .wb-add')) return;
@@ -653,11 +668,29 @@
         if (j < 0 || j >= ids.length) return;
         ids.splice(i, 1);
         ids.splice(j, 0, id);
-        setStatus('Moviendo…');
+        reorderDomBlocks(slot, ids);
+        setStatus('Guardando…');
         api('/api/v1/admin/builder/reorder/block', { method: 'POST', body: { items: ids } }).then(function (r) {
-            if (r.ok) { toast('Movido'); setStatus('Guardado ✓'); setTimeout(function () { location.reload(); }, 250); }
+            if (r.ok) { toast('Movido'); setStatus('Guardado ✓'); }
             else { toast(r.message || 'No se pudo mover'); setStatus('Error'); }
         });
+    }
+
+    function reorderDomBlocks(slot, ids) {
+        var anchor = slot.querySelector(':scope > .wb-add');
+        ids.forEach(function (id) {
+            var el = slot.querySelector(':scope > .wwi-b-block[data-block="' + id + '"]');
+            if (el) slot.insertBefore(el, anchor || null);
+        });
+    }
+
+    function reparentBlock(blockEl, newSlot, pos) {
+        var tools = blockEl.querySelector(':scope > .wb-tools');
+        if (tools) tools.remove();
+        var list = $$(':scope > .wwi-b-block', newSlot);
+        var ref = list[pos] || null;
+        newSlot.insertBefore(blockEl, ref || (newSlot.querySelector(':scope > .wb-add') || null));
+        decorateBlock(blockEl, newSlot);
     }
 
     function reloadSlot(slot) {
