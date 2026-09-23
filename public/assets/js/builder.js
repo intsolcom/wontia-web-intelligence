@@ -9,7 +9,7 @@
     var PAGE_ID = parseInt(CTX.pageId || 0, 10);
     if (!PAGE_ID) return;
 
-    var S = { on: false, tree: null, palette: null, sel: null, undo: [], redo: [], saving: false, ready: false, drag: null };
+    var S = { on: false, tree: null, palette: null, sel: null, undo: [], redo: [], saving: false, ready: false, drag: null, rowDrag: null };
     var $ = function (s, r) { return (r || document).querySelector(s); };
     var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
     function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
@@ -140,7 +140,77 @@
             end.addEventListener('click', function () { addRow(lastRow, 9999); });
             lastRow.parentNode.insertBefore(end, lastRow.nextSibling);
         }
+        initRowDrag();
     }
+
+    // Arrastre de filas completas (mover una sección de lugar)
+    function initRowDrag() {
+        $$('.wwi-b-row').forEach(function (row) {
+            var tag = row.querySelector(':scope > .wb-row-tag');
+            if (!tag || tag.__drag) return;
+            tag.__drag = 1;
+            tag.draggable = true;
+            tag.style.cursor = 'grab';
+            tag.title = 'Arrastra para mover esta sección de lugar';
+            tag.addEventListener('dragstart', function (e) {
+                S.rowDrag = parseInt(row.getAttribute('data-row'), 10);
+                row.classList.add('wb-row-dragging');
+                if (e.dataTransfer) { e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', 'row'); } catch (x) { } }
+                e.stopPropagation();
+            });
+            tag.addEventListener('dragend', function () {
+                row.classList.remove('wb-row-dragging');
+                S.rowDrag = null;
+                clearRowDrop();
+            });
+        });
+        var rows = $$('.wwi-b-row');
+        if (!rows.length) return;
+        var parent = rows[0].parentNode;
+        if (parent.__rowDrop) return;
+        parent.__rowDrop = 1;
+        parent.addEventListener('dragover', function (e) {
+            if (!S.rowDrag) return;
+            e.preventDefault();
+            var list = $$('.wwi-b-row', parent);
+            var after = null;
+            for (var i = 0; i < list.length; i++) {
+                var r = list[i].getBoundingClientRect();
+                if (e.clientY < r.top + r.height / 2) { after = list[i]; break; }
+            }
+            clearRowDrop();
+            var line = document.createElement('div');
+            line.className = 'wb-row-drop';
+            if (after) parent.insertBefore(line, after); else parent.appendChild(line);
+        });
+        parent.addEventListener('drop', function (e) {
+            if (!S.rowDrag) return;
+            e.preventDefault();
+            var line = parent.querySelector('.wb-row-drop');
+            var list = $$('.wwi-b-row', parent);
+            var ids = list.map(function (r) { return parseInt(r.getAttribute('data-row'), 10); });
+            var target = ids.length;
+            if (line) {
+                var next = line.nextElementSibling;
+                while (next && !next.classList.contains('wwi-b-row')) next = next.nextElementSibling;
+                target = next ? ids.indexOf(parseInt(next.getAttribute('data-row'), 10)) : ids.length;
+            }
+            clearRowDrop();
+            var from = ids.indexOf(S.rowDrag);
+            if (from < 0) return;
+            ids.splice(from, 1);
+            if (from < target) target--;
+            ids.splice(target, 0, S.rowDrag);
+            S.rowDrag = null;
+            setStatus('Moviendo sección…');
+            api('/api/v1/admin/builder/reorder/row', { method: 'POST', body: { items: ids } }).then(function (r) {
+                if (r.ok) { toast('Sección movida'); setStatus('Guardado ✓'); setTimeout(function () { location.reload(); }, 250); }
+                else { toast(r.message || 'No se pudo mover'); setStatus('Error'); }
+            });
+        });
+    }
+
+    function clearRowDrop() { $$('.wb-row-drop').forEach(function (l) { l.remove(); }); }
 
     function addRow(refRow, position) {
         var pageRows = $$('.wwi-b-row');

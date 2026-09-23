@@ -7,7 +7,12 @@ body.wb-on .wwi-b-row:hover{outline-color:rgba(124,60,255,.65)}
 body.wb-on .wwi-b-col{position:relative;outline:1px dashed rgba(124,60,255,.18);outline-offset:-1px}
 body.wb-on .wwi-b-col:hover{outline-color:rgba(124,60,255,.5)}
 body.wb-on .wwi-b-slot{position:relative;min-height:52px}
-.wb-row-tag{position:absolute;top:2px;left:6px;z-index:5;font:700 10px/1.6 'Inter',system-ui,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--wb-accent2);background:rgba(12,10,26,.72);border:1px solid rgba(183,140,255,.35);border-radius:6px;padding:1px 7px;pointer-events:none}
+.wb-row-tag{position:absolute;top:2px;left:6px;z-index:5;font:700 10px/1.6 'Inter',system-ui,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--wb-accent2);background:rgba(12,10,26,.72);border:1px solid rgba(183,140,255,.35);border-radius:6px;padding:1px 7px;cursor:grab;transition:.15s}
+.wb-row-tag:hover{border-color:var(--wb-accent2);color:#fff}
+.wb-row-tag:active{cursor:grabbing}
+.wb-row-dragging{opacity:.45}
+.wb-row-drop{height:3px;margin:4px 0;border-radius:3px;background:var(--wb-accent);box-shadow:0 0 14px var(--wb-accent);animation:wbRowDrop 1.2s ease-in-out infinite}
+@keyframes wbRowDrop{0%,100%{opacity:.7}50%{opacity:1}}
 .wb-row-acts{position:absolute;top:-1px;right:6px;z-index:7;display:none;gap:4px;align-items:center}
 body.wb-on .wwi-b-row:hover>.wb-row-acts{display:flex}
 .wb-row-acts button{background:rgba(12,10,26,.85);border:1px solid rgba(183,140,255,.35);color:#d9d4f5;border-radius:8px;padding:4px 9px;font:600 10.5px/1 'Inter',system-ui,sans-serif;cursor:pointer}
