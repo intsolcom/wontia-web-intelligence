@@ -859,6 +859,7 @@
                 + '<button type="button" data-c="removeFormat" title="Limpiar formato">âœ•</button>'
                 + '</div><div class="wb-rte" id="wb-rte" contenteditable="true">' + (props.html || '') + '</div></div>';
             h += alignField(curAlign);
+            h += tiaField();
         } else if (type === 'image') {
             h += field('URL de la imagen', '<input type="text" id="wb-p-url" value="' + esc(props.url || '') + '" placeholder="https://â€¦ o /assets/uploads/â€¦"/>');
             h += '<div class="wb-actions"><button type="button" class="wb-btn wb-ghost" id="wb-p-media">Elegir de Media</button></div>';
@@ -894,6 +895,55 @@
     }
 
     function field(label, input) { return '<div class="wb-f"><label>' + label + '</label>' + input + '</div>'; }
+    function tiaField() {
+        return '<div class="wb-f"><label>🤖 TIA · asistente contextual</label>'
+            + '<input type="text" id="wb-ai-input" placeholder="Pídele algo: hazlo más breve, tono cercano…"/>'
+            + '<div class="wb-actions" style="margin-top:6px;gap:5px"><button type="button" class="wb-btn wb-ghost" data-ai="improve">✨ Mejorar</button>'
+            + '<button type="button" class="wb-btn wb-ghost" data-ai="shorten">✂ Acortar</button>'
+            + '<button type="button" class="wb-btn wb-ghost" data-ai="expand">➕ Ampliar</button>'
+            + '<button type="button" class="wb-btn wb-ghost" data-ai="en">🌐 EN</button>'
+            + '<button type="button" class="wb-btn wb-ghost" data-ai="es">🇪🇸 ES</button>'
+            + '<button type="button" class="wb-btn" id="wb-ai-run">Pedir ▸</button></div>'
+            + '<div style="font-size:11px;color:#9c96c4;margin-top:6px">TIA reescribe este bloque y lo guarda.</div></div>';
+    }
+
+    function bindTia() {
+        $$('#wb-panel [data-ai]').forEach(function (b) { b.addEventListener('click', function () { tiaRun(b.getAttribute('data-ai')); }); });
+        var ar = $('#wb-ai-run'); if (ar) ar.addEventListener('click', function () { tiaRun(''); });
+    }
+
+    function tiaRun(mode) {
+        var rte = $('#wb-rte');
+        var cur = rte ? rte.innerHTML : ((S.sel && S.sel.props && S.sel.props.html) || '');
+        var plain = String(cur).replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
+        if (!plain) { toast('No hay texto para la IA'); return; }
+        var inp = $('#wb-ai-input');
+        var instr = mode === 'improve' ? 'Mejora la redacción: más clara, natural y persuasiva; conserva el idioma y una longitud similar.'
+            : mode === 'shorten' ? 'Acorta el texto conservando el mensaje clave.'
+                : mode === 'expand' ? 'Amplía el texto con más detalle y valor, sin inventar datos.'
+                    : mode === 'en' ? 'Traduce el texto al inglés.'
+                        : mode === 'es' ? 'Traduce el texto al español.'
+                            : ((inp && inp.value) || '');
+        if (!instr) { toast('Escribe qué quieres o usa un botón'); return; }
+        setStatus('TIA redactando…');
+        api('/api/v1/admin/brick/request', {
+            method: 'POST', body: {
+                system_id: 'wontia', module: 'agent', function: 'builder_rewrite',
+                system_prompt: 'Eres TIA, redactora de sitios web. Devuelve SOLO el texto resultante, sin comillas ni markdown.',
+                messages: [{ role: 'user', content: instr + '\n\nTexto:\n' + plain }],
+                max_tokens: 700, temperature: 0.6
+            }
+        }).then(function (r) {
+            var out = String(((r && r.data && r.data.content) || '')).trim();
+            if (!out) { toast('La IA no devolvió texto'); setStatus('Error'); return; }
+            var pr = Object.assign({}, S.sel.props, { html: '<p>' + esc(out) + '</p>' });
+            api('/api/v1/admin/builder/blocks/' + S.sel.id, { method: 'PATCH', body: { props: pr } }).then(function (x) {
+                if (x.ok) { toast('Texto actualizado por TIA ✓'); closePanel(); refreshCanvas(); }
+                else toast(x.message || 'Error');
+            });
+        }).catch(function () { toast('Error de IA'); setStatus('Error'); });
+    }
+
     function alignField(cur) {
         cur = cur || '';
         var opts = [['', 'Heredar'], ['left', 'Izquierda'], ['center', 'Centro'], ['right', 'Derecha']];
@@ -951,6 +1001,7 @@
             api('/api/v1/admin/builder/blocks/' + S.sel.id, { method: 'PATCH', body: { props: pr } }).then(function (r) { if (r.ok) { toast(lk.checked ? '🔒 Bloqueado' : 'Desbloqueado'); closePanel(); refreshCanvas(); } else toast(r.message || 'Error'); });
         });
         if (typeof renderTokens === 'function') renderTokens();
+        bindTia();
         var save = $('#wb-save');
         if (save) save.addEventListener('click', savePanel);
         var delBtn = $('#wb-del');
