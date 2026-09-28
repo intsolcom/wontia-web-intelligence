@@ -942,7 +942,7 @@
         } else if (type === 'spacer') {
             h += field('Altura (px)', '<input type="number" id="wb-p-height" value="' + esc(props.height || 40) + '" min="4" max="240"/>');
         } else if (type === 'brick') {
-            h += '<div class="wb-f"><label>Brick: ' + esc(S.sel.brick) + '</label><textarea id="wb-p-props" spellcheck="false" style="font-family:JetBrains Mono,monospace;font-size:11.5px">' + esc(JSON.stringify(props, null, 2)) + '</textarea></div>';
+            h += '<div id="wb-p-brick"><div class="wb-f" style="color:#9c96c4;font-size:12px">Cargando editor de «' + esc(S.sel.brick) + '»…</div></div>';
             h += alignField(curAlign);
         } else {
             h += '<div class="wb-f"><label>Contenido HTML</label><textarea id="wb-p-html" spellcheck="false" style="font-family:JetBrains Mono,monospace;font-size:11.5px">' + esc(props.html || '') + '</textarea></div>';
@@ -958,9 +958,97 @@
         h += '<div class="wb-actions"><button type="button" class="wb-btn" id="wb-save">Guardar</button><button type="button" class="wb-btn wb-danger" id="wb-del">🗑 Eliminar</button><button type="button" class="wb-btn wb-ghost" id="wb-close2">Cerrar</button></div>';
         body.innerHTML = h;
         bindPanel();
+        if (type === 'brick') loadBrickEditor(S.sel.brick, props);
     }
 
     function field(label, input) { return '<div class="wb-f"><label>' + label + '</label>' + input + '</div>'; }
+
+    function loadBrickEditor(slug, props) {
+        var box = $('#wb-p-brick'); if (!box) return;
+        if (S.schemas && S.schemas[slug]) { box.innerHTML = renderBrickFields(S.schemas[slug], props) + advancedJson(props); bpRepRefreshAll(); return; }
+        api('/api/v1/admin/bricks/' + encodeURIComponent(slug)).then(function (r) {
+            var schema = (r && r.data && r.data.configSchema) || [];
+            S.schemas = S.schemas || {}; S.schemas[slug] = schema;
+            var b = $('#wb-p-brick'); if (!b) return;
+            b.innerHTML = renderBrickFields(schema, props) + advancedJson(props);
+            bpRepRefreshAll();
+        }).catch(function () { var b = $('#wb-p-brick'); if (b) b.innerHTML = advancedJson(props); });
+    }
+
+    function advancedJson(props) {
+        return '<details style="margin-top:8px"><summary style="cursor:pointer;font-size:11px;color:#9c96c4">Avanzado (JSON)</summary><textarea id="wb-p-props" spellcheck="false" style="font-family:JetBrains Mono,monospace;font-size:11.5px;margin-top:6px;min-height:120px">' + esc(JSON.stringify(props, null, 2)) + '</textarea></details>';
+    }
+
+    function renderBrickFields(schema, props) {
+        var h = '';
+        (schema || []).forEach(function (f) {
+            var t = f.type || 'text';
+            var v = (props[f.key] !== undefined && props[f.key] !== null) ? props[f.key] : (f.default !== undefined ? f.default : '');
+            var id = 'wbp-' + f.key;
+            if (t === 'heading') { h += '<div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#9c96c4;margin:14px 0 6px;border-top:1px solid rgba(183,140,255,.18);padding-top:8px">' + esc(f.label) + '</div>'; return; }
+            if (t === 'text' || t === 'url' || t === 'link') h += field(esc(f.label), '<input type="text" id="' + id + '" value="' + esc(v) + '"/>');
+            else if (t === 'textarea' || t === 'richtext') h += field(esc(f.label), '<textarea id="' + id + '" style="min-height:84px">' + esc(v) + '</textarea>');
+            else if (t === 'number') h += field(esc(f.label), '<input type="number" id="' + id + '" value="' + esc(v) + '"' + (f.min !== undefined ? ' min="' + f.min + '"' : '') + (f.max !== undefined ? ' max="' + f.max + '"' : '') + '/>');
+            else if (t === 'range') h += field(esc(f.label) + ' <output id="' + id + '-out" style="float:right">' + esc(v) + '</output>', '<input type="range" id="' + id + '" min="' + (f.min !== undefined ? f.min : 0) + '" max="' + (f.max !== undefined ? f.max : 100) + '" step="' + (f.step !== undefined ? f.step : 1) + '" value="' + esc(v) + '" oninput="document.getElementById(\'' + id + '-out\').textContent=this.value"/>');
+            else if (t === 'color') h += field(esc(f.label), '<input type="color" id="' + id + '" value="' + esc(/^#[0-9a-fA-F]{6}$/.test(String(v)) ? v : '#7c3cff') + '" style="width:46px;height:32px;padding:0;border:1px solid rgba(183,140,255,.25);border-radius:8px;background:none"/>');
+            else if (t === 'toggle') h += '<label class="wb-f" style="display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0"><input type="checkbox" id="' + id + '" style="width:auto" ' + (v ? 'checked' : '') + '/> ' + esc(f.label) + '</label>';
+            else if (t === 'select' || t === 'hlevel') { var o = ''; var opts = f.options || {}; for (var k in opts) o += '<option value="' + esc(k) + '"' + (String(v) === String(k) ? ' selected' : '') + '>' + esc(opts[k]) + '</option>'; h += field(esc(f.label), '<select id="' + id + '">' + o + '</select>'); }
+            else if (t === 'repeater') h += renderBrickRepeater(f, Array.isArray(v) ? v : []);
+            else h += field(esc(f.label) + ' (JSON)', '<textarea id="' + id + '" style="font-family:JetBrains Mono,monospace;font-size:11.5px">' + esc(typeof v === 'object' ? JSON.stringify(v) : v) + '</textarea>');
+        });
+        return h || '<div class="wb-f" style="color:#9c96c4;font-size:12px">Este widget no declara campos editables. Usa "Avanzado (JSON)".</div>';
+    }
+
+    function renderBrickRepeater(f, items) {
+        S._brep = S._brep || {}; S._brepS = S._brepS || {};
+        S._brepS[f.key] = f; S._brep[f.key] = items.map(function (it) { return (it && typeof it === 'object') ? it : {}; });
+        return '<div class="wb-f" data-brept="' + esc(f.key) + '"><label>' + esc(f.label) + '</label><div id="wbp-rep-' + esc(f.key) + '"></div><button type="button" class="wb-btn wb-ghost" data-repadd="' + esc(f.key) + '" style="margin-top:6px">+ Añadir</button><textarea id="wbp-' + esc(f.key) + '" style="display:none"></textarea></div>';
+    }
+
+    function bpRepRefreshAll() { $$('#wb-panel [data-brept]').forEach(function (d) { bpRepRefresh(d.getAttribute('data-brept')); }); }
+
+    function bpRepRefresh(key) {
+        var f = (S._brepS || {})[key]; var box = document.getElementById('wbp-rep-' + key); if (!f || !box) return;
+        var items = S._brep[key] || [];
+        box.innerHTML = items.map(function (it, i) {
+            var subs = (f.fields || []).map(function (sf) {
+                var val = (it && it[sf.key] != null) ? it[sf.key] : '';
+                var id = 'wbr-' + key + '-' + i + '-' + sf.key;
+                var inp = (sf.type === 'textarea' || sf.type === 'richtext')
+                    ? '<textarea data-i="' + i + '" data-k="' + esc(sf.key) + '" id="' + id + '" style="min-height:46px">' + esc(val) + '</textarea>'
+                    : '<input type="text" data-i="' + i + '" data-k="' + esc(sf.key) + '" id="' + id + '" value="' + esc(val) + '"/>';
+                return '<label style="display:block;font-size:10px;color:#9c96c4;margin-bottom:5px">' + esc(sf.label || sf.key) + inp + '</label>';
+            }).join('');
+            return '<div style="border:1px solid rgba(183,140,255,.2);border-radius:9px;padding:8px;margin-bottom:8px;background:#141130">'
+                + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-size:10px;color:#9c96c4"><b>#' + (i + 1) + '</b><span><button type="button" class="wb-btn wb-ghost" data-repup="' + key + '" data-i="' + i + '" style="padding:1px 6px">▲</button> <button type="button" class="wb-btn wb-ghost" data-repdn="' + key + '" data-i="' + i + '" style="padding:1px 6px">▼</button> <button type="button" class="wb-btn wb-danger" data-repdel="' + key + '" data-i="' + i + '" style="padding:1px 6px">✕</button></span></div>'
+                + '<div>' + subs + '</div></div>';
+        }).join('') || '<div style="font-size:11px;color:#9c96c4">Sin elementos.</div>';
+    }
+
+    function bpRepCollect(key) {
+        var box = document.getElementById('wbp-rep-' + key); if (!box) return;
+        box.querySelectorAll('[data-i][data-k]').forEach(function (inp) {
+            var i = parseInt(inp.getAttribute('data-i'), 10), k = inp.getAttribute('data-k');
+            S._brep[key] = S._brep[key] || [];
+            if (!S._brep[key][i]) S._brep[key][i] = {};
+            S._brep[key][i][k] = inp.value;
+        });
+    }
+
+    function collectBrickFields(schema, base) {
+        var out = {};
+        (schema || []).forEach(function (f) {
+            var t = f.type || 'text';
+            if (t === 'heading') return;
+            if (t === 'repeater') { bpRepCollect(f.key); out[f.key] = (S._brep[f.key] || []); return; }
+            var el = document.getElementById('wbp-' + f.key); if (!el) return;
+            if (t === 'toggle') out[f.key] = el.checked ? 1 : 0;
+            else if (t === 'number') out[f.key] = el.value === '' ? '' : Number(el.value);
+            else out[f.key] = el.value;
+        });
+        for (var k in (base || {})) { if (!(k in out) && k.charAt(0) === '_') out[k] = base[k]; }
+        return out;
+    }
     function tiaField() {
         return '<div class="wb-f"><label>🤖 TIA · asistente contextual</label>'
             + '<input type="text" id="wb-ai-input" placeholder="Pídele algo: hazlo más breve, tono cercano…"/>'
@@ -1086,6 +1174,17 @@
         });
         var c2 = $('#wb-close2');
         if (c2) c2.addEventListener('click', closePanel);
+        var pn = $('#wb-panel');
+        if (pn && !pn.__repBound) {
+            pn.__repBound = 1;
+            pn.addEventListener('click', function (e) {
+                var t;
+                if ((t = e.target.closest('[data-repadd]'))) { var k = t.getAttribute('data-repadd'); bpRepCollect(k); S._brep[k] = S._brep[k] || []; S._brep[k].push({}); bpRepRefresh(k); }
+                else if ((t = e.target.closest('[data-repdel]'))) { var k2 = t.getAttribute('data-repdel'); bpRepCollect(k2); S._brep[k2].splice(parseInt(t.getAttribute('data-i'), 10), 1); bpRepRefresh(k2); }
+                else if ((t = e.target.closest('[data-repup]'))) { var k3 = t.getAttribute('data-repup'); var i = parseInt(t.getAttribute('data-i'), 10); bpRepCollect(k3); var a = S._brep[k3]; if (i > 0) { var x = a[i]; a[i] = a[i - 1]; a[i - 1] = x; bpRepRefresh(k3); } }
+                else if ((t = e.target.closest('[data-repdn]'))) { var k4 = t.getAttribute('data-repdn'); var i2 = parseInt(t.getAttribute('data-i'), 10); bpRepCollect(k4); var a2 = S._brep[k4]; if (i2 < a2.length - 1) { var x2 = a2[i2]; a2[i2] = a2[i2 + 1]; a2[i2 + 1] = x2; bpRepRefresh(k4); } }
+            });
+        }
     }
 
     function savePanel() {
@@ -1097,7 +1196,14 @@
         else if (type === 'button') { body.props = { label: val('#wb-p-label'), href: val('#wb-p-href'), style: val('#wb-p-style') }; }
         else if (type === 'video') { body.props = { url: val('#wb-p-vurl'), poster: val('#wb-p-poster') }; }
         else if (type === 'spacer') { body.props = { height: parseInt(val('#wb-p-height'), 10) || 40 }; }
-        else if (type === 'brick') { try { body.props = JSON.parse($('#wb-p-props').value || '{}'); } catch (e) { toast('JSON inválido'); return; } }
+        else if (type === 'brick') {
+            var bschema = (S.schemas && S.schemas[S.sel.brick]) || null;
+            if (bschema && $('#wb-p-brick')) {
+                body.props = collectBrickFields(bschema, S.sel.props);
+            } else {
+                try { body.props = JSON.parse($('#wb-p-props').value || '{}'); } catch (e) { toast('JSON inválido'); return; }
+            }
+        }
         else { body.props = { html: val('#wb-p-html') }; }
         if (S.sel.props && S.sel.props._component_id) { body.props = body.props || {}; body.props._component_id = S.sel.props._component_id; }
         var alignEl = $('#wb-p-align');
@@ -1114,7 +1220,7 @@
         });
         setStatus('Guardando…');
         api('/api/v1/admin/builder/blocks/' + id, { method: 'PATCH', body: body }).then(function (r) {
-            if (r.ok) { toast('Guardado ✓'); setStatus('Guardado ✓'); setTimeout(load, 200); } else { toast(r.message || 'Error'); setStatus('Error'); }
+            if (r.ok) { toast('Guardado ✓'); setStatus('Guardado ✓');         refreshCanvas(); } else { toast(r.message || 'Error'); setStatus('Error'); }
         });
     }
 
