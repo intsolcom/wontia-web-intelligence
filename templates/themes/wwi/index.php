@@ -949,6 +949,6 @@ if(document.readyState==='complete')wwiHeroGpu();else window.addEventListener('l
     </div>
   </div>
 </div>
-<?php require ROOT_DIR . '/templates/themes/_shared/live-editor.php'; ?>
+<?php if (!empty($wwiBuilderHtml)) { require ROOT_DIR . '/templates/themes/_shared/builder-only.php'; } else { require ROOT_DIR . '/templates/themes/_shared/live-editor.php'; } ?>
 </body>
 </html>

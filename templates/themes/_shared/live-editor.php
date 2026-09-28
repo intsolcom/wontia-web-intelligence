@@ -94,15 +94,7 @@
 var token=null;
    try{token=localStorage.getItem('wwi_token')||null}catch(e){}
    if(!token||window.__WWI_PREVIEW__)return;
-   (function(){
-        if(!document.getElementById('wb-css')){
-            var l=document.createElement('link');l.id='wb-css';l.rel='stylesheet';l.href='/assets/css/builder.css?v=<?= @filemtime(ROOT_DIR . '/public/assets/css/builder.css') ?: time() ?>';document.head.appendChild(l);
-        }
-        if(!window.__WWI_BUILDER_LOADING){
-            window.__WWI_BUILDER_LOADING=1;
-            var s=document.createElement('script');s.src='/assets/js/builder.js?v=<?= @filemtime(ROOT_DIR . '/public/assets/js/builder.js') ?: time() ?>';s.defer=true;document.body.appendChild(s);
-        }
-   })();
+   /* El editor de bloques (builder.js) se carga aparte (builder-only.php) solo en páginas del Builder. */
     var CTX=window.__WWI_EDIT_CTX__||{};
     var S={open:false,tab:'content',sel:null,sec:null,timer:null,undo:[],saving:false,rep:{},repFields:{}};
     function api(url,opts){

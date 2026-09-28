@@ -174,7 +174,7 @@ if ($brandPrimary && preg_match('/^#[0-9a-fA-F]{6}$/', (string)$brandPrimary)):
     endif; ?>
 </main>
 
-<?php require ROOT_DIR . '/templates/themes/_shared/live-editor.php'; ?>
+<?php if (!empty($wwiBuilderHtml)) { require ROOT_DIR . '/templates/themes/_shared/builder-only.php'; } else { require ROOT_DIR . '/templates/themes/_shared/live-editor.php'; } ?>
 
 <?= CookieConsentService::render() ?>
 

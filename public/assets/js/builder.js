@@ -112,6 +112,7 @@
             + '<button type="button" id="wb-publish">Publicar</button>'
             + '<button type="button" id="wb-revs">Versiones</button>';
         document.body.appendChild(b);
+        var tgl = $('#wb-toggle'); if (tgl) tgl.textContent = '✎ Editar sitio';
         $('#wb-toggle').addEventListener('click', toggle);
         $('#wb-tree-btn').addEventListener('click', function () { if (!S.on) { toast('Activa el modo ediciÃ³n'); return; } toggleTree(); });
         $('#wb-dev').addEventListener('click', function (e) { var t = e.target.closest('button[data-dev]'); if (!t) return; setDevice(t.getAttribute('data-dev')); });
