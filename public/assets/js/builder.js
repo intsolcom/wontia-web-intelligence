@@ -575,7 +575,7 @@
         h += '<div class="wb-f"><label>Visibilidad</label><div class="wb-vis">'
             + '<button type="button" data-v="desktop" class="on">🖥 Escritorio</button><button type="button" data-v="tablet" class="on">▭ Tablet</button><button type="button" data-v="mobile" class="on">▯ Móvil</button>'
             + '</div></div>';
-        h += '<div class="wb-actions"><button type="button" class="wb-btn" id="wb-save">Guardar</button><button type="button" class="wb-btn wb-ghost" id="wb-close2">Cerrar</button></div>';
+        h += '<div class="wb-actions"><button type="button" class="wb-btn" id="wb-save">Guardar</button><button type="button" class="wb-btn wb-danger" id="wb-del">🗑 Eliminar</button><button type="button" class="wb-btn wb-ghost" id="wb-close2">Cerrar</button></div>';
         body.innerHTML = h;
         bindPanel();
     }
@@ -627,6 +627,12 @@
         });
         var save = $('#wb-save');
         if (save) save.addEventListener('click', savePanel);
+        var delBtn = $('#wb-del');
+        if (delBtn) delBtn.addEventListener('click', function () {
+            if (!S.sel) return;
+            var b = document.querySelector('.wwi-b-block[data-block="' + S.sel.id + '"]');
+            if (b) removeBlock(b, S.sel.id, b.parentNode);
+        });
         var c2 = $('#wb-close2');
         if (c2) c2.addEventListener('click', closePanel);
     }
