@@ -12,6 +12,10 @@
 - Barra: **negrita, cursiva, subrayado, tachado**, **tamaño** (Pequeño/Normal/Grande/Muy grande), **H1/H2/H3/P**, **cita**, **listas** (viñetas/numerada), **alineación** (izq/centro/der), **color de texto**, **color de fondo**, **enlace**, **limpiar formato**.
 - `document.execCommand` + `styleWithCSS` (estilos inline controlados) y **saneado server-side** (verificado E2E: se aplica color y se persiste sin `<script>`/`onerror`/`position`).
 
+## 3.b IMPLEMENTADAS (sep 2026)
+- **#2 Sangría** (`indent`/`outdent`), **#3 Paleta de marca** (swatches desde `settings.builder_tokens`), **#4 Pegar sin formato** (paste → texto plano), **#8 Snippets** (guardar selección en `settings.builder_snippets` + insertar desde la barra), **#9 IA sobre la selección** (TIA reescribe solo lo seleccionado vía BRICK). Verificado E2E.
+- **#6 Undo local**: ya funciona (Ctrl+Z dentro del `contenteditable` usa el undo nativo, no lo intercepta el undo global del builder).
+
 ## 3. LAS 10 MEJORAS ADICIONALES
 1. **Escala tipográfica del design system**: en vez de tamaños sueltos, tokens `display | h1…h6 | body | caption` aplicables a la selección (consistencia de marca).
 2. **Listas con sangría**: aumentar/disminuir sangría (`indent`/`outdent`) y listas anidadas.

@@ -192,7 +192,10 @@
     function isLocked(id) { var f = findBlock(id); return !!(f && f.props && f.props._locked); }
     function loadTokens() {
         api('/api/v1/admin/settings').then(function (r) {
-            if (r.ok && r.data && r.data.builder_tokens) { try { S.tokens = JSON.parse(r.data.builder_tokens) || []; } catch (e) { S.tokens = []; } }
+            if (r.ok && r.data) {
+                if (r.data.builder_tokens) { try { S.tokens = JSON.parse(r.data.builder_tokens) || []; } catch (e) { S.tokens = []; } }
+                if (r.data.builder_snippets) { try { S.snippets = JSON.parse(r.data.builder_snippets) || []; } catch (e) { S.snippets = []; } }
+            }
         });
     }
     function toggleComments() {
@@ -956,6 +959,14 @@
     function field(label, input) { return '<div class="wb-f"><label>' + label + '</label>' + input + '</div>'; }
 
     function richToolbar(forId) {
+        var sw = '';
+        if (S.tokens && S.tokens.length) {
+            sw = S.tokens.map(function (t) { return '<button type="button" data-rt-color="' + esc(t.color) + '" title="' + esc(t.name) + ' · ' + esc(t.color) + '" style="width:16px;height:16px;min-width:16px;border-radius:4px;border:1px solid rgba(255,255,255,.25);background:' + esc(t.color) + ';padding:0"></button>'; }).join('');
+        }
+        var snips = '';
+        if (S.snippets && S.snippets.length) {
+            snips = '<select data-rtsnip title="Insertar snippet guardado"><option value="">Snippets…</option>' + S.snippets.map(function (s, i) { return '<option value="' + i + '">' + esc(s.name) + '</option>'; }).join('') + '</select>';
+        }
         return '<div class="wb-rte-tools" data-rt-for="' + forId + '">'
             + '<button type="button" data-c="bold" title="Negrita"><b>B</b></button>'
             + '<button type="button" data-c="italic" title="Cursiva"><i>I</i></button>'
@@ -969,14 +980,69 @@
             + '<button type="button" data-c="formatBlock" data-v="blockquote" title="Cita">❝</button>'
             + '<button type="button" data-c="insertUnorderedList" title="Lista con viñetas">•</button>'
             + '<button type="button" data-c="insertOrderedList" title="Lista numerada">1.</button>'
+            + '<button type="button" data-c="indent" title="Aumentar sangría">»</button>'
+            + '<button type="button" data-c="outdent" title="Disminuir sangría">«</button>'
             + '<button type="button" data-c="justifyLeft" title="Alinear a la izquierda">Izq.</button>'
             + '<button type="button" data-c="justifyCenter" title="Centrar">Centro</button>'
             + '<button type="button" data-c="justifyRight" title="Alinear a la derecha">Der.</button>'
             + '<label title="Color de texto" style="display:inline-flex;align-items:center;gap:2px;font-size:10px">A<input type="color" data-color value="#7c3cff" style="width:22px;height:22px;padding:0;border:0;background:none;cursor:pointer"/></label>'
             + '<label title="Color de fondo" style="display:inline-flex;align-items:center;gap:2px;font-size:10px">▨<input type="color" data-bg value="#f3e8ff" style="width:22px;height:22px;padding:0;border:0;background:none;cursor:pointer"/></label>'
+            + (sw ? '<span style="display:inline-flex;gap:2px;align-items:center" title="Colores de marca">' + sw + '</span>' : '')
             + '<button type="button" data-c="createLink" title="Insertar enlace">🔗</button>'
+            + (snips ? snips : '')
             + '<button type="button" data-c="removeFormat" title="Limpiar formato">✕</button>'
+            + '<button type="button" data-rtai title="Asistente TIA sobre la selección">✨ IA</button>'
+            + '<button type="button" data-rtsave title="Guardar la selección como snippet reutilizable">💾 Snippet</button>'
             + '</div>';
+    }
+
+    function rtEd(tools) { return tools ? document.getElementById(tools.getAttribute('data-rt-for')) : null; }
+    function rtSelection(ed) { var s = window.getSelection(); return (s && s.rangeCount && !s.isCollapsed && ed.contains(s.anchorNode)) ? s : null; }
+
+    function rtAi(tools) {
+        var ed = rtEd(tools); if (!ed) return;
+        var sel = rtSelection(ed);
+        var text = sel ? sel.toString() : (ed.innerText || '');
+        if (!text.trim()) { toast('No hay texto para la IA'); return; }
+        var instr = prompt('¿Qué quieres que haga TIA con ' + (sel ? 'la selección' : 'el texto') + '?', 'Mejora la redacción manteniendo el idioma.');
+        if (!instr) return;
+        setStatus('TIA redactando…');
+        api('/api/v1/admin/brick/request', {
+            method: 'POST', body: {
+                system_id: 'wontia', module: 'agent', function: 'builder_rewrite',
+                system_prompt: 'Devuelve SOLO el texto resultante, sin comillas ni markdown.',
+                messages: [{ role: 'user', content: instr + '\n\nTexto:\n' + text }],
+                max_tokens: 700, temperature: 0.6
+            }
+        }).then(function (r) {
+            var out = String(((r && r.data && r.data.content) || '')).trim();
+            if (!out) { toast('La IA no devolvió texto'); setStatus('Error'); return; }
+            ed.focus();
+            if (sel) { document.execCommand('insertText', false, out); }
+            else { ed.innerHTML = '<p>' + esc(out) + '</p>'; }
+            setStatus('TIA actualizó el texto'); toast('Texto actualizado por TIA ✓');
+        }).catch(function () { toast('Error de IA'); setStatus('Error'); });
+    }
+
+    function rtSaveSnippet(tools) {
+        var ed = rtEd(tools); if (!ed) return;
+        var sel = rtSelection(ed), html = '';
+        if (sel) { var d = document.createElement('div'); d.appendChild(sel.getRangeAt(0).cloneContents()); html = d.innerHTML; }
+        else html = ed.innerHTML || '';
+        if (!String(html).trim()) { toast('No hay contenido para guardar'); return; }
+        var name = prompt('Nombre del snippet:', 'Snippet');
+        if (name === null) return;
+        S.snippets = S.snippets || [];
+        S.snippets.push({ name: name || 'Snippet', html: html });
+        api('/api/v1/admin/settings', { method: 'PUT', body: { builder_snippets: JSON.stringify(S.snippets) } }).then(function (r) {
+            if (r.ok) { toast('Snippet guardado'); renderPanel(); } else toast(r.message || 'Error');
+        });
+    }
+
+    function rtInsertSnippet(tools, idx) {
+        var ed = rtEd(tools); var s = (S.snippets || [])[idx]; if (!ed || !s) return;
+        ed.focus();
+        try { document.execCommand('insertHTML', false, s.html); } catch (e) { ed.innerHTML += s.html; }
     }
 
     function loadBrickEditor(slug, props) {
@@ -1141,17 +1207,30 @@
             pn0.__rtBound = 1;
             pn0.addEventListener('mousedown', function (e) { if (e.target.closest('.wb-rte-tools')) e.preventDefault(); }, true);
             pn0.addEventListener('click', function (e) {
-                var b = e.target.closest('.wb-rte-tools [data-c]'); if (!b) return;
-                rtApply(b.closest('.wb-rte-tools'), b.getAttribute('data-c'), b.getAttribute('data-v'));
+                var tools = e.target.closest('.wb-rte-tools'); if (!tools) return;
+                var b = e.target.closest('[data-c]');
+                if (b) { rtApply(tools, b.getAttribute('data-c'), b.getAttribute('data-v')); return; }
+                var sc = e.target.closest('[data-rt-color]');
+                if (sc) { rtApply(tools, 'foreColor', sc.getAttribute('data-rt-color')); return; }
+                if (e.target.closest('[data-rtai]')) { rtAi(tools); return; }
+                if (e.target.closest('[data-rtsave]')) { rtSaveSnippet(tools); return; }
             });
             pn0.addEventListener('input', function (e) {
                 var inp = e.target.closest('.wb-rte-tools input[type=color]'); if (!inp) return;
                 rtApply(inp.closest('.wb-rte-tools'), inp.hasAttribute('data-bg') ? 'hiliteColor' : 'foreColor', inp.value);
             });
             pn0.addEventListener('change', function (e) {
-                var s = e.target.closest('.wb-rte-tools select[data-size]'); if (!s || !s.value) return;
-                rtApply(s.closest('.wb-rte-tools'), 'fontSize', s.value);
+                var s = e.target.closest('.wb-rte-tools select[data-size]');
+                if (s && s.value) { rtApply(s.closest('.wb-rte-tools'), 'fontSize', s.value); return; }
+                var sn = e.target.closest('.wb-rte-tools select[data-rtsnip]');
+                if (sn && sn.value !== '') { rtInsertSnippet(sn.closest('.wb-rte-tools'), parseInt(sn.value, 10)); sn.value = ''; }
             });
+            pn0.addEventListener('paste', function (e) {
+                var ed = e.target.closest('.wb-rte[contenteditable="true"]'); if (!ed) return;
+                e.preventDefault();
+                var text = (e.clipboardData || window.clipboardData).getData('text/plain') || '';
+                document.execCommand('insertText', false, text);
+            }, true);
         }
         var media = $('#wb-p-media');
         if (media) media.addEventListener('click', function () {
