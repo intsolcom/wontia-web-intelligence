@@ -156,6 +156,11 @@ class SectionController
             $u = \App\Core\Session::user() ?: [];
             (new \App\Services\LiveEditorService())->trackEdits((int)$id, (string)($current['widget_type'] ?? ''), (int)($u['id'] ?? 0), $changed);
         }
+        try {
+            $fresh = $this->sectionInSite((int)$id) ?: [];
+            (new \App\Services\BuilderService())->syncToBlocks((int)$id, $fresh);
+        } catch (\Throwable $e) {
+        }
         Response::json(['ok' => true]);
     }
 

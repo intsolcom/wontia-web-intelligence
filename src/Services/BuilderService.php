@@ -158,6 +158,49 @@ class BuilderService
         if (array_key_exists('sort_order', $d)) { $sets[] = 'sort_order = :ord'; $params['ord'] = (int)$d['sort_order']; }
         if (!$sets) return;
         $db->prepare("UPDATE wwi_page_blocks SET " . implode(', ', $sets) . " WHERE id = :id AND site_id = @site_id")->execute($params);
+        if (array_key_exists('props', $d)) $this->syncFromBlock($id);
+    }
+
+    public function syncToBlocks(int $sectionId, array $section): void
+    {
+        if (!$section) return;
+        $db = Database::instance();
+        $stmt = $db->prepare("SELECT id, type FROM wwi_page_blocks WHERE section_id = :sid AND site_id = @site_id");
+        $stmt->execute(['sid' => $sectionId]);
+        $blocks = $stmt->fetchAll();
+        if (!$blocks) return;
+        $config = json_decode((string)($section['config'] ?? '{}'), true) ?: [];
+        $vis = [];
+        foreach (['_hide_desktop' => 'hide_desktop', '_hide_tablet' => 'hide_tablet', '_hide_mobile' => 'hide_mobile'] as $ck => $vk) {
+            if (!empty($config[$ck])) $vis[$vk] = true;
+        }
+        $upd = $db->prepare("UPDATE wwi_page_blocks SET props = :props, visibility = :vis WHERE id = :id AND site_id = @site_id");
+        foreach ($blocks as $b) {
+            $props = ($b['type'] === 'html') ? ['html' => (string)($section['content'] ?? '')] : $config;
+            $upd->execute([
+                'props' => json_encode($props, JSON_UNESCAPED_UNICODE),
+                'vis' => json_encode($vis, JSON_UNESCAPED_UNICODE),
+                'id' => (int)$b['id'],
+            ]);
+        }
+    }
+
+    public function syncFromBlock(int $blockId): void
+    {
+        $db = Database::instance();
+        $stmt = $db->prepare("SELECT section_id, type, props FROM wwi_page_blocks WHERE id = :id AND site_id = @site_id");
+        $stmt->execute(['id' => $blockId]);
+        $b = $stmt->fetch();
+        if (!$b || empty($b['section_id'])) return;
+        $sectionId = (int)$b['section_id'];
+        $props = json_decode((string)($b['props'] ?? ''), true) ?: [];
+        if ($b['type'] === 'html') {
+            $db->prepare("UPDATE sections SET content = :c WHERE id = :id AND page_id IN (SELECT id FROM pages WHERE site_id = @site_id)")
+                ->execute(['c' => (string)($props['html'] ?? ''), 'id' => $sectionId]);
+        } else {
+            $db->prepare("UPDATE sections SET config = :cfg WHERE id = :id AND page_id IN (SELECT id FROM pages WHERE site_id = @site_id)")
+                ->execute(['cfg' => json_encode($props, JSON_UNESCAPED_UNICODE), 'id' => $sectionId]);
+        }
     }
 
     public function updateNode(string $type, int $id, array $d): void
@@ -495,6 +538,8 @@ class BuilderService
             . '.wwi-b-text ul,.wwi-b-text ol{margin:0 0 14px 20px;line-height:1.7}'
             . '.wwi-b-figure{margin:0}'
             . '.wwi-b-figure img{max-width:100%;height:auto;display:block;border-radius:12px}'
+            . '.wwi-b-block.wb-ta-center .wwi-b-figure img{margin-left:auto;margin-right:auto}'
+            . '.wwi-b-block.wb-ta-right .wwi-b-figure img{margin-left:auto;margin-right:0}'
             . '.wwi-b-figure figcaption{font-size:12px;opacity:.7;margin-top:8px}'
             . '.wwi-b-divider{border:0;border-top:1px solid rgba(128,128,150,.25);margin:14px 0}'
             . '.wwi-b-video{width:100%}'
@@ -515,6 +560,8 @@ class BuilderService
         if (!empty($vis['hide_desktop'])) $cls .= ' wwi-hide-desktop';
         if (!empty($vis['hide_tablet'])) $cls .= ' wwi-hide-tablet';
         if (!empty($vis['hide_mobile'])) $cls .= ' wwi-hide-mobile';
+        $ta = (string)($b['styles']['text_align'] ?? '');
+        if (in_array($ta, ['left', 'center', 'right'], true)) $cls .= ' wb-ta-' . $ta;
         $attrs = ' class="' . $cls . '" data-block="' . (int)$b['id'] . '" data-type="' . htmlspecialchars((string)$b['type']) . '"' . (!empty($b['brick_slug']) ? ' data-brick="' . htmlspecialchars((string)$b['brick_slug']) . '"' : '');
         $props = $b['props'] ?? [];
         $inner = '';

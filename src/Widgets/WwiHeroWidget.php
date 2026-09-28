@@ -69,7 +69,7 @@ class WwiHeroWidget extends Widget
             ['key' => 'layout_mode', 'label' => 'Columnas', 'type' => 'select', 'group' => 'design', 'options' => ['2' => '2 columnas (texto + visual)', '1' => '1 columna (solo texto)'], 'default' => '2'],
             ['key' => 'content_width', 'label' => 'Ancho del contenido', 'type' => 'range', 'group' => 'design', 'min' => 860, 'max' => 1560, 'step' => 20, 'default' => 1200],
             ['key' => 'section_pad_top', 'label' => 'Espacio superior (px)', 'type' => 'range', 'group' => 'design', 'min' => 60, 'max' => 260, 'step' => 4, 'default' => 132],
-            ['key' => 'text_align', 'label' => 'Alineación del texto', 'type' => 'select', 'group' => 'design', 'options' => ['left' => 'Izquierda', 'center' => 'Centrado'], 'default' => 'left'],
+            ['key' => 'text_align', 'label' => 'Alineación del texto', 'type' => 'select', 'group' => 'design', 'options' => ['left' => 'Izquierda', 'center' => 'Centrado', 'right' => 'Derecha'], 'default' => 'left'],
             ['key' => '_h_typo', 'label' => 'Tipografía', 'type' => 'heading', 'group' => 'design'],
             ['key' => 'title_tag', 'label' => 'Etiqueta del título (H1-H4)', 'type' => 'hlevel', 'group' => 'design', 'default' => 'h1'],
             ['key' => 'title_size', 'label' => 'Tamaño del título (px)', 'type' => 'range', 'group' => 'design', 'min' => 28, 'max' => 96, 'step' => 2, 'default' => 58],
@@ -1083,10 +1083,16 @@ HTML;
 
         $css .= '#iqh-hero .iqh-sub{font-size:' . max(12, min(32, (int)($c['subtitle_size'] ?? 17))) . 'px}';
 
-        if ((string)($c['text_align'] ?? 'left') === 'center') {
-            $css .= '#iqh-hero .iqh-copy{text-align:center}'
-                . '#iqh-hero .iqh-title,#iqh-hero .iqh-sub,#iqh-hero .iqh-prompt{margin-left:auto;margin-right:auto}'
-                . '#iqh-hero .iqh-chips,#iqh-hero .iqh-ctas,#iqh-hero .iqh-trust,#iqh-hero .iqh-social{justify-content:center}';
+        $align = (string)($c['text_align'] ?? 'left');
+        if ($align === 'center' || $align === 'right') {
+            $css .= '#iqh-hero .iqh-copy{text-align:' . $align . '}';
+            if ($align === 'center') {
+                $css .= '#iqh-hero .iqh-title,#iqh-hero .iqh-sub,#iqh-hero .iqh-prompt{margin-left:auto;margin-right:auto}'
+                    . '#iqh-hero .iqh-chips,#iqh-hero .iqh-ctas,#iqh-hero .iqh-trust,#iqh-hero .iqh-social{justify-content:center}';
+            } else {
+                $css .= '#iqh-hero .iqh-title,#iqh-hero .iqh-sub,#iqh-hero .iqh-prompt{margin-left:auto;margin-right:0}'
+                    . '#iqh-hero .iqh-chips,#iqh-hero .iqh-ctas,#iqh-hero .iqh-trust,#iqh-hero .iqh-social{justify-content:flex-end}';
+            }
         }
         return $css;
     }

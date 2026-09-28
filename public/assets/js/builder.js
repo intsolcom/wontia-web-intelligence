@@ -487,7 +487,7 @@
         var id = parseInt(block.getAttribute('data-block'), 10);
         var found = findBlock(id);
         if (!found) return;
-        S.sel = { id: id, type: block.getAttribute('data-type'), brick: block.getAttribute('data-brick') || '', props: found.props || {}, block: block };
+        S.sel = { id: id, type: block.getAttribute('data-type'), brick: block.getAttribute('data-brick') || '', props: found.props || {}, styles: found.styles || {}, block: block };
         openPanel();
     }
 
@@ -522,6 +522,7 @@
         var body = $('#wb-panel-body'); var title = $('#wb-panel-title');
         var type = S.sel.type, props = S.sel.props || {};
         title.textContent = S.sel.brick || type;
+        var curAlign = (S.sel.styles && S.sel.styles.text_align) || '';
         var h = '';
         if (type === 'text') {
             h += '<div class="wb-f"><label>Texto</label><div class="wb-rte-tools">'
@@ -534,17 +535,18 @@
                 + '<button type="button" data-c="foreColor" data-v="#7c3cff" title="Color acento">A</button><button type="button" data-c="hiliteColor" data-v="rgba(183,140,255,.35)" title="Resaltado">▨</button>'
                 + '<button type="button" data-c="removeFormat" title="Limpiar formato">✕</button>'
                 + '</div><div class="wb-rte" id="wb-rte" contenteditable="true">' + (props.html || '') + '</div></div>';
-            h += alignField();
+            h += alignField(curAlign);
         } else if (type === 'image') {
             h += field('URL de la imagen', '<input type="text" id="wb-p-url" value="' + esc(props.url || '') + '" placeholder="https://… o /assets/uploads/…"/>');
             h += '<div class="wb-actions"><button type="button" class="wb-btn wb-ghost" id="wb-p-media">Elegir de Media</button></div>';
             h += field('Texto alternativo (SEO)', '<input type="text" id="wb-p-alt" value="' + esc(props.alt || '') + '"/>');
             h += field('Pie de foto', '<input type="text" id="wb-p-caption" value="' + esc(props.caption || '') + '"/>');
+            h += alignField(curAlign);
         } else if (type === 'button') {
             h += field('Texto', '<input type="text" id="wb-p-label" value="' + esc(props.label || '') + '"/>');
             h += field('Enlace', '<input type="text" id="wb-p-href" value="' + esc(props.href || '') + '" placeholder="https://… o #ancla"/>');
             h += field('Estilo', '<select id="wb-p-style">' + ['primary', 'secondary', 'ghost'].map(function (v) { return '<option value="' + v + '"' + (props.style === v ? ' selected' : '') + '>' + v + '</option>'; }).join('') + '</select>');
-            h += alignField();
+            h += alignField(curAlign);
         } else if (type === 'video') {
             h += field('URL (YouTube, Vimeo o MP4)', '<input type="text" id="wb-p-vurl" value="' + esc(props.url || '') + '"/>');
             h += field('Poster (opcional)', '<input type="text" id="wb-p-poster" value="' + esc(props.poster || '') + '"/>');
@@ -552,6 +554,7 @@
             h += field('Altura (px)', '<input type="number" id="wb-p-height" value="' + esc(props.height || 40) + '" min="4" max="240"/>');
         } else if (type === 'brick') {
             h += '<div class="wb-f"><label>Brick: ' + esc(S.sel.brick) + '</label><textarea id="wb-p-props" spellcheck="false" style="font-family:JetBrains Mono,monospace;font-size:11.5px">' + esc(JSON.stringify(props, null, 2)) + '</textarea></div>';
+            h += alignField(curAlign);
         } else {
             h += '<div class="wb-f"><label>Contenido HTML</label><textarea id="wb-p-html" spellcheck="false" style="font-family:JetBrains Mono,monospace;font-size:11.5px">' + esc(props.html || '') + '</textarea></div>';
         }
@@ -564,8 +567,10 @@
     }
 
     function field(label, input) { return '<div class="wb-f"><label>' + label + '</label>' + input + '</div>'; }
-    function alignField() {
-        return '<div class="wb-f"><label>Alineación</label><select id="wb-p-align"><option value="">Heredar</option><option value="left">Izquierda</option><option value="center">Centro</option><option value="right">Derecha</option></select></div>';
+    function alignField(cur) {
+        cur = cur || '';
+        var opts = [['', 'Heredar'], ['left', 'Izquierda'], ['center', 'Centro'], ['right', 'Derecha']];
+        return '<div class="wb-f"><label>Alineación</label><select id="wb-p-align">' + opts.map(function (o) { return '<option value="' + o[0] + '"' + (cur === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></div>';
     }
 
     function bindPanel() {
@@ -623,8 +628,15 @@
         else if (type === 'spacer') { body.props = { height: parseInt(val('#wb-p-height'), 10) || 40 }; }
         else if (type === 'brick') { try { body.props = JSON.parse($('#wb-p-props').value || '{}'); } catch (e) { toast('JSON inválido'); return; } }
         else { body.props = { html: val('#wb-p-html') }; }
-        var align = val('#wb-p-align');
-        if (align) body.styles = { text_align: align };
+        var alignEl = $('#wb-p-align');
+        if (alignEl) {
+            var align = alignEl.value;
+            body.styles = { text_align: align || '' };
+            if (type === 'brick') {
+                body.props = body.props || {};
+                if (align) body.props.text_align = align; else delete body.props.text_align;
+            }
+        }
         $$('#wb-panel .wb-vis button').forEach(function (b) {
             body.visibility['hide_' + b.getAttribute('data-v')] = !b.classList.contains('on');
         });
