@@ -76,7 +76,7 @@
 
 ## 4. FASES
 - **Fase A (este entregable)**: pestañas por grupo + repeater visual + navegación anterior/siguiente + autosave con estado + guard de salida.
-- **Fase B**: rich text real, editor de imagen/enlace, validación tipada, restaurar default.
+- **Fase B (hecha)**: rich text con barra de formato (negrita/cursiva/subrayado/listas/enlace) a nivel de campo **y en subcampos de repeater** (FAQ), saneado cliente (`W.sanitizeRich`) y servidor (`LiveEditorService::sanitizeRichHtml`); campo **imagen** (URL + vista previa + Biblioteca de Media + alt opcional) y campo **enlace** (URL + selector de páginas internas); **validación tipada** en vivo (URL/color/número con mín-máx) que bloquea el guardado; **restaurar valor por defecto** por campo (`↺`).
 - **Fase C**: responsive por breakpoint, campos condicionales, accesibilidad/SEO por sección.
 - **Fase D**: IA inline (mejorar/traducir/rellenar), presets, patrones reutilizables, historial por campo.
 
