@@ -690,8 +690,9 @@
             + '<button type="button" data-a="dup" title="Duplicar">⧉</button>'
             + '<button type="button" data-a="del" title="Eliminar">🗑</button>';
         block.appendChild(tools);
-        block.setAttribute('draggable', 'true');
-        if (isLocked(parseInt(block.getAttribute('data-block'), 10))) { block.setAttribute('draggable', 'false'); block.classList.add('wb-locked'); }
+        var handle = tools.querySelector('.wb-handle');
+        if (handle) handle.setAttribute('draggable', 'true');
+        if (isLocked(parseInt(block.getAttribute('data-block'), 10))) { if (handle) handle.setAttribute('draggable', 'false'); block.classList.add('wb-locked'); }
         block.addEventListener('dragstart', function (e) {
             S.drag = { id: parseInt(block.getAttribute('data-block'), 10), from: slot.getAttribute('data-slot') };
             block.classList.add('wb-dragging');
