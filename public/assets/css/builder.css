@@ -106,4 +106,9 @@ body.wb-on .wwi-b-block.wb-sel>.wb-tools,body.wb-on .wwi-b-block:hover>.wb-tools
 .wb-toast.wb-show{opacity:1;transform:translateX(-50%)}
 .wb-toast button{background:transparent;border:0;color:var(--wb-accent2);font:700 12px/1 'Inter',system-ui,sans-serif;cursor:pointer}
 .wb-banner{position:fixed;left:50%;top:22px;transform:translateX(-50%);z-index:100005;background:#0c0a1a;border:1px solid rgba(183,140,255,.4);border-radius:14px;padding:14px 18px;color:#eae7fb;font:13px/1.5 'Inter',system-ui,sans-serif;display:flex;align-items:center;gap:14px;box-shadow:0 20px 50px rgba(0,0,0,.5)}
+.wb-hint{position:fixed;left:50%;top:22px;transform:translateX(-50%);z-index:100006;max-width:600px;background:#0c0a1a;border:1px solid rgba(183,140,255,.4);border-radius:14px;padding:12px 16px;color:#eae7fb;font:12.5px/1.5 'Inter',system-ui,sans-serif;display:flex;align-items:center;gap:12px;box-shadow:0 20px 50px rgba(0,0,0,.5)}
+.wb-hint b{color:var(--wb-accent2)}
+.wb-hint>span{flex:1}
+.wb-hint button{background:transparent;border:1px solid rgba(183,140,255,.35);color:#eae7fb;border-radius:999px;padding:6px 12px;cursor:pointer;font:600 11.5px/1 'Inter',system-ui,sans-serif}
+.wb-hint button:hover{border-color:var(--wb-accent2)}
 @media(prefers-reduced-motion:reduce){.wb-add,.wb-panel,.wb-toast{transition:none}}

@@ -56,7 +56,18 @@
         S.on = !S.on;
         document.body.classList.toggle('wb-on', S.on);
         var t = $('#wb-toggle'); if (t) t.classList.toggle('on', S.on);
-        if (S.on) { load(); } else { closePanel(); }
+        if (S.on) { load(); hint(); } else { closePanel(); }
+    }
+
+    function hint() {
+        try { if (localStorage.getItem('wwi_wb_hint')) return; localStorage.setItem('wwi_wb_hint', '1'); } catch (e) { }
+        if ($('#wb-hint')) return;
+        var d = document.createElement('div');
+        d.id = 'wb-hint'; d.className = 'wb-hint';
+        d.innerHTML = '<b>Modo edición</b><span>Clic para <b>seleccionar</b> · arrastra <b>⣿</b> para <b>mover</b> · <b>🗑</b> o <b>Supr</b> para <b>eliminar</b> · doble clic para editar texto</span><button type="button" id="wb-hint-x">Entendido</button>';
+        document.body.appendChild(d);
+        var x = $('#wb-hint-x'); if (x) x.addEventListener('click', function () { d.remove(); });
+        setTimeout(function () { if (d.parentNode) d.remove(); }, 10000);
     }
 
     function load() {
