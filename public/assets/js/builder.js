@@ -106,12 +106,14 @@
         b.id = 'wb-bar'; b.className = 'wb-bar';
         b.innerHTML = '<button type="button" id="wb-toggle">ðŸ§± Bloques</button>'
             + '<button type="button" id="wb-tree-btn">ðŸŒ³ Estructura</button>'
+            + '<span class="wb-dev" id="wb-dev"><button type="button" data-dev="desktop" class="on" title="Escritorio">🖥</button><button type="button" data-dev="tablet" title="Tablet">▭</button><button type="button" data-dev="mobile" title="Móvil">▯</button></span>'
             + '<span class="wb-status" id="wb-status"></span>'
             + '<button type="button" id="wb-publish">Publicar</button>'
             + '<button type="button" id="wb-revs">Versiones</button>';
         document.body.appendChild(b);
         $('#wb-toggle').addEventListener('click', toggle);
         $('#wb-tree-btn').addEventListener('click', function () { if (!S.on) { toast('Activa el modo ediciÃ³n'); return; } toggleTree(); });
+        $('#wb-dev').addEventListener('click', function (e) { var t = e.target.closest('button[data-dev]'); if (!t) return; setDevice(t.getAttribute('data-dev')); });
         $('#wb-publish').addEventListener('click', function () {
             api('/api/v1/admin/builder/publish', { method: 'POST', body: { page_id: PAGE_ID, label: 'Publicacion manual' } }).then(function (r) {
                 if (r.ok) toast('Publicado âœ“'); else toast(r.message || 'Error al publicar');
@@ -176,6 +178,40 @@
             if ($('#wb-tree')) renderTree();
             setStatus('Actualizado âœ“');
         }).catch(function () { load(); });
+    }
+
+    function setDevice(d) {
+        S.device = d;
+        document.body.classList.remove('wb-dev-desktop', 'wb-dev-tablet', 'wb-dev-mobile');
+        document.body.classList.add('wb-dev-' + d);
+        $$('#wb-dev button').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-dev') === d); });
+    }
+    function isLocked(id) { var f = findBlock(id); return !!(f && f.props && f.props._locked); }
+    function loadTokens() {
+        api('/api/v1/admin/settings').then(function (r) {
+            if (r.ok && r.data && r.data.builder_tokens) { try { S.tokens = JSON.parse(r.data.builder_tokens) || []; } catch (e) { S.tokens = []; } }
+        });
+    }
+    function saveToken() {
+        var color = prompt('Color del token (#RRGGBB):', (S.sel && S.sel.styles && S.sel.styles.background) || '#7c3cff');
+        if (!color || !/^#[0-9a-fA-F]{3,8}$/.test(color)) return;
+        var name = prompt('Nombre del token:', 'Color') || 'Color';
+        S.tokens = S.tokens || [];
+        S.tokens.push({ name: name, color: color });
+        api('/api/v1/admin/settings', { method: 'PUT', body: { builder_tokens: JSON.stringify(S.tokens) } }).then(function (r) { if (r.ok) { toast('Token guardado'); renderTokens(); } else toast('Error'); });
+    }
+    function renderTokens() {
+        var box = document.querySelector('#wb-panel #wb-tokens'); if (!box) return;
+        var tk = S.tokens || [];
+        box.innerHTML = tk.map(function (t, i) { return '<button type="button" class="wb-tok" title="' + esc(t.name) + ' · ' + esc(t.color) + '" data-tok="' + i + '" style="background:' + esc(t.color) + '"></button>'; }).join('')
+            + '<button type="button" class="wb-tok wb-tok-add" id="wb-tok-add" title="Guardar el color actual como token">＋</button>';
+        box.querySelectorAll('[data-tok]').forEach(function (b) {
+            b.addEventListener('click', function () {
+                var t = (S.tokens || [])[parseInt(b.getAttribute('data-tok'), 10)]; if (!t) return;
+                api('/api/v1/admin/builder/blocks/' + S.sel.id, { method: 'PATCH', body: { styles: { background: t.color } } }).then(function (r) { if (r.ok) { toast('Token aplicado ✓'); closePanel(); refreshCanvas(); } });
+            });
+        });
+        var add = box.querySelector('#wb-tok-add'); if (add) add.addEventListener('click', saveToken);
     }
 
     function banner() {
@@ -591,6 +627,7 @@
             + '<button type="button" data-a="del" title="Eliminar">ðŸ—‘</button>';
         block.appendChild(tools);
         block.setAttribute('draggable', 'true');
+        if (isLocked(parseInt(block.getAttribute('data-block'), 10))) { block.setAttribute('draggable', 'false'); block.classList.add('wb-locked'); }
         block.addEventListener('dragstart', function (e) {
             S.drag = { id: parseInt(block.getAttribute('data-block'), 10), from: slot.getAttribute('data-slot') };
             block.classList.add('wb-dragging');
@@ -844,6 +881,10 @@
         } else {
             h += '<div class="wb-f"><label>Contenido HTML</label><textarea id="wb-p-html" spellcheck="false" style="font-family:JetBrains Mono,monospace;font-size:11.5px">' + esc(props.html || '') + '</textarea></div>';
         }
+        var locked = !!(props._locked);
+        h += '<div class="wb-f"><label>Estilo y tokens</label><div class="wb-tokens" id="wb-tokens"></div>'
+            + '<div class="wb-actions" style="margin-top:8px"><button type="button" class="wb-btn wb-ghost" id="wb-style-copy">🎨 Copiar estilo</button><button type="button" class="wb-btn wb-ghost" id="wb-style-paste"' + (S.styleClip ? '' : ' disabled') + '>🖌 Pegar estilo</button></div></div>';
+        h += '<div class="wb-f"><label style="display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0"><input type="checkbox" id="wb-lock" style="width:auto" ' + (locked ? 'checked' : '') + '/> 🔒 Bloquear posición</label></div>';
         h += '<div class="wb-f"><label>Visibilidad</label><div class="wb-vis">'
             + '<button type="button" data-v="desktop" class="on">ðŸ–¥ Escritorio</button><button type="button" data-v="tablet" class="on">â–­ Tablet</button><button type="button" data-v="mobile" class="on">â–¯ MÃ³vil</button>'
             + '</div></div>';
@@ -897,6 +938,19 @@
         $$('#wb-panel .wb-vis button').forEach(function (b) {
             b.addEventListener('click', function () { b.classList.toggle('on'); });
         });
+        var sc = $('#wb-style-copy');
+        if (sc) sc.addEventListener('click', function () { S.styleClip = Object.assign({}, S.sel.styles || {}); toast('Estilo copiado · selecciona otro bloque y pega'); });
+        var sp = $('#wb-style-paste');
+        if (sp) sp.addEventListener('click', function () {
+            if (!S.styleClip) return;
+            api('/api/v1/admin/builder/blocks/' + S.sel.id, { method: 'PATCH', body: { styles: S.styleClip } }).then(function (r) { if (r.ok) { toast('Estilo aplicado ✓'); closePanel(); refreshCanvas(); } else toast(r.message || 'Error'); });
+        });
+        var lk = $('#wb-lock');
+        if (lk) lk.addEventListener('change', function () {
+            var pr = Object.assign({}, S.sel.props); pr._locked = this.checked;
+            api('/api/v1/admin/builder/blocks/' + S.sel.id, { method: 'PATCH', body: { props: pr } }).then(function (r) { if (r.ok) { toast(lk.checked ? '🔒 Bloqueado' : 'Desbloqueado'); closePanel(); refreshCanvas(); } else toast(r.message || 'Error'); });
+        });
+        if (typeof renderTokens === 'function') renderTokens();
         var save = $('#wb-save');
         if (save) save.addEventListener('click', savePanel);
         var delBtn = $('#wb-del');
@@ -942,6 +996,7 @@
 
     // â”€â”€ Acciones â”€â”€
     function removeBlock(block, id, slot) {
+        if (isLocked(id)) { toast('🔒 Bloque bloqueado · desbloquéalo en el panel'); return; }
         if (!slot) slot = block.parentNode;
         if (S.sel && S.sel.id === id) { S.sel = null; var p = $('#wb-panel'); if (p) p.classList.remove('wb-open'); var c = $('#wb-crumb'); if (c) c.remove(); }
         block.remove();
@@ -981,6 +1036,7 @@
         var blocks = $$(':scope > .wwi-b-block', slot);
         var ids = blocks.map(function (b) { return parseInt(b.getAttribute('data-block'), 10); });
         var id = parseInt(block.getAttribute('data-block'), 10);
+        if (isLocked(id)) { toast('🔒 Bloque bloqueado'); return; }
         var i = ids.indexOf(id);
         if (i < 0) return;
         var j = i + dir;
@@ -1109,7 +1165,7 @@
     }
 
     // â”€â”€ Arranque â”€â”€
-    function boot() { if (!document.body) return setTimeout(boot, 200); bar(); marqueeInit(); }
+    function boot() { if (!document.body) return setTimeout(boot, 200); bar(); marqueeInit(); loadTokens(); }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
     window.__WWI_BUILDER__ = { toggle: toggle, reload: load };
 })();

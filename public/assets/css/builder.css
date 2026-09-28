@@ -139,4 +139,16 @@ body.wb-on .wwi-b-block.wb-sel>.wb-tools,body.wb-on .wwi-b-block:hover>.wb-tools
 .wb-batch button{background:transparent;border:1px solid rgba(183,140,255,.35);color:#eae7fb;border-radius:999px;padding:6px 11px;cursor:pointer;font:600 11.5px/1 'Inter',system-ui,sans-serif}
 .wb-batch button:hover{border-color:var(--wb-accent2)}
 .wb-marquee{position:fixed;z-index:100000;border:1px solid var(--wb-accent2);background:rgba(124,60,255,.14);border-radius:4px;pointer-events:none}
+.wb-dev{display:flex;gap:2px;margin:0 4px}
+.wb-dev button{background:transparent;border:1px solid rgba(183,140,255,.3);color:#c9c4e6;border-radius:8px;padding:4px 8px;cursor:pointer;font-size:12px}
+.wb-dev button.on{background:linear-gradient(135deg,var(--wb-accent),var(--wb-accent2));color:#fff;border-color:transparent}
+body.wb-dev-tablet .wwi-b-row-inner{max-width:820px}
+body.wb-dev-mobile .wwi-b-row-inner{max-width:390px}
+body.wb-dev-tablet .wwi-b-row,body.wb-dev-mobile .wwi-b-row{padding-left:8px;padding-right:8px}
+.wb-tokens{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.wb-tok{width:28px;height:28px;border-radius:8px;border:1px solid rgba(183,140,255,.35);cursor:pointer;padding:0;transition:transform .12s}
+.wb-tok:hover{transform:scale(1.08)}
+.wb-tok-add{background:#141130;color:#c9c4e6;font-size:15px;line-height:1}
+.wb-locked{outline:2px dashed #f59e0b!important;outline-offset:3px;border-radius:6px}
+.wb-locked::after{content:'🔒';position:absolute;top:2px;right:2px;font-size:12px;background:rgba(12,10,26,.85);border-radius:6px;padding:1px 4px;z-index:21}
 @media(prefers-reduced-motion:reduce){.wb-add,.wb-panel,.wb-toast{transition:none}}
