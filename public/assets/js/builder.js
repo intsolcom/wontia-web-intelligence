@@ -1,4 +1,4 @@
-/* WWI INLINE BUILDER â€” editor visual de filas, columnas, slots y bloques (sin dependencias) */
+/* WWI INLINE BUILDER — editor visual de filas, columnas, slots y bloques (sin dependencias) */
 (function () {
     'use strict';
     if (window.__WWI_BUILDER__) return;
@@ -48,7 +48,7 @@
         var label = block.getAttribute('data-brick') || block.getAttribute('data-type') || 'Bloque';
         var d = document.createElement('div');
         d.id = 'wb-crumb'; d.className = 'wb-crumb';
-        d.innerHTML = '<span data-nav="row">Fila ' + ri + '</span><i>â€º</i><span data-nav="col">Col ' + ci + '</span><i>â€º</i><span data-nav="block" class="on">' + esc(label) + ' ' + bi + '</span><button type="button" title="Deseleccionar">âœ•</button>';
+        d.innerHTML = '<span data-nav="row">Fila ' + ri + '</span><i>›</i><span data-nav="col">Col ' + ci + '</span><i>›</i><span data-nav="block" class="on">' + esc(label) + ' ' + bi + '</span><button type="button" title="Deseleccionar">✕</button>';
         document.body.appendChild(d);
         var r = block.getBoundingClientRect();
         d.style.top = Math.max(6, r.top - 30) + 'px';
@@ -77,21 +77,21 @@
         var list = $$(':scope > .wwi-b-block', slot); var pos = list.indexOf(cur) + 1;
         var payload = { slot_id: sid, type: S.clip.brick_slug ? 'brick' : S.clip.type, position: pos, props: S.clip.props };
         if (S.clip.brick_slug) payload.brick_slug = S.clip.brick_slug;
-        setStatus('Pegandoâ€¦');
+        setStatus('Pegando…');
         api('/api/v1/admin/builder/blocks', { method: 'POST', body: payload }).then(function (r) {
             if (!r.ok) { toast(r.message || 'Error'); setStatus('Error'); return; }
             var newId = r.data && r.data.block_id;
-            refreshCanvas(); toast('Pegado âœ“'); setStatus('Guardado âœ“');
+            refreshCanvas(); toast('Pegado ✓'); setStatus('Guardado ✓');
             if (newId) pushOp({ undo: function () { return api('/api/v1/admin/builder/block/node/' + newId + '?page_id=' + PAGE_ID, { method: 'DELETE' }).then(function () { refreshCanvas(); }); } });
         });
     }
 
     function doDuplicate(block, id, slot) {
-        setStatus('Duplicandoâ€¦');
+        setStatus('Duplicando…');
         api('/api/v1/admin/builder/blocks/' + id + '/duplicate', { method: 'POST' }).then(function (r) {
             if (!r.ok) { toast(r.message || 'No se pudo duplicar'); setStatus('Error'); return; }
             var newId = r.data && r.data.block_id;
-            refreshCanvas(); toast('Duplicado âœ“'); setStatus('Guardado âœ“');
+            refreshCanvas(); toast('Duplicado ✓'); setStatus('Guardado ✓');
             if (newId) pushOp({
                 undo: function () { return api('/api/v1/admin/builder/block/node/' + newId + '?page_id=' + PAGE_ID, { method: 'DELETE' }).then(function () { refreshCanvas(); }); },
                 redo: function () { return api('/api/v1/admin/builder/blocks/' + id + '/duplicate', { method: 'POST' }).then(function (r2) { if (r2.ok) { newId = r2.data.block_id; refreshCanvas(); } }); }
@@ -99,13 +99,13 @@
         });
     }
 
-    // â”€â”€ Barra del builder â”€â”€
+    // ── Barra del builder ──
     function bar() {
         if ($('#wb-bar')) return;
         var b = document.createElement('div');
         b.id = 'wb-bar'; b.className = 'wb-bar';
-        b.innerHTML = '<button type="button" id="wb-toggle">ðŸ§± Bloques</button>'
-            + '<button type="button" id="wb-tree-btn">ðŸŒ³ Estructura</button>'
+        b.innerHTML = '<button type="button" id="wb-toggle">🧱 Bloques</button>'
+            + '<button type="button" id="wb-tree-btn">🌳 Estructura</button>'
             + '<span class="wb-dev" id="wb-dev"><button type="button" data-dev="desktop" class="on" title="Escritorio">🖥</button><button type="button" data-dev="tablet" title="Tablet">▭</button><button type="button" data-dev="mobile" title="Móvil">▯</button></span>'
             + '<span class="wb-status" id="wb-status"></span>'
             + '<button type="button" id="wb-comments-btn">💬 Comentarios</button>'
@@ -114,12 +114,12 @@
         document.body.appendChild(b);
         var tgl = $('#wb-toggle'); if (tgl) tgl.textContent = '✎ Editar sitio';
         $('#wb-toggle').addEventListener('click', toggle);
-        $('#wb-tree-btn').addEventListener('click', function () { if (!S.on) { toast('Activa el modo ediciÃ³n'); return; } toggleTree(); });
+        $('#wb-tree-btn').addEventListener('click', function () { if (!S.on) { toast('Activa el modo edición'); return; } toggleTree(); });
         $('#wb-dev').addEventListener('click', function (e) { var t = e.target.closest('button[data-dev]'); if (!t) return; setDevice(t.getAttribute('data-dev')); });
         $('#wb-comments-btn').addEventListener('click', toggleComments);
         $('#wb-publish').addEventListener('click', function () {
             api('/api/v1/admin/builder/publish', { method: 'POST', body: { page_id: PAGE_ID, label: 'Publicacion manual' } }).then(function (r) {
-                if (r.ok) toast('Publicado âœ“'); else toast(r.message || 'Error al publicar');
+                if (r.ok) toast('Publicado ✓'); else toast(r.message || 'Error al publicar');
             });
         });
         $('#wb-revs').addEventListener('click', showRevisions);
@@ -137,14 +137,14 @@
         if ($('#wb-hint')) return;
         var d = document.createElement('div');
         d.id = 'wb-hint'; d.className = 'wb-hint';
-        d.innerHTML = '<b>Modo ediciÃ³n</b><span>Clic para <b>seleccionar</b> Â· arrastra <b>â£¿</b> o usa <b>â†‘â†“</b> para <b>mover</b> Â· <b>ðŸ—‘</b>/<b>Supr</b> elimina Â· <b>Ctrl+D</b> duplica Â· <b>Ctrl+Z/Y</b> deshacer/rehacer Â· doble clic edita texto</span><button type="button" id="wb-hint-x">Entendido</button>';
+        d.innerHTML = '<b>Modo edición</b><span>Clic para <b>seleccionar</b> · arrastra <b>⣿</b> o usa <b>↑↓</b> para <b>mover</b> · <b>🗑</b>/<b>Supr</b> elimina · <b>Ctrl+D</b> duplica · <b>Ctrl+Z/Y</b> deshacer/rehacer · doble clic edita texto</span><button type="button" id="wb-hint-x">Entendido</button>';
         document.body.appendChild(d);
         var x = $('#wb-hint-x'); if (x) x.addEventListener('click', function () { d.remove(); });
         setTimeout(function () { if (d.parentNode) d.remove(); }, 10000);
     }
 
     function load() {
-        setStatus('Cargandoâ€¦');
+        setStatus('Cargando…');
         api('/api/v1/admin/builder/tree?page_id=' + PAGE_ID).then(function (r) {
             if (!r.ok) { setStatus(''); toast(r.message || 'Error al cargar'); return; }
             S.ready = r.ready !== false;
@@ -179,7 +179,7 @@
                 decorate();
             } else { load(); }
             if ($('#wb-tree')) renderTree();
-            setStatus('Actualizado âœ“');
+            setStatus('Actualizado ✓');
         }).catch(function () { load(); });
     }
 
@@ -282,21 +282,21 @@
         if ($('#wb-banner')) return;
         var d = document.createElement('div');
         d.id = 'wb-banner'; d.className = 'wb-banner';
-        d.innerHTML = '<span>Esta pÃ¡gina aÃºn usa <b>secciones apiladas</b>. ConviÃ©rtela a <b>filas y columnas</b> para editar por bloques (es reversible: se guarda una versiÃ³n previa).</span>'
+        d.innerHTML = '<span>Esta página aún usa <b>secciones apiladas</b>. Conviértela a <b>filas y columnas</b> para editar por bloques (es reversible: se guarda una versión previa).</span>'
             + '<button type="button" class="wb-btn" id="wb-convert">Convertir a filas</button>'
             + '<button type="button" class="wb-btn wb-ghost" id="wb-cancel">Ahora no</button>';
         document.body.appendChild(d);
         $('#wb-cancel').addEventListener('click', function () { d.remove(); });
         $('#wb-convert').addEventListener('click', function () {
-            this.disabled = true; this.textContent = 'Convirtiendoâ€¦';
+            this.disabled = true; this.textContent = 'Convirtiendo…';
             api('/api/v1/admin/builder/convert', { method: 'POST', body: { page_id: PAGE_ID } }).then(function (r) {
-                if (r.ok) { toast('Convertida âœ“ recargandoâ€¦'); setTimeout(function () { location.reload(); }, 900); }
+                if (r.ok) { toast('Convertida ✓ recargando…'); setTimeout(function () { location.reload(); }, 900); }
                 else { toast(r.message || 'Error'); d.remove(); }
             });
         });
     }
 
-    // â”€â”€ SelecciÃ³n mÃºltiple â”€â”€
+    // ── Selección múltiple ──
     function clearMulti() {
         S.multi = [];
         $$('.wwi-b-block.wb-multi').forEach(function (b) { b.classList.remove('wb-multi'); });
@@ -315,10 +315,10 @@
         if (!S.multi || S.multi.length < 2) return;
         var d = document.createElement('div'); d.id = 'wb-batch'; d.className = 'wb-batch';
         d.innerHTML = '<b>' + S.multi.length + ' seleccionados</b>'
-            + '<button type="button" data-b="dup">â§‰ Duplicar</button>'
-            + '<button type="button" data-b="del">ðŸ—‘ Eliminar</button>'
-            + '<button type="button" data-b="hide">ðŸ‘ Ocultar/Mostrar</button>'
-            + '<button type="button" data-b="clear">âœ•</button>';
+            + '<button type="button" data-b="dup">⧉ Duplicar</button>'
+            + '<button type="button" data-b="del">🗑 Eliminar</button>'
+            + '<button type="button" data-b="hide">👁 Ocultar/Mostrar</button>'
+            + '<button type="button" data-b="clear">✕</button>';
         document.body.appendChild(d);
         d.addEventListener('click', function (e) {
             var btn = e.target.closest('button[data-b]'); if (!btn) return;
@@ -331,13 +331,13 @@
     }
     function batchDelete() {
         var ids = S.multi.slice();
-        setStatus('Eliminandoâ€¦');
+        setStatus('Eliminando…');
         Promise.all(ids.map(function (id) { return api('/api/v1/admin/builder/block/node/' + id + '?page_id=' + PAGE_ID, { method: 'DELETE' }); }))
-            .then(function () { clearMulti(); toast(ids.length + ' eliminados Â· espacio disponible'); refreshCanvas(); });
+            .then(function () { clearMulti(); toast(ids.length + ' eliminados · espacio disponible'); refreshCanvas(); });
     }
     function batchDuplicate() {
         var ids = S.multi.slice();
-        setStatus('Duplicandoâ€¦');
+        setStatus('Duplicando…');
         Promise.all(ids.map(function (id) { return api('/api/v1/admin/builder/blocks/' + id + '/duplicate', { method: 'POST' }); }))
             .then(function () { clearMulti(); toast(ids.length + ' duplicados'); refreshCanvas(); });
     }
@@ -345,7 +345,7 @@
         var ids = S.multi.slice();
         var f = findBlock(ids[0]);
         var hide = !(f && f.visibility && f.visibility.hide_desktop);
-        setStatus('Actualizandoâ€¦');
+        setStatus('Actualizando…');
         Promise.all(ids.map(function (id) { return api('/api/v1/admin/builder/blocks/' + id, { method: 'PATCH', body: { visibility: { hide_desktop: hide } } }); }))
             .then(function () { clearMulti(); toast(hide ? 'Ocultos en escritorio' : 'Visibles'); refreshCanvas(); });
     }
@@ -383,7 +383,7 @@
         });
     }
 
-    // â”€â”€ Navigator (Ã¡rbol de estructura) â”€â”€
+    // ── Navigator (árbol de estructura) ──
     function toggleTree() {
         var box = $('#wb-tree');
         if (box) { box.remove(); return; }
@@ -394,15 +394,15 @@
     function renderTree() {
         var box = $('#wb-tree'); if (!box) return;
         var rows = (S.tree && S.tree.rows) || [];
-        var h = '<div class="wb-tree-head"><b>Estructura</b><button type="button" id="wb-tree-x">âœ•</button></div><div class="wb-tree-body">';
+        var h = '<div class="wb-tree-head"><b>Estructura</b><button type="button" id="wb-tree-x">✕</button></div><div class="wb-tree-body">';
         if (!rows.length) h += '<div class="wb-tree-empty">Sin filas.</div>';
         rows.forEach(function (row, ri) {
-            h += '<div class="wb-tn wb-tn-row" draggable="true" data-row="' + row.id + '"><span class="wb-tn-ic">â–¦</span>Fila ' + (ri + 1) + '</div>';
+            h += '<div class="wb-tn wb-tn-row" draggable="true" data-row="' + row.id + '"><span class="wb-tn-ic">▦</span>Fila ' + (ri + 1) + '</div>';
             (row.columns || []).forEach(function (col, ci) {
-                h += '<div class="wb-tn wb-tn-col"><span class="wb-tn-ic">â–­</span>Columna ' + (ci + 1) + '</div>';
+                h += '<div class="wb-tn wb-tn-col"><span class="wb-tn-ic">▭</span>Columna ' + (ci + 1) + '</div>';
                 (col.slots || []).forEach(function (slot) {
                     (slot.blocks || []).forEach(function (b) {
-                        h += '<div class="wb-tn wb-tn-block" draggable="true" data-block="' + b.id + '" data-slot="' + slot.id + '"><span class="wb-tn-ic">â–ª</span>' + esc(b.brick_slug || b.type) + '</div>';
+                        h += '<div class="wb-tn wb-tn-block" draggable="true" data-block="' + b.id + '" data-slot="' + slot.id + '"><span class="wb-tn-ic">▪</span>' + esc(b.brick_slug || b.type) + '</div>';
                     });
                 });
             });
@@ -434,9 +434,9 @@
                 if (dragId === targetId) return;
                 var slotId = parseInt(it.getAttribute('data-slot'), 10);
                 var pos = blockIndexInSlot(slotId, targetId);
-                setStatus('Moviendoâ€¦');
+                setStatus('Moviendo…');
                 api('/api/v1/admin/builder/blocks/' + dragId + '/move', { method: 'POST', body: { slot_id: slotId, position: pos } }).then(function (r) {
-                    if (r.ok) { toast('Movido âœ“'); refreshCanvas(); } else { toast(r.message || 'Error'); setStatus('Error'); }
+                    if (r.ok) { toast('Movido ✓'); refreshCanvas(); } else { toast(r.message || 'Error'); setStatus('Error'); }
                 });
             });
         });
@@ -456,23 +456,23 @@
                 var from = ids.indexOf(dragId), to = ids.indexOf(targetId);
                 if (from < 0 || to < 0) return;
                 ids.splice(from, 1); ids.splice(to, 0, dragId);
-                setStatus('Moviendoâ€¦');
+                setStatus('Moviendo…');
                 api('/api/v1/admin/builder/reorder/row', { method: 'POST', body: { items: ids } }).then(function (r) {
-                    if (r.ok) { toast('Fila movida âœ“'); refreshCanvas(); } else { toast(r.message || 'Error'); setStatus('Error'); }
+                    if (r.ok) { toast('Fila movida ✓'); refreshCanvas(); } else { toast(r.message || 'Error'); setStatus('Error'); }
                 });
             });
         });
     }
 
-    // â”€â”€ DecoraciÃ³n del canvas â”€â”€
+    // ── Decoración del canvas ──
     function decorate() {
         $$('.wwi-b-row').forEach(function (row, i) {
             if (!row.querySelector(':scope > .wb-row-tag')) {
                 var t = document.createElement('span'); t.className = 'wb-row-tag'; t.textContent = 'Fila ' + (i + 1); row.appendChild(t);
                 var acts = document.createElement('span'); acts.className = 'wb-row-acts';
-                acts.innerHTML = '<button type="button" data-ra="add-row" title="AÃ±adir fila debajo">+ Fila</button>'
-                    + '<button type="button" data-ra="add-col" title="AÃ±adir columna">+ Col</button>'
-                    + '<button type="button" data-ra="del-row" title="Eliminar fila">ðŸ—‘</button>';
+                acts.innerHTML = '<button type="button" data-ra="add-row" title="Añadir fila debajo">+ Fila</button>'
+                    + '<button type="button" data-ra="add-col" title="Añadir columna">+ Col</button>'
+                    + '<button type="button" data-ra="del-row" title="Eliminar fila">🗑</button>';
                 row.appendChild(acts);
                 acts.addEventListener('click', function (e) {
                     var b = e.target.closest('button[data-ra]'); if (!b) return;
@@ -486,7 +486,7 @@
             $$(':scope > .wwi-b-row-inner > .wwi-b-col', row).forEach(function (col) {
                 if (!col.querySelector(':scope > .wb-col-tag')) {
                     var c = document.createElement('span'); c.className = 'wb-col-tag'; c.textContent = col.getAttribute('data-span') + '/12'; col.appendChild(c);
-                    var del = document.createElement('button'); del.type = 'button'; del.className = 'wb-col-del'; del.title = 'Eliminar columna'; del.textContent = 'ðŸ—‘';
+                    var del = document.createElement('button'); del.type = 'button'; del.className = 'wb-col-del'; del.title = 'Eliminar columna'; del.textContent = '🗑';
                     col.appendChild(del);
                     del.addEventListener('click', function (e) { e.stopPropagation(); deleteColumn(col); });
                 }
@@ -501,19 +501,19 @@
                 });
             });
         });
-        // + Fila al final del Ã¡rbol
+        // + Fila al final del árbol
         var lastRow = $$('.wwi-b-row').pop();
         if (lastRow && !$('#wb-add-row-end')) {
             var end = document.createElement('button');
             end.type = 'button'; end.id = 'wb-add-row-end'; end.className = 'wb-add wb-inline'; end.textContent = '+ Fila';
-            end.title = 'AÃ±adir una fila al final';
+            end.title = 'Añadir una fila al final';
             end.addEventListener('click', function () { addRow(lastRow, 9999); });
             lastRow.parentNode.insertBefore(end, lastRow.nextSibling);
         }
         initRowDrag();
     }
 
-    // Arrastre de filas completas (mover una secciÃ³n de lugar)
+    // Arrastre de filas completas (mover una sección de lugar)
     function initRowDrag() {
         $$('.wwi-b-row').forEach(function (row) {
             var tag = row.querySelector(':scope > .wb-row-tag');
@@ -521,7 +521,7 @@
             tag.__drag = 1;
             tag.draggable = true;
             tag.style.cursor = 'grab';
-            tag.title = 'Arrastra para mover esta secciÃ³n de lugar';
+            tag.title = 'Arrastra para mover esta sección de lugar';
             tag.addEventListener('dragstart', function (e) {
                 S.rowDrag = parseInt(row.getAttribute('data-row'), 10);
                 row.classList.add('wb-row-dragging');
@@ -582,9 +582,9 @@
                     if (t) t.textContent = 'Fila ' + (i + 1);
                 });
             }
-            setStatus('Guardandoâ€¦');
+            setStatus('Guardando…');
             api('/api/v1/admin/builder/reorder/row', { method: 'POST', body: { items: ids } }).then(function (r) {
-                if (r.ok) { toast('SecciÃ³n movida'); setStatus('Guardado âœ“'); }
+                if (r.ok) { toast('Sección movida'); setStatus('Guardado ✓'); }
                 else { toast(r.message || 'No se pudo mover'); setStatus('Error'); }
             });
         });
@@ -595,28 +595,28 @@
     function addRow(refRow, position) {
         var pageRows = $$('.wwi-b-row');
         var pos = position >= 9999 ? pageRows.length : position;
-        setStatus('AÃ±adiendo filaâ€¦');
+        setStatus('Añadiendo fila…');
         api('/api/v1/admin/builder/rows', { method: 'POST', body: { page_id: PAGE_ID, position: pos, columns: 1 } }).then(function (r) {
-            if (r.ok) { toast('Fila aÃ±adida'); setTimeout(function () { location.reload(); }, 250); }
-            else { toast(r.message || 'Error al aÃ±adir fila'); setStatus('Error'); }
+            if (r.ok) { toast('Fila añadida'); setTimeout(function () { location.reload(); }, 250); }
+            else { toast(r.message || 'Error al añadir fila'); setStatus('Error'); }
         });
     }
 
     function addColumn(row) {
         var rowId = parseInt(row.getAttribute('data-row'), 10);
         var cols = $$(':scope > .wwi-b-row-inner > .wwi-b-col', row).length;
-        if (cols >= 4) { toast('MÃ¡ximo 4 columnas por fila'); return; }
+        if (cols >= 4) { toast('Máximo 4 columnas por fila'); return; }
         var span = Math.max(2, Math.floor(12 / (cols + 1)));
-        setStatus('AÃ±adiendo columnaâ€¦');
+        setStatus('Añadiendo columna…');
         api('/api/v1/admin/builder/columns', { method: 'POST', body: { row_id: rowId, span: span } }).then(function (r) {
-            if (r.ok) { toast('Columna aÃ±adida'); setTimeout(function () { location.reload(); }, 250); }
+            if (r.ok) { toast('Columna añadida'); setTimeout(function () { location.reload(); }, 250); }
             else { toast(r.message || 'Error'); }
         });
     }
 
     function deleteRow(row) {
         var rowId = parseInt(row.getAttribute('data-row'), 10);
-        toast('Eliminando filaâ€¦');
+        toast('Eliminando fila…');
         api('/api/v1/admin/builder/row/node/' + rowId + '?page_id=' + PAGE_ID, { method: 'DELETE' }).then(function (r) {
             if (r.ok) { row.remove(); toast('Fila eliminada'); setStatus('Eliminado'); }
             else toast(r.message || 'Error');
@@ -680,15 +680,15 @@
         if (block.querySelector(':scope > .wb-tools')) return;
         var type = block.getAttribute('data-type');
         var brick = block.getAttribute('data-brick') || '';
-        var label = brick ? brick : ({ text: 'Texto', image: 'Imagen', button: 'BotÃ³n', video: 'Video', divider: 'Separador', spacer: 'Espacio', html: 'HTML' }[type] || type);
+        var label = brick ? brick : ({ text: 'Texto', image: 'Imagen', button: 'Botón', video: 'Video', divider: 'Separador', spacer: 'Espacio', html: 'HTML' }[type] || type);
         var tools = document.createElement('div');
         tools.className = 'wb-tools';
-        tools.innerHTML = '<button type="button" class="wb-handle" draggable="true" title="Mover">â£¿</button>'
+        tools.innerHTML = '<button type="button" class="wb-handle" draggable="true" title="Mover">⣿</button>'
             + '<span class="wb-label">' + esc(label) + '</span>'
-            + '<button type="button" data-a="up" title="Subir">â†‘</button>'
-            + '<button type="button" data-a="down" title="Bajar">â†“</button>'
-            + '<button type="button" data-a="dup" title="Duplicar">â§‰</button>'
-            + '<button type="button" data-a="del" title="Eliminar">ðŸ—‘</button>';
+            + '<button type="button" data-a="up" title="Subir">↑</button>'
+            + '<button type="button" data-a="down" title="Bajar">↓</button>'
+            + '<button type="button" data-a="dup" title="Duplicar">⧉</button>'
+            + '<button type="button" data-a="del" title="Eliminar">🗑</button>';
         block.appendChild(tools);
         block.setAttribute('draggable', 'true');
         if (isLocked(parseInt(block.getAttribute('data-block'), 10))) { block.setAttribute('draggable', 'false'); block.classList.add('wb-locked'); }
@@ -730,16 +730,16 @@
             var link = block.querySelector('a.btn');
             if (link) {
                 e.preventDefault(); e.stopPropagation();
-                var lbl = prompt('Texto del botÃ³n:', link.textContent);
+                var lbl = prompt('Texto del botón:', link.textContent);
                 if (lbl === null) return;
                 var id = parseInt(block.getAttribute('data-block'), 10);
                 api('/api/v1/admin/builder/blocks/' + id, { method: 'PATCH', body: { props: { label: lbl, href: link.getAttribute('href') || '#', style: 'primary' } } })
-                    .then(function (r) { if (r.ok) { link.textContent = lbl; toast('BotÃ³n actualizado'); } });
+                    .then(function (r) { if (r.ok) { link.textContent = lbl; toast('Botón actualizado'); } });
             }
         });
     }
 
-    // EdiciÃ³n de texto in situ (doble clic)
+    // Edición de texto in situ (doble clic)
     function inlineEdit(block, el) {
         if (el.getAttribute('contenteditable') === 'true') return;
         var original = el.innerHTML;
@@ -756,9 +756,9 @@
         mini.innerHTML = '<span>Editando texto</span>'
             + '<button type="button" data-i="bold" title="Negrita"><b>B</b></button>'
             + '<button type="button" data-i="italic" title="Cursiva"><i>I</i></button>'
-            + '<button type="button" data-i="h2" title="TÃ­tulo">H2</button>'
-            + '<button type="button" data-i="p" title="PÃ¡rrafo">P</button>'
-            + '<button type="button" data-i="link" title="Enlace">ðŸ”—</button>'
+            + '<button type="button" data-i="h2" title="Título">H2</button>'
+            + '<button type="button" data-i="p" title="Párrafo">P</button>'
+            + '<button type="button" data-i="link" title="Enlace">🔗</button>'
             + '<button type="button" data-i="done">Listo</button>'
             + '<button type="button" data-i="cancel">Cancelar</button>';
         el.parentNode.insertBefore(mini, el);
@@ -771,9 +771,9 @@
             if (!save) { el.innerHTML = original; return; }
             if (el.innerHTML === original) return;
             var id = parseInt(block.getAttribute('data-block'), 10);
-            setStatus('Guardandoâ€¦');
+            setStatus('Guardando…');
             api('/api/v1/admin/builder/blocks/' + id, { method: 'PATCH', body: { props: { html: el.innerHTML } } }).then(function (r) {
-                if (r.ok) { toast('Texto guardado âœ“'); setStatus('Guardado âœ“'); }
+                if (r.ok) { toast('Texto guardado ✓'); setStatus('Guardado ✓'); }
                 else { toast(r.message || 'Error al guardar'); el.innerHTML = original; setStatus('Error'); }
             });
         }
@@ -796,7 +796,7 @@
     }
 
     function ensureAdd(slot) {
-        // El slot completo es zona de soltado con lÃ­nea de inserciÃ³n segÃºn la posiciÃ³n del cursor
+        // El slot completo es zona de soltado con línea de inserción según la posición del cursor
         if (!slot.__wbDrop) {
             slot.__wbDrop = 1;
             slot.addEventListener('dragover', function (e) {
@@ -834,9 +834,9 @@
                     var payload = p.kind === 'brick'
                         ? { slot_id: slotId, type: 'brick', brick_slug: p.slug, props: {}, position: pos }
                         : { slot_id: slotId, type: p.type, props: defaultProps(p.type), position: pos };
-                    setStatus('Insertandoâ€¦');
+                    setStatus('Insertando…');
                     api('/api/v1/admin/builder/blocks', { method: 'POST', body: payload }).then(function (r) {
-                        if (r.ok) { toast('Bloque aÃ±adido'); location.reload(); } else { toast(r.message || 'Error'); setStatus('Error'); }
+                        if (r.ok) { toast('Bloque añadido'); location.reload(); } else { toast(r.message || 'Error'); setStatus('Error'); }
                     });
                     return;
                 }
@@ -844,9 +844,9 @@
                 var blockEl = document.querySelector('.wwi-b-block[data-block="' + S.drag.id + '"]');
                 var pos = typeof slot.__dropPos === 'number' ? slot.__dropPos : 9999;
                 if (blockEl) reparentBlock(blockEl, slot, pos);
-                setStatus('Guardandoâ€¦');
+                setStatus('Guardando…');
                 api('/api/v1/admin/builder/blocks/' + S.drag.id + '/move', { method: 'POST', body: { slot_id: slotId, position: pos } })
-                    .then(function (r) { if (r.ok) { toast('Bloque movido'); setStatus('Guardado âœ“'); } else toast(r.message || 'Error'); });
+                    .then(function (r) { if (r.ok) { toast('Bloque movido'); setStatus('Guardado ✓'); } else toast(r.message || 'Error'); });
                 S.drag = null;
             });
         }
@@ -854,19 +854,19 @@
         if (!a) {
             a = document.createElement('button');
             a.type = 'button'; a.className = 'wb-add';
-            a.setAttribute('aria-label', 'AÃ±adir bloque');
-            a.title = 'AÃ±adir bloque';
+            a.setAttribute('aria-label', 'Añadir bloque');
+            a.title = 'Añadir bloque';
             a.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); openPalette(slot); });
             slot.appendChild(a);
         }
         var empty = !slot.querySelector(':scope > .wwi-b-block');
         a.classList.toggle('wb-empty', empty);
-        a.innerHTML = empty ? '<span class="wb-add-ico">ï¼‹</span><em>Espacio disponible Â· haz clic para aÃ±adir un elemento</em>' : '+';
+        a.innerHTML = empty ? '<span class="wb-add-ico">＋</span><em>Espacio disponible · haz clic para añadir un elemento</em>' : '+';
     }
 
     function clearDropLines() { $$('.wb-drop-line').forEach(function (l) { l.remove(); }); }
 
-    // â”€â”€ SelecciÃ³n y panel â”€â”€
+    // ── Selección y panel ──
     function select(block) {
         $$('.wwi-b-block.wb-sel').forEach(function (b) { b.classList.remove('wb-sel'); });
         block.classList.add('wb-sel');
@@ -914,25 +914,25 @@
         if (type === 'text') {
             h += '<div class="wb-f"><label>Texto</label><div class="wb-rte-tools">'
                 + '<button type="button" data-c="bold" title="Negrita"><b>B</b></button><button type="button" data-c="italic" title="Cursiva"><i>I</i></button><button type="button" data-c="underline" title="Subrayado"><u>U</u></button><button type="button" data-c="strikeThrough" title="Tachado"><s>S</s></button>'
-                + '<button type="button" data-c="formatBlock" data-v="h1" title="TÃ­tulo 1">H1</button><button type="button" data-c="formatBlock" data-v="h2" title="TÃ­tulo 2">H2</button><button type="button" data-c="formatBlock" data-v="h3" title="TÃ­tulo 3">H3</button><button type="button" data-c="formatBlock" data-v="p" title="PÃ¡rrafo">P</button>'
-                + '<button type="button" data-c="formatBlock" data-v="blockquote" title="Cita">â</button>'
-                + '<button type="button" data-c="insertUnorderedList" title="Lista">â€¢</button><button type="button" data-c="insertOrderedList" title="Lista numerada">1.</button>'
-                + '<button type="button" data-c="justifyLeft" title="Izquierda">â¯‡</button><button type="button" data-c="justifyCenter" title="Centro">â‰¡</button><button type="button" data-c="justifyRight" title="Derecha">â¯ˆ</button>'
-                + '<button type="button" data-c="createLink" title="Enlace">ðŸ”—</button><button type="button" data-c="unlink" title="Quitar enlace">â›“</button>'
-                + '<button type="button" data-c="foreColor" data-v="#7c3cff" title="Color acento">A</button><button type="button" data-c="hiliteColor" data-v="rgba(183,140,255,.35)" title="Resaltado">â–¨</button>'
-                + '<button type="button" data-c="removeFormat" title="Limpiar formato">âœ•</button>'
+                + '<button type="button" data-c="formatBlock" data-v="h1" title="Título 1">H1</button><button type="button" data-c="formatBlock" data-v="h2" title="Título 2">H2</button><button type="button" data-c="formatBlock" data-v="h3" title="Título 3">H3</button><button type="button" data-c="formatBlock" data-v="p" title="Párrafo">P</button>'
+                + '<button type="button" data-c="formatBlock" data-v="blockquote" title="Cita">❝</button>'
+                + '<button type="button" data-c="insertUnorderedList" title="Lista">•</button><button type="button" data-c="insertOrderedList" title="Lista numerada">1.</button>'
+                + '<button type="button" data-c="justifyLeft" title="Izquierda">⯇</button><button type="button" data-c="justifyCenter" title="Centro">≡</button><button type="button" data-c="justifyRight" title="Derecha">⯈</button>'
+                + '<button type="button" data-c="createLink" title="Enlace">🔗</button><button type="button" data-c="unlink" title="Quitar enlace">⛓</button>'
+                + '<button type="button" data-c="foreColor" data-v="#7c3cff" title="Color acento">A</button><button type="button" data-c="hiliteColor" data-v="rgba(183,140,255,.35)" title="Resaltado">▨</button>'
+                + '<button type="button" data-c="removeFormat" title="Limpiar formato">✕</button>'
                 + '</div><div class="wb-rte" id="wb-rte" contenteditable="true">' + (props.html || '') + '</div></div>';
             h += alignField(curAlign);
             h += tiaField();
         } else if (type === 'image') {
-            h += field('URL de la imagen', '<input type="text" id="wb-p-url" value="' + esc(props.url || '') + '" placeholder="https://â€¦ o /assets/uploads/â€¦"/>');
+            h += field('URL de la imagen', '<input type="text" id="wb-p-url" value="' + esc(props.url || '') + '" placeholder="https://… o /assets/uploads/…"/>');
             h += '<div class="wb-actions"><button type="button" class="wb-btn wb-ghost" id="wb-p-media">Elegir de Media</button></div>';
             h += field('Texto alternativo (SEO)', '<input type="text" id="wb-p-alt" value="' + esc(props.alt || '') + '"/>');
             h += field('Pie de foto', '<input type="text" id="wb-p-caption" value="' + esc(props.caption || '') + '"/>');
             h += alignField(curAlign);
         } else if (type === 'button') {
             h += field('Texto', '<input type="text" id="wb-p-label" value="' + esc(props.label || '') + '"/>');
-            h += field('Enlace', '<input type="text" id="wb-p-href" value="' + esc(props.href || '') + '" placeholder="https://â€¦ o #ancla"/>');
+            h += field('Enlace', '<input type="text" id="wb-p-href" value="' + esc(props.href || '') + '" placeholder="https://… o #ancla"/>');
             h += field('Estilo', '<select id="wb-p-style">' + ['primary', 'secondary', 'ghost'].map(function (v) { return '<option value="' + v + '"' + (props.style === v ? ' selected' : '') + '>' + v + '</option>'; }).join('') + '</select>');
             h += alignField(curAlign);
         } else if (type === 'video') {
@@ -952,9 +952,9 @@
         h += '<div class="wb-f"><label style="display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0"><input type="checkbox" id="wb-lock" style="width:auto" ' + (locked ? 'checked' : '') + '/> 🔒 Bloquear posición</label></div>';
         h += '<div class="wb-f"><div class="wb-actions" style="margin-top:0;gap:6px"><button type="button" class="wb-btn wb-ghost" id="wb-hist">🕘 Historial</button><button type="button" class="wb-btn wb-ghost" id="wb-comp-save">🧩 Guardar como componente</button></div><div id="wb-hist-out" style="margin-top:8px"></div></div>';
         h += '<div class="wb-f"><label>Visibilidad</label><div class="wb-vis">'
-            + '<button type="button" data-v="desktop" class="on">ðŸ–¥ Escritorio</button><button type="button" data-v="tablet" class="on">â–­ Tablet</button><button type="button" data-v="mobile" class="on">â–¯ MÃ³vil</button>'
+            + '<button type="button" data-v="desktop" class="on">🖥 Escritorio</button><button type="button" data-v="tablet" class="on">▭ Tablet</button><button type="button" data-v="mobile" class="on">▯ Móvil</button>'
             + '</div></div>';
-        h += '<div class="wb-actions"><button type="button" class="wb-btn" id="wb-save">Guardar</button><button type="button" class="wb-btn wb-danger" id="wb-del">ðŸ—‘ Eliminar</button><button type="button" class="wb-btn wb-ghost" id="wb-close2">Cerrar</button></div>';
+        h += '<div class="wb-actions"><button type="button" class="wb-btn" id="wb-save">Guardar</button><button type="button" class="wb-btn wb-danger" id="wb-del">🗑 Eliminar</button><button type="button" class="wb-btn wb-ghost" id="wb-close2">Cerrar</button></div>';
         body.innerHTML = h;
         bindPanel();
     }
@@ -1012,7 +1012,7 @@
     function alignField(cur) {
         cur = cur || '';
         var opts = [['', 'Heredar'], ['left', 'Izquierda'], ['center', 'Centro'], ['right', 'Derecha']];
-        return '<div class="wb-f"><label>AlineaciÃ³n</label><select id="wb-p-align">' + opts.map(function (o) { return '<option value="' + o[0] + '"' + (cur === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></div>';
+        return '<div class="wb-f"><label>Alineación</label><select id="wb-p-align">' + opts.map(function (o) { return '<option value="' + o[0] + '"' + (cur === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></div>';
     }
 
     function bindPanel() {
@@ -1036,10 +1036,10 @@
         if (media) media.addEventListener('click', function () {
             api('/api/v1/admin/media?page=1').then(function (r) {
                 var rows = (r.data || []).filter(function (m) { return (m.mime || '').indexOf('image/') === 0; });
-                if (!rows.length) { toast('No hay imÃ¡genes en Media'); return; }
+                if (!rows.length) { toast('No hay imágenes en Media'); return; }
                 var box = document.createElement('div'); box.className = 'wb-modal wb-open';
                 box.innerHTML = '<div class="wb-modal-box"><div class="wb-modal-head"><b>Elegir imagen</b></div><div class="wb-modal-body"><div class="wb-grid">'
-                    + rows.map(function (m) { return '<button type="button" class="wb-item" data-url="' + esc(m.url) + '"><i>â–£</i><span>' + esc(m.filename || '') + '</span></button>'; }).join('')
+                    + rows.map(function (m) { return '<button type="button" class="wb-item" data-url="' + esc(m.url) + '"><i>▣</i><span>' + esc(m.filename || '') + '</span></button>'; }).join('')
                     + '</div></div></div>';
                 document.body.appendChild(box);
                 box.addEventListener('click', function (e) {
@@ -1096,7 +1096,7 @@
         else if (type === 'button') { body.props = { label: val('#wb-p-label'), href: val('#wb-p-href'), style: val('#wb-p-style') }; }
         else if (type === 'video') { body.props = { url: val('#wb-p-vurl'), poster: val('#wb-p-poster') }; }
         else if (type === 'spacer') { body.props = { height: parseInt(val('#wb-p-height'), 10) || 40 }; }
-        else if (type === 'brick') { try { body.props = JSON.parse($('#wb-p-props').value || '{}'); } catch (e) { toast('JSON invÃ¡lido'); return; } }
+        else if (type === 'brick') { try { body.props = JSON.parse($('#wb-p-props').value || '{}'); } catch (e) { toast('JSON inválido'); return; } }
         else { body.props = { html: val('#wb-p-html') }; }
         if (S.sel.props && S.sel.props._component_id) { body.props = body.props || {}; body.props._component_id = S.sel.props._component_id; }
         var alignEl = $('#wb-p-align');
@@ -1111,29 +1111,29 @@
         $$('#wb-panel .wb-vis button').forEach(function (b) {
             body.visibility['hide_' + b.getAttribute('data-v')] = !b.classList.contains('on');
         });
-        setStatus('Guardandoâ€¦');
+        setStatus('Guardando…');
         api('/api/v1/admin/builder/blocks/' + id, { method: 'PATCH', body: body }).then(function (r) {
-            if (r.ok) { toast('Guardado âœ“'); setStatus('Guardado âœ“'); setTimeout(load, 200); } else { toast(r.message || 'Error'); setStatus('Error'); }
+            if (r.ok) { toast('Guardado ✓'); setStatus('Guardado ✓'); setTimeout(load, 200); } else { toast(r.message || 'Error'); setStatus('Error'); }
         });
     }
 
     function val(sel) { var el = $(sel); return el ? el.value : ''; }
 
-    // â”€â”€ Acciones â”€â”€
+    // ── Acciones ──
     function removeBlock(block, id, slot) {
         if (isLocked(id)) { toast('🔒 Bloque bloqueado · desbloquéalo en el panel'); return; }
         if (!slot) slot = block.parentNode;
         if (S.sel && S.sel.id === id) { S.sel = null; var p = $('#wb-panel'); if (p) p.classList.remove('wb-open'); var c = $('#wb-crumb'); if (c) c.remove(); }
         block.remove();
         ensureAdd(slot);
-        setStatus('Eliminandoâ€¦');
+        setStatus('Eliminando…');
         api('/api/v1/admin/builder/block/node/' + id + '?page_id=' + PAGE_ID, { method: 'DELETE' }).then(function (r) {
             if (!r.ok) { toast(r.message || 'Error al eliminar'); load(); return; }
             setStatus('Eliminado');
             api('/api/v1/admin/builder/trash?page_id=' + PAGE_ID).then(function (t) {
                 var tid = (t.ok && t.data && t.data.length) ? t.data[0].id : null;
                 if (tid) pushOp({ undo: function () { return api('/api/v1/admin/builder/trash/' + tid + '/restore', { method: 'POST' }).then(function () { load(); }); } });
-                toast('Elemento eliminado Â· espacio disponible', function () { undoOp(); });
+                toast('Elemento eliminado · espacio disponible', function () { undoOp(); });
             });
         });
     }
@@ -1172,11 +1172,11 @@
         var after = ids.slice();
         reorderDomBlocks(slot, ids);
         showCrumb(block);
-        setStatus('Guardandoâ€¦');
+        setStatus('Guardando…');
         var doReorder = function (items) { return api('/api/v1/admin/builder/reorder/block', { method: 'POST', body: { items: items } }); };
         doReorder(ids).then(function (r) {
             if (r.ok) {
-                toast('Movido'); setStatus('Guardado âœ“');
+                toast('Movido'); setStatus('Guardado ✓');
                 pushOp({
                     undo: function () { return doReorder(before).then(function () { reorderDomBlocks(slot, before); showCrumb(block); }); },
                     redo: function () { return doReorder(after).then(function () { reorderDomBlocks(slot, after); showCrumb(block); }); }
@@ -1205,13 +1205,13 @@
         ensureAdd(newSlot);
     }
 
-    // â”€â”€ Paleta â”€â”€
+    // ── Paleta ──
     function openPalette(slot) {
         S.slot = slot;
         var box = $('#wb-palette');
         if (!box) {
             box = document.createElement('div'); box.id = 'wb-palette'; box.className = 'wb-modal';
-            box.innerHTML = '<div class="wb-modal-box"><div class="wb-modal-head"><b>AÃ±adir bloque</b><input type="text" id="wb-search" placeholder="Buscarâ€¦"/><button type="button" class="wb-btn wb-ghost" id="wb-pal-close">Cerrar</button></div><div class="wb-modal-body" id="wb-pal-body"></div></div>';
+            box.innerHTML = '<div class="wb-modal-box"><div class="wb-modal-head"><b>Añadir bloque</b><input type="text" id="wb-search" placeholder="Buscar…"/><button type="button" class="wb-btn wb-ghost" id="wb-pal-close">Cerrar</button></div><div class="wb-modal-body" id="wb-pal-body"></div></div>';
             document.body.appendChild(box);
             box.addEventListener('click', function (e) { if (e.target === box) box.classList.remove('wb-open'); });
             $('#wb-pal-close').addEventListener('click', function () { box.classList.remove('wb-open'); });
@@ -1233,7 +1233,7 @@
             return '<button type="button" class="wb-item" draggable="true" data-kind="atomic" data-type="' + a.type + '"><i>' + esc(a.icon) + '</i><span>' + esc(a.label) + '</span></button>';
         }).join('') + '</div>';
         if (bricks.length) h += '<div class="wb-sec-t">Bricks (' + bricks.length + ')</div><div class="wb-grid">' + bricks.map(function (b) {
-            return '<button type="button" class="wb-item" draggable="true" data-kind="brick" data-slug="' + esc(b.slug) + '"><i>â–¦</i><span>' + esc(b.label) + '</span></button>';
+            return '<button type="button" class="wb-item" draggable="true" data-kind="brick" data-slug="' + esc(b.slug) + '"><i>▦</i><span>' + esc(b.label) + '</span></button>';
         }).join('') + '</div>';
         if (!h) h = '<div style="color:#9c96c4;font-size:12.5px;padding:10px">Sin resultados.</div>';
         body.innerHTML = h;
@@ -1252,16 +1252,16 @@
             var payload = it.getAttribute('data-kind') === 'brick'
                 ? { slot_id: slotId, type: 'brick', brick_slug: it.getAttribute('data-slug'), props: {} }
                 : { slot_id: slotId, type: it.getAttribute('data-type'), props: defaultProps(it.getAttribute('data-type')) };
-            setStatus('Insertandoâ€¦');
+            setStatus('Insertando…');
             api('/api/v1/admin/builder/blocks', { method: 'POST', body: payload }).then(function (r) {
-                if (r.ok) { toast('Bloque aÃ±adido'); location.reload(); }
+                if (r.ok) { toast('Bloque añadido'); location.reload(); }
                 else { toast(r.message || 'Error al insertar'); setStatus('Error'); }
             });
         });
     }
 
     function defaultProps(type) {
-        if (type === 'text') return { html: '<h2>Escribe un tÃ­tulo</h2><p>Describe aquÃ­ tu propuesta de valor.</p>' };
+        if (type === 'text') return { html: '<h2>Escribe un título</h2><p>Describe aquí tu propuesta de valor.</p>' };
         if (type === 'button') return { label: 'Empezar', href: '#', style: 'primary' };
         if (type === 'image') return { url: '', alt: '' };
         if (type === 'video') return { url: '' };
@@ -1269,27 +1269,27 @@
         return { html: '' };
     }
 
-    // â”€â”€ Versiones â”€â”€
+    // ── Versiones ──
     function showRevisions() {
         api('/api/v1/admin/builder/revisions?page_id=' + PAGE_ID).then(function (r) {
             var rows = r.data || [];
             var box = document.createElement('div'); box.className = 'wb-modal wb-open';
             box.innerHTML = '<div class="wb-modal-box"><div class="wb-modal-head"><b>Versiones</b><button type="button" class="wb-btn wb-ghost" id="wb-rev-close">Cerrar</button></div><div class="wb-modal-body">'
-                + (rows.length ? rows.map(function (v) { return '<div class="wb-item" style="margin-bottom:8px"><i>â±</i><span style="flex:1">' + esc(v.label || 'VersiÃ³n') + ' Â· ' + esc(v.created_at || '') + ' Â· ' + esc(v.username || '') + '</span><button type="button" class="wb-btn" data-restore="' + v.id + '">Restaurar</button></div>'; }).join('') : '<div style="color:#9c96c4;padding:10px">Sin versiones todavÃ­a.</div>')
+                + (rows.length ? rows.map(function (v) { return '<div class="wb-item" style="margin-bottom:8px"><i>⏱</i><span style="flex:1">' + esc(v.label || 'Versión') + ' · ' + esc(v.created_at || '') + ' · ' + esc(v.username || '') + '</span><button type="button" class="wb-btn" data-restore="' + v.id + '">Restaurar</button></div>'; }).join('') : '<div style="color:#9c96c4;padding:10px">Sin versiones todavía.</div>')
                 + '</div></div>';
             document.body.appendChild(box);
             box.addEventListener('click', function (e) {
                 if (e.target === box || e.target.id === 'wb-rev-close') { box.remove(); return; }
                 var b = e.target.closest('[data-restore]'); if (!b) return;
                 api('/api/v1/admin/builder/revisions/' + b.getAttribute('data-restore') + '/restore', { method: 'POST' }).then(function (res) {
-                    if (res.ok) { toast('Restaurada âœ“ recargandoâ€¦'); setTimeout(function () { location.reload(); }, 800); }
+                    if (res.ok) { toast('Restaurada ✓ recargando…'); setTimeout(function () { location.reload(); }, 800); }
                     else toast(res.message || 'Error');
                 });
             });
         });
     }
 
-    // â”€â”€ Arranque â”€â”€
+    // ── Arranque ──
     function boot() { if (!document.body) return setTimeout(boot, 200); bar(); marqueeInit(); loadTokens(); }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
     window.__WWI_BUILDER__ = { toggle: toggle, reload: load };
