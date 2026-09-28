@@ -120,4 +120,23 @@ body.wb-on .wwi-b-block.wb-sel>.wb-tools,body.wb-on .wwi-b-block:hover>.wb-tools
 .wb-hint>span{flex:1}
 .wb-hint button{background:transparent;border:1px solid rgba(183,140,255,.35);color:#eae7fb;border-radius:999px;padding:6px 12px;cursor:pointer;font:600 11.5px/1 'Inter',system-ui,sans-serif}
 .wb-hint button:hover{border-color:var(--wb-accent2)}
+.wb-tree{position:fixed;top:0;left:0;bottom:0;width:284px;max-width:88vw;z-index:100003;background:#0c0a1a;border-right:1px solid rgba(183,140,255,.25);display:flex;flex-direction:column;color:#eae7fb;font:12.5px/1.5 'Inter',system-ui,sans-serif;box-shadow:18px 0 50px rgba(0,0,0,.4)}
+.wb-tree-head{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid rgba(183,140,255,.18)}
+.wb-tree-head b{font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:var(--wb-accent2)}
+.wb-tree-head button{background:transparent;border:1px solid rgba(183,140,255,.3);color:#c9c4e6;border-radius:8px;padding:3px 9px;cursor:pointer;font-size:11px}
+.wb-tree-body{flex:1;overflow-y:auto;padding:8px}
+.wb-tree-empty{color:#9c96c4;padding:10px}
+.wb-tn{display:flex;align-items:center;gap:7px;padding:6px 8px;border:1px solid transparent;border-radius:8px;cursor:pointer;color:#d9d4f5}
+.wb-tn:hover{background:rgba(183,140,255,.12)}
+.wb-tn-row{margin-top:6px;font-weight:700;color:#fff;background:rgba(124,60,255,.1);border-color:rgba(183,140,255,.25)}
+.wb-tn-col{margin-left:14px;color:#c9c4e6}
+.wb-tn-block{margin-left:28px;font-size:12px}
+.wb-tn-ic{font-size:11px;opacity:.8}
+.wb-tn-over{border-color:var(--wb-accent2);background:rgba(124,60,255,.2)}
+.wb-multi{outline:2px dashed var(--wb-accent2)!important;outline-offset:3px;border-radius:6px}
+.wb-batch{position:fixed;left:50%;bottom:76px;transform:translateX(-50%);z-index:100005;display:flex;align-items:center;gap:8px;background:#0c0a1a;border:1px solid rgba(183,140,255,.4);border-radius:999px;padding:8px 12px;color:#eae7fb;font:600 12px/1 'Inter',system-ui,sans-serif;box-shadow:0 14px 40px rgba(0,0,0,.5)}
+.wb-batch b{color:var(--wb-accent2);text-transform:uppercase;letter-spacing:.05em;font-size:10.5px}
+.wb-batch button{background:transparent;border:1px solid rgba(183,140,255,.35);color:#eae7fb;border-radius:999px;padding:6px 11px;cursor:pointer;font:600 11.5px/1 'Inter',system-ui,sans-serif}
+.wb-batch button:hover{border-color:var(--wb-accent2)}
+.wb-marquee{position:fixed;z-index:100000;border:1px solid var(--wb-accent2);background:rgba(124,60,255,.14);border-radius:4px;pointer-events:none}
 @media(prefers-reduced-motion:reduce){.wb-add,.wb-panel,.wb-toast{transition:none}}
