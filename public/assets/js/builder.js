@@ -33,6 +33,72 @@
 
     function setStatus(t) { var el = $('#wb-status'); if (el) el.textContent = t || ''; }
 
+    function pushOp(op) { S.undo.push(op); if (S.undo.length > 40) S.undo.shift(); S.redo = []; }
+    function undoOp() { if (!S.undo.length) { toast('Nada que deshacer'); return; } var op = S.undo.pop(); try { op.undo && op.undo(); } catch (e) { } S.redo.push(op); toast('Deshecho'); }
+    function redoOp() { if (!S.redo.length) { toast('Nada que rehacer'); return; } var op = S.redo.pop(); try { op.redo && op.redo(); } catch (e) { } S.undo.push(op); toast('Rehecho'); }
+
+    function showCrumb(block) {
+        var old = $('#wb-crumb'); if (old) old.remove();
+        if (!S.on || !block || !block.parentNode) return;
+        var row = block.closest('.wwi-b-row');
+        var col = block.closest('.wwi-b-col');
+        var rows = $$('.wwi-b-row'); var ri = rows.indexOf(row) + 1;
+        var cols = row ? $$(':scope > .wwi-b-row-inner > .wwi-b-col', row) : []; var ci = col ? cols.indexOf(col) + 1 : 1;
+        var blocks = $$(':scope > .wwi-b-block', block.parentNode); var bi = blocks.indexOf(block) + 1;
+        var label = block.getAttribute('data-brick') || block.getAttribute('data-type') || 'Bloque';
+        var d = document.createElement('div');
+        d.id = 'wb-crumb'; d.className = 'wb-crumb';
+        d.innerHTML = '<span data-nav="row">Fila ' + ri + '</span><i>›</i><span data-nav="col">Col ' + ci + '</span><i>›</i><span data-nav="block" class="on">' + esc(label) + ' ' + bi + '</span><button type="button" title="Deseleccionar">✕</button>';
+        document.body.appendChild(d);
+        var r = block.getBoundingClientRect();
+        d.style.top = Math.max(6, r.top - 30) + 'px';
+        d.style.left = Math.max(6, r.left) + 'px';
+        d.querySelectorAll('[data-nav]').forEach(function (seg) {
+            seg.addEventListener('click', function () {
+                var k = seg.getAttribute('data-nav');
+                var el = k === 'row' ? row : (k === 'col' ? col : block);
+                if (el) { try { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e) { el.scrollIntoView(); } el.classList.add('wb-flash'); setTimeout(function () { el.classList.remove('wb-flash'); }, 900); }
+            });
+        });
+        var x = d.querySelector('button'); if (x) x.addEventListener('click', function () { d.remove(); });
+    }
+
+    function copyBlock() {
+        if (!S.sel) return;
+        var f = findBlock(S.sel.id); if (!f) return;
+        S.clip = { type: f.type, brick_slug: f.brick_slug || '', props: f.props || {}, styles: f.styles || {}, visibility: f.visibility || {} };
+        toast('Bloque copiado');
+    }
+
+    function pasteBlock() {
+        if (!S.clip || !S.sel) { toast('Nada que pegar'); return; }
+        var cur = document.querySelector('.wwi-b-block[data-block="' + S.sel.id + '"]'); if (!cur) return;
+        var slot = cur.parentNode; var sid = parseInt(slot.getAttribute('data-slot'), 10);
+        var list = $$(':scope > .wwi-b-block', slot); var pos = list.indexOf(cur) + 1;
+        var payload = { slot_id: sid, type: S.clip.brick_slug ? 'brick' : S.clip.type, position: pos, props: S.clip.props };
+        if (S.clip.brick_slug) payload.brick_slug = S.clip.brick_slug;
+        setStatus('Pegando…');
+        api('/api/v1/admin/builder/blocks', { method: 'POST', body: payload }).then(function (r) {
+            if (!r.ok) { toast(r.message || 'Error'); setStatus('Error'); return; }
+            var newId = r.data && r.data.block_id;
+            reloadSlot(slot); toast('Pegado ✓'); setStatus('Guardado ✓');
+            if (newId) pushOp({ undo: function () { return api('/api/v1/admin/builder/block/node/' + newId + '?page_id=' + PAGE_ID, { method: 'DELETE' }).then(function () { reloadSlot(slot); }); } });
+        });
+    }
+
+    function doDuplicate(block, id, slot) {
+        setStatus('Duplicando…');
+        api('/api/v1/admin/builder/blocks/' + id + '/duplicate', { method: 'POST' }).then(function (r) {
+            if (!r.ok) { toast(r.message || 'No se pudo duplicar'); setStatus('Error'); return; }
+            var newId = r.data && r.data.block_id;
+            reloadSlot(slot); toast('Duplicado ✓'); setStatus('Guardado ✓');
+            if (newId) pushOp({
+                undo: function () { return api('/api/v1/admin/builder/block/node/' + newId + '?page_id=' + PAGE_ID, { method: 'DELETE' }).then(function () { reloadSlot(slot); }); },
+                redo: function () { return api('/api/v1/admin/builder/blocks/' + id + '/duplicate', { method: 'POST' }).then(function (r2) { if (r2.ok) { newId = r2.data.block_id; reloadSlot(slot); } }); }
+            });
+        });
+    }
+
     // ── Barra del builder ──
     function bar() {
         if ($('#wb-bar')) return;
@@ -64,7 +130,7 @@
         if ($('#wb-hint')) return;
         var d = document.createElement('div');
         d.id = 'wb-hint'; d.className = 'wb-hint';
-        d.innerHTML = '<b>Modo edición</b><span>Clic para <b>seleccionar</b> · arrastra <b>⣿</b> para <b>mover</b> · <b>🗑</b> o <b>Supr</b> para <b>eliminar</b> · doble clic para editar texto</span><button type="button" id="wb-hint-x">Entendido</button>';
+        d.innerHTML = '<b>Modo edición</b><span>Clic para <b>seleccionar</b> · arrastra <b>⣿</b> o usa <b>↑↓</b> para <b>mover</b> · <b>🗑</b>/<b>Supr</b> elimina · <b>Ctrl+D</b> duplica · <b>Ctrl+Z/Y</b> deshacer/rehacer · doble clic edita texto</span><button type="button" id="wb-hint-x">Entendido</button>';
         document.body.appendChild(d);
         var x = $('#wb-hint-x'); if (x) x.addEventListener('click', function () { d.remove(); });
         setTimeout(function () { if (d.parentNode) d.remove(); }, 10000);
@@ -344,7 +410,7 @@
             var id = parseInt(block.getAttribute('data-block'), 10);
             var act = btn.getAttribute('data-a');
             if (act === 'del') removeBlock(block, id, slot);
-            else if (act === 'dup') api('/api/v1/admin/builder/blocks/' + id + '/duplicate', { method: 'POST' }).then(function (r) { if (r.ok) { reloadSlot(slot); toast('Duplicado'); } else toast(r.message || 'No se pudo duplicar'); });
+            else if (act === 'dup') doDuplicate(block, id, slot);
             else if (act === 'up' || act === 'down') moveSibling(block, act === 'up' ? -1 : 1);
         });
         block.addEventListener('click', function (e) {
@@ -513,6 +579,7 @@
         var found = findBlock(id);
         if (!found) return;
         S.sel = { id: id, type: block.getAttribute('data-type'), brick: block.getAttribute('data-brick') || '', props: found.props || {}, styles: found.styles || {}, block: block };
+        showCrumb(block);
         openPanel();
     }
 
@@ -540,7 +607,7 @@
         renderPanel();
     }
 
-    function closePanel() { var p = $('#wb-panel'); if (p) p.classList.remove('wb-open'); $$('.wwi-b-block.wb-sel').forEach(function (b) { b.classList.remove('wb-sel'); }); S.sel = null; }
+    function closePanel() { var p = $('#wb-panel'); if (p) p.classList.remove('wb-open'); $$('.wwi-b-block.wb-sel').forEach(function (b) { b.classList.remove('wb-sel'); }); var c = $('#wb-crumb'); if (c) c.remove(); S.sel = null; }
 
     function renderPanel() {
         if (!S.sel) return;
@@ -682,36 +749,37 @@
     // ── Acciones ──
     function removeBlock(block, id, slot) {
         if (!slot) slot = block.parentNode;
-        if (S.sel && S.sel.id === id) { S.sel = null; var p = $('#wb-panel'); if (p) p.classList.remove('wb-open'); }
+        if (S.sel && S.sel.id === id) { S.sel = null; var p = $('#wb-panel'); if (p) p.classList.remove('wb-open'); var c = $('#wb-crumb'); if (c) c.remove(); }
         block.remove();
         ensureAdd(slot);
         setStatus('Eliminando…');
         api('/api/v1/admin/builder/block/node/' + id + '?page_id=' + PAGE_ID, { method: 'DELETE' }).then(function (r) {
             if (!r.ok) { toast(r.message || 'Error al eliminar'); load(); return; }
             setStatus('Eliminado');
-            toast('Elemento eliminado · espacio disponible', function () {
-                api('/api/v1/admin/builder/trash?page_id=' + PAGE_ID).then(function (t) {
-                    if (t.ok && t.data && t.data.length) {
-                        api('/api/v1/admin/builder/trash/' + t.data[0].id + '/restore', { method: 'POST' }).then(function () { location.reload(); });
-                    }
-                });
+            api('/api/v1/admin/builder/trash?page_id=' + PAGE_ID).then(function (t) {
+                var tid = (t.ok && t.data && t.data.length) ? t.data[0].id : null;
+                if (tid) pushOp({ undo: function () { return api('/api/v1/admin/builder/trash/' + tid + '/restore', { method: 'POST' }).then(function () { load(); }); } });
+                toast('Elemento eliminado · espacio disponible', function () { undoOp(); });
             });
         });
     }
 
     document.addEventListener('keydown', function (e) {
-        if (!S.on || !S.sel) return;
+        if (!S.on) return;
         var ae = document.activeElement;
         if (ae && (ae.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].indexOf(ae.tagName) > -1)) return;
-        if (e.key === 'Delete' || e.key === 'Backspace') {
-            e.preventDefault();
-            var b = document.querySelector('.wwi-b-block[data-block="' + S.sel.id + '"]');
-            if (b) removeBlock(b, S.sel.id, b.parentNode);
-        } else if (e.key === 'Escape') {
-            var p = $('#wb-panel'); if (p) p.classList.remove('wb-open');
-            $$('.wwi-b-block.wb-sel').forEach(function (b) { b.classList.remove('wb-sel'); });
-            S.sel = null;
-        }
+        var mod = e.ctrlKey || e.metaKey;
+        var k = (e.key || '').toLowerCase();
+        if (!S.sel) { if (k === 'escape') closePanel(); return; }
+        var sel = document.querySelector('.wwi-b-block[data-block="' + S.sel.id + '"]');
+        if (mod && k === 'd') { e.preventDefault(); if (sel) doDuplicate(sel, S.sel.id, sel.parentNode); return; }
+        if (mod && k === 'c') { e.preventDefault(); copyBlock(); return; }
+        if (mod && k === 'v') { e.preventDefault(); pasteBlock(); return; }
+        if (mod && k === 'z' && !e.shiftKey) { e.preventDefault(); undoOp(); return; }
+        if (mod && (k === 'y' || (k === 'z' && e.shiftKey))) { e.preventDefault(); redoOp(); return; }
+        if (k === 'delete' || k === 'backspace') { e.preventDefault(); if (sel) removeBlock(sel, S.sel.id, sel.parentNode); return; }
+        if (k === 'arrowup' || k === 'arrowdown') { if (sel) { e.preventDefault(); moveSibling(sel, k === 'arrowup' ? -1 : 1); } return; }
+        if (k === 'escape') { e.preventDefault(); closePanel(); return; }
     });
 
     function moveSibling(block, dir) {
@@ -723,13 +791,22 @@
         if (i < 0) return;
         var j = i + dir;
         if (j < 0 || j >= ids.length) return;
+        var before = ids.slice();
         ids.splice(i, 1);
         ids.splice(j, 0, id);
+        var after = ids.slice();
         reorderDomBlocks(slot, ids);
+        showCrumb(block);
         setStatus('Guardando…');
-        api('/api/v1/admin/builder/reorder/block', { method: 'POST', body: { items: ids } }).then(function (r) {
-            if (r.ok) { toast('Movido'); setStatus('Guardado ✓'); }
-            else { toast(r.message || 'No se pudo mover'); setStatus('Error'); }
+        var doReorder = function (items) { return api('/api/v1/admin/builder/reorder/block', { method: 'POST', body: { items: items } }); };
+        doReorder(ids).then(function (r) {
+            if (r.ok) {
+                toast('Movido'); setStatus('Guardado ✓');
+                pushOp({
+                    undo: function () { return doReorder(before).then(function () { reorderDomBlocks(slot, before); showCrumb(block); }); },
+                    redo: function () { return doReorder(after).then(function () { reorderDomBlocks(slot, after); showCrumb(block); }); }
+                });
+            } else { toast(r.message || 'No se pudo mover'); setStatus('Error'); }
         });
     }
 

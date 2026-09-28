@@ -88,7 +88,7 @@ Patrón estándar de los editores visuales líderes (**Elementor** —Navigator/
 30. **Asistente TIA contextual**: con un elemento seleccionado, comandos naturales ("mejora este texto", "muévelo arriba", "hazlo responsive", "cambia el color").
 
 ## 5. FASES
-- **Fase 1 (núcleo)**: barra de selección flotante + breadcrumb/jerarquía + teclado completo + duplicar/eliminar desde la barra + hint de primer uso.
+- **Fase 1 (núcleo, HECHA)**: barra flotante del bloque (handle/label/↑↓/⧉/🗑) + **breadcrumb de jerarquía** (`#wb-crumb`: Fila › Col › Bloque; segmentos hacen scroll+flash; ✕ deselecciona) + **atajos**: ↑/↓ mover, `Ctrl/⌘+D` duplicar, `Ctrl/⌘+C/V` copiar/pegar, `Supr/Backspace` eliminar, `Esc` deseleccionar, `Ctrl/⌘+Z` / `Ctrl+Shift+Z`/`Ctrl+Y` **deshacer/rehacer global** (pila local de operaciones con inversas vía API) + hint de primer uso. Verificado E2E.
 - **Fase 2**: árbol lateral (Navigator) con drag + selección múltiple + acciones en lote + deshacer/rehacer global.
 - **Fase 3**: copiar/pegar estilos, tokens, responsive por breakpoint, bloqueo, ocultar/mostrar.
 - **Fase 4**: componentes/símbolos, comentarios/presencia, historial por elemento, asistente TIA contextual.

@@ -106,6 +106,15 @@ body.wb-on .wwi-b-block.wb-sel>.wb-tools,body.wb-on .wwi-b-block:hover>.wb-tools
 .wb-toast.wb-show{opacity:1;transform:translateX(-50%)}
 .wb-toast button{background:transparent;border:0;color:var(--wb-accent2);font:700 12px/1 'Inter',system-ui,sans-serif;cursor:pointer}
 .wb-banner{position:fixed;left:50%;top:22px;transform:translateX(-50%);z-index:100005;background:#0c0a1a;border:1px solid rgba(183,140,255,.4);border-radius:14px;padding:14px 18px;color:#eae7fb;font:13px/1.5 'Inter',system-ui,sans-serif;display:flex;align-items:center;gap:14px;box-shadow:0 20px 50px rgba(0,0,0,.5)}
+.wb-crumb{position:fixed;z-index:100004;display:flex;align-items:center;gap:4px;background:#0d0b1c;border:1px solid rgba(183,140,255,.35);border-radius:999px;padding:3px 6px;font:600 10.5px/1 'Inter',system-ui,sans-serif;color:#c9c4e6;box-shadow:0 10px 26px rgba(0,0,0,.45)}
+.wb-crumb span{padding:3px 8px;border-radius:999px;cursor:pointer}
+.wb-crumb span:hover{background:rgba(183,140,255,.16);color:#fff}
+.wb-crumb span.on{background:linear-gradient(135deg,var(--wb-accent),var(--wb-accent2));color:#fff}
+.wb-crumb i{color:#7d78a8;font-style:normal}
+.wb-crumb button{background:transparent;border:0;color:#9c96c4;cursor:pointer;font-size:11px;padding:2px 5px;border-radius:999px}
+.wb-crumb button:hover{color:#fff;background:rgba(183,140,255,.16)}
+.wb-flash{animation:wbFlash .9s ease}
+@keyframes wbFlash{0%{box-shadow:0 0 0 0 rgba(124,60,255,.6)}50%{box-shadow:0 0 0 6px rgba(124,60,255,.25)}100%{box-shadow:0 0 0 0 rgba(124,60,255,0)}}
 .wb-hint{position:fixed;left:50%;top:22px;transform:translateX(-50%);z-index:100006;max-width:600px;background:#0c0a1a;border:1px solid rgba(183,140,255,.4);border-radius:14px;padding:12px 16px;color:#eae7fb;font:12.5px/1.5 'Inter',system-ui,sans-serif;display:flex;align-items:center;gap:12px;box-shadow:0 20px 50px rgba(0,0,0,.5)}
 .wb-hint b{color:var(--wb-accent2)}
 .wb-hint>span{flex:1}
