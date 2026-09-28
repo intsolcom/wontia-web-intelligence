@@ -108,12 +108,14 @@
             + '<button type="button" id="wb-tree-btn">ðŸŒ³ Estructura</button>'
             + '<span class="wb-dev" id="wb-dev"><button type="button" data-dev="desktop" class="on" title="Escritorio">🖥</button><button type="button" data-dev="tablet" title="Tablet">▭</button><button type="button" data-dev="mobile" title="Móvil">▯</button></span>'
             + '<span class="wb-status" id="wb-status"></span>'
+            + '<button type="button" id="wb-comments-btn">💬 Comentarios</button>'
             + '<button type="button" id="wb-publish">Publicar</button>'
             + '<button type="button" id="wb-revs">Versiones</button>';
         document.body.appendChild(b);
         $('#wb-toggle').addEventListener('click', toggle);
         $('#wb-tree-btn').addEventListener('click', function () { if (!S.on) { toast('Activa el modo ediciÃ³n'); return; } toggleTree(); });
         $('#wb-dev').addEventListener('click', function (e) { var t = e.target.closest('button[data-dev]'); if (!t) return; setDevice(t.getAttribute('data-dev')); });
+        $('#wb-comments-btn').addEventListener('click', toggleComments);
         $('#wb-publish').addEventListener('click', function () {
             api('/api/v1/admin/builder/publish', { method: 'POST', body: { page_id: PAGE_ID, label: 'Publicacion manual' } }).then(function (r) {
                 if (r.ok) toast('Publicado âœ“'); else toast(r.message || 'Error al publicar');
@@ -192,6 +194,50 @@
             if (r.ok && r.data && r.data.builder_tokens) { try { S.tokens = JSON.parse(r.data.builder_tokens) || []; } catch (e) { S.tokens = []; } }
         });
     }
+    function toggleComments() {
+        if (!S.on) { toast('Activa el modo edición'); return; }
+        if (S.commentsOn) { S.commentsOn = false; removePins(); var p = $('#wb-comments-panel'); if (p) p.remove(); return; }
+        S.commentsOn = true;
+        loadComments();
+    }
+    function removePins() { $$('.wb-pin').forEach(function (p) { p.remove(); }); }
+    function loadComments() {
+        removePins();
+        api('/api/v1/admin/builder/comments?page_id=' + PAGE_ID).then(function (r) {
+            S.comments = (r && r.data) || [];
+            var byBlock = {};
+            S.comments.forEach(function (c) { (byBlock[c.block_id] = byBlock[c.block_id] || []).push(c); });
+            Object.keys(byBlock).forEach(function (bid) {
+                var b = document.querySelector('.wwi-b-block[data-block="' + bid + '"]'); if (!b) return;
+                var pin = document.createElement('button'); pin.type = 'button'; pin.className = 'wb-pin';
+                pin.textContent = '💬 ' + byBlock[bid].length; pin.title = 'Comentarios';
+                b.appendChild(pin);
+                pin.addEventListener('click', function (e) { e.stopPropagation(); openComments(bid, b); });
+            });
+            toast(S.comments.length + ' comentarios');
+        });
+    }
+    function openComments(blockId, blockEl) {
+        var old = $('#wb-comments-panel'); if (old) old.remove();
+        var list = (S.comments || []).filter(function (c) { return String(c.block_id) === String(blockId); });
+        var d = document.createElement('div'); d.id = 'wb-comments-panel'; d.className = 'wb-comments-panel';
+        d.innerHTML = '<div class="wb-cp-head"><b>Comentarios</b><button type="button" id="wb-cp-x">✕</button></div>'
+            + '<div class="wb-cp-list">' + (list.length ? list.map(function (c) {
+                return '<div class="wb-cp-item' + (c.status === 'resolved' ? ' res' : '') + '"><div class="wb-cp-meta">' + esc(c.username || '—') + ' · ' + esc(c.created_at || '') + '</div><div>' + esc(c.body) + '</div><div class="wb-cp-acts"><button type="button" data-res="' + c.id + '">' + (c.status === 'resolved' ? 'Reabrir' : 'Resolver') + '</button><button type="button" data-del="' + c.id + '">Eliminar</button></div></div>';
+            }).join('') : '<div style="font-size:11.5px;color:#9c96c4">Sin comentarios.</div>') + '</div>'
+            + '<div class="wb-cp-add"><input type="text" id="wb-cp-input" placeholder="Escribe un comentario…"/><button type="button" id="wb-cp-send">Enviar</button></div>';
+        document.body.appendChild(d);
+        var r = blockEl.getBoundingClientRect();
+        d.style.top = Math.max(10, r.bottom + 6) + 'px'; d.style.left = Math.max(10, Math.min(window.innerWidth - 300, r.left)) + 'px';
+        $('#wb-cp-x').addEventListener('click', function () { d.remove(); });
+        $('#wb-cp-send').addEventListener('click', function () {
+            var v = $('#wb-cp-input').value; if (!v.trim()) return;
+            api('/api/v1/admin/builder/comments', { method: 'POST', body: { block_id: blockId, page_id: PAGE_ID, body: v } }).then(function (x) { if (x.ok) { loadComments(); openComments(blockId, blockEl); } else toast(x.message || 'Error'); });
+        });
+        d.querySelectorAll('[data-res]').forEach(function (b) { b.addEventListener('click', function () { api('/api/v1/admin/builder/comments/' + b.getAttribute('data-res'), { method: 'PATCH', body: { status: 'resolved' } }).then(function () { loadComments(); openComments(blockId, blockEl); }); }); });
+        d.querySelectorAll('[data-del]').forEach(function (b) { b.addEventListener('click', function () { api('/api/v1/admin/builder/comments/' + b.getAttribute('data-del'), { method: 'DELETE' }).then(function () { loadComments(); openComments(blockId, blockEl); }); }); });
+    }
+
     function saveToken() {
         var color = prompt('Color del token (#RRGGBB):', (S.sel && S.sel.styles && S.sel.styles.background) || '#7c3cff');
         if (!color || !/^#[0-9a-fA-F]{3,8}$/.test(color)) return;
@@ -212,6 +258,23 @@
             });
         });
         var add = box.querySelector('#wb-tok-add'); if (add) add.addEventListener('click', saveToken);
+    }
+
+    function loadBlockHistory() {
+        var out = $('#wb-hist-out'); if (!out) return;
+        out.innerHTML = '<div style="font-size:11px;color:#9c96c4">Cargando…</div>';
+        api('/api/v1/admin/builder/blocks/' + S.sel.id + '/history').then(function (r) {
+            var list = (r && r.data) || [];
+            if (!list.length) { out.innerHTML = '<div style="font-size:11px;color:#9c96c4">Sin historial todavía.</div>'; return; }
+            out.innerHTML = list.map(function (h) { return '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(183,140,255,.15);font-size:11.5px"><span>' + esc(h.username || '—') + ' · ' + esc(h.created_at || '') + '</span><button type="button" class="wb-btn wb-ghost" data-hist="' + h.id + '" style="padding:3px 8px;font-size:11px">Restaurar</button></div>'; }).join('');
+            out.querySelectorAll('[data-hist]').forEach(function (b) {
+                b.addEventListener('click', function () {
+                    api('/api/v1/admin/builder/history/' + b.getAttribute('data-hist') + '/restore', { method: 'POST' }).then(function (x) {
+                        if (x.ok) { toast('Versión restaurada ✓'); closePanel(); refreshCanvas(); } else toast(x.message || 'Error');
+                    });
+                });
+            });
+        });
     }
 
     function banner() {
@@ -886,6 +949,7 @@
         h += '<div class="wb-f"><label>Estilo y tokens</label><div class="wb-tokens" id="wb-tokens"></div>'
             + '<div class="wb-actions" style="margin-top:8px"><button type="button" class="wb-btn wb-ghost" id="wb-style-copy">🎨 Copiar estilo</button><button type="button" class="wb-btn wb-ghost" id="wb-style-paste"' + (S.styleClip ? '' : ' disabled') + '>🖌 Pegar estilo</button></div></div>';
         h += '<div class="wb-f"><label style="display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0"><input type="checkbox" id="wb-lock" style="width:auto" ' + (locked ? 'checked' : '') + '/> 🔒 Bloquear posición</label></div>';
+        h += '<div class="wb-f"><div class="wb-actions" style="margin-top:0;gap:6px"><button type="button" class="wb-btn wb-ghost" id="wb-hist">🕘 Historial</button><button type="button" class="wb-btn wb-ghost" id="wb-comp-save">🧩 Guardar como componente</button></div><div id="wb-hist-out" style="margin-top:8px"></div></div>';
         h += '<div class="wb-f"><label>Visibilidad</label><div class="wb-vis">'
             + '<button type="button" data-v="desktop" class="on">ðŸ–¥ Escritorio</button><button type="button" data-v="tablet" class="on">â–­ Tablet</button><button type="button" data-v="mobile" class="on">â–¯ MÃ³vil</button>'
             + '</div></div>';
@@ -1002,6 +1066,14 @@
         });
         if (typeof renderTokens === 'function') renderTokens();
         bindTia();
+        var hb = $('#wb-hist');
+        if (hb) hb.addEventListener('click', function () { loadBlockHistory(); });
+        var cs = $('#wb-comp-save');
+        if (cs) cs.addEventListener('click', function () {
+            var name = prompt('Nombre del componente:', 'Componente');
+            if (name === null) return;
+            api('/api/v1/admin/builder/components', { method: 'POST', body: { block_id: S.sel.id, name: name } }).then(function (r) { if (r.ok) { toast('Componente creado · ahora está enlazado ✓'); closePanel(); refreshCanvas(); } else toast(r.message || 'Error'); });
+        });
         var save = $('#wb-save');
         if (save) save.addEventListener('click', savePanel);
         var delBtn = $('#wb-del');
@@ -1025,6 +1097,7 @@
         else if (type === 'spacer') { body.props = { height: parseInt(val('#wb-p-height'), 10) || 40 }; }
         else if (type === 'brick') { try { body.props = JSON.parse($('#wb-p-props').value || '{}'); } catch (e) { toast('JSON invÃ¡lido'); return; } }
         else { body.props = { html: val('#wb-p-html') }; }
+        if (S.sel.props && S.sel.props._component_id) { body.props = body.props || {}; body.props._component_id = S.sel.props._component_id; }
         var alignEl = $('#wb-p-align');
         if (alignEl) {
             var align = alignEl.value;

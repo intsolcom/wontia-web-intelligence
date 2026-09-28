@@ -186,4 +186,58 @@ class BuilderController
         $pageId = $this->requirePage($req, (string)$req->get('page_id', '0'));
         Response::json(['ok' => true, 'data' => ['html' => $this->svc()->renderPage($pageId)]]);
     }
+
+    public function blockHistory(Request $req, string $id): void
+    {
+        Response::json(['ok' => true, 'data' => $this->svc()->blockHistory((int)$id)]);
+    }
+
+    public function restoreBlockHistory(Request $req, string $id): void
+    {
+        $r = $this->svc()->restoreBlockHistory((int)$id);
+        $r['ok'] ? Response::success(null, $r['message']) : Response::error($r['message'], 404);
+    }
+
+    public function components(Request $req): void
+    {
+        Response::json(['ok' => true, 'data' => $this->svc()->components()]);
+    }
+
+    public function saveComponent(Request $req): void
+    {
+        $d = $req->json();
+        $r = $this->svc()->saveComponent((int)($d['block_id'] ?? 0), (string)($d['name'] ?? ''));
+        $r['ok'] ? Response::json(['ok' => true, 'message' => $r['message'], 'data' => ['id' => $r['id']]]) : Response::error($r['message'], 400);
+    }
+
+    public function deleteComponent(Request $req, string $id): void
+    {
+        $r = $this->svc()->deleteComponent((int)$id);
+        $r['ok'] ? Response::success(null, $r['message']) : Response::error($r['message'], 404);
+    }
+
+    public function commentsList(Request $req): void
+    {
+        Response::json(['ok' => true, 'data' => (new \App\Services\BuilderCommentService())->list((int)$req->get('page_id', 0))]);
+    }
+
+    public function commentAdd(Request $req): void
+    {
+        $u = \App\Core\Session::user() ?: [];
+        $d = $req->json();
+        $r = (new \App\Services\BuilderCommentService())->add((int)($d['block_id'] ?? 0), (int)($d['page_id'] ?? 0), (int)($u['id'] ?? 0), (string)($u['username'] ?? ''), (string)($d['body'] ?? ''));
+        $r['ok'] ? Response::json(['ok' => true, 'message' => $r['message'], 'data' => ['id' => $r['id']]]) : Response::error($r['message'], 400);
+    }
+
+    public function commentStatus(Request $req, string $id): void
+    {
+        $r = (new \App\Services\BuilderCommentService())->status((int)$id, (string)($req->json()['status'] ?? 'open'));
+        $r['ok'] ? Response::success(null, $r['message']) : Response::error($r['message'], 404);
+    }
+
+    public function commentDelete(Request $req, string $id): void
+    {
+        $r = (new \App\Services\BuilderCommentService())->delete((int)$id);
+        $r['ok'] ? Response::success(null, $r['message']) : Response::error($r['message'], 404);
+    }
 }

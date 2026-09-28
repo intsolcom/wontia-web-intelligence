@@ -158,7 +158,141 @@ class BuilderService
         if (array_key_exists('sort_order', $d)) { $sets[] = 'sort_order = :ord'; $params['ord'] = (int)$d['sort_order']; }
         if (!$sets) return;
         $db->prepare("UPDATE wwi_page_blocks SET " . implode(', ', $sets) . " WHERE id = :id AND site_id = @site_id")->execute($params);
+        if (array_key_exists('props', $d) || array_key_exists('styles', $d)) $this->recordBlockHistory($id);
         if (array_key_exists('props', $d)) $this->syncFromBlock($id);
+    }
+
+    public function ensureMeta(): void
+    {
+        $db = Database::instance();
+        try {
+            $db->exec("CREATE TABLE IF NOT EXISTS wwi_builder_block_history (
+                id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                site_id INT NOT NULL DEFAULT 1,
+                block_id INT NOT NULL,
+                page_id INT NOT NULL DEFAULT 0,
+                user_id INT DEFAULT NULL,
+                username VARCHAR(100) DEFAULT '',
+                props JSON,
+                styles JSON,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_block (site_id, block_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+            $db->exec("CREATE TABLE IF NOT EXISTS wwi_builder_components (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                site_id INT NOT NULL DEFAULT 1,
+                name VARCHAR(150) NOT NULL,
+                block_type VARCHAR(30) DEFAULT 'text',
+                brick_slug VARCHAR(100) DEFAULT NULL,
+                props JSON,
+                styles JSON,
+                visibility JSON,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_site (site_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+        } catch (\Throwable $e) {
+        }
+    }
+
+    public function pageIdForBlock(int $blockId): int
+    {
+        $stmt = Database::instance()->prepare("SELECT r.page_id FROM wwi_page_blocks b JOIN wwi_page_slots s ON s.id = b.slot_id JOIN wwi_page_columns c ON c.id = s.column_id JOIN wwi_page_rows r ON r.id = c.row_id WHERE b.id = :id AND b.site_id = @site_id");
+        $stmt->execute(['id' => $blockId]);
+        return (int)($stmt->fetchColumn() ?: 0);
+    }
+
+    public function recordBlockHistory(int $blockId): void
+    {
+        try {
+            $this->ensureMeta();
+            $db = Database::instance();
+            $stmt = $db->prepare("SELECT props, styles FROM wwi_page_blocks WHERE id = :id AND site_id = @site_id");
+            $stmt->execute(['id' => $blockId]);
+            $b = $stmt->fetch();
+            if (!$b) return;
+            $u = Session::user() ?: [];
+            $db->prepare("INSERT INTO wwi_builder_block_history (site_id, block_id, page_id, user_id, username, props, styles) VALUES (@site_id, :bid, :pid, :uid, :un, :props, :styles)")
+                ->execute([
+                    'bid' => $blockId,
+                    'pid' => $this->pageIdForBlock($blockId),
+                    'uid' => (int)($u['id'] ?? 0),
+                    'un' => substr((string)($u['username'] ?? ''), 0, 100),
+                    'props' => (string)($b['props'] ?? '{}'),
+                    'styles' => (string)($b['styles'] ?? '{}'),
+                ]);
+            $old = $db->prepare("SELECT id FROM wwi_builder_block_history WHERE block_id = :b AND site_id = @site_id ORDER BY id DESC LIMIT 1 OFFSET 30");
+            $old->execute(['b' => $blockId]);
+            $cut = (int)$old->fetchColumn();
+            if ($cut) $db->prepare("DELETE FROM wwi_builder_block_history WHERE block_id = :b AND site_id = @site_id AND id <= :c")->execute(['b' => $blockId, 'c' => $cut]);
+        } catch (\Throwable $e) {
+        }
+    }
+
+    public function blockHistory(int $blockId): array
+    {
+        $this->ensureMeta();
+        $stmt = Database::instance()->prepare("SELECT id, username, props, styles, created_at FROM wwi_builder_block_history WHERE block_id = :b AND site_id = @site_id ORDER BY id DESC LIMIT 30");
+        $stmt->execute(['b' => $blockId]);
+        return $stmt->fetchAll();
+    }
+
+    public function restoreBlockHistory(int $historyId): array
+    {
+        $this->ensureMeta();
+        $db = Database::instance();
+        $stmt = $db->prepare("SELECT * FROM wwi_builder_block_history WHERE id = :id AND site_id = @site_id");
+        $stmt->execute(['id' => $historyId]);
+        $h = $stmt->fetch();
+        if (!$h) return ['ok' => false, 'message' => 'No encontrado'];
+        $db->prepare("UPDATE wwi_page_blocks SET props = :p, styles = :s WHERE id = :id AND site_id = @site_id")
+            ->execute(['p' => (string)$h['props'], 's' => (string)$h['styles'], 'id' => (int)$h['block_id']]);
+        return ['ok' => true, 'message' => 'Versión restaurada'];
+    }
+
+    public function component(int $id): ?array
+    {
+        $this->ensureMeta();
+        $stmt = Database::instance()->prepare("SELECT * FROM wwi_builder_components WHERE id = :id AND site_id = @site_id");
+        $stmt->execute(['id' => $id]);
+        $r = $stmt->fetch();
+        if (!$r) return null;
+        $r['props'] = json_decode((string)$r['props'], true) ?: [];
+        $r['styles'] = json_decode((string)$r['styles'], true) ?: [];
+        $r['visibility'] = json_decode((string)$r['visibility'], true) ?: [];
+        return $r;
+    }
+
+    public function components(): array
+    {
+        $this->ensureMeta();
+        $stmt = Database::instance()->query("SELECT id, name, block_type, brick_slug, created_at FROM wwi_builder_components WHERE site_id = @site_id ORDER BY id DESC");
+        return $stmt->fetchAll();
+    }
+
+    public function saveComponent(int $blockId, string $name): array
+    {
+        $this->ensureMeta();
+        $db = Database::instance();
+        $stmt = $db->prepare("SELECT * FROM wwi_page_blocks WHERE id = :id AND site_id = @site_id");
+        $stmt->execute(['id' => $blockId]);
+        $b = $stmt->fetch();
+        if (!$b) return ['ok' => false, 'message' => 'Bloque no encontrado'];
+        $name = trim($name) !== '' ? trim($name) : 'Componente';
+        $db->prepare("INSERT INTO wwi_builder_components (site_id, name, block_type, brick_slug, props, styles, visibility) VALUES (@site_id, :n, :t, :s, :p, :st, :v)")
+            ->execute(['n' => substr($name, 0, 150), 't' => (string)$b['type'], 's' => $b['brick_slug'], 'p' => (string)($b['props'] ?? '{}'), 'st' => (string)($b['styles'] ?? '{}'), 'v' => (string)($b['visibility'] ?? '{}')]);
+        $cid = (int)$db->lastInsertId();
+        $props = json_decode((string)($b['props'] ?? '{}'), true) ?: [];
+        $props['_component_id'] = $cid;
+        $db->prepare("UPDATE wwi_page_blocks SET props = :p WHERE id = :id AND site_id = @site_id")->execute(['p' => json_encode($props, JSON_UNESCAPED_UNICODE), 'id' => $blockId]);
+        return ['ok' => true, 'message' => 'Componente creado', 'id' => $cid];
+    }
+
+    public function deleteComponent(int $id): array
+    {
+        $this->ensureMeta();
+        $stmt = Database::instance()->prepare("DELETE FROM wwi_builder_components WHERE id = :id AND site_id = @site_id");
+        $stmt->execute(['id' => $id]);
+        return $stmt->rowCount() > 0 ? ['ok' => true, 'message' => 'Eliminado'] : ['ok' => false, 'message' => 'No encontrado'];
     }
 
     public function syncToBlocks(int $sectionId, array $section): void
@@ -555,6 +689,15 @@ class BuilderService
     private function renderBlock(array $b): string
     {
         if ((int)$b['is_active'] !== 1) return '';
+        $compId = (int)($b['props']['_component_id'] ?? 0);
+        if ($compId) {
+            $comp = $this->component($compId);
+            if ($comp) {
+                if (!empty($comp['brick_slug'])) { $b['brick_slug'] = $comp['brick_slug']; $b['type'] = 'brick'; }
+                elseif (!empty($comp['block_type'])) { $b['type'] = $comp['block_type']; $b['brick_slug'] = null; }
+                $b['props'] = $comp['props'] ?: [];
+            }
+        }
         $vis = $b['visibility'] ?? [];
         $cls = 'wwi-b-block';
         if (!empty($vis['hide_desktop'])) $cls .= ' wwi-hide-desktop';

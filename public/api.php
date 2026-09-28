@@ -364,6 +364,15 @@ $r->delete('/trash/{id}', [\App\Controllers\Admin\SectionController::class, 'tra
     $r->get('/builder/trash', [\App\Controllers\Admin\BuilderController::class, 'trash']);
     $r->post('/builder/trash/{id}/restore', [\App\Controllers\Admin\BuilderController::class, 'restoreTrash']);
     $r->get('/builder/render', [\App\Controllers\Admin\BuilderController::class, 'render']);
+$r->get('/builder/blocks/{id}/history', [\App\Controllers\Admin\BuilderController::class, 'blockHistory']);
+$r->post('/builder/history/{id}/restore', [\App\Controllers\Admin\BuilderController::class, 'restoreBlockHistory']);
+$r->get('/builder/components', [\App\Controllers\Admin\BuilderController::class, 'components']);
+$r->post('/builder/components', [\App\Controllers\Admin\BuilderController::class, 'saveComponent']);
+$r->delete('/builder/components/{id}', [\App\Controllers\Admin\BuilderController::class, 'deleteComponent']);
+$r->get('/builder/comments', [\App\Controllers\Admin\BuilderController::class, 'commentsList']);
+$r->post('/builder/comments', [\App\Controllers\Admin\BuilderController::class, 'commentAdd']);
+$r->patch('/builder/comments/{id}', [\App\Controllers\Admin\BuilderController::class, 'commentStatus']);
+$r->delete('/builder/comments/{id}', [\App\Controllers\Admin\BuilderController::class, 'commentDelete']);
 
     $r->get('/media', [\App\Controllers\Admin\MediaController::class, 'index']);    $r->post('/media/upload', [\App\Controllers\Admin\MediaController::class, 'upload']);
     $r->delete('/media/{id}', [\App\Controllers\Admin\MediaController::class, 'destroy']);
