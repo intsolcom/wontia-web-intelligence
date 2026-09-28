@@ -72,6 +72,10 @@ body.wb-on .wwi-b-block.wb-sel>.wb-tools,body.wb-on .wwi-b-block:hover>.wb-tools
 .wb-rte-tools{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:6px;padding:5px;background:#141130;border:1px solid rgba(183,140,255,.22);border-radius:9px}
 .wb-rte-tools button{min-width:26px;height:26px;border:0;background:transparent;color:#c9c4e6;border-radius:6px;cursor:pointer;font-size:12px}
 .wb-rte-tools button:hover{background:rgba(183,140,255,.2);color:#fff}
+.wb-rte-tools{flex-wrap:wrap}
+.wb-rte-tools select{background:#141130;border:1px solid rgba(183,140,255,.25);color:#eae7fb;border-radius:7px;height:26px;font-size:11px;padding:0 4px}
+.wb-rte-tools input[type=color]{vertical-align:middle;cursor:pointer}
+.wb-rte-tools label{color:#c9c4e6;cursor:pointer}
 .wb-rte{min-height:120px;max-height:260px;overflow-y:auto;background:#141130;border:1px solid rgba(183,140,255,.25);border-radius:9px;padding:10px;font-size:13px;line-height:1.6}
 .wb-rte:focus{outline:none;border-color:var(--wb-accent2)}
 .wb-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}

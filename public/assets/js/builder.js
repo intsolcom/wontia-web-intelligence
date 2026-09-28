@@ -913,16 +913,8 @@
         var curAlign = (S.sel.styles && S.sel.styles.text_align) || '';
         var h = '';
         if (type === 'text') {
-            h += '<div class="wb-f"><label>Texto</label><div class="wb-rte-tools">'
-                + '<button type="button" data-c="bold" title="Negrita"><b>B</b></button><button type="button" data-c="italic" title="Cursiva"><i>I</i></button><button type="button" data-c="underline" title="Subrayado"><u>U</u></button><button type="button" data-c="strikeThrough" title="Tachado"><s>S</s></button>'
-                + '<button type="button" data-c="formatBlock" data-v="h1" title="Título 1">H1</button><button type="button" data-c="formatBlock" data-v="h2" title="Título 2">H2</button><button type="button" data-c="formatBlock" data-v="h3" title="Título 3">H3</button><button type="button" data-c="formatBlock" data-v="p" title="Párrafo">P</button>'
-                + '<button type="button" data-c="formatBlock" data-v="blockquote" title="Cita">❝</button>'
-                + '<button type="button" data-c="insertUnorderedList" title="Lista">•</button><button type="button" data-c="insertOrderedList" title="Lista numerada">1.</button>'
-                + '<button type="button" data-c="justifyLeft" title="Izquierda">⯇</button><button type="button" data-c="justifyCenter" title="Centro">≡</button><button type="button" data-c="justifyRight" title="Derecha">⯈</button>'
-                + '<button type="button" data-c="createLink" title="Enlace">🔗</button><button type="button" data-c="unlink" title="Quitar enlace">⛓</button>'
-                + '<button type="button" data-c="foreColor" data-v="#7c3cff" title="Color acento">A</button><button type="button" data-c="hiliteColor" data-v="rgba(183,140,255,.35)" title="Resaltado">▨</button>'
-                + '<button type="button" data-c="removeFormat" title="Limpiar formato">✕</button>'
-                + '</div><div class="wb-rte" id="wb-rte" contenteditable="true">' + (props.html || '') + '</div></div>';
+            h += '<div class="wb-f"><label>Texto</label>' + richToolbar('wb-rte')
+                + '<div class="wb-rte" id="wb-rte" contenteditable="true">' + (props.html || '') + '</div></div>';
             h += alignField(curAlign);
             h += tiaField();
         } else if (type === 'image') {
@@ -963,6 +955,30 @@
 
     function field(label, input) { return '<div class="wb-f"><label>' + label + '</label>' + input + '</div>'; }
 
+    function richToolbar(forId) {
+        return '<div class="wb-rte-tools" data-rt-for="' + forId + '">'
+            + '<button type="button" data-c="bold" title="Negrita"><b>B</b></button>'
+            + '<button type="button" data-c="italic" title="Cursiva"><i>I</i></button>'
+            + '<button type="button" data-c="underline" title="Subrayado"><u>U</u></button>'
+            + '<button type="button" data-c="strikeThrough" title="Tachado"><s>S</s></button>'
+            + '<select data-size title="Tamaño de letra"><option value="">Tamaño</option><option value="2">Pequeño</option><option value="3">Normal</option><option value="5">Grande</option><option value="6">Muy grande</option></select>'
+            + '<button type="button" data-c="formatBlock" data-v="h1" title="Título 1">H1</button>'
+            + '<button type="button" data-c="formatBlock" data-v="h2" title="Título 2">H2</button>'
+            + '<button type="button" data-c="formatBlock" data-v="h3" title="Título 3">H3</button>'
+            + '<button type="button" data-c="formatBlock" data-v="p" title="Párrafo">P</button>'
+            + '<button type="button" data-c="formatBlock" data-v="blockquote" title="Cita">❝</button>'
+            + '<button type="button" data-c="insertUnorderedList" title="Lista con viñetas">•</button>'
+            + '<button type="button" data-c="insertOrderedList" title="Lista numerada">1.</button>'
+            + '<button type="button" data-c="justifyLeft" title="Alinear a la izquierda">Izq.</button>'
+            + '<button type="button" data-c="justifyCenter" title="Centrar">Centro</button>'
+            + '<button type="button" data-c="justifyRight" title="Alinear a la derecha">Der.</button>'
+            + '<label title="Color de texto" style="display:inline-flex;align-items:center;gap:2px;font-size:10px">A<input type="color" data-color value="#7c3cff" style="width:22px;height:22px;padding:0;border:0;background:none;cursor:pointer"/></label>'
+            + '<label title="Color de fondo" style="display:inline-flex;align-items:center;gap:2px;font-size:10px">▨<input type="color" data-bg value="#f3e8ff" style="width:22px;height:22px;padding:0;border:0;background:none;cursor:pointer"/></label>'
+            + '<button type="button" data-c="createLink" title="Insertar enlace">🔗</button>'
+            + '<button type="button" data-c="removeFormat" title="Limpiar formato">✕</button>'
+            + '</div>';
+    }
+
     function loadBrickEditor(slug, props) {
         var box = $('#wb-p-brick'); if (!box) return;
         if (S.schemas && S.schemas[slug]) { box.innerHTML = renderBrickFields(S.schemas[slug], props) + advancedJson(props); bpRepRefreshAll(); return; }
@@ -987,7 +1003,8 @@
             var id = 'wbp-' + f.key;
             if (t === 'heading') { h += '<div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#9c96c4;margin:14px 0 6px;border-top:1px solid rgba(183,140,255,.18);padding-top:8px">' + esc(f.label) + '</div>'; return; }
             if (t === 'text' || t === 'url' || t === 'link') h += field(esc(f.label), '<input type="text" id="' + id + '" value="' + esc(v) + '"/>');
-            else if (t === 'textarea' || t === 'richtext') h += field(esc(f.label), '<textarea id="' + id + '" style="min-height:84px">' + esc(v) + '</textarea>');
+            else if (t === 'textarea') h += field(esc(f.label), '<textarea id="' + id + '" style="min-height:84px">' + esc(v) + '</textarea>');
+            else if (t === 'richtext') h += '<div class="wb-f"><label>' + esc(f.label) + '</label>' + richToolbar(id) + '<div class="wb-rte" id="' + id + '" contenteditable="true">' + (typeof v === 'string' ? v : '') + '</div></div>';
             else if (t === 'number') h += field(esc(f.label), '<input type="number" id="' + id + '" value="' + esc(v) + '"' + (f.min !== undefined ? ' min="' + f.min + '"' : '') + (f.max !== undefined ? ' max="' + f.max + '"' : '') + '/>');
             else if (t === 'range') h += field(esc(f.label) + ' <output id="' + id + '-out" style="float:right">' + esc(v) + '</output>', '<input type="range" id="' + id + '" min="' + (f.min !== undefined ? f.min : 0) + '" max="' + (f.max !== undefined ? f.max : 100) + '" step="' + (f.step !== undefined ? f.step : 1) + '" value="' + esc(v) + '" oninput="document.getElementById(\'' + id + '-out\').textContent=this.value"/>');
             else if (t === 'color') h += field(esc(f.label), '<input type="color" id="' + id + '" value="' + esc(/^#[0-9a-fA-F]{6}$/.test(String(v)) ? v : '#7c3cff') + '" style="width:46px;height:32px;padding:0;border:1px solid rgba(183,140,255,.25);border-radius:8px;background:none"/>');
@@ -1044,6 +1061,7 @@
             var el = document.getElementById('wbp-' + f.key); if (!el) return;
             if (t === 'toggle') out[f.key] = el.checked ? 1 : 0;
             else if (t === 'number') out[f.key] = el.value === '' ? '' : Number(el.value);
+            else if (t === 'richtext') out[f.key] = (el.innerHTML || '');
             else out[f.key] = el.value;
         });
         for (var k in (base || {})) { if (!(k in out) && k.charAt(0) === '_') out[k] = base[k]; }
@@ -1104,21 +1122,35 @@
         return '<div class="wb-f"><label>Alineación</label><select id="wb-p-align">' + opts.map(function (o) { return '<option value="' + o[0] + '"' + (cur === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></div>';
     }
 
+    function rtApply(tools, cmd, val) {
+        if (!tools) return;
+        var ed = document.getElementById(tools.getAttribute('data-rt-for')); if (!ed) return;
+        ed.focus();
+        try {
+            document.execCommand('styleWithCSS', false, true);
+            if (cmd === 'createLink') { var u = prompt('URL del enlace:', 'https://'); if (u) document.execCommand(cmd, false, u); }
+            else if (cmd === 'formatBlock') document.execCommand(cmd, false, '<' + val + '>');
+            else if (val !== null && val !== undefined && val !== '') document.execCommand(cmd, false, val);
+            else document.execCommand(cmd, false, null);
+        } catch (e) { }
+    }
+
     function bindPanel() {
-        var rte = $('#wb-rte');
-        if (rte) {
-            $$('#wb-panel .wb-rte-tools button').forEach(function (b) {
-                b.addEventListener('mousedown', function (e) { e.preventDefault(); });
-                b.addEventListener('click', function () {
-                    var c = b.getAttribute('data-c'), v = b.getAttribute('data-v');
-                    rte.focus();
-                    try {
-                        if (c === 'createLink') { var u = prompt('URL del enlace:'); if (u) document.execCommand(c, false, u); }
-                        else if (c === 'formatBlock') document.execCommand(c, false, '<' + v + '>');
-                        else if (v) document.execCommand(c, false, v);
-                        else document.execCommand(c, false, null);
-                    } catch (e) { }
-                });
+        var pn0 = $('#wb-panel');
+        if (pn0 && !pn0.__rtBound) {
+            pn0.__rtBound = 1;
+            pn0.addEventListener('mousedown', function (e) { if (e.target.closest('.wb-rte-tools')) e.preventDefault(); }, true);
+            pn0.addEventListener('click', function (e) {
+                var b = e.target.closest('.wb-rte-tools [data-c]'); if (!b) return;
+                rtApply(b.closest('.wb-rte-tools'), b.getAttribute('data-c'), b.getAttribute('data-v'));
+            });
+            pn0.addEventListener('input', function (e) {
+                var inp = e.target.closest('.wb-rte-tools input[type=color]'); if (!inp) return;
+                rtApply(inp.closest('.wb-rte-tools'), inp.hasAttribute('data-bg') ? 'hiliteColor' : 'foreColor', inp.value);
+            });
+            pn0.addEventListener('change', function (e) {
+                var s = e.target.closest('.wb-rte-tools select[data-size]'); if (!s || !s.value) return;
+                rtApply(s.closest('.wb-rte-tools'), 'fontSize', s.value);
             });
         }
         var media = $('#wb-p-media');

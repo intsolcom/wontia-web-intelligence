@@ -152,7 +152,11 @@ class BuilderService
         $sets = [];
         $params = ['id' => $id];
         foreach (['props', 'styles', 'responsive', 'visibility'] as $k) {
-            if (array_key_exists($k, $d)) { $sets[] = "$k = :$k"; $params[$k] = json_encode($d[$k], JSON_UNESCAPED_UNICODE); }
+            if (!array_key_exists($k, $d)) continue;
+            $val = $d[$k];
+            if ($k === 'props' && is_array($val)) $val = $this->sanitizeProps($val);
+            $sets[] = "$k = :$k";
+            $params[$k] = json_encode($val, JSON_UNESCAPED_UNICODE);
         }
         if (array_key_exists('is_active', $d)) { $sets[] = 'is_active = :act'; $params['act'] = (int)$d['is_active']; }
         if (array_key_exists('sort_order', $d)) { $sets[] = 'sort_order = :ord'; $params['ord'] = (int)$d['sort_order']; }
@@ -160,6 +164,35 @@ class BuilderService
         $db->prepare("UPDATE wwi_page_blocks SET " . implode(', ', $sets) . " WHERE id = :id AND site_id = @site_id")->execute($params);
         if (array_key_exists('props', $d) || array_key_exists('styles', $d)) $this->recordBlockHistory($id);
         if (array_key_exists('props', $d)) $this->syncFromBlock($id);
+    }
+
+    public function sanitizeProps(array $props): array
+    {
+        foreach ($props as $k => $v) {
+            if (is_array($v)) $props[$k] = $this->sanitizeProps($v);
+            elseif (is_string($v) && preg_match('/<\s*[a-z][\s\S]*>/i', $v)) $props[$k] = $this->sanitizeRich($v);
+        }
+        return $props;
+    }
+
+    public function sanitizeRich(string $html): string
+    {
+        $html = preg_replace('#<(script|style)[^>]*>.*?</\1>#is', '', $html) ?? $html;
+        $allowed = '<b><strong><i><em><u><s><strike><del><br><p><span><div><h1><h2><h3><h4><ul><ol><li><blockquote><a><font>';
+        $html = strip_tags($html, $allowed);
+        $html = preg_replace('/\s(on\w+)\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)/i', '', $html) ?? $html;
+        $html = preg_replace('/javascript\s*:/i', '', $html) ?? $html;
+        $html = preg_replace_callback('/style\s*=\s*"([^"]*)"/i', function ($m) {
+            $safe = [];
+            foreach (explode(';', $m[1]) as $decl) {
+                if (preg_match('/^\s*(color|background-color|font-size|text-align|font-weight|font-style|text-decoration)\s*:\s*([#a-zA-Z0-9(),.%\s\-]+)\s*$/', $decl, $dm)) {
+                    $safe[] = $dm[1] . ':' . trim($dm[2]);
+                }
+            }
+            return $safe ? 'style="' . implode(';', $safe) . '"' : '';
+        }, $html) ?? $html;
+        $html = preg_replace('/<a\s+(?![^>]*href=)[^>]*>/i', '<a>', $html) ?? $html;
+        return trim($html);
     }
 
     public function ensureMeta(): void
