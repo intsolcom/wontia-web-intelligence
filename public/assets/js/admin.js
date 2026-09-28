@@ -269,6 +269,7 @@ W.renderSectionEditor=async function(id){
         +(next?'<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.editSection('+next.id+')" title="Siguiente">'+(next.title?W.esc(next.title):'Siguiente')+' →</button>':'')
         +'<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.secAiReview()">🧭 Revisar IA</button>'
         +'<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.secHistory('+s.id+')">🕘 Historial</button>'
+        +'<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.secSavePattern('+s.id+')">💾 Patrón</button>'
         +'<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.secDuplicate('+s.id+')">⧉ Duplicar</button>'
         +'<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.exitSectionEditor()">← Volver</button>'
         +'</div></div>';
@@ -451,7 +452,8 @@ W.loadSections=async function(pageId){
     }
     W.state.currentPage=d.data;
     if(!W.state.currentPage.sections)W.state.currentPage.sections=[];
-    var html='<div class="w-flex-between w-mb-lg"><div><h3 style="font-size:15px">Secciones: '+W.esc(W.state.currentPage.title)+'</h3><span style="font-size:11px;color:var(--w-muted)">'+W.state.currentPage.sections.length+' secciones · arrastra para reordenar</span></div><div class="w-flex w-gap-sm"><button class="w-btn w-btn-primary" onclick="wontia.showSectionTypePicker('+pageId+')">+ Añadir sección</button><button class="w-btn w-btn-secondary" onclick="wontia.pagesGo(\'secciones\')">Cambiar página</button></div></div>';
+    var html='<div class="w-flex-between w-mb-lg"><div><h3 style="font-size:15px">Secciones: '+W.esc(W.state.currentPage.title)+'</h3><span style="font-size:11px;color:var(--w-muted)">'+W.state.currentPage.sections.length+' secciones · arrastra para reordenar</span></div><div class="w-flex w-gap-sm"><button class="w-btn w-btn-secondary" onclick="wontia.showPatterns('+pageId+')">Patrones</button><button class="w-btn w-btn-primary" onclick="wontia.showSectionTypePicker('+pageId+')">+ Añadir sección</button><button class="w-btn w-btn-secondary" onclick="wontia.pagesGo(\'secciones\')">Cambiar página</button></div></div>';
+    html+='<div id="sec-patterns" style="display:none"></div>';
     if(!W.state.currentPage.sections.length){
         html+='<div class="w-empty-state"><h3>Sin secciones</h3><p>Añade la primera sección a esta página</p></div>';
     }else{
@@ -732,6 +734,37 @@ W.fieldReset=function(key){
     if(W.markDirty)W.markDirty();
 };
 
+W.secSavePattern=async function(id){
+    var name=window.prompt('Nombre del patrón (para reutilizar esta sección):','');
+    if(name===null)return;
+    var r=await W.api('/api/v1/admin/sections/'+id+'/save-pattern',{method:'POST',body:{name:name||''}});
+    if(r&&r.ok)W.notify('Patrón guardado','success');else W.notify((r&&r.message)||'Error','error');
+};
+W.showPatterns=function(pageId){
+    var box=document.getElementById('sec-patterns');if(!box)return;
+    if(box.style.display!=='none'){box.style.display='none';box.innerHTML='';return}
+    box.style.display='block';W.patternsLoad(pageId);
+};
+W.patternsLoad=async function(pageId){
+    var box=document.getElementById('sec-patterns');if(!box)return;
+    box.innerHTML='<div class="w-card" style="padding:14px;font-size:12px;color:var(--w-muted)">Cargando patrones…</div>';
+    try{
+        var d=await W.api('/api/v1/admin/patterns');
+        var list=(d&&d.data)||[];
+        var h='<div class="w-card" style="padding:14px"><div class="w-flex-between w-mb"><b style="font-size:13px">Patrones reutilizables</b><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.showPatterns('+pageId+')">Cerrar</button></div>';
+        if(!list.length)h+='<div style="font-size:12px;color:var(--w-muted)">Aún no hay patrones. Abre una sección y usa "💾 Patrón".</div>';
+        else h+=list.map(function(p){return '<div class="w-flex-between" style="padding:8px 0;border-bottom:1px solid var(--w-border)"><span style="font-size:12.5px">'+W.esc(p.name)+' <span style="color:var(--w-muted);font-size:11px">· '+W.esc(p.widget_type||'')+'</span></span><span class="w-flex w-gap-sm"><button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.insertPattern('+p.id+','+pageId+')">Insertar</button><button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.deletePattern('+p.id+','+pageId+')">✕</button></span></div>'}).join('');
+        h+='</div>';box.innerHTML=h;
+    }catch(e){box.innerHTML='<div class="w-card" style="color:#ef4444;padding:14px">Error cargando patrones.</div>'}
+};
+W.insertPattern=async function(patternId,pageId){
+    var r=await W.api('/api/v1/admin/patterns/'+patternId+'/insert',{method:'POST',body:{page_id:pageId}});
+    if(r&&r.ok){W.notify('Patrón insertado','success');await W.loadSections(pageId);W.showPatterns(pageId)}else W.notify((r&&r.message)||'Error','error');
+};
+W.deletePattern=async function(patternId,pageId){
+    var r=await W.api('/api/v1/admin/patterns/'+patternId,{method:'DELETE'});
+    if(r&&r.ok){W.notify('Patrón eliminado','success');W.patternsLoad(pageId)}else W.notify((r&&r.message)||'Error','error');
+};
 W.secPanelClose=function(){var b=document.getElementById('sec-extra');if(b){b.style.display='none';b.innerHTML=''}};
 W.secHistory=async function(id){
     var box=document.getElementById('sec-extra');if(!box)return;

@@ -202,4 +202,28 @@ class SectionController
             ]);
         Response::json(['ok' => true, 'data' => ['id' => (int)$db->lastInsertId()]], 201);
     }
+
+    public function patternsList(Request $req): void
+    {
+        Response::json(['ok' => true, 'data' => (new \App\Services\SectionPatternService())->list()]);
+    }
+
+    public function savePattern(Request $req, string $id): void
+    {
+        $u = \App\Core\Session::user() ?: [];
+        $r = (new \App\Services\SectionPatternService())->saveFromSection((int)$id, (string)$req->input('name', ''), (string)($u['username'] ?? ''));
+        $r['ok'] ? Response::json(['ok' => true, 'message' => $r['message'], 'data' => ['id' => $r['id']]]) : Response::error($r['message'], 404);
+    }
+
+    public function insertPattern(Request $req, string $id): void
+    {
+        $r = (new \App\Services\SectionPatternService())->insert((int)$id, (int)$req->input('page_id', 0));
+        $r['ok'] ? Response::json(['ok' => true, 'message' => $r['message'], 'data' => ['id' => $r['id']]]) : Response::error($r['message'], 400);
+    }
+
+    public function deletePattern(Request $req, string $id): void
+    {
+        $r = (new \App\Services\SectionPatternService())->delete((int)$id);
+        $r['ok'] ? Response::success(null, $r['message']) : Response::error($r['message'], 404);
+    }
 }

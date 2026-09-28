@@ -214,6 +214,10 @@ $r->get('/sections/{id}', [\App\Controllers\Admin\SectionController::class, 'sho
 $r->put('/sections/{id}', [\App\Controllers\Admin\SectionController::class, 'update']);
 $r->delete('/sections/{id}', [\App\Controllers\Admin\SectionController::class, 'destroy']);
 $r->post('/sections/{id}/duplicate', [\App\Controllers\Admin\SectionController::class, 'duplicate']);
+$r->get('/patterns', [\App\Controllers\Admin\SectionController::class, 'patternsList']);
+$r->post('/sections/{id}/save-pattern', [\App\Controllers\Admin\SectionController::class, 'savePattern']);
+$r->post('/patterns/{id}/insert', [\App\Controllers\Admin\SectionController::class, 'insertPattern']);
+$r->delete('/patterns/{id}', [\App\Controllers\Admin\SectionController::class, 'deletePattern']);
 
     $r->get('/bricks', [\App\Controllers\Admin\BrickController::class, 'index']);
     $r->get('/bricks/usage', [\App\Controllers\Admin\BrickController::class, 'usage']);
