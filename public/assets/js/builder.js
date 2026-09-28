@@ -1499,6 +1499,7 @@
             box.addEventListener('click', function (e) {
                 if (e.target === box || e.target.id === 'wb-rev-close') { box.remove(); return; }
                 var b = e.target.closest('[data-restore]'); if (!b) return;
+                if (!confirm('¿Restaurar esta versión? Se REEMPLAZARÁ el contenido actual de la página. (Se guarda automáticamente una versión "Antes de restaurar" por si quieres volver).')) return;
                 api('/api/v1/admin/builder/revisions/' + b.getAttribute('data-restore') + '/restore', { method: 'POST' }).then(function (res) {
                     if (res.ok) { toast('Restaurada ✓ recargando…'); setTimeout(function () { location.reload(); }, 800); }
                     else toast(res.message || 'Error');
