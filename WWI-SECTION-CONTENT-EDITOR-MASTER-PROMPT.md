@@ -77,7 +77,7 @@
 ## 4. FASES
 - **Fase A (este entregable)**: pestañas por grupo + repeater visual + navegación anterior/siguiente + autosave con estado + guard de salida.
 - **Fase B (hecha)**: rich text con barra de formato (negrita/cursiva/subrayado/listas/enlace) a nivel de campo **y en subcampos de repeater** (FAQ), saneado cliente (`W.sanitizeRich`) y servidor (`LiveEditorService::sanitizeRichHtml`); campo **imagen** (URL + vista previa + Biblioteca de Media + alt opcional) y campo **enlace** (URL + selector de páginas internas); **validación tipada** en vivo (URL/color/número con mín-máx) que bloquea el guardado; **restaurar valor por defecto** por campo (`↺`).
-- **Fase C**: responsive por breakpoint, campos condicionales, accesibilidad/SEO por sección.
+- **Fase C (hecha)**: **campos condicionales** (`showIf` con `equals`/`not`/`in`/`notEmpty`; p. ej. `showcase_ms` solo si `show_showcase=1`), **visibilidad por dispositivo** a nivel de sección (`_hide_desktop/_hide_tablet/_hide_mobile` en la pestaña Avanzado; el builder ya la soporta por bloque con `visibility` JSON + clases `wwi-hide-*`), **accesibilidad/SEO**: `alt` obligatorio en campos de imagen y **aviso de H1 único** por página. Nota: en páginas convertidas a builder, el tema renderiza por filas (no por el loop de secciones), por lo que la visibilidad se gestiona por **bloque** en el builder.
 - **Fase D**: IA inline (mejorar/traducir/rellenar), presets, patrones reutilizables, historial por campo.
 
 ## 5. CONTRATO TÉCNICO

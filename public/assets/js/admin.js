@@ -215,6 +215,7 @@ W.secEditorCss=function(){
         +'.w-lib-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:8px}'
         +'.w-lib-item{padding:0;border:1px solid var(--w-border);border-radius:6px;overflow:hidden;cursor:pointer;background:none;aspect-ratio:1}'
         +'.w-lib-item:hover{border-color:var(--w-primary)}.w-lib-item img{width:100%;height:100%;object-fit:cover;display:block}'
+        +'.sec-a11y{margin:12px 0;padding:10px 12px;border:1px solid rgba(245,158,11,.4);background:rgba(245,158,11,.08);border-radius:8px;font-size:12px;color:#b45309}'
         +'</style>';
 };
 
@@ -267,27 +268,74 @@ W.renderSectionEditor=async function(id){
     html+='<div class="w-form-group" data-fgroup="content"><label class="w-label">Título de la sección</label><input class="w-input" id="es-title" value="'+W.esc(s.title||'')+'" maxlength="200"></div>';
     html+='<div class="w-form-group" data-fgroup="content"><label class="w-label">Subtítulo / descripción</label><textarea class="w-textarea" id="es-subtitle">'+W.esc(s.subtitle||'')+'</textarea></div>';
     html+='<div class="w-form-group" data-fgroup="advanced"><label class="w-label" style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="es-active" '+(s.is_active?'checked':'')+' style="width:auto"/> Visible en el sitio</label></div>';
+    html+='<div class="w-form-group" data-fgroup="advanced"><label class="w-label">Visibilidad por dispositivo</label><div class="w-flex" style="flex-wrap:wrap;gap:16px">'
+        +'<label style="display:flex;align-items:center;gap:6px;font-size:12px"><input type="checkbox" id="secf-_hide_desktop" style="width:auto" '+(config._hide_desktop?'checked':'')+'/> Ocultar en escritorio</label>'
+        +'<label style="display:flex;align-items:center;gap:6px;font-size:12px"><input type="checkbox" id="secf-_hide_tablet" style="width:auto" '+(config._hide_tablet?'checked':'')+'/> Ocultar en tablet</label>'
+        +'<label style="display:flex;align-items:center;gap:6px;font-size:12px"><input type="checkbox" id="secf-_hide_mobile" style="width:auto" '+(config._hide_mobile?'checked':'')+'/> Ocultar en móvil</label>'
+        +'</div></div>';
     if(W.state.editSchema){
         html+='<div class="schema-fields" id="sec-schema-fields">'+W.renderSchemaFields(W.state.editSchema,config)+'</div>';
     }else{
         html+='<div class="w-form-group" data-fgroup="content"><label class="w-label">Contenido (HTML)</label><textarea class="w-textarea" id="es-content" style="min-height:220px;font-family:monospace">'+W.esc(s.content||'')+'</textarea></div>';
     }
     html+='</div>';
+    html+='<div id="sec-a11y" class="sec-a11y" style="display:none"></div>';
     html+='<div class="sec-foot"><span id="sec-status" class="sec-status">Listo</span><span class="w-flex w-gap-sm"><button class="w-btn w-btn-secondary" onclick="wontia.exitSectionEditor()">Volver</button><button class="w-btn w-btn-primary" onclick="wontia.saveSectionEditor()">Guardar</button></span></div>';
     html+='</div>';
     app.innerHTML=html;
 
+    W.state._secList=sections;W.state._curSecId=s.id;
     if(W.state.editSchema)W.repInit(W.state.editSchema);
     W.secTab('content');
     W.initAutosave();
     if(W.secLinkInit)W.secLinkInit();
+    W.updateA11y();
     var t=document.getElementById('es-title');if(t)t.focus();
 };
 
+W.fieldValue=function(key){
+    var el=document.getElementById('secf-'+key);if(!el)return '';
+    if(el.type==='checkbox')return el.checked?1:0;
+    if(el.getAttribute('contenteditable')==='true')return W.sanitizeRich(el.innerHTML||'');
+    if(el.type==='color'){var tx=document.getElementById('secf-'+key+'-txt');return tx?tx.value:el.value}
+    return el.value;
+};
+W.condOk=function(el){
+    var raw=el.getAttribute('data-showif');if(!raw)return true;
+    var c;try{c=JSON.parse(raw)}catch(e){return true}
+    var v=W.fieldValue(c.key);
+    if(c.equals!==undefined)return String(v)===String(c.equals);
+    if(c.not!==undefined)return String(v)!==String(c.not);
+    if(c.in!==undefined&&Array.isArray(c.in))return c.in.map(String).indexOf(String(v))>-1;
+    if(c.notEmpty)return String(v).trim()!=='';
+    return true;
+};
+W.refreshFieldVisibility=function(){
+    var tab=W.state.secTab||'content';
+    document.querySelectorAll('#sec-fields [data-fgroup]').forEach(function(el){
+        var g=(el.getAttribute('data-fgroup')===tab);
+        el.style.display=(g&&W.condOk(el))?'':'none';
+    });
+};
 W.secTab=function(tab){
     W.state.secTab=tab;
     document.querySelectorAll('#sec-tabs .sec-tab').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-tab')===tab)});
-    document.querySelectorAll('#sec-fields [data-fgroup]').forEach(function(el){el.style.display=(el.getAttribute('data-fgroup')===tab)?'':'none'});
+    W.refreshFieldVisibility();
+};
+W.updateA11y=function(){
+    var note=document.getElementById('sec-a11y');if(!note)return;
+    var hasTag=(W.state.editSchema||[]).some(function(f){return f.key==='title_tag'});
+    if(!hasTag){note.style.display='none';return}
+    var myTag=W.fieldValue('title_tag')||'h1';
+    var others=[];
+    (W.state._secList||[]).forEach(function(x){
+        if(String(x.id)===String(W.state._curSecId))return;
+        var c={};try{c=JSON.parse(x.config||'{}')||{}}catch(e){}
+        var tag=c.title_tag||((String(x.widget_type||'').indexOf('hero')>-1)?'h1':'');
+        if(String(myTag)==='h1'&&tag==='h1')others.push(x.title||x.widget_type||('#'+x.id));
+    });
+    if(String(myTag)==='h1'&&others.length){note.style.display='block';note.innerHTML='⚠ Hay '+others.length+' sección(es) más con H1 en esta página ('+others.map(W.esc).join(', ')+'). Para SEO conviene un solo H1.';}
+    else{note.style.display='none';note.innerHTML=''}
 };
 
 W.setStatus=function(txt,cls){var el=document.getElementById('sec-status');if(!el)return;el.textContent=txt;el.className='sec-status'+(cls?' '+cls:'')};
@@ -301,7 +349,7 @@ W.markDirty=function(){
 W.initAutosave=function(){
     var box=document.getElementById('sec-fields');if(!box)return;
     W._dirty=false;W.setStatus('Listo');
-    var on=function(e){if(e&&e.target&&e.target.id==='sec-status')return;W.markDirty()};
+    var on=function(e){if(e&&e.target&&e.target.id==='sec-status')return;W.markDirty();if(W.refreshFieldVisibility)W.refreshFieldVisibility();if(W.updateA11y)W.updateA11y()};
     box.addEventListener('input',on);
     box.addEventListener('change',on);
     box.addEventListener('blur',function(){W.validateFields()},true);
@@ -324,6 +372,9 @@ W.saveSectionEditor=async function(silent){
     var data={title:W.val('es-title'),subtitle:W.val('es-subtitle'),is_active:activeEl&&activeEl.checked?1:0};
     if(W.state.editSchema)data.config=W.collectSchemaFields(W.state.editSchema);
     else data.content=W.val('es-content');
+    var dev={};
+    ['_hide_desktop','_hide_tablet','_hide_mobile'].forEach(function(k){var cb=document.getElementById('secf-'+k);if(cb&&cb.checked)dev[k]=1});
+    if(data.config||Object.keys(dev).length)data.config=Object.assign({},data.config||{},dev);
     var r=null;try{r=await W.api('/api/v1/admin/sections/'+id,{method:'PUT',body:data})}catch(e){r=null}
     W._saving=false;
     if(r&&r.ok){
@@ -480,7 +531,12 @@ W.renderSchemaFields=function(schema,values){
         var lbl='<label class="w-label">'+W.esc(f.label||f.key)+(f.hint?' <span style="font-size:9px;font-weight:400;color:var(--w-muted)">'+W.esc(f.hint)+'</span>':'');
         if(f.default!==undefined)lbl+='<button type="button" class="w-field-reset" title="Restaurar valor por defecto" onclick="wontia.fieldReset(\''+W.esc(f.key)+'\')">↺</button>';
         lbl+='</label>';
-        return '<div class="w-form-group" data-field="'+W.esc(f.key)+'" data-fgroup="'+W.fieldGroup(f)+'">'+lbl+inner+'<span class="w-field-err" id="secf-'+W.esc(f.key)+'-err"></span></div>';
+        var si=f.showIf?' data-showif="'+W.esc(JSON.stringify(f.showIf))+'"':'';
+        return '<div class="w-form-group" data-field="'+W.esc(f.key)+'" data-fgroup="'+W.fieldGroup(f)+'"'+si+'>'+lbl+inner+'<span class="w-field-err" id="secf-'+W.esc(f.key)+'-err"></span></div>';
+    }
+    function head(f){
+        var si=f.showIf?' data-showif="'+W.esc(JSON.stringify(f.showIf))+'"':'';
+        return '<div class="sec-fhead" data-fgroup="'+W.fieldGroup(f)+'"'+si+' style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--w-muted);font-weight:700;margin:20px 0 6px;padding-top:12px;border-top:1px solid var(--w-border)">'+W.esc(f.label)+'</div>';
     }
     function selectHtml(f,v){
         var opts=f.options||{};
@@ -493,7 +549,7 @@ W.renderSchemaFields=function(schema,values){
         var v=(values[f.key]!==undefined&&values[f.key]!==null&&values[f.key]!=='')?values[f.key]:(f.default!==undefined?f.default:'');
         var vid='secf-'+W.esc(f.key);
         var t=f.type||'text';
-        if(t==='heading'){html+='<div class="sec-fhead" data-fgroup="'+W.fieldGroup(f)+'" style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--w-muted);font-weight:700;margin:20px 0 6px;padding-top:12px;border-top:1px solid var(--w-border)">'+W.esc(f.label)+'</div>';return}
+        if(t==='heading'){html+=head(f);return}
         if(t==='text'||t==='url')html+=group(f,'<input class="w-input" data-vtype="'+t+'" id="'+vid+'" value="'+W.esc(v)+'"/>');
         else if(t==='textarea')html+=group(f,'<textarea class="w-textarea" data-vtype="textarea" id="'+vid+'" style="min-height:90px">'+W.esc(v)+'</textarea>');
         else if(t==='richtext')html+=group(f,W.renderRichField(f,v));
@@ -634,6 +690,10 @@ W.validateFields=function(){
             if(nv!==''&&isNaN(Number(nv)))msg='Debe ser un número';
             else if(nv!==''&&f.min!==undefined&&Number(nv)<f.min)msg='Mínimo '+f.min;
             else if(nv!==''&&f.max!==undefined&&Number(nv)>f.max)msg='Máximo '+f.max;
+        }else if(t==='image'){
+            var iv=el?String(el.value).trim():'';
+            var alt=document.getElementById('secf-'+key+'-alt');
+            if(f.alt&&iv&&alt&&alt.value.trim()==='')msg='Añade un texto alternativo (alt)';
         }
         W.fieldError(key,msg);
         if(msg)ok=false;

@@ -39,7 +39,7 @@ class WwiHeroWidget extends Widget
             ['key' => 'mock_url', 'label' => 'URL del mockup', 'type' => 'text', 'default' => 'tunegocio.com'],
             ['key' => 'show_demo', 'label' => 'Mostrar demo interactiva (1/0)', 'type' => 'text', 'group' => 'advanced', 'default' => '1'],
             ['key' => 'show_showcase', 'label' => 'Mostrar escaparate de sitios (1/0)', 'type' => 'text', 'group' => 'advanced', 'default' => '1'],
-            ['key' => 'showcase_ms', 'label' => 'Rotacion del escaparate ms (0 = off)', 'type' => 'text', 'group' => 'advanced', 'default' => '6000'],
+            ['key' => 'showcase_ms', 'label' => 'Rotacion del escaparate ms (0 = off)', 'type' => 'text', 'group' => 'advanced', 'showIf' => ['key' => 'show_showcase', 'equals' => '1'], 'default' => '6000'],
             ['key' => 'stats', 'label' => 'Estadísticas', 'type' => 'repeater', 'fields' => [
                 ['key' => 'value', 'label' => 'Valor', 'type' => 'text'],
                 ['key' => 'label', 'label' => 'Etiqueta', 'type' => 'text'],

@@ -275,6 +275,7 @@ main{position:relative;z-index:1}
 }
 @media(max-width:720px){.wwi-hide-mobile{display:none!important}}
 @media(min-width:721px) and (max-width:1100px){.wwi-hide-tablet{display:none!important}}
+@media(min-width:1101px){.wwi-hide-desktop{display:none!important}}
 </style>
 
 </head>
@@ -352,7 +353,7 @@ foreach ($sections as $section):
     $config = json_decode($section['config'] ?? '{}', true) ?: [];
     $wwiVariant = isset($wwiAb[$wwiSid]) ? (int)$wwiAb[$wwiSid]['variant_id'] : 0;
     if ($wwiVariant) $config = array_merge($config, $wwiAb[$wwiSid]['config']);
-    $wwiHide = (!empty($config['_hide_mobile']) ? ' wwi-hide-mobile' : '') . (!empty($config['_hide_tablet']) ? ' wwi-hide-tablet' : '');
+    $wwiHide = (!empty($config['_hide_mobile']) ? ' wwi-hide-mobile' : '') . (!empty($config['_hide_tablet']) ? ' wwi-hide-tablet' : '') . (!empty($config['_hide_desktop']) ? ' wwi-hide-desktop' : '');
     $wwiIsHero = !$wwiHeroDone && !empty($section['widget_type']) && stripos((string)$section['widget_type'], 'hero') !== false;
     if ($wwiIsHero) $wwiHeroDone = true;
     $wwiIsWwiHero = $wwiIsHero && (string)($section['widget_type'] ?? '') === 'wwi-hero';

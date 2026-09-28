@@ -133,6 +133,9 @@ section{position:relative}
 @keyframes sp{to{transform:rotate(360deg)}}
 @media(max-width:1100px){.wwi-grid-3{grid-template-columns:repeat(2,1fr)}.w-footer .cols{grid-template-columns:1fr}}
 @media(max-width:720px){.wwi-grid-3,.wwi-grid-2{grid-template-columns:1fr}.w-nav-links{display:none}.h-sec h2{font-size:23px}}
+@media(max-width:720px){.wwi-hide-mobile{display:none!important}}
+@media(min-width:721px) and (max-width:1100px){.wwi-hide-tablet{display:none!important}}
+@media(min-width:1101px){.wwi-hide-desktop{display:none!important}}
 </style>
 </head>
 <body>
@@ -171,7 +174,7 @@ foreach ($sections as $section):
     $config = json_decode($section['config'] ?? '{}', true) ?: [];
     $wwiVariant = isset($wwiAb[$wwiSid]) ? (int)$wwiAb[$wwiSid]['variant_id'] : 0;
     if ($wwiVariant) $config = array_merge($config, $wwiAb[$wwiSid]['config']);
-    $wwiHide = (!empty($config['_hide_mobile']) ? ' wwi-hide-mobile' : '') . (!empty($config['_hide_tablet']) ? ' wwi-hide-tablet' : '');
+    $wwiHide = (!empty($config['_hide_mobile']) ? ' wwi-hide-mobile' : '') . (!empty($config['_hide_tablet']) ? ' wwi-hide-tablet' : '') . (!empty($config['_hide_desktop']) ? ' wwi-hide-desktop' : '');
     echo '<div class="wwi-section' . $wwiHide . '" data-sid="' . $wwiSid . '" data-widget="' . htmlspecialchars((string)($section['widget_type'] ?? '')) . '"' . ($wwiVariant ? ' data-variant="' . $wwiVariant . '"' : '') . '>';
     if (!empty($section['widget_type']) && WidgetRegistry::get($section['widget_type'])):
         echo WidgetRegistry::render($section['widget_type'], $config);
