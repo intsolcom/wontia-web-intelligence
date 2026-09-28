@@ -216,6 +216,12 @@ W.secEditorCss=function(){
         +'.w-lib-item{padding:0;border:1px solid var(--w-border);border-radius:6px;overflow:hidden;cursor:pointer;background:none;aspect-ratio:1}'
         +'.w-lib-item:hover{border-color:var(--w-primary)}.w-lib-item img{width:100%;height:100%;object-fit:cover;display:block}'
         +'.sec-a11y{margin:12px 0;padding:10px 12px;border:1px solid rgba(245,158,11,.4);background:rgba(245,158,11,.08);border-radius:8px;font-size:12px;color:#b45309}'
+        +'.w-field-ai{margin-left:8px;background:none;border:1px solid rgba(124,60,255,.45);color:var(--w-primary);cursor:pointer;font-size:11px;font-weight:600;padding:1px 8px;border-radius:999px}'
+        +'.w-field-ai:hover{background:rgba(124,60,255,.1)}'
+        +'.w-ai-menu{position:fixed;z-index:100010;min-width:214px;background:var(--w-surface);border:1px solid var(--w-border);border-radius:10px;box-shadow:0 18px 50px rgba(0,0,0,.35);padding:6px;display:flex;flex-direction:column}'
+        +'.w-ai-menu-h{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--w-muted);font-weight:700;padding:6px 8px 4px}'
+        +'.w-ai-menu button{text-align:left;background:none;border:none;padding:8px 10px;border-radius:6px;cursor:pointer;color:var(--w-text);font-size:12.5px}'
+        +'.w-ai-menu button:hover{background:var(--w-bg)}'
         +'</style>';
 };
 
@@ -529,6 +535,7 @@ W.renderSchemaFields=function(schema,values){
     var html='';
     function group(f,inner){
         var lbl='<label class="w-label">'+W.esc(f.label||f.key)+(f.hint?' <span style="font-size:9px;font-weight:400;color:var(--w-muted)">'+W.esc(f.hint)+'</span>':'');
+        if(['text','textarea','richtext','url'].indexOf(f.type||'text')>-1)lbl+='<button type="button" class="w-field-ai" title="Asistente IA" onclick="wontia.aiMenu(\''+W.esc(f.key)+'\',this)">✨ IA</button>';
         if(f.default!==undefined)lbl+='<button type="button" class="w-field-reset" title="Restaurar valor por defecto" onclick="wontia.fieldReset(\''+W.esc(f.key)+'\')">↺</button>';
         lbl+='</label>';
         var si=f.showIf?' data-showif="'+W.esc(JSON.stringify(f.showIf))+'"':'';
@@ -714,6 +721,73 @@ W.fieldReset=function(key){
     if(W.markDirty)W.markDirty();
 };
 
+W.aiModes={
+    improve:'Mejora la redacción: más clara, natural y persuasiva. Mantén el idioma y una longitud similar.',
+    shorten:'Acorta el texto conservando el mensaje clave.',
+    expand:'Amplía el texto con más detalle y valor, sin inventar datos ni cifras.',
+    formal:'Reescribe con un tono formal y profesional.',
+    friendly:'Reescribe con un tono cercano, humano y amable.',
+    en:'Traduce el texto al inglés.',
+    es:'Traduce el texto al español.',
+    ab:'Propón una variante alternativa (A/B) con un enfoque distinto pero equivalente.'
+};
+W.aiClose=function(){var m=document.getElementById('w-ai-menu');if(m)m.remove()};
+W.aiMenu=function(key,btn){
+    W.aiClose();
+    var modes=[['improve','✨ Mejorar'],['shorten','✂️ Acortar'],['expand','➕ Ampliar'],['formal','👔 Tono formal'],['friendly','🙂 Tono cercano'],['en','🇬🇧 Traducir a inglés'],['es','🇪🇸 Traducir a español'],['ab','🔀 Variante A/B']];
+    var m=document.createElement('div');m.id='w-ai-menu';m.className='w-ai-menu';
+    m.innerHTML='<div class="w-ai-menu-h">Asistente IA</div>'+modes.map(function(x){return '<button type="button" onclick="wontia.aiRun(\''+W.esc(key)+'\',\''+x[0]+'\')">'+x[1]+'</button>'}).join('');
+    document.body.appendChild(m);
+    var r=btn.getBoundingClientRect();
+    m.style.left=Math.max(8,Math.min(window.innerWidth-230,r.left-120))+'px';
+    m.style.top=(r.bottom+6)+'px';
+    setTimeout(function(){document.addEventListener('click',W.aiClose,{once:true})},0);
+};
+W.aiRun=async function(key,mode){
+    W.aiClose();
+    var el=document.getElementById('secf-'+key);if(!el)return;
+    var isRt=el.getAttribute('contenteditable')==='true';
+    var text=(isRt?el.innerText:el.value)||'';
+    if(!text.trim()){W.notify('El campo está vacío','error');return}
+    W.setStatus('IA redactando…','saving');
+    try{
+        var d=await W.api('/api/v1/admin/brick/request',{method:'POST',body:{
+            system_id:'wontia',module:'agent',function:'rewrite',
+            system_prompt:'Eres TIA, redactora de sitios web de Wontia. Devuelve SOLO el texto resultante, sin comillas, sin markdown y sin explicaciones.',
+            messages:[{role:'user',content:(W.aiModes[mode]||W.aiModes.improve)+'\n\nTexto:\n'+text}],
+            max_tokens:900,temperature:0.6
+        }});
+        var out=String(((d&&d.data&&d.data.content)||'')).trim();
+        if(!out){W.notify('La IA no devolvió texto','error');W.setStatus('Error','error');return}
+        if(isRt)el.innerHTML=W.sanitizeRich(out);else el.value=out;
+        if(W.markDirty)W.markDirty();
+        W.notify('Texto actualizado por IA','success');
+    }catch(e){W.notify('Error al consultar la IA','error');W.setStatus('Error','error')}
+};
+W.repAiFill=function(key){
+    var f=W._repSchema[key];if(!f)return;
+    var hint=window.prompt('¿Qué quieres generar? (ej: 6 preguntas frecuentes para un restaurante)','');
+    if(!hint)return;
+    var keys=(f.fields||[]).map(function(x){return x.key});
+    W.repCollect(key);
+    W.setStatus('IA generando…','saving');
+    W.api('/api/v1/admin/brick/request',{method:'POST',body:{
+        system_id:'wontia',module:'agent',function:'repeater',
+        system_prompt:'Eres TIA, generadora de contenido de Wontia. Respondes SOLO con JSON válido.',
+        messages:[{role:'user',content:'Genera items para una lista. Responde SOLO JSON con este formato: {"items":[{' + keys.map(function(k){return '"'+k+'":"..."'}).join(',') + '}]} (3 a 6 items). Petición: '+hint}],
+        max_tokens:1200,temperature:0.6
+    }}).then(function(d){
+        var raw=String(((d&&d.data&&d.data.content)||''));
+        var arr=null;
+        try{arr=JSON.parse(raw).items}catch(e){}
+        if(!arr){var cl=raw.replace(/^```(json)?/m,'').replace(/```$/m,'');try{arr=JSON.parse(cl).items}catch(e){}}
+        if(!Array.isArray(arr)||!arr.length){W.notify('La IA no devolvió items válidos','error');W.setStatus('Error','error');return}
+        arr.forEach(function(it){if(it&&typeof it==='object')W._rep[key].push(it)});
+        W.repRefresh(key);if(W.markDirty)W.markDirty();
+        W.notify('Items añadidos por IA','success');
+    }).catch(function(){W.notify('Error al consultar la IA','error');W.setStatus('Error','error')});
+};
+
 W.renderRepeaterField=function(f,items){
     var key=f.key;
     W._rep=W._rep||{};W._repSchema=W._repSchema||{};
@@ -721,7 +795,8 @@ W.renderRepeaterField=function(f,items){
     W._rep[key]=(Array.isArray(items)?items:[]).map(function(it){return (it&&typeof it==='object')?it:{}});
     return '<div class="w-rep" data-rep="'+W.esc(key)+'">'
         +'<div class="w-rep-items" id="rep-items-'+W.esc(key)+'"></div>'
-        +'<div class="w-flex w-gap-sm" style="margin-top:8px"><button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.repAdd(\''+W.esc(key)+'\')">+ Añadir</button>'
+        +'<div class="w-flex w-gap-sm" style="margin-top:8px;flex-wrap:wrap"><button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.repAdd(\''+W.esc(key)+'\')">+ Añadir</button>'
+        +'<button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.repAiFill(\''+W.esc(key)+'\')">✨ Rellenar con IA</button>'
         +'<button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.repReset(\''+W.esc(key)+'\')">Restaurar</button></div>'
         +'<textarea id="secf-'+W.esc(key)+'" style="display:none">'+W.esc(JSON.stringify(W._rep[key]))+'</textarea>'
         +'</div>';
