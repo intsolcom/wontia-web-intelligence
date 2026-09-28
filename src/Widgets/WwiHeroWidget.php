@@ -21,12 +21,14 @@ class WwiHeroWidget extends Widget
             ['key' => 'chips', 'label' => 'Chips de ejemplo', 'type' => 'repeater', 'fields' => [
                 ['key' => 'label', 'label' => 'Etiqueta', 'type' => 'text'],
                 ['key' => 'prompt', 'label' => 'Prompt', 'type' => 'text'],
-                ['key' => 'mock', 'label' => 'Mockup (restaurant/law/shop/fitness/tech)', 'type' => 'text'],
+                ['key' => 'mock', 'label' => 'Sector (architect/restaurant/vet/agency/tech/fashion)', 'type' => 'text'],
             ], 'default' => [
-                ['label' => 'Restaurante', 'prompt' => 'Tengo un restaurante y quiero mostrar el menú y recibir reservas', 'mock' => 'restaurant'],
-                ['label' => 'Abogado', 'prompt' => 'Soy abogado y quiero ofrecer consultas en línea', 'mock' => 'law'],
-                ['label' => 'Tienda', 'prompt' => 'Tengo una tienda y quiero vender mis productos online', 'mock' => 'shop'],
-                ['label' => 'Gimnasio', 'prompt' => 'Tengo un gimnasio y quiero mostrar planes y horarios', 'mock' => 'fitness'],
+                ['label' => 'Arquitecto', 'prompt' => 'Soy arquitecto y quiero mostrar mis proyectos y trayectoria', 'mock' => 'architect'],
+                ['label' => 'Restaurante', 'prompt' => 'Tengo un restaurante y quiero mostrar el menu y recibir reservas', 'mock' => 'restaurant'],
+                ['label' => 'Veterinario', 'prompt' => 'Tengo una clinica veterinaria y quiero mostrar servicios y agendar citas', 'mock' => 'vet'],
+                ['label' => 'Agencia', 'prompt' => 'Tengo una agencia y quiero mostrar servicios, casos y clientes', 'mock' => 'agency'],
+                ['label' => 'Tienda', 'prompt' => 'Tengo una tienda y quiero vender mis productos online', 'mock' => 'tech'],
+                ['label' => 'Gimnasio', 'prompt' => 'Tengo un gimnasio y quiero mostrar planes y horarios', 'mock' => 'fashion'],
             ]],
             ['key' => 'cta_primary', 'label' => 'CTA Principal', 'type' => 'text', 'inline' => true, 'default' => 'Empezar ahora'],
             ['key' => 'cta_primary_url', 'label' => 'CTA URL', 'type' => 'link', 'default' => '#empezar'],
@@ -35,7 +37,9 @@ class WwiHeroWidget extends Widget
             ['key' => 'price_note', 'label' => 'Texto de precio', 'type' => 'text', 'inline' => true, 'default' => 'desde $299.000 COP · pago único · dominio el primer año'],
             ['key' => 'social_text', 'label' => 'Prueba social', 'type' => 'text', 'default' => '★ 4.9 · Negocios en 12 países'],
             ['key' => 'mock_url', 'label' => 'URL del mockup', 'type' => 'text', 'default' => 'tunegocio.com'],
-            ['key' => 'show_demo', 'label' => 'Mostrar demo interactiva (1/0)', 'type' => 'text', 'default' => '1'],
+            ['key' => 'show_demo', 'label' => 'Mostrar demo interactiva (1/0)', 'type' => 'text', 'group' => 'advanced', 'default' => '1'],
+            ['key' => 'show_showcase', 'label' => 'Mostrar escaparate de sitios (1/0)', 'type' => 'text', 'group' => 'advanced', 'default' => '1'],
+            ['key' => 'showcase_ms', 'label' => 'Rotacion del escaparate ms (0 = off)', 'type' => 'text', 'group' => 'advanced', 'default' => '6000'],
             ['key' => 'stats', 'label' => 'Estadísticas', 'type' => 'repeater', 'fields' => [
                 ['key' => 'value', 'label' => 'Valor', 'type' => 'text'],
                 ['key' => 'label', 'label' => 'Etiqueta', 'type' => 'text'],
@@ -61,6 +65,20 @@ class WwiHeroWidget extends Widget
                 ['text' => 'Sin programador'],
             ]],
             ['key' => 'sector_icon', 'label' => 'Ícono de la cinta', 'type' => 'text', 'inline' => true, 'default' => '◆'],
+            ['key' => '_h_layout', 'label' => 'Distribución', 'type' => 'heading', 'group' => 'design'],
+            ['key' => 'layout_mode', 'label' => 'Columnas', 'type' => 'select', 'group' => 'design', 'options' => ['2' => '2 columnas (texto + visual)', '1' => '1 columna (solo texto)'], 'default' => '2'],
+            ['key' => 'content_width', 'label' => 'Ancho del contenido', 'type' => 'range', 'group' => 'design', 'min' => 860, 'max' => 1560, 'step' => 20, 'default' => 1200],
+            ['key' => 'section_pad_top', 'label' => 'Espacio superior (px)', 'type' => 'range', 'group' => 'design', 'min' => 60, 'max' => 260, 'step' => 4, 'default' => 132],
+            ['key' => 'text_align', 'label' => 'Alineación del texto', 'type' => 'select', 'group' => 'design', 'options' => ['left' => 'Izquierda', 'center' => 'Centrado'], 'default' => 'left'],
+            ['key' => '_h_typo', 'label' => 'Tipografía', 'type' => 'heading', 'group' => 'design'],
+            ['key' => 'title_tag', 'label' => 'Etiqueta del título (H1-H4)', 'type' => 'hlevel', 'group' => 'design', 'default' => 'h1'],
+            ['key' => 'title_size', 'label' => 'Tamaño del título (px)', 'type' => 'range', 'group' => 'design', 'min' => 28, 'max' => 96, 'step' => 2, 'default' => 58],
+            ['key' => 'title_weight', 'label' => 'Grosor del título', 'type' => 'select', 'group' => 'design', 'options' => ['700' => 'Bold (700)', '800' => 'Extra bold (800)', '900' => 'Black (900)'], 'default' => '800'],
+            ['key' => 'subtitle_size', 'label' => 'Tamaño del subtítulo (px)', 'type' => 'range', 'group' => 'design', 'min' => 13, 'max' => 24, 'step' => 1, 'default' => 17],
+            ['key' => 'font_family', 'label' => 'Tipografía', 'type' => 'select', 'group' => 'design', 'options' => ['inter' => 'Inter (predeterminada)', 'system' => 'Sistema', 'serif' => 'Serif elegante', 'mono' => 'Monoespaciada'], 'default' => 'inter'],
+            ['key' => '_h_color', 'label' => 'Color', 'type' => 'heading', 'group' => 'design'],
+            ['key' => 'accent', 'label' => 'Color principal (vacío = tema)', 'type' => 'color', 'group' => 'design', 'default' => ''],
+            ['key' => 'accent2', 'label' => 'Color secundario (vacío = tema)', 'type' => 'color', 'group' => 'design', 'default' => ''],
         ];
     }
 
@@ -78,6 +96,47 @@ class WwiHeroWidget extends Widget
 .iqh-orb-b{width:460px;height:460px;right:-120px;top:-40px;background:radial-gradient(circle at 60% 40%,var(--accent2),transparent 62%);animation:iqhFloat 18s ease-in-out infinite reverse}
 .iqh-wrap{position:relative;z-index:2;max-width:1200px;margin:0 auto;padding:0 26px;display:grid;grid-template-columns:1.04fr .96fr;gap:58px;align-items:center}
 .iqh-wrap.iqh-solo{grid-template-columns:1fr;max-width:860px;gap:0}
+/* ── Escaparate de sitios (hero-showcase) ── */
+.iqs{position:relative}
+.iqs-frame{position:relative;border:1px solid var(--border2);border-radius:20px;background:#0b0b14;overflow:hidden;box-shadow:0 50px 120px rgba(0,0,0,.55),0 0 0 1px rgba(255,255,255,.03);transform:perspective(1600px) rotateY(-4deg) rotateX(1.5deg);transition:transform .5s cubic-bezier(.22,1,.36,1)}
+.iqs-frame:hover{transform:none}
+.iqs-bar{display:flex;align-items:center;gap:6px;padding:11px 14px;background:linear-gradient(#15151f,#101018);border-bottom:1px solid rgba(255,255,255,.07)}
+.iqs-bar i{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.16)}
+.iqs-bar i:nth-child(1){background:#ff5f57}.iqs-bar i:nth-child(2){background:#febc2e}.iqs-bar i:nth-child(3){background:#28c840}
+.iqs-url{margin-left:8px;flex:1;font-family:'JetBrains Mono',Consolas,monospace;font-size:10.5px;color:#9aa3b8;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:5px 11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.iqs-live{font:700 9px/1 'Inter',system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#c4b5fd;border:1px solid rgba(183,140,255,.35);border-radius:999px;padding:4px 9px;white-space:nowrap}
+.iqs-view{position:relative;aspect-ratio:16/10;overflow:hidden;background:#0d0d16}
+.iqs-site{position:absolute;inset:0;display:flex;flex-direction:column;opacity:1;transition:opacity .3s ease,transform .3s ease}
+.iqs-site.out{opacity:0;transform:scale(1.02)}
+.iqs-nav{display:flex;align-items:center;gap:14px;padding:9px 14px;background:rgba(10,10,18,.72);border-bottom:1px solid rgba(255,255,255,.06);backdrop-filter:blur(6px);position:relative;z-index:3}
+.iqs-nav b{font-size:11.5px;font-weight:800;color:#fff;letter-spacing:-.01em;white-space:nowrap}
+.iqs-nav span{display:flex;gap:11px;font-size:9.5px;color:rgba(255,255,255,.62);overflow:hidden}
+.iqs-nav span em{font-style:normal;white-space:nowrap}
+.iqs-nav .cta{margin-left:auto;font:700 9.5px/1 'Inter',system-ui,sans-serif;background:linear-gradient(135deg,#7c3cff,#b78cff);color:#fff;border-radius:8px;padding:6px 10px;white-space:nowrap}
+.iqs-hero{position:relative;flex:1;min-height:0;overflow:hidden}
+.iqs-hero img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.iqs-hero::after{content:'';position:absolute;inset:0;background:linear-gradient(to top,rgba(8,6,20,.94) 6%,rgba(8,6,20,.55) 52%,rgba(8,6,20,.28))}
+.iqs-copy{position:absolute;left:16px;right:16px;bottom:14px;z-index:2;color:#fff}
+.iqs-eyebrow{display:inline-block;font:700 8.5px/1 'Inter',system-ui,sans-serif;letter-spacing:.09em;text-transform:uppercase;color:#e9e2ff;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);border-radius:999px;padding:4px 9px;margin-bottom:7px;backdrop-filter:blur(4px)}
+.iqs-copy h3{margin:0 0 4px;font-size:clamp(15px,1.5vw,20px);font-weight:800;letter-spacing:-.02em;line-height:1.15}
+.iqs-copy p{margin:0 0 9px;font-size:10.5px;color:rgba(255,255,255,.82);max-width:330px;line-height:1.45}
+.iqs-copy .go{display:inline-block;font:700 9.5px/1 'Inter',system-ui,sans-serif;background:#fff;color:#12121c;border-radius:8px;padding:7px 11px;text-decoration:none}
+.iqs-stats{display:flex;gap:16px;padding:9px 14px;background:rgba(10,10,18,.9);border-top:1px solid rgba(255,255,255,.06)}
+.iqs-stats div{display:flex;flex-direction:column;gap:1px}
+.iqs-stats b{font-family:'JetBrains Mono',Consolas,monospace;font-size:12.5px;color:#fff}
+.iqs-stats span{font-size:8.5px;color:rgba(255,255,255,.55)}
+.iqs-tag{position:absolute;left:12px;bottom:12px;z-index:4;font:700 9px/1 'Inter',system-ui,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#fff;background:rgba(10,8,24,.8);border:1px solid rgba(183,140,255,.4);border-radius:999px;padding:5px 10px;backdrop-filter:blur(8px)}
+.iqs-thumbs{display:flex;gap:8px;margin-top:14px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+.iqs-thumbs::-webkit-scrollbar{display:none}
+.iqs-th{flex:0 0 auto;display:flex;align-items:center;gap:8px;border:1px solid var(--border);border-radius:12px;background:var(--panel);padding:6px 10px 6px 6px;cursor:pointer;font:inherit;color:var(--muted);transition:.18s;min-width:0}
+.iqs-th img{width:38px;height:28px;object-fit:cover;border-radius:7px;display:block;flex-shrink:0}
+.iqs-th span{font-size:10.5px;font-weight:600;white-space:nowrap}
+.iqs-th:hover{border-color:var(--accent2);color:var(--text);transform:translateY(-1px)}
+.iqs-th.on{border-color:var(--accent2);color:var(--text);background:linear-gradient(120deg,rgba(124,60,255,.18),rgba(84,190,255,.1));box-shadow:0 0 0 1px rgba(183,140,255,.35)}
+.iqs-th:focus-visible{outline:2px solid var(--accent2);outline-offset:2px}
+.iqs-note{margin:10px 2px 0;font-size:11px;color:var(--muted)}
+@media(max-width:1020px){.iqs-frame{transform:none}.iqs-view{aspect-ratio:16/11}}
+@media(prefers-reduced-motion:reduce){.iqs-frame{transform:none}.iqs-site{transition:none}}
 .iqh-eyebrow{display:inline-flex;align-items:center;gap:9px;padding:7px 15px;border:1px solid var(--border2);border-radius:999px;background:var(--panel);backdrop-filter:blur(10px);font-size:12px;font-weight:600;color:var(--muted);letter-spacing:.01em}
 .iqh-dot{width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 0 rgba(53,212,154,.55);animation:iqhPulse 2.2s infinite;flex-shrink:0}
 .iqh-title{font-size:clamp(34px,4.7vw,58px);line-height:1.05;letter-spacing:-.032em;font-weight:800;margin:18px 0 16px;max-width:620px;text-wrap:balance}
@@ -325,8 +384,98 @@ window.wwiHeroChip=function(el){
     document.querySelectorAll('.iqh-chip').forEach(function(c){c.classList.toggle('on',c===el)});
     var k=el.getAttribute('data-mock');
     if(k&&window.__iqbSetSector)window.__iqbSetSector(k);
+    if(k&&window.wwiShowcasePick)window.wwiShowcasePick(k);
     if(window.wwiHeroPrompt)wwiHeroPrompt();
 };
+(function(){
+    var root=document.getElementById('iqs');
+    if(!root||root.__init)return;root.__init=1;
+    var U='https://images.unsplash.com/photo-';
+    var SITES=[
+        {key:'architect',cat:'Arquitecto',label:'NOVA Arquitectura',url:'novaarquitectura.com',prompt:'Soy arquitecto y quiero mostrar mis proyectos y trayectoria',
+         img:U+'1600585154340-be6161a56a0c?w=1000&q=72',tag:'Estudio de arquitectura',
+         h1:'Arquitectura para una vida mejor',sub:'Diseñamos espacios funcionales, sostenibles y con propósito.',cta:'Agendar reunión',
+         stats:[['50+','Proyectos'],['10+','Años de experiencia'],['100%','Clientes satisfechos']]},
+        {key:'restaurant',cat:'Restaurante',label:'Sabor Local',url:'saborlocal.co',prompt:'Tengo un restaurante y quiero mostrar el menú y recibir reservas',
+         img:U+'1517248135467-4c7edcad34c4?w=1000&q=72',tag:'Cocina de autor',
+         h1:'El auténtico sabor de la casa',sub:'Masa madre, hornada diaria y café de origen.',cta:'Reservar mesa',
+         stats:[['4.9★','Valoración'],['12','Años'],['+8k','Clientes']]},
+        {key:'vet',cat:'Veterinario',label:'Patitas Felices',url:'patitasfelices.com',prompt:'Tengo una clínica veterinaria y quiero mostrar servicios y agendar citas',
+         img:U+'1601758228041-f3b2795255f1?w=1000&q=72',tag:'Clínica veterinaria',
+         h1:'Cuidamos a quien más quieres',sub:'Consultas, vacunación y urgencias con amor.',cta:'Agendar cita',
+         stats:[['+3k','Mascotas'],['24/7','Urgencias'],['15','Especialistas']]},
+        {key:'agency',cat:'Agencia',label:'Impulso Agency',url:'impulso.agency',prompt:'Tengo una agencia y quiero mostrar servicios, casos y clientes',
+         img:U+'1522071820081-009f0129c71c?w=1000&q=72',tag:'Agencia digital',
+         h1:'Marcas que crecen con estrategia',sub:'Marketing, diseño y datos en un solo equipo.',cta:'Hablemos',
+         stats:[['+120','Proyectos'],['6','Países'],['98%','Retención']]},
+        {key:'tech',cat:'Tecnología',label:'Nexo Tech',url:'nexotech.io',prompt:'Tengo una empresa de tecnología y quiero mostrar soluciones y casos',
+         img:U+'1518770660439-4636190af475?w=1000&q=72',tag:'Software a medida',
+         h1:'Software que impulsa tu negocio',sub:'Plataformas, integraciones e IA aplicada.',cta:'Solicitar demo',
+         stats:[['99.9%','Uptime'],['+40','Integraciones'],['24/7','Soporte']]},
+        {key:'fashion',cat:'Moda',label:'Lumen Moda',url:'lumenmoda.com',prompt:'Tengo una marca de moda y quiero vender mi colección online',
+         img:U+'1445205170230-053b83016050?w=1000&q=72',tag:'Nueva colección',
+         h1:'Estilo que se siente tuyo',sub:'Prendas atemporales, producción responsable.',cta:'Ver colección',
+         stats:[['+200','Referencias'],['48h','Envío'],['+5k','Clientes']]}
+    ];
+    var view=document.getElementById('iqs-view');
+    var urlEl=document.getElementById('iqs-url');
+    var thumbs=document.getElementById('iqs-thumbs');
+    var idx=0,timer=null,paused=false,interacted=false;
+    var calm=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var ms=parseInt(root.getAttribute('data-ms'))||6000;
+    function siteHtml(s){
+        return '<div class="iqs-site" data-key="'+s.key+'">'
+            +'<div class="iqs-nav"><b>'+s.label+'</b><span><em>Inicio</em><em>Servicios</em><em>Proyectos</em><em>Nosotros</em><em>Contacto</em></span><span class="cta">'+s.cta+'</span></div>'
+            +'<div class="iqs-hero"><img src="'+s.img+'" alt="'+s.h1+'" loading="'+(idx===0?'eager':'lazy')+'" decoding="async"/>'
+            +'<div class="iqs-copy"><span class="iqs-eyebrow">'+s.tag+'</span><h3>'+s.h1+'</h3><p>'+s.sub+'</p><span class="go">'+s.cta+'</span></div></div>'
+            +'<div class="iqs-stats">'+s.stats.map(function(st){return '<div><b>'+st[0]+'</b><span>'+st[1]+'</span></div>'}).join('')+'</div>'
+            +'</div>';
+    }
+    function renderThumbs(){
+        thumbs.innerHTML=SITES.map(function(s,i){
+            return '<button type="button" class="iqs-th'+(i===idx?' on':'')+'" role="tab" aria-selected="'+(i===idx?'true':'false')+'" data-i="'+i+'" data-key="'+s.key+'">'
+                +'<img src="'+s.img.replace('w=1000','w=200').replace('q=72','q=60')+'" alt="" loading="lazy" decoding="async"/>'
+                +'<span>'+s.cat+'</span></button>';
+        }).join('');
+    }
+    function apply(i,user){
+        idx=(i+SITES.length)%SITES.length;
+        var s=SITES[idx];
+        if(urlEl)urlEl.textContent=s.url;
+        var old=view.querySelector('.iqs-site');
+        var put=function(){view.innerHTML=siteHtml(s)};
+        if(old&&!calm){old.classList.add('out');setTimeout(put,260)}else{put()}
+        Array.prototype.forEach.call(thumbs.children,function(b,bi){b.classList.toggle('on',bi===idx);b.setAttribute('aria-selected',bi===idx?'true':'false')});
+        if(user){
+            interacted=true;
+            var inp=document.getElementById('iqh-prompt-input');
+            if(inp)inp.value=s.prompt;
+            document.querySelectorAll('.iqh-chip').forEach(function(c){
+                c.classList.toggle('on',(c.getAttribute('data-mock')||'')===s.key);
+            });
+        }
+        try{root.dispatchEvent(new CustomEvent('wwi:showcase',{detail:{key:s.key,index:idx}}))}catch(e){}
+    }
+    function tick(){if(!paused&&!calm&&ms>0)apply(idx+1,false)}
+    function start(){if(timer)clearInterval(timer);if(ms>0&&!calm)timer=setInterval(tick,ms)}
+    window.wwiShowcasePick=function(key){
+        for(var i=0;i<SITES.length;i++){if(SITES[i].key===key){apply(i,false);start();return}}
+    };
+    if(thumbs){
+        thumbs.addEventListener('click',function(e){
+            var b=e.target.closest('.iqs-th');if(!b)return;
+            apply(parseInt(b.getAttribute('data-i'),10),true);
+            start();
+        });
+    }
+    root.addEventListener('mouseenter',function(){paused=true});
+    root.addEventListener('mouseleave',function(){paused=false});
+    root.addEventListener('focusin',function(){paused=true});
+    root.addEventListener('focusout',function(){paused=false});
+    root.addEventListener('click',function(){paused=true});
+    document.addEventListener('visibilitychange',function(){paused=document.hidden});
+    renderThumbs();apply(0,false);start();
+})();
 (function(){
     var root=document.getElementById('iqb');
     if(!root||root.__init)return;root.__init=1;
@@ -794,6 +943,9 @@ HTML;
 
         $html = $this->assets();
         $showDemo = (string)($c['show_demo'] ?? '1') !== '0';
+        $layoutMode = (string)($c['layout_mode'] ?? '2') === '1' ? '1' : '2';
+        if ($layoutMode === '1') $showDemo = false;
+        $html .= '<style>' . $this->designCss($c) . '</style>';
         $html .= '<section class="iqh" id="iqh-hero">';
         $html .= '<div class="iqh-bg" aria-hidden="true"><div class="iqh-grid"></div><div class="iqh-orb iqh-orb-a"></div><div class="iqh-orb iqh-orb-b"></div></div>';
 
@@ -802,7 +954,8 @@ HTML;
         if ($c['badge']) {
             $html .= '<div class="iqh-eyebrow"><span class="iqh-dot"></span><span data-editable="badge">' . $this->esc($c['badge']) . '</span></div>';
         }
-        $html .= '<h1 class="iqh-title" data-editable="title">' . $t1 . ($t2 ? ' <span class="gradient-text">' . $t2 . '</span>' : '') . '</h1>';
+        $titleTag = in_array((string)($c['title_tag'] ?? 'h1'), ['h1', 'h2', 'h3', 'h4'], true) ? (string)$c['title_tag'] : 'h1';
+        $html .= '<' . $titleTag . ' class="iqh-title" data-editable="title">' . $t1 . ($t2 ? ' <span class="gradient-text">' . $t2 . '</span>' : '') . '</' . $titleTag . '>';
         $html .= '<p class="iqh-sub" data-editable="subtitle">' . $this->esc($c['subtitle']) . '</p>';
 
         $html .= '<form class="iqh-prompt" onsubmit="return wwiHeroPrompt(event)">';
@@ -853,6 +1006,18 @@ HTML;
             $html .= '<div class="iqh-badge iqh-badge-2">🌐 Dominio .com</div>';
             $html .= '<div class="iqh-badge iqh-badge-3">⚡ Online en 24h</div>';
             $html .= '</div>';
+        } elseif ((string)($c['show_showcase'] ?? '1') !== '0') {
+            $html .= '<div class="iqh-visual">';
+            $html .= '<div class="iqs" id="iqs" data-ms="' . (int)($c['showcase_ms'] ?? 6000) . '">';
+            $html .= '<div class="iqs-frame">';
+            $html .= '<div class="iqs-bar"><i></i><i></i><i></i><span class="iqs-url" id="iqs-url">novaarquitectura.com</span><span class="iqs-live">Vista previa</span></div>';
+            $html .= '<div class="iqs-view" id="iqs-view" role="img" aria-label="Ejemplo de sitio construido con TIA"></div>';
+            $html .= '<span class="iqs-tag">Ejemplo construido con TIA</span>';
+            $html .= '</div>';
+            $html .= '<div class="iqs-thumbs" id="iqs-thumbs" role="tablist" aria-label="Ejemplos por sector"></div>';
+            $html .= '<p class="iqs-note">Así podría verse tu negocio. Elige un sector y mira el resultado.</p>';
+            $html .= '</div>';
+            $html .= '</div>';
         }
         $html .= '</div>';
 
@@ -890,5 +1055,39 @@ HTML;
         $html .= '</section>';
         $html .= $this->js();
         return $html;
+    }
+
+    private function designCss(array $c): string
+    {
+        $fonts = [
+            'inter' => "'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif",
+            'system' => "system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif",
+            'serif' => "Georgia,'Times New Roman',serif",
+            'mono' => "ui-monospace,SFMono-Regular,Menlo,Consolas,monospace",
+        ];
+        $font = $fonts[(string)($c['font_family'] ?? 'inter')] ?? $fonts['inter'];
+
+        $css = '#iqh-hero{';
+        $accent = (string)($c['accent'] ?? '');
+        if (preg_match('/^#[0-9a-fA-F]{6}$/', $accent)) $css .= '--accent:' . $accent . ';';
+        $accent2 = (string)($c['accent2'] ?? '');
+        if (preg_match('/^#[0-9a-fA-F]{6}$/', $accent2)) $css .= '--accent2:' . $accent2 . ';';
+        $css .= 'padding-top:' . max(0, min(360, (int)($c['section_pad_top'] ?? 132))) . 'px;';
+        $css .= 'font-family:' . $font . '}';
+
+        $css .= '#iqh-hero .iqh-wrap{max-width:' . max(760, min(1800, (int)($c['content_width'] ?? 1200))) . 'px}';
+
+        $titleSize = max(20, min(140, (int)($c['title_size'] ?? 58)));
+        $titleWeight = in_array((string)($c['title_weight'] ?? '800'), ['400', '500', '600', '700', '800', '900'], true) ? (string)$c['title_weight'] : '800';
+        $css .= '#iqh-hero .iqh-title{font-size:clamp(26px,4.7vw,' . $titleSize . 'px);font-weight:' . $titleWeight . ';font-family:' . $font . '}';
+
+        $css .= '#iqh-hero .iqh-sub{font-size:' . max(12, min(32, (int)($c['subtitle_size'] ?? 17))) . 'px}';
+
+        if ((string)($c['text_align'] ?? 'left') === 'center') {
+            $css .= '#iqh-hero .iqh-copy{text-align:center}'
+                . '#iqh-hero .iqh-title,#iqh-hero .iqh-sub,#iqh-hero .iqh-prompt{margin-left:auto;margin-right:auto}'
+                . '#iqh-hero .iqh-chips,#iqh-hero .iqh-ctas,#iqh-hero .iqh-trust,#iqh-hero .iqh-social{justify-content:center}';
+        }
+        return $css;
     }
 }

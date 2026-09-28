@@ -803,10 +803,11 @@ async function wwiFlowSend(){
         wwiFlow.uuid=d.data.uuid;
         wwiFlow.createdAt=Date.now();
         wwiFlowAttempts();
-        var ok=false;
-        for(var i=0;i<40&&wwiFlowPolling;i++){
-            await new Promise(function(res){setTimeout(res,2500)});
+        var ok=false, checked=0;
+        for(var i=0;i<8&&wwiFlowPolling&&checked<20;i++){
+            await new Promise(function(res){setTimeout(res,1500)});
             if(!wwiFlowPolling)break;
+            checked++;
             var s=await fetch('/api/v1/public/previews/'+wwiFlow.uuid);
             var sd=await s.json();
             if(sd.data&&sd.data.status==='ready'){ok=true;break}
@@ -830,12 +831,11 @@ async function wwiFlowSend(){
             wwiFlowExpiryTick();
             if(wwiFlow.idx===0)wwiFlowGo(1);
             else wwiFlowChat('tia','Tu vista previa esta lista. Puedes verla en el Paso 2.');
-        }else if(wwiFlowPolling===false){
-            if(tr)tr.querySelector('.chat-msg').innerHTML='Generacion cancelada.';
         }else{
-            if(tr)tr.querySelector('.chat-msg').innerHTML='Esta tardando mas de lo normal. Puedes ver el preview o usar el catalogo.';
+            if(tr)tr.querySelector('.chat-msg').innerHTML='Esta tardando mas de lo normal. Se usará una plantilla rápida.';
             wwiFlowSetPvState('ready');
             wwiFlowGo(1);
+            wwiFlowUseTemplatePreview();
         }
     }catch(e){
         clearInterval(phTimer);wwiFlowPhasesHide();wwiFlowPolling=false;
@@ -882,6 +882,21 @@ function wwiFlowHidePreview(){
 function wwiFlowUsePreview(){
     wwiFlowHidePreview();
     wwiFlowGo(3);
+}
+async function wwiFlowUseTemplatePreview(){
+    try{
+        var r=await fetch('/api/v1/public/templates');
+        var d=await r.json();
+        var tpls=(d.data&&d.data.templates)||[];
+        if(tpls.length===0){wwiFlowChat('tia','No hay plantillas disponibles en este sitio.');return}
+        var tpl=tpls[0];
+        wwiFlowChat('tia','Usando plantilla '+tpl.name_es+' — vista previa instantánea.');
+        await wwiFlowTplPreview(tpl.slug);
+        // After tpl preview, the uuid is set; show it
+        if(wwiFlow.uuid)wwiFlowShowPreview(wwiFlow.uuid);
+    }catch(e){
+        wwiFlowChat('tia','Error cargando plantilla.');
+    }
 }
 function wwiFlowRegenerate(){
     wwiFlowHidePreview();

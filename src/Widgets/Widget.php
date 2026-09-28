@@ -22,6 +22,7 @@ abstract class Widget
         $schema = static::configSchema();
         $defaults = [];
         foreach ($schema as $field) {
+            if (($field['type'] ?? '') === 'heading' || empty($field['key'])) continue;
             $defaults[$field['key']] = $field['default'] ?? '';
         }
         return $defaults;

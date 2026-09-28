@@ -45,6 +45,7 @@ W.router=function(){
     if(panel==='brick'){window.location.replace(window.location.pathname+window.location.search+'#bricks/ia');return}
     if(panel==='factory'){var ftab=parts[1]||'inicio';if(ftab==='updates')ftab='system';window.location.replace(window.location.pathname+window.location.search+'#wwi/'+ftab);return}
     if(panel==='sections'){window.location.replace(window.location.pathname+window.location.search+'#pages/secciones'+(parts[1]?'/'+parts[1]:''));return}
+    if(panel.indexOf('section-edit-')===0){W.panels.sectionEditor(panel.replace('section-edit-',''));return}
     if(panel!=='bricks'){W.state.brickHost=null;W.state.bhHost=null}
     document.querySelectorAll('.w-nav-item').forEach(function(a){a.classList.toggle('active',a.dataset.panel===panel)});
     var title=document.getElementById('panel-title');
@@ -182,6 +183,143 @@ W.renderPageEditor=function(id){
         if(r.ok){W.notify('Saved','success');W.state.currentPage=r.data;if(!id){window.location.hash='#pages/secciones/'+r.data.id}}
     });
 };
+W.secEditorCss=function(){
+    if(document.getElementById('wwi-sec-css'))return '';
+    return '<style id="wwi-sec-css">'
+        +'.sec-tabs{display:flex;gap:4px;border-bottom:1px solid var(--w-border);margin:14px 0 16px}'
+        +'.sec-tab{background:none;border:none;border-bottom:2px solid transparent;padding:9px 14px;font:600 12.5px inherit;color:var(--w-muted);cursor:pointer}'
+        +'.sec-tab:hover{color:var(--w-text)}.sec-tab.on{color:var(--w-primary);border-bottom-color:var(--w-primary)}'
+        +'.sec-foot{position:sticky;bottom:0;display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:22px;padding:12px 0 2px;background:var(--w-surface);border-top:1px solid var(--w-border)}'
+        +'.sec-status{font-size:12px;color:var(--w-muted)}.sec-status.dirty{color:#f59e0b}.sec-status.saved{color:#16a34a}.sec-status.saving{color:var(--w-muted)}.sec-status.error{color:#ef4444}'
+        +'.w-rep{display:flex;flex-direction:column;gap:10px}'
+        +'.w-rep-card{border:1px solid var(--w-border);border-radius:10px;background:var(--w-bg);overflow:hidden}'
+        +'.w-rep-head{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--w-border);background:var(--w-surface)}'
+        +'.w-rep-head b{font-size:11px;color:var(--w-muted)}.w-rep-head .w-drag-handle{cursor:grab;color:var(--w-muted)}'
+        +'.w-rep-body{padding:10px;display:flex;flex-direction:column;gap:8px}'
+        +'.rep-lb{display:flex;flex-direction:column;gap:4px;font-size:11px;color:var(--w-muted)}'
+        +'</style>';
+};
+
+W.renderSectionEditor=async function(id){
+    var app=document.getElementById('wontia-app');
+    if(!id){app.innerHTML='<div class="w-empty-state"><h3>Sección no encontrada</h3></div>';return}
+    app.innerHTML='<div style="text-align:center;padding:60px;color:var(--w-muted)">Cargando sección…</div>';
+    var d;
+    try{d=await W.api('/api/v1/admin/sections/'+encodeURIComponent(id))}catch(e){d=null}
+    if(!d||!d.ok||!d.data){W.notify((d&&d.message)||'Sección no encontrada','error');W.router();return}
+    var s=d.data;
+    var pageId=s.page_id;
+    var pageTitle='';
+    var sections=[];
+    if(W.state.currentPage&&String(W.state.currentPage.id)===String(pageId)){pageTitle=W.state.currentPage.title||'';sections=W.state.currentPage.sections||[]}
+    if(!sections.length){try{var dl=await W.api('/api/v1/admin/pages/'+pageId+'/sections');if(dl&&dl.ok)sections=dl.data||[]}catch(e){}}
+    var pos=-1;sections.forEach(function(x,i){if(String(x.id)===String(s.id))pos=i});
+    var prev=pos>0?sections[pos-1]:null;
+    var next=(pos>=0&&pos<sections.length-1)?sections[pos+1]:null;
+
+    var widgetType=s.widget_type||'';
+    var config={};try{config=JSON.parse(s.config||'{}')||{}}catch(e){config={}}
+    var schema=[];
+    if(widgetType){try{var d2=await W.api('/api/v1/admin/bricks/'+encodeURIComponent(widgetType));schema=(d2.data&&d2.data.configSchema)||[]}catch(e){schema=[]}}
+    W.state.editSchema=schema.length?schema:null;
+    W.state.editConfig=config;
+
+    var groups={content:true,design:false,advanced:false};
+    schema.forEach(function(f){var g=W.fieldGroup(f);if(g==='design')groups.design=true;else if(g==='advanced')groups.advanced=true});
+
+    var html=W.secEditorCss()+'<div class="w-card">';
+    html+='<div class="w-flex-between w-mb" style="flex-wrap:wrap;gap:8px"><div>'
+        +'<div style="font-size:11px;color:var(--w-muted);margin-bottom:2px">Páginas › '+W.esc(pageTitle||('Página '+pageId))+' › Sección</div>'
+        +'<h3 style="margin:0">'+W.esc(W.sectionLabel(s))+'</h3>'
+        +'<span style="font-size:11px;color:var(--w-muted)">'+W.esc(widgetType||s.type||'')+' · '+(pos+1)+' de '+sections.length+'</span></div>'
+        +'<div class="w-flex w-gap-sm">'
+        +(prev?'<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.editSection('+prev.id+')" title="Anterior">← '+(prev.title?W.esc(prev.title):'Anterior')+'</button>':'')
+        +(next?'<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.editSection('+next.id+')" title="Siguiente">'+(next.title?W.esc(next.title):'Siguiente')+' →</button>':'')
+        +'<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.exitSectionEditor()">← Volver</button>'
+        +'</div></div>';
+    html+='<div class="sec-tabs" id="sec-tabs">'
+        +'<button type="button" class="sec-tab on" data-tab="content" onclick="wontia.secTab(\'content\')">Contenido</button>'
+        +(groups.design?'<button type="button" class="sec-tab" data-tab="design" onclick="wontia.secTab(\'design\')">Diseño</button>':'')
+        +(groups.advanced?'<button type="button" class="sec-tab" data-tab="advanced" onclick="wontia.secTab(\'advanced\')">Avanzado</button>':'')
+        +'</div>';
+    html+='<input type="hidden" id="sec-id" value="'+s.id+'">';
+    html+='<input type="hidden" id="sec-page-id" value="'+pageId+'">';
+    html+='<input type="hidden" id="sec-widget-type" value="'+W.esc(widgetType)+'">';
+    html+='<div id="sec-fields">';
+    html+='<div class="w-form-group" data-fgroup="content"><label class="w-label">Título de la sección</label><input class="w-input" id="es-title" value="'+W.esc(s.title||'')+'" maxlength="200"></div>';
+    html+='<div class="w-form-group" data-fgroup="content"><label class="w-label">Subtítulo / descripción</label><textarea class="w-textarea" id="es-subtitle">'+W.esc(s.subtitle||'')+'</textarea></div>';
+    html+='<div class="w-form-group" data-fgroup="advanced"><label class="w-label" style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="es-active" '+(s.is_active?'checked':'')+' style="width:auto"/> Visible en el sitio</label></div>';
+    if(W.state.editSchema){
+        html+='<div class="schema-fields" id="sec-schema-fields">'+W.renderSchemaFields(W.state.editSchema,config)+'</div>';
+    }else{
+        html+='<div class="w-form-group" data-fgroup="content"><label class="w-label">Contenido (HTML)</label><textarea class="w-textarea" id="es-content" style="min-height:220px;font-family:monospace">'+W.esc(s.content||'')+'</textarea></div>';
+    }
+    html+='</div>';
+    html+='<div class="sec-foot"><span id="sec-status" class="sec-status">Listo</span><span class="w-flex w-gap-sm"><button class="w-btn w-btn-secondary" onclick="wontia.exitSectionEditor()">Volver</button><button class="w-btn w-btn-primary" onclick="wontia.saveSectionEditor()">Guardar</button></span></div>';
+    html+='</div>';
+    app.innerHTML=html;
+
+    if(W.state.editSchema)W.repInit(W.state.editSchema);
+    W.secTab('content');
+    W.initAutosave();
+    var t=document.getElementById('es-title');if(t)t.focus();
+};
+
+W.secTab=function(tab){
+    W.state.secTab=tab;
+    document.querySelectorAll('#sec-tabs .sec-tab').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-tab')===tab)});
+    document.querySelectorAll('#sec-fields [data-fgroup]').forEach(function(el){el.style.display=(el.getAttribute('data-fgroup')===tab)?'':'none'});
+};
+
+W.setStatus=function(txt,cls){var el=document.getElementById('sec-status');if(!el)return;el.textContent=txt;el.className='sec-status'+(cls?' '+cls:'')};
+
+W.markDirty=function(){
+    W._dirty=true;W.setStatus('Sin guardar','dirty');
+    if(W._autoT)clearTimeout(W._autoT);
+    W._autoT=setTimeout(function(){W.saveSectionEditor(true)},1500);
+};
+
+W.initAutosave=function(){
+    var box=document.getElementById('sec-fields');if(!box)return;
+    W._dirty=false;W.setStatus('Listo');
+    var on=function(e){if(e&&e.target&&e.target.id==='sec-status')return;W.markDirty()};
+    box.addEventListener('input',on);
+    box.addEventListener('change',on);
+};
+
+W.exitSectionEditor=function(){
+    if(W._dirty&&!window.confirm('Tienes cambios sin guardar. ¿Salir de todos modos?'))return;
+    W._dirty=false;
+    W.router();
+};
+
+W.saveSectionEditor=async function(silent){
+    var idEl=document.getElementById('sec-id');if(!idEl)return null;
+    var id=idEl.value;
+    if(W._saving)return null;
+    W._saving=true;
+    if(!silent)W.setStatus('Guardando…','saving');
+    var activeEl=document.getElementById('es-active');
+    var data={title:W.val('es-title'),subtitle:W.val('es-subtitle'),is_active:activeEl&&activeEl.checked?1:0};
+    if(W.state.editSchema)data.config=W.collectSchemaFields(W.state.editSchema);
+    else data.content=W.val('es-content');
+    var r=null;try{r=await W.api('/api/v1/admin/sections/'+id,{method:'PUT',body:data})}catch(e){r=null}
+    W._saving=false;
+    if(r&&r.ok){
+        W._dirty=false;W.setStatus('Guardado','saved');
+        if(!silent)W.notify('Sección guardada','success');
+        var pid=document.getElementById('sec-page-id');
+        if(W.state.currentPage&&pid&&String(W.state.currentPage.id)===String(pid.value)){
+            (W.state.currentPage.sections||[]).forEach(function(x){
+                if(String(x.id)===String(id)){x.title=data.title;x.subtitle=data.subtitle;x.is_active=data.is_active;try{x.config=JSON.stringify(data.config||{})}catch(e){}}
+            });
+        }
+    }else{
+        W.setStatus('Error al guardar','error');
+        if(!silent)W.notify((r&&r.message)||'No se pudo guardar','error');
+    }
+    return r;
+};
 
 W.renderSectionManager=function(pageId,containerId){
     var app=document.getElementById(containerId||'wontia-app');
@@ -312,60 +450,125 @@ W.addSection=async function(pageId,widgetId,widgetName){
     else if(r.message)W.notify(r.message,'error');
 };
 
+W.fieldGroup=function(f){return (f&&f.group)||'content'};
+
 W.renderSchemaFields=function(schema,values){
     values=values||{};
     var html='';
+    function group(f,inner){return '<div class="w-form-group" data-field="'+W.esc(f.key)+'" data-fgroup="'+W.fieldGroup(f)+'"><label class="w-label">'+W.esc(f.label||f.key)+(f.hint?' <span style="font-size:9px;font-weight:400;color:var(--w-muted)">'+W.esc(f.hint)+'</span>':'')+'</label>'+inner+'</div>'}
+    function selectHtml(f,v){
+        var opts=f.options||{};
+        var o='';
+        if(Array.isArray(opts)){opts.forEach(function(it){var key=it.value!==undefined?it.value:it;var lbl=it.label!==undefined?it.label:key;o+='<option value="'+W.esc(key)+'"'+(String(v)===String(key)?' selected':'')+'>'+W.esc(lbl)+'</option>'})}
+        else{for(var k in opts)o+='<option value="'+W.esc(k)+'"'+(String(v)===String(k)?' selected':'')+'>'+W.esc(opts[k])+'</option>'}
+        return '<select class="w-select" id="secf-'+W.esc(f.key)+'">'+o+'</select>';
+    }
     (schema||[]).forEach(function(f){
-        var v=(values[f.key]!==undefined&&values[f.key]!==null)?values[f.key]:(f.default!==undefined?f.default:'');
-        var vid='secf-'+f.key;
-        if(f.type==='text')html+='<div class="w-form-group"><label class="w-label">'+W.esc(f.label)+'</label><input class="w-input" id="'+vid+'" value="'+W.esc(v)+'"/></div>';
-        else if(f.type==='textarea')html+='<div class="w-form-group"><label class="w-label">'+W.esc(f.label)+'</label><textarea class="w-textarea" id="'+vid+'">'+W.esc(v)+'</textarea></div>';
-        else if(f.type==='toggle')html+='<div class="w-form-group"><label class="w-label" style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="'+vid+'" '+(v?'checked':'')+' style="width:auto"/> '+W.esc(f.label)+'</label></div>';
-        else if(f.type==='select'){var o='';for(var k in (f.options||{}))o+='<option value="'+W.esc(k)+'"'+(String(v)===String(k)?' selected':'')+'>'+W.esc(f.options[k])+'</option>';html+='<div class="w-form-group"><label class="w-label">'+W.esc(f.label)+'</label><select class="w-select" id="'+vid+'">'+o+'</select></div>';}
-        else html+='<div class="w-form-group"><label class="w-label">'+W.esc(f.label)+' <span style="font-size:9px;color:var(--w-muted)">JSON</span></label><textarea class="w-textarea" id="'+vid+'" style="min-height:80px;font-family:monospace;font-size:11px">'+W.esc(typeof v==='object'?JSON.stringify(v):v)+'</textarea></div>';
+        var v=(values[f.key]!==undefined&&values[f.key]!==null&&values[f.key]!=='')?values[f.key]:(f.default!==undefined?f.default:'');
+        var vid='secf-'+W.esc(f.key);
+        var t=f.type||'text';
+        if(t==='heading'){html+='<div class="sec-fhead" data-fgroup="'+W.fieldGroup(f)+'" style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--w-muted);font-weight:700;margin:20px 0 6px;padding-top:12px;border-top:1px solid var(--w-border)">'+W.esc(f.label)+'</div>';return}
+        if(t==='text'||t==='url'||t==='link')html+=group(f,'<input class="w-input" id="'+vid+'" value="'+W.esc(v)+'"/>');
+        else if(t==='textarea'||t==='richtext')html+=group(f,'<textarea class="w-textarea" id="'+vid+'" style="min-height:90px">'+W.esc(v)+'</textarea>');
+        else if(t==='number')html+=group(f,'<input class="w-input" type="number" id="'+vid+'" value="'+W.esc(v)+'"'+(f.min!==undefined?' min="'+f.min+'"':'')+(f.max!==undefined?' max="'+f.max+'"':'')+(f.step!==undefined?' step="'+f.step+'"':'')+'/>');
+        else if(t==='range'){
+            var min=f.min!==undefined?f.min:0,max=f.max!==undefined?f.max:100,step=f.step!==undefined?f.step:1;
+            html+=group(f,'<div class="w-flex" style="align-items:center;gap:10px"><input type="range" id="'+vid+'" min="'+min+'" max="'+max+'" step="'+step+'" value="'+W.esc(v)+'" style="flex:1" oninput="document.getElementById(\''+vid+'-out\').textContent=this.value"/><output id="'+vid+'-out" style="min-width:44px;text-align:right;font-size:12px;font-weight:700">'+W.esc(v)+'</output></div>');
+        }
+        else if(t==='color')html+=group(f,'<div class="w-flex" style="align-items:center;gap:10px"><input type="color" id="'+vid+'" value="'+W.esc(v||'#7c3cff')+'" style="width:48px;height:34px;border:1px solid var(--w-border);border-radius:6px;background:none;cursor:pointer" oninput="var t=document.getElementById(\''+vid+'-txt\');if(t)t.value=this.value"/><input class="w-input" id="'+vid+'-txt" value="'+W.esc(v)+'" style="flex:1" placeholder="#7c3cff" oninput="var c=document.getElementById(\''+vid+'\');if(c&&/^#[0-9a-fA-F]{6}$/.test(this.value))c.value=this.value"/></div>');
+        else if(t==='toggle')html+=group(f,'<label style="display:flex;align-items:center;gap:8px;font-size:12px"><input type="checkbox" id="'+vid+'" '+(v?'checked':'')+' style="width:auto"/> '+W.esc(f.on||'Sí')+'</label>');
+        else if(t==='hlevel')html+=group(f,selectHtml({key:f.key,options:(f.options&&(Array.isArray(f.options)||Object.keys(f.options).length)?f.options:{h1:'H1 — grande',h2:'H2 — mediano',h3:'H3 — pequeño',h4:'H4'})},v));
+        else if(t==='select')html+=group(f,selectHtml(f,v));
+        else if(t==='repeater'){
+            var arr=v;
+            if(typeof arr==='string'){try{arr=JSON.parse(arr)||[]}catch(e){arr=[]}}
+            html+=group(f,W.renderRepeaterField(f,Array.isArray(arr)?arr:[]));
+        }
+        else html+=group(f,'<textarea class="w-textarea" id="'+vid+'" style="min-height:80px;font-family:monospace;font-size:11px">'+W.esc(typeof v==='object'?JSON.stringify(v,null,2):v)+'</textarea>');
     });
     return html;
 };
 
+W.renderRepeaterField=function(f,items){
+    var key=f.key;
+    W._rep=W._rep||{};W._repSchema=W._repSchema||{};
+    W._repSchema[key]=f;
+    W._rep[key]=(Array.isArray(items)?items:[]).map(function(it){return (it&&typeof it==='object')?it:{}});
+    return '<div class="w-rep" data-rep="'+W.esc(key)+'">'
+        +'<div class="w-rep-items" id="rep-items-'+W.esc(key)+'"></div>'
+        +'<div class="w-flex w-gap-sm" style="margin-top:8px"><button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.repAdd(\''+W.esc(key)+'\')">+ Añadir</button>'
+        +'<button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.repReset(\''+W.esc(key)+'\')">Restaurar</button></div>'
+        +'<textarea id="secf-'+W.esc(key)+'" style="display:none">'+W.esc(JSON.stringify(W._rep[key]))+'</textarea>'
+        +'</div>';
+};
+
+W.repRefresh=function(key){
+    var f=W._repSchema[key];if(!f)return;
+    var items=W._rep[key]||[];
+    var el=document.getElementById('rep-items-'+key);if(!el)return;
+    if(!items.length){el.innerHTML='<div style="font-size:12px;color:var(--w-muted);padding:8px 0">Sin elementos. Añade el primero.</div>';W.repSync(key);return}
+    el.innerHTML=items.map(function(it,i){
+        var body=(f.fields||[]).map(function(sf){
+            var val=(it&&it[sf.key]!==undefined&&it[sf.key]!==null)?it[sf.key]:'';
+            var id='rep-'+key+'-'+i+'-'+sf.key;
+            var st=sf.type||'text';
+            var inp;
+            if(st==='textarea'||st==='richtext')inp='<textarea class="w-textarea rep-in" data-i="'+i+'" data-k="'+W.esc(sf.key)+'" id="'+id+'" style="min-height:60px">'+W.esc(val)+'</textarea>';
+            else inp='<input class="w-input rep-in" data-i="'+i+'" data-k="'+W.esc(sf.key)+'" id="'+id+'" value="'+W.esc(val)+'"/>';
+            return '<label class="rep-lb"><span>'+W.esc(sf.label||sf.key)+'</span>'+inp+'</label>';
+        }).join('');
+        return '<div class="w-rep-card"><div class="w-rep-head"><span class="w-drag-handle" title="Arrastra para reordenar">⠿</span><b>#'+(i+1)+'</b>'
+            +'<span class="w-flex w-gap-sm" style="margin-left:auto">'
+            +'<button type="button" class="w-btn w-btn-secondary w-btn-sm" title="Subir" onclick="wontia.repMove(\''+key+'\','+i+',-1)">▲</button>'
+            +'<button type="button" class="w-btn w-btn-secondary w-btn-sm" title="Bajar" onclick="wontia.repMove(\''+key+'\','+i+',1)">▼</button>'
+            +'<button type="button" class="w-btn w-btn-secondary w-btn-sm" title="Duplicar" onclick="wontia.repDup(\''+key+'\','+i+')">⧉</button>'
+            +'<button type="button" class="w-btn w-btn-danger w-btn-sm" title="Eliminar" onclick="wontia.repDel(\''+key+'\','+i+')">✕</button>'
+            +'</span></div><div class="w-rep-body">'+body+'</div></div>';
+    }).join('');
+    W.repSync(key);
+};
+
+W.repSync=function(key){var ta=document.getElementById('secf-'+key);if(ta)ta.value=JSON.stringify(W._rep[key]||[])};
+W.repCollect=function(key){
+    var el=document.getElementById('rep-items-'+key);if(!el)return;
+    W._rep=W._rep||{};W._rep[key]=W._rep[key]||[];
+    el.querySelectorAll('.rep-in').forEach(function(inp){
+        var i=parseInt(inp.getAttribute('data-i'),10),k=inp.getAttribute('data-k');
+        if(!W._rep[key][i])W._rep[key][i]={};
+        W._rep[key][i][k]=inp.value;
+    });
+    W.repSync(key);
+};
+W.repAdd=function(key){W.repCollect(key);W._rep[key].push({});W.repRefresh(key);if(W.markDirty)W.markDirty()};
+W.repDel=function(key,i){W.repCollect(key);W._rep[key].splice(i,1);W.repRefresh(key);if(W.markDirty)W.markDirty()};
+W.repDup=function(key,i){W.repCollect(key);var c=JSON.parse(JSON.stringify(W._rep[key][i]||{}));W._rep[key].splice(i+1,0,c);W.repRefresh(key);if(W.markDirty)W.markDirty()};
+W.repMove=function(key,i,d){W.repCollect(key);var j=i+d;if(j<0||j>=(W._rep[key]||[]).length)return;var t=W._rep[key][i];W._rep[key][i]=W._rep[key][j];W._rep[key][j]=t;W.repRefresh(key);if(W.markDirty)W.markDirty()};
+W.repReset=function(key){var f=W._repSchema[key];W._rep=W._rep||{};W._rep[key]=(f&&Array.isArray(f.default))?JSON.parse(JSON.stringify(f.default)):[];W.repRefresh(key);if(W.markDirty)W.markDirty()};
+W.repInit=function(schema){(schema||[]).forEach(function(f){if((f.type||'')==='repeater'&&document.getElementById('rep-items-'+f.key))W.repRefresh(f.key)})};
+
 W.collectSchemaFields=function(schema){
     var cfg={};
     (schema||[]).forEach(function(f){
+        var t=f.type||'text';
+        if(t==='repeater'){
+            if(W.repCollect)W.repCollect(f.key);
+            var rta=document.getElementById('secf-'+f.key);
+            try{cfg[f.key]=rta?JSON.parse(rta.value||'[]'):[]}catch(e){cfg[f.key]=[]}
+            return;
+        }
         var el=document.getElementById('secf-'+f.key);
         if(!el)return;
-        if(f.type==='toggle')cfg[f.key]=el.checked?1:0;
-        else if(f.type==='code'){try{cfg[f.key]=JSON.parse(el.value||'[]')}catch(e){cfg[f.key]=el.value}}
+        if(t==='toggle')cfg[f.key]=el.checked?1:0;
+        else if(t==='color'){var txt=document.getElementById('secf-'+f.key+'-txt');cfg[f.key]=txt?txt.value:el.value}
+        else if(t==='number')cfg[f.key]=el.value===''?'':Number(el.value);
+        else if(t==='code'){try{cfg[f.key]=JSON.parse(el.value||'[]')}catch(e){cfg[f.key]=el.value}}
         else cfg[f.key]=el.value;
     });
     return cfg;
 };
 
-W.editSection=async function(sectionId){
-    var s=null;
-    ((W.state.currentPage&&W.state.currentPage.sections)||[]).forEach(function(x){if(x.id===sectionId)s=x});
-    if(!s){
-        var d=await W.api('/api/v1/admin/sections/'+sectionId);
-        if(!d.ok||!d.data){W.notify(d.message||'Section not found','error');return}
-        s=d.data;
-    }
-    var pageId=s.page_id;
-    var body='';
-    body+='<div class="w-form-group"><label class="w-label">Título de la sección</label><input class="w-input" id="es-title" value="'+W.esc(s.title||'')+'"/></div>';
-    body+='<div class="w-form-group"><label class="w-label">Subtítulo / descripción</label><textarea class="w-textarea" id="es-subtitle">'+W.esc(s.subtitle||'')+'</textarea></div>';
-    if(s.widget_type){
-        var d2={};
-        try{d2=await W.api('/api/v1/admin/bricks/'+s.widget_type)}catch(e){d2={}}
-        var b=d2.data||{};
-        var schema=b.configSchema||[];
-        var values={};
-        try{values=JSON.parse(s.config||'{}')||{}}catch(e){}
-        W.state.editSchema=schema;
-        if(schema.length){body+='<div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--w-muted);margin:14px 0 8px">Contenido — '+W.esc(W.sectionLabel(s))+'</div>'+W.renderSchemaFields(schema,values);}
-    }else{
-        W.state.editSchema=null;
-        body+='<div class="w-form-group"><label class="w-label">Contenido (HTML)</label><textarea class="w-textarea" id="es-content" style="min-height:150px;font-family:monospace">'+W.esc(s.content||'')+'</textarea></div>';
-    }
-    body+='<label style="font-size:12px;display:flex;align-items:center;gap:8px;margin-top:8px"><input type="checkbox" id="es-active" '+(s.is_active==1||s.is_active==='1'?'checked':'')+' style="width:auto"/> Visible en el sitio</label>';
-    W.modal('Editar sección — '+W.sectionLabel(s),body,'<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cancelar</button><button class="w-btn w-btn-primary" onclick="wontia.saveSection('+sectionId+','+pageId+')">Guardar</button>');
+W.editSection=function(sectionId){
+    window.location.hash='section-edit-'+sectionId;
 };
 
 W.saveSection=async function(id,pageId){
@@ -3277,7 +3480,8 @@ W.panels={
     'seo-global-launch':W.renderSeoGlobalLaunch,
     analytics:W.renderAnalytics,
     settings:W.renderSettings,
-    users:W.renderUsers
+    users:W.renderUsers,
+    sectionEditor:W.renderSectionEditor
 };
 
 (function(){

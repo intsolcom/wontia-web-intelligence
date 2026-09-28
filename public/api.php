@@ -209,9 +209,9 @@ $router->group('/api/v1/admin', function (Router $r) {
     $r->put('/source/plans/{id}', [\App\Controllers\Admin\LiveEditorController::class, 'sourcePlanSave']);
     $r->get('/source/templates', [\App\Controllers\Admin\LiveEditorController::class, 'sourceTemplatesList']);
     $r->put('/source/templates/{id}', [\App\Controllers\Admin\LiveEditorController::class, 'sourceTemplateSave']);
-    $r->get('/sections/{id}', [\App\Controllers\Admin\SectionController::class, 'show']);
-    $r->put('/sections/{id}', [\App\Controllers\Admin\SectionController::class, 'update']);
-    $r->delete('/sections/{id}', [\App\Controllers\Admin\SectionController::class, 'destroy']);
+$r->get('/sections/{id}', [\App\Controllers\Admin\SectionController::class, 'show']);
+$r->put('/sections/{id}', [\App\Controllers\Admin\SectionController::class, 'update']);
+$r->delete('/sections/{id}', [\App\Controllers\Admin\SectionController::class, 'destroy']);
 
     $r->get('/bricks', [\App\Controllers\Admin\BrickController::class, 'index']);
     $r->get('/bricks/usage', [\App\Controllers\Admin\BrickController::class, 'usage']);
