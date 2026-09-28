@@ -197,6 +197,7 @@ $router->group('/api/v1/admin', function (Router $r) {
     $r->get('/sections/{id}/comments', [\App\Controllers\Admin\LiveEditorController::class, 'commentsList']);
     $r->post('/sections/{id}/comments', [\App\Controllers\Admin\LiveEditorController::class, 'commentAdd']);
     $r->get('/sections/{id}/versions', [\App\Controllers\Admin\LiveEditorController::class, 'versionsList']);
+    $r->get('/sections/{id}/history', [\App\Controllers\Admin\LiveEditorController::class, 'history']);
     $r->get('/sections/{id}/variants', [\App\Controllers\Admin\LiveEditorController::class, 'variantsList']);
     $r->post('/sections/{id}/variants', [\App\Controllers\Admin\LiveEditorController::class, 'variantSave']);
     $r->delete('/variants/{id}', [\App\Controllers\Admin\LiveEditorController::class, 'variantDelete']);
@@ -212,6 +213,7 @@ $router->group('/api/v1/admin', function (Router $r) {
 $r->get('/sections/{id}', [\App\Controllers\Admin\SectionController::class, 'show']);
 $r->put('/sections/{id}', [\App\Controllers\Admin\SectionController::class, 'update']);
 $r->delete('/sections/{id}', [\App\Controllers\Admin\SectionController::class, 'destroy']);
+$r->post('/sections/{id}/duplicate', [\App\Controllers\Admin\SectionController::class, 'duplicate']);
 
     $r->get('/bricks', [\App\Controllers\Admin\BrickController::class, 'index']);
     $r->get('/bricks/usage', [\App\Controllers\Admin\BrickController::class, 'usage']);

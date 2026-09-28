@@ -178,4 +178,28 @@ class SectionController
         }
         Response::json(['ok' => true]);
     }
+
+    public function duplicate(Request $req, string $id): void
+    {
+        $current = $this->sectionInSite((int)$id);
+        if (!$current) Response::error('Section not found', 404);
+        $db = Database::instance();
+        $maxSort = $db->prepare("SELECT COALESCE(MAX(sort_order), -1) FROM sections WHERE page_id = :pid");
+        $maxSort->execute(['pid' => $current['page_id']]);
+        $nextSort = (int)$maxSort->fetchColumn() + 1;
+        $db->prepare("INSERT INTO sections (page_id, type, widget_type, title, subtitle, content, image, config, sort_order, is_active) VALUES (:pid, :type, :widget_type, :title, :subtitle, :content, :image, :config, :sort_order, :is_active)")
+            ->execute([
+                'pid' => $current['page_id'],
+                'type' => $current['type'],
+                'widget_type' => $current['widget_type'],
+                'title' => trim((string)($current['title'] ?? '')) . ' (copia)',
+                'subtitle' => $current['subtitle'] ?? '',
+                'content' => $current['content'] ?? '',
+                'image' => $current['image'] ?? '',
+                'config' => $current['config'] ?? '{}',
+                'sort_order' => $nextSort,
+                'is_active' => (int)$current['is_active'],
+            ]);
+        Response::json(['ok' => true, 'data' => ['id' => (int)$db->lastInsertId()]], 201);
+    }
 }

@@ -48,6 +48,11 @@ class LiveEditorController
         $r['ok'] ? Response::success(null, $r['message']) : Response::error($r['message'], 400);
     }
 
+    public function history(Request $req, string $sectionId): void
+    {
+        Response::json(['ok' => true, 'data' => (new LiveEditorService())->history((int)$sectionId)]);
+    }
+
     public function presencePing(Request $req): void
     {
         $u = $this->user();

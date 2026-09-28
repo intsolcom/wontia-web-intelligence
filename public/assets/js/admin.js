@@ -222,6 +222,13 @@ W.secEditorCss=function(){
         +'.w-ai-menu-h{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--w-muted);font-weight:700;padding:6px 8px 4px}'
         +'.w-ai-menu button{text-align:left;background:none;border:none;padding:8px 10px;border-radius:6px;cursor:pointer;color:var(--w-text);font-size:12.5px}'
         +'.w-ai-menu button:hover{background:var(--w-bg)}'
+        +'.sec-panel{margin:14px 0;padding:14px;border:1px solid var(--w-border);border-radius:10px;background:var(--w-bg);font-size:13px}'
+        +'.sec-panel-h{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--w-muted);font-weight:700;margin:14px 0 6px}'
+        +'.sec-panel-empty{font-size:12px;color:var(--w-muted)}'
+        +'.sec-hist-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--w-border);font-size:12px}'
+        +'.sec-hist-row code{font-size:11px;background:var(--w-surface);padding:1px 5px;border-radius:4px}'
+        +'.sec-sugg{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--w-border);font-size:12.5px;line-height:1.5}'
+        +'.sec-sugg-a{flex-shrink:0;font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;font-weight:700;color:var(--w-primary);border:1px solid rgba(124,60,255,.4);border-radius:999px;padding:2px 8px;height:fit-content}'
         +'</style>';
 };
 
@@ -260,6 +267,9 @@ W.renderSectionEditor=async function(id){
         +'<div class="w-flex w-gap-sm">'
         +(prev?'<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.editSection('+prev.id+')" title="Anterior">← '+(prev.title?W.esc(prev.title):'Anterior')+'</button>':'')
         +(next?'<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.editSection('+next.id+')" title="Siguiente">'+(next.title?W.esc(next.title):'Siguiente')+' →</button>':'')
+        +'<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.secAiReview()">🧭 Revisar IA</button>'
+        +'<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.secHistory('+s.id+')">🕘 Historial</button>'
+        +'<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.secDuplicate('+s.id+')">⧉ Duplicar</button>'
         +'<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.exitSectionEditor()">← Volver</button>'
         +'</div></div>';
     html+='<div class="sec-tabs" id="sec-tabs">'
@@ -286,6 +296,7 @@ W.renderSectionEditor=async function(id){
     }
     html+='</div>';
     html+='<div id="sec-a11y" class="sec-a11y" style="display:none"></div>';
+    html+='<div id="sec-extra" style="display:none"></div>';
     html+='<div class="sec-foot"><span id="sec-status" class="sec-status">Listo</span><span class="w-flex w-gap-sm"><button class="w-btn w-btn-secondary" onclick="wontia.exitSectionEditor()">Volver</button><button class="w-btn w-btn-primary" onclick="wontia.saveSectionEditor()">Guardar</button></span></div>';
     html+='</div>';
     app.innerHTML=html;
@@ -719,6 +730,55 @@ W.fieldReset=function(key){
     else if(t==='color'){var c=document.getElementById('secf-'+key),tx=document.getElementById('secf-'+key+'-txt');if(c&&/^#[0-9a-fA-F]{6}$/.test(def))c.value=def;if(tx)tx.value=def}
     else{var el=document.getElementById('secf-'+key);if(el)el.value=def}
     if(W.markDirty)W.markDirty();
+};
+
+W.secPanelClose=function(){var b=document.getElementById('sec-extra');if(b){b.style.display='none';b.innerHTML=''}};
+W.secHistory=async function(id){
+    var box=document.getElementById('sec-extra');if(!box)return;
+    if(box.dataset.open==='hist'&&box.style.display!=='none'){W.secPanelClose();return}
+    box.dataset.open='hist';box.style.display='block';
+    box.innerHTML='<div class="sec-panel"><b>Historial</b> <span style="color:var(--w-muted);font-size:11px">cargando…</span></div>';
+    var vers=[],hist=[];
+    try{vers=((await W.api('/api/v1/admin/sections/'+id+'/versions')).data)||[]}catch(e){}
+    try{hist=((await W.api('/api/v1/admin/sections/'+id+'/history')).data)||[]}catch(e){}
+    var h='<div class="sec-panel"><div class="w-flex-between"><b>Historial y versiones</b><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.secPanelClose()">Cerrar</button></div>';
+    h+='<div class="sec-panel-h">Versiones ('+vers.length+')</div>';
+    h+=vers.length?vers.map(function(v){return '<div class="sec-hist-row"><span>'+W.esc(v.username||'sistema')+' · '+W.esc(v.created_at)+'</span><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.secRestore('+v.id+','+id+')">Restaurar</button></div>'}).join(''):'<div class="sec-panel-empty">Sin versiones.</div>';
+    h+='<div class="sec-panel-h">Cambios por campo ('+hist.length+')</div>';
+    h+=hist.length?hist.map(function(e){return '<div class="sec-hist-row"><span><code>'+W.esc(e.field)+'</code> · '+W.esc(e.username||'—')+' · '+W.esc(e.created_at)+'</span></div>'}).join(''):'<div class="sec-panel-empty">Sin registros.</div>';
+    h+='</div>';
+    box.innerHTML=h;
+};
+W.secRestore=async function(versionId,sectionId){
+    var r=await W.api('/api/v1/admin/versions/'+versionId+'/restore',{method:'POST',body:{}});
+    if(r&&r.ok){W.notify('Versión restaurada','success');W.renderSectionEditor(sectionId)}else W.notify((r&&r.message)||'Error','error');
+};
+W.secDuplicate=async function(id){
+    var r=await W.api('/api/v1/admin/sections/'+id+'/duplicate',{method:'POST',body:{}});
+    if(r&&r.ok&&r.data&&r.data.id){W.notify('Sección duplicada','success');W.editSection(r.data.id)}else W.notify((r&&r.message)||'Error','error');
+};
+W.secAiReview=async function(){
+    var box=document.getElementById('sec-extra');if(!box)return;
+    box.dataset.open='ai';box.style.display='block';
+    box.innerHTML='<div class="sec-panel">Analizando la sección con IA… <span style="color:var(--w-muted);font-size:11px">un momento</span></div>';
+    var title=W.val('es-title'),sub=W.val('es-subtitle');
+    var cfg={};try{cfg=W.state.editConfig||{}}catch(e){}
+    var payload='Título: '+title+'\nSubtítulo: '+sub+'\nCampos: '+JSON.stringify(cfg).slice(0,1600);
+    try{
+        var d=await W.api('/api/v1/admin/brick/request',{method:'POST',body:{
+            system_id:'wontia',module:'agent',function:'review',
+            system_prompt:'Eres TIA, revisora de contenido web. Respondes SOLO con JSON válido.',
+            messages:[{role:'user',content:'Revisa esta sección de una web y devuelve SOLO JSON: {"suggestions":[{"area":"copy|seo|accesibilidad","text":"..."}]} con 3 a 6 sugerencias concretas y accionables. No inventes datos.\n\n'+payload}],
+            max_tokens:900,temperature:0.5
+        }});
+        var raw=String(((d&&d.data&&d.data.content)||''));
+        var arr=null;try{arr=JSON.parse(raw).suggestions}catch(e){}
+        if(!arr){try{arr=JSON.parse(raw.replace(/^```(json)?/m,'').replace(/```$/m,'')).suggestions}catch(e){}}
+        var h='<div class="sec-panel"><div class="w-flex-between"><b>Revisión IA</b><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.secPanelClose()">Cerrar</button></div>';
+        if(!Array.isArray(arr)||!arr.length){h+='<div class="sec-panel-empty" style="margin-top:8px">Sin sugerencias.</div>'}
+        else h+=arr.map(function(x){return '<div class="sec-sugg"><span class="sec-sugg-a">'+W.esc(x.area||'')+'</span>'+W.esc(x.text||'')+'</div>'}).join('');
+        h+='</div>';box.innerHTML=h;
+    }catch(e){box.innerHTML='<div class="sec-panel" style="color:#ef4444">Error al revisar con IA.</div>'}
 };
 
 W.aiModes={

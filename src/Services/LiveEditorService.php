@@ -132,6 +132,15 @@ class LiveEditorService
         return $stmt->fetchAll();
     }
 
+    public function history(int $sectionId): array
+    {
+        $this->ensureTables();
+        if (!$this->sectionInSite($sectionId)) return [];
+        $stmt = Database::instance()->prepare("SELECT e.id, e.field, e.widget_type, e.created_at, COALESCE(u.username, '') AS username FROM wwi_edit_events e LEFT JOIN users u ON u.id = e.user_id WHERE e.section_id = :s AND e.site_id = @site_id ORDER BY e.id DESC LIMIT 100");
+        $stmt->execute(['s' => $sectionId]);
+        return $stmt->fetchAll();
+    }
+
     public function addVersion(int $sectionId, ?int $userId, string $username, array $snapshot): void
     {
         try {
