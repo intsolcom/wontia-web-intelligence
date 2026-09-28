@@ -341,7 +341,16 @@
             if (e.target.closest('.wb-tools')) return;
             e.preventDefault(); e.stopPropagation();
             select(block);
-        });
+        }, true);
+        block.addEventListener('submit', function (e) {
+            if (S.on) { e.preventDefault(); e.stopPropagation(); }
+        }, true);
+        block.addEventListener('mousedown', function (e) {
+            if (!S.on) return;
+            if (e.target.closest('.wb-tools') || e.target.closest('[contenteditable="true"]')) return;
+            var inter = e.target.closest('a,button,input,select,textarea,label');
+            if (inter) e.preventDefault();
+        }, true);
         block.addEventListener('dblclick', function (e) {
             if (!S.on) return;
             var textEl = block.querySelector('.wwi-b-text');
@@ -469,13 +478,18 @@
                 S.drag = null;
             });
         }
-        if (slot.querySelector(':scope > .wb-add')) return;
-        var a = document.createElement('button');
-        a.type = 'button'; a.className = 'wb-add'; a.innerHTML = '+';
-        a.setAttribute('aria-label', 'Añadir bloque');
-        a.title = 'Añadir bloque';
-        a.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); openPalette(slot); });
-        slot.appendChild(a);
+        var a = slot.querySelector(':scope > .wb-add');
+        if (!a) {
+            a = document.createElement('button');
+            a.type = 'button'; a.className = 'wb-add';
+            a.setAttribute('aria-label', 'Añadir bloque');
+            a.title = 'Añadir bloque';
+            a.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); openPalette(slot); });
+            slot.appendChild(a);
+        }
+        var empty = !slot.querySelector(':scope > .wwi-b-block');
+        a.classList.toggle('wb-empty', empty);
+        a.innerHTML = empty ? '<span class="wb-add-ico">＋</span><em>Espacio disponible · haz clic para añadir un elemento</em>' : '+';
     }
 
     function clearDropLines() { $$('.wb-drop-line').forEach(function (l) { l.remove(); }); }
@@ -650,24 +664,38 @@
 
     // ── Acciones ──
     function removeBlock(block, id, slot) {
-        var ph = document.createElement('div');
-        ph.className = 'wb-ph-wrap';
-        ph.innerHTML = '<button type="button" class="wb-add wb-ph" aria-label="Añadir bloque">+</button>';
-        block.parentNode.insertBefore(ph, block);
+        if (!slot) slot = block.parentNode;
+        if (S.sel && S.sel.id === id) { S.sel = null; var p = $('#wb-panel'); if (p) p.classList.remove('wb-open'); }
         block.remove();
+        ensureAdd(slot);
+        setStatus('Eliminando…');
         api('/api/v1/admin/builder/block/node/' + id + '?page_id=' + PAGE_ID, { method: 'DELETE' }).then(function (r) {
             if (!r.ok) { toast(r.message || 'Error al eliminar'); load(); return; }
-            toast('Bloque eliminado', function () {
+            setStatus('Eliminado');
+            toast('Elemento eliminado · espacio disponible', function () {
                 api('/api/v1/admin/builder/trash?page_id=' + PAGE_ID).then(function (t) {
                     if (t.ok && t.data && t.data.length) {
                         api('/api/v1/admin/builder/trash/' + t.data[0].id + '/restore', { method: 'POST' }).then(function () { location.reload(); });
                     }
                 });
             });
-            ph.querySelector('.wb-add').addEventListener('click', function () { openPalette(slot); });
-            setStatus('Eliminado');
         });
     }
+
+    document.addEventListener('keydown', function (e) {
+        if (!S.on || !S.sel) return;
+        var ae = document.activeElement;
+        if (ae && (ae.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].indexOf(ae.tagName) > -1)) return;
+        if (e.key === 'Delete' || e.key === 'Backspace') {
+            e.preventDefault();
+            var b = document.querySelector('.wwi-b-block[data-block="' + S.sel.id + '"]');
+            if (b) removeBlock(b, S.sel.id, b.parentNode);
+        } else if (e.key === 'Escape') {
+            var p = $('#wb-panel'); if (p) p.classList.remove('wb-open');
+            $$('.wwi-b-block.wb-sel').forEach(function (b) { b.classList.remove('wb-sel'); });
+            S.sel = null;
+        }
+    });
 
     function moveSibling(block, dir) {
         var slot = block.parentNode;
@@ -697,12 +725,15 @@
     }
 
     function reparentBlock(blockEl, newSlot, pos) {
+        var oldSlot = blockEl.parentNode;
         var tools = blockEl.querySelector(':scope > .wb-tools');
         if (tools) tools.remove();
         var list = $$(':scope > .wwi-b-block', newSlot);
         var ref = list[pos] || null;
         newSlot.insertBefore(blockEl, ref || (newSlot.querySelector(':scope > .wb-add') || null));
         decorateBlock(blockEl, newSlot);
+        if (oldSlot && oldSlot !== newSlot) ensureAdd(oldSlot);
+        ensureAdd(newSlot);
     }
 
     function reloadSlot(slot) {
