@@ -161,10 +161,33 @@ class SectionController
 
     public function destroy(Request $req, string $id): void
     {
-        if (!$this->sectionInSite((int)$id)) Response::error('Section not found', 404);
+        $sec = $this->sectionInSite((int)$id);
+        if (!$sec) Response::error('Section not found', 404);
+        $u = \App\Core\Session::user() ?: [];
+        try {
+            (new \App\Services\SectionTrashService())->snapshot($sec, (string)($u['username'] ?? ''));
+        } catch (\Throwable $e) {
+        }
         $db = Database::instance();
         $db->prepare("DELETE FROM sections WHERE id = :id AND page_id IN (SELECT id FROM pages WHERE site_id = @site_id)")->execute(['id' => $id]);
         Response::json(['ok' => true]);
+    }
+
+    public function trashList(Request $req): void
+    {
+        Response::json(['ok' => true, 'data' => (new \App\Services\SectionTrashService())->list()]);
+    }
+
+    public function trashRestore(Request $req, string $id): void
+    {
+        $r = (new \App\Services\SectionTrashService())->restore((int)$id);
+        $r['ok'] ? Response::json(['ok' => true, 'message' => $r['message'], 'data' => ['id' => $r['id'], 'page_id' => $r['page_id']]]) : Response::error($r['message'], 404);
+    }
+
+    public function trashPurge(Request $req, string $id): void
+    {
+        $r = (new \App\Services\SectionTrashService())->purge((int)$id);
+        $r['ok'] ? Response::success(null, $r['message']) : Response::error($r['message'], 404);
     }
 
     public function reorder(Request $req): void

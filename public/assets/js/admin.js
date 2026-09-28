@@ -229,6 +229,10 @@ W.secEditorCss=function(){
         +'.sec-hist-row code{font-size:11px;background:var(--w-surface);padding:1px 5px;border-radius:4px}'
         +'.sec-sugg{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--w-border);font-size:12.5px;line-height:1.5}'
         +'.sec-sugg-a{flex-shrink:0;font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;font-weight:700;color:var(--w-primary);border:1px solid rgba(124,60,255,.4);border-radius:999px;padding:2px 8px;height:fit-content}'
+        +'.sec-srch-sec{padding:8px 0;border-bottom:1px solid var(--w-border)}'
+        +'.sec-srch-hit{cursor:pointer;padding:5px 8px;border-radius:6px;font-size:12px;color:var(--w-text)}'
+        +'.sec-srch-hit:hover{background:var(--w-bg)}'
+        +'.sec-srch-hit code{font-size:11px;color:var(--w-primary);margin-right:6px}'
         +'</style>';
 };
 
@@ -271,6 +275,7 @@ W.renderSectionEditor=async function(id){
         +'<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.secHistory('+s.id+')">🕘 Historial</button>'
         +'<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.secSavePattern('+s.id+')">💾 Patrón</button>'
         +'<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.secDuplicate('+s.id+')">⧉ Duplicar</button>'
+        +'<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.secPreviewToggle('+s.id+')">👁 Vista</button>'
         +'<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.exitSectionEditor()">← Volver</button>'
         +'</div></div>';
     html+='<div class="sec-tabs" id="sec-tabs">'
@@ -297,6 +302,7 @@ W.renderSectionEditor=async function(id){
     }
     html+='</div>';
     html+='<div id="sec-a11y" class="sec-a11y" style="display:none"></div>';
+    html+='<div id="sec-preview-wrap" style="display:none"></div>';
     html+='<div id="sec-extra" style="display:none"></div>';
     html+='<div class="sec-foot"><span id="sec-status" class="sec-status">Listo</span><span class="w-flex w-gap-sm"><button class="w-btn w-btn-secondary" onclick="wontia.exitSectionEditor()">Volver</button><button class="w-btn w-btn-primary" onclick="wontia.saveSectionEditor()">Guardar</button></span></div>';
     html+='</div>';
@@ -308,7 +314,17 @@ W.renderSectionEditor=async function(id){
     W.initAutosave();
     if(W.secLinkInit)W.secLinkInit();
     W.updateA11y();
-    var t=document.getElementById('es-title');if(t)t.focus();
+    var ff=null;try{ff=sessionStorage.getItem('wwi_focus_field');if(ff)sessionStorage.removeItem('wwi_focus_field')}catch(e){}
+    if(ff){
+        var base=String(ff).split('[')[0].split('.')[0];
+        var inp=document.getElementById('secf-'+base)||document.getElementById('es-'+base);
+        var wrap=document.querySelector('[data-field="'+base+'"]');
+        if(wrap)wrap.scrollIntoView({block:'center'});
+        var target=inp||(wrap?wrap.querySelector('input,textarea,[contenteditable]'):null);
+        if(target&&target.focus)setTimeout(function(){try{target.focus()}catch(e){}},80);
+    }else{
+        var t=document.getElementById('es-title');if(t)t.focus();
+    }
 };
 
 W.fieldValue=function(key){
@@ -364,13 +380,78 @@ W.markDirty=function(){
     W._autoT=setTimeout(function(){W.saveSectionEditor(true)},1500);
 };
 
+W.captureEditor=function(){
+    var a=document.getElementById('es-active');
+    var dev={};
+    ['_hide_desktop','_hide_tablet','_hide_mobile'].forEach(function(k){var c=document.getElementById('secf-'+k);if(c&&c.checked)dev[k]=1});
+    return {title:W.val('es-title'),subtitle:W.val('es-subtitle'),active:(a&&a.checked)?1:0,
+        config:W.state.editSchema?W.collectSchemaFields(W.state.editSchema):null,
+        content:W.val('es-content'),device:dev};
+};
+W.applySnapshot=function(s){
+    if(!s)return;W._applying=true;
+    var t=document.getElementById('es-title');if(t)t.value=s.title||'';
+    var su=document.getElementById('es-subtitle');if(su)su.value=s.subtitle||'';
+    var a=document.getElementById('es-active');if(a)a.checked=!!s.active;
+    ['_hide_desktop','_hide_tablet','_hide_mobile'].forEach(function(k){var c=document.getElementById('secf-'+k);if(c)c.checked=!!(s.device&&s.device[k])});
+    if(W.state.editSchema){
+        W.state.editConfig=s.config||{};
+        var box=document.getElementById('sec-schema-fields');
+        if(box){box.innerHTML=W.renderSchemaFields(W.state.editSchema,W.state.editConfig);W.repInit(W.state.editSchema);if(W.secLinkInit)W.secLinkInit()}
+    }else{var c=document.getElementById('es-content');if(c)c.value=s.content||''}
+    W.refreshFieldVisibility();W.updateA11y();W.markDirty();
+    W._applying=false;
+};
+W.pushUndo=function(){
+    if(W._applying)return;
+    var snap=W.captureEditor();
+    var last=W._undo[W._undo.length-1];
+    try{if(last&&JSON.stringify(last)===JSON.stringify(snap))return}catch(e){}
+    W._undo.push(snap);if(W._undo.length>40)W._undo.shift();W._redo=[];
+};
+W.undoEditor=function(){
+    if(!W._undo.length){W.notify('Nada que deshacer','info');return}
+    W._redo.push(W.captureEditor());
+    W.applySnapshot(W._undo.pop());
+    W.notify('Deshecho','info');
+};
+W.redoEditor=function(){
+    if(!W._redo.length){W.notify('Nada que rehacer','info');return}
+    W._undo.push(W.captureEditor());
+    W.applySnapshot(W._redo.pop());
+    W.notify('Rehecho','info');
+};
+W.secPreviewToggle=function(id){
+    var box=document.getElementById('sec-preview-wrap');if(!box)return;
+    if(box.style.display!=='none'){box.style.display='none';box.innerHTML='';return}
+    box.style.display='block';
+    box.innerHTML='<div class="w-card" style="padding:12px"><div class="w-flex-between w-mb"><b style="font-size:13px">Vista previa (aproximada)</b><span class="w-flex w-gap-sm"><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.secPreviewLoad('+id+')">Actualizar</button><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.secPreviewToggle('+id+')">Cerrar</button></span></div><div id="sec-preview-frame"></div></div>';
+    W.secPreviewLoad(id);
+};
+W.secPreviewLoad=async function(id){
+    var f=document.getElementById('sec-preview-frame');if(!f)return;
+    f.innerHTML='<div style="font-size:12px;color:var(--w-muted);padding:8px">Cargando…</div>';
+    try{
+        var d=await W.api('/api/v1/admin/sections/'+id+'/render');
+        var html=(d&&d.data&&d.data.html)||'';
+        var doc='<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0;font-family:system-ui,sans-serif">'+html+'</body></html>';
+        var srcdoc=doc.replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+        f.innerHTML='<iframe title="Vista previa" style="width:100%;height:420px;border:1px solid var(--w-border);border-radius:8px;background:#fff" srcdoc="'+srcdoc+'"></iframe>';
+    }catch(e){f.innerHTML='<div style="font-size:12px;color:#ef4444;padding:8px">No se pudo cargar la vista previa.</div>'}
+};
+
 W.initAutosave=function(){
     var box=document.getElementById('sec-fields');if(!box)return;
-    W._dirty=false;W.setStatus('Listo');
-    var on=function(e){if(e&&e.target&&e.target.id==='sec-status')return;W.markDirty();if(W.refreshFieldVisibility)W.refreshFieldVisibility();if(W.updateA11y)W.updateA11y()};
+    W._dirty=false;W._undo=[];W._redo=[];W._applying=false;W.setStatus('Listo');
+    var on=function(e){if(e&&e.target&&e.target.id==='sec-status')return;W.pushUndo();W.markDirty();if(W.refreshFieldVisibility)W.refreshFieldVisibility();if(W.updateA11y)W.updateA11y()};
     box.addEventListener('input',on);
     box.addEventListener('change',on);
     box.addEventListener('blur',function(){W.validateFields()},true);
+    box.addEventListener('keydown',function(e){
+        var k=(e.key||'').toLowerCase();
+        if((e.ctrlKey||e.metaKey)&&k==='z'&&!e.shiftKey){e.preventDefault();W.undoEditor()}
+        else if((e.ctrlKey||e.metaKey)&&(k==='y'||(k==='z'&&e.shiftKey))){e.preventDefault();W.redoEditor()}
+    });
 };
 
 W.exitSectionEditor=function(){
@@ -453,7 +534,7 @@ W.loadSections=async function(pageId){
     W.state.currentPage=d.data;
     if(!W.state.currentPage.sections)W.state.currentPage.sections=[];
     var html='<div class="w-flex-between w-mb-lg"><div><h3 style="font-size:15px">Secciones: '+W.esc(W.state.currentPage.title)+'</h3><span style="font-size:11px;color:var(--w-muted)">'+W.state.currentPage.sections.length+' secciones · arrastra para reordenar</span></div><div class="w-flex w-gap-sm"><button class="w-btn w-btn-secondary" onclick="wontia.showPatterns('+pageId+')">Patrones</button><button class="w-btn w-btn-primary" onclick="wontia.showSectionTypePicker('+pageId+')">+ Añadir sección</button><button class="w-btn w-btn-secondary" onclick="wontia.pagesGo(\'secciones\')">Cambiar página</button></div></div>';
-    html+='<div id="sec-patterns" style="display:none"></div>';
+    html+='<div class="w-flex w-gap-sm w-mb" style="flex-wrap:wrap"><input class="w-input" id="sec-search" placeholder="Buscar en el contenido de la página…" style="max-width:340px" oninput="wontia.secSearch('+pageId+')"/><button class="w-btn w-btn-secondary" onclick="wontia.showTrash()">🗑 Papelera</button></div><div id="sec-search-results"></div><div id="sec-trash" style="display:none"></div><div id="sec-patterns" style="display:none"></div>';
     if(!W.state.currentPage.sections.length){
         html+='<div class="w-empty-state"><h3>Sin secciones</h3><p>Añade la primera sección a esta página</p></div>';
     }else{
@@ -765,6 +846,55 @@ W.deletePattern=async function(patternId,pageId){
     var r=await W.api('/api/v1/admin/patterns/'+patternId,{method:'DELETE'});
     if(r&&r.ok){W.notify('Patrón eliminado','success');W.patternsLoad(pageId)}else W.notify((r&&r.message)||'Error','error');
 };
+W.secSearch=function(pageId){if(W._searchT)clearTimeout(W._searchT);W._searchT=setTimeout(function(){W.secSearchRun(pageId)},300)};
+W.secSearchRun=async function(pageId){
+    var el=document.getElementById('sec-search'),box=document.getElementById('sec-search-results');
+    if(!el||!box)return;
+    var q=el.value.trim();
+    if(q.length<2){box.innerHTML='';return}
+    box.innerHTML='<div style="font-size:12px;color:var(--w-muted);padding:6px 2px">Buscando…</div>';
+    try{
+        var d=await W.api('/api/v1/admin/pages/'+pageId+'/search?q='+encodeURIComponent(q));
+        var res=(d&&d.data)||[];
+        if(!res.length){box.innerHTML='<div style="font-size:12px;color:var(--w-muted);padding:6px 2px">Sin resultados.</div>';return}
+        var h='<div class="w-card" style="padding:12px;margin-bottom:12px">';
+        res.forEach(function(r){
+            h+='<div class="sec-srch-sec"><b style="font-size:12.5px">'+W.esc(r.title||('#'+r.section_id))+'</b> <span style="color:var(--w-muted);font-size:11px">'+W.esc(r.widget||'')+'</span>';
+            (r.matches||[]).forEach(function(m){
+                h+='<div class="sec-srch-hit" onclick="wontia.secSearchGo('+r.section_id+',\''+W.esc(String(m.field).replace(/'/g,"\\'"))+'\')"><code>'+W.esc(m.label||m.field)+'</code> '+W.esc(m.snippet||'')+'</div>';
+            });
+            h+='</div>';
+        });
+        h+='</div>';box.innerHTML=h;
+    }catch(e){box.innerHTML='<div style="font-size:12px;color:#ef4444;padding:6px 2px">Error en la búsqueda.</div>'}
+};
+W.secSearchGo=function(sectionId,field){try{sessionStorage.setItem('wwi_focus_field',field||'')}catch(e){}W.editSection(sectionId)};
+W.showTrash=function(){
+    var box=document.getElementById('sec-trash');if(!box)return;
+    if(box.style.display!=='none'){box.style.display='none';box.innerHTML='';return}
+    box.style.display='block';W.trashLoad();
+};
+W.trashLoad=async function(){
+    var box=document.getElementById('sec-trash');if(!box)return;
+    box.innerHTML='<div class="w-card" style="padding:14px;font-size:12px;color:var(--w-muted)">Cargando papelera…</div>';
+    try{
+        var d=await W.api('/api/v1/admin/trash');
+        var list=(d&&d.data)||[];
+        var h='<div class="w-card" style="padding:14px"><div class="w-flex-between w-mb"><b style="font-size:13px">Papelera de secciones</b><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.showTrash()">Cerrar</button></div>';
+        if(!list.length)h+='<div style="font-size:12px;color:var(--w-muted)">Vacía.</div>';
+        else h+=list.map(function(t){return '<div class="w-flex-between" style="padding:8px 0;border-bottom:1px solid var(--w-border)"><span style="font-size:12.5px">'+W.esc(t.title||('#'+t.section_id))+' <span style="color:var(--w-muted);font-size:11px">· '+W.esc(t.widget_type||'')+' · '+W.esc(t.deleted_by||'')+' · '+W.esc(t.created_at)+'</span></span><span class="w-flex w-gap-sm"><button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.trashRestore('+t.id+')">Restaurar</button><button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.trashPurge('+t.id+')">✕</button></span></div>'}).join('');
+        h+='</div>';box.innerHTML=h;
+    }catch(e){box.innerHTML='<div class="w-card" style="color:#ef4444;padding:14px">Error cargando la papelera.</div>'}
+};
+W.trashRestore=async function(id){
+    var r=await W.api('/api/v1/admin/trash/'+id+'/restore',{method:'POST',body:{}});
+    if(r&&r.ok){W.notify('Sección restaurada','success');W.trashLoad();if(r.data&&r.data.page_id&&W.state.currentPage&&String(W.state.currentPage.id)===String(r.data.page_id))W.loadSections(r.data.page_id)}else W.notify((r&&r.message)||'Error','error');
+};
+W.trashPurge=async function(id){
+    var r=await W.api('/api/v1/admin/trash/'+id,{method:'DELETE'});
+    if(r&&r.ok){W.notify('Eliminado definitivamente','success');W.trashLoad()}else W.notify((r&&r.message)||'Error','error');
+};
+
 W.secPanelClose=function(){var b=document.getElementById('sec-extra');if(b){b.style.display='none';b.innerHTML=''}};
 W.secHistory=async function(id){
     var box=document.getElementById('sec-extra');if(!box)return;

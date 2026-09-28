@@ -218,6 +218,9 @@ $r->get('/patterns', [\App\Controllers\Admin\SectionController::class, 'patterns
 $r->post('/sections/{id}/save-pattern', [\App\Controllers\Admin\SectionController::class, 'savePattern']);
 $r->post('/patterns/{id}/insert', [\App\Controllers\Admin\SectionController::class, 'insertPattern']);
 $r->delete('/patterns/{id}', [\App\Controllers\Admin\SectionController::class, 'deletePattern']);
+$r->get('/trash', [\App\Controllers\Admin\SectionController::class, 'trashList']);
+$r->post('/trash/{id}/restore', [\App\Controllers\Admin\SectionController::class, 'trashRestore']);
+$r->delete('/trash/{id}', [\App\Controllers\Admin\SectionController::class, 'trashPurge']);
 
     $r->get('/bricks', [\App\Controllers\Admin\BrickController::class, 'index']);
     $r->get('/bricks/usage', [\App\Controllers\Admin\BrickController::class, 'usage']);
