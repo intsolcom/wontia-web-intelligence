@@ -1905,9 +1905,9 @@ W.bsInstalled=async function(){
         var u=await W.api('/api/v1/admin/brickhub/updates');
         (u.updates||[]).forEach(function(x){upd[x.slug||x.brick_slug||'']=x});
     }catch(e){}
-    var items=(W._bm.items||[]).filter(function(it){return it.installed});
+    var items=(W._bm.items||[]).filter(function(it){return it.installed||(it.origin==='core'&&(it.usage_count||0)>0)});
     items.forEach(function(it){it.update_available=!!upd[it.slug]});
-    var html='<div class="w-card" style="padding:14px 18px;margin-bottom:14px"><div style="font-size:13px;font-weight:700">Bricks Acoplados</div><div style="font-size:11px;color:var(--w-muted);margin-top:4px;line-height:1.7">Bricks acoplados a este sitio. El <span style="color:var(--w-primary)">punto verde palpitante</span> indica funcionamiento correcto; el resplandor verde marca los acoplados y 🔄 avisa actualizaciones. Los bricks <strong style="color:var(--w-text)">Core</strong> vienen integrados al motor y no se desacoplan.</div></div>';
+    var html='<div class="w-card" style="padding:14px 18px;margin-bottom:14px"><div style="font-size:13px;font-weight:700">Bricks Acoplados</div><div style="font-size:11px;color:var(--w-muted);margin-top:4px;line-height:1.7">Bricks acoplados a este sitio: los instalados desde repositorios/incubadora y los bricks <strong style="color:var(--w-text)">Core</strong> que ya están en uso en las páginas del sitio. El <span style="color:var(--w-primary)">punto verde palpitante</span> indica funcionamiento correcto; el resplandor verde marca los acoplados y 🔄 avisa actualizaciones.</div></div>';
     html+='<div class="w-bm-grid" id="bs-grid"></div>';
     el.innerHTML=html;
     var grid=document.getElementById('bs-grid');

@@ -27,7 +27,7 @@ class AutoDiscoveryService
             $discovered++;
             $slug = $json['slug'];
 
-            $stmt = $db->prepare('SELECT id, version FROM bricks WHERE slug = ? AND site_id = 1');
+            $stmt = $db->prepare('SELECT id, version FROM bricks WHERE slug = ? AND site_id = @site_id');
             $stmt->execute([$slug]);
             $existing = $stmt->fetch();
 
@@ -50,9 +50,8 @@ class AutoDiscoveryService
             }
 
             $stmt = $db->prepare('INSERT INTO bricks (site_id, name, slug, version, category, description, author, brick_class, installed_path, config, status)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+                VALUES (@site_id, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
             $stmt->execute([
-                1,
                 $json['name'],
                 $slug,
                 $json['version'],

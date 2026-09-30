@@ -120,17 +120,22 @@ class BrickController
 
     private function usageCounts(): array
     {
+        $out = [];
         try {
             $db = Database::instance();
             $stmt = $db->query("SELECT s.widget_type, COUNT(*) AS c FROM sections s JOIN pages p ON p.id = s.page_id WHERE p.site_id = @site_id AND s.widget_type IS NOT NULL AND s.widget_type <> '' GROUP BY s.widget_type");
-            $out = [];
             foreach ($stmt->fetchAll() as $row) {
                 $out[$row['widget_type']] = (int)$row['c'];
             }
-            return $out;
-        } catch (\Throwable $e) {
-            return [];
-        }
+        } catch (\Throwable $e) {}
+        try {
+            $db = Database::instance();
+            $stmt = $db->query("SELECT brick_slug, COUNT(*) AS c FROM wwi_page_blocks WHERE site_id = @site_id AND type = 'brick' AND brick_slug IS NOT NULL AND brick_slug <> '' GROUP BY brick_slug");
+            foreach ($stmt->fetchAll() as $row) {
+                $out[$row['brick_slug']] = ($out[$row['brick_slug']] ?? 0) + (int)$row['c'];
+            }
+        } catch (\Throwable $e) {}
+        return $out;
     }
 
     private function brickExists(string $slug): bool

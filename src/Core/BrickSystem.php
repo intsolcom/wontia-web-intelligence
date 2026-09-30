@@ -128,9 +128,9 @@ class BrickSystem
         $db = Database::instance();
 
         $stmt = $db->prepare('INSERT INTO brick_updates (site_id, brick_id, source_id, from_version, to_version, release_notes, release_url, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+            VALUES (@site_id, ?, ?, ?, ?, ?, ?, ?)');
         $stmt->execute([
-            1, $brickId, $brick['source_id'],
+            $brickId, $brick['source_id'],
             $update['current_version'], $update['latest_version'],
             $update['release_notes'], $update['release_url'],
             'pending',
@@ -171,8 +171,8 @@ class BrickSystem
             return ['ok' => false, 'message' => 'Source already exists'];
         }
 
-        $stmt = $db->prepare('INSERT INTO brick_sources (site_id, name, repo_url, branch, install_path, auth_token) VALUES (?, ?, ?, ?, ?, ?)');
-        $stmt->execute([1, $name, $repoUrl, $branch, $installPath, $token]);
+        $stmt = $db->prepare('INSERT INTO brick_sources (site_id, name, repo_url, branch, install_path, auth_token) VALUES (@site_id, ?, ?, ?, ?, ?)');
+        $stmt->execute([$name, $repoUrl, $branch, $installPath, $token]);
         $id = (int) $db->lastInsertId();
 
         return ['ok' => true, 'message' => 'Source added', 'id' => $id];
@@ -290,6 +290,22 @@ class BrickSystem
             $results[] = self::applyUpdate($update['brick_id']);
         }
         return ['ok' => true, 'applied' => count(array_filter($results, fn($r) => $r['ok'])), 'failed' => count(array_filter($results, fn($r) => !$r['ok'])), 'details' => $results];
+    }
+
+    public static function repairSiteIds(): array
+    {
+        $db = Database::instance();
+        $repaired = ['sources' => 0, 'bricks' => 0, 'updates' => 0];
+        try {
+            $repaired['bricks'] = (int)$db->exec('UPDATE bricks b JOIN brick_sources s ON b.source_id = s.id SET b.site_id = s.site_id WHERE b.source_id > 0 AND b.site_id <> s.site_id');
+        } catch (\Throwable $e) {}
+        try {
+            $repaired['sources'] = (int)$db->exec('UPDATE brick_sources s JOIN (SELECT source_id AS sid, MAX(site_id) AS site FROM bricks WHERE source_id > 0 GROUP BY source_id) x ON s.id = x.sid SET s.site_id = x.site WHERE s.site_id <> x.site');
+        } catch (\Throwable $e) {}
+        try {
+            $repaired['updates'] = (int)$db->exec('UPDATE brick_updates u JOIN bricks b ON u.brick_id = b.id SET u.site_id = b.site_id WHERE u.site_id <> b.site_id');
+        } catch (\Throwable $e) {}
+        return ['ok' => true, 'repaired' => $repaired];
     }
 
     private static function recursiveDelete(string $dir): void

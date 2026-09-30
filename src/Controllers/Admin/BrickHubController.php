@@ -12,6 +12,7 @@ class BrickHubController
 {
     public function marketplace(): void
     {
+        BrickSystem::repairSiteIds();
         $sources = BrickSystem::listSources();
         $installed = BrickSystem::all();
         $installedSlugs = array_column($installed, 'slug');
