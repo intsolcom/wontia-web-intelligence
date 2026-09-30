@@ -26,7 +26,7 @@ class AuthController
         }
 
         $db = Database::instance();
-        $stmt = $db->prepare("SELECT * FROM users WHERE (username = :u1 OR email = :u2) AND is_active = 1 LIMIT 1");
+        $stmt = $db->prepare("SELECT * FROM users WHERE (username = :u1 OR email = :u2) AND is_active = 1 AND site_id = @site_id LIMIT 1");
         $stmt->execute(['u1' => $username, 'u2' => $username]);
         $user = $stmt->fetch();
 
