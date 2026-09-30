@@ -9,9 +9,9 @@ if (!function_exists('wwi_brand')) {
     {
         static $b = null;
         if ($b !== null) return $b;
-        $b = ['logo' => '', 'logo_dark' => '', 'logo_height' => 40, 'show_text' => true, 'text' => 'WONTIA', 'alt' => 'Logo', 'favicon' => '', 'favicon_touch' => '', 'theme_color' => ''];
+        $b = ['logo' => '', 'logo_dark' => '', 'logo_height' => 40, 'show_text' => true, 'text' => 'WONTIA', 'alt' => 'Logo', 'favicon' => '', 'favicon_touch' => '', 'theme_color' => '', 'asset_version' => ''];
         try {
-            $st = Database::instance()->prepare("SELECT `key`,`value` FROM settings WHERE site_id = @site_id AND `key` IN ('logo_image','logo_dark','logo_height','logo_show_text','logo_text','logo_alt','favicon','favicon_touch','theme_color')");
+            $st = Database::instance()->prepare("SELECT `key`,`value` FROM settings WHERE site_id = @site_id AND `key` IN ('logo_image','logo_dark','logo_height','logo_show_text','logo_text','logo_alt','favicon','favicon_touch','theme_color','asset_version')");
             $st->execute();
             $s = [];
             foreach ($st->fetchAll() as $r) $s[$r['key']] = $r['value'];
@@ -24,9 +24,20 @@ if (!function_exists('wwi_brand')) {
             if (isset($s['favicon'])) $b['favicon'] = trim((string)$s['favicon']);
             if (isset($s['favicon_touch'])) $b['favicon_touch'] = trim((string)$s['favicon_touch']);
             if (isset($s['theme_color'])) $b['theme_color'] = trim((string)$s['theme_color']);
+            if (isset($s['asset_version'])) $b['asset_version'] = trim((string)$s['asset_version']);
         } catch (\Throwable $e) {
         }
         return $b;
+    }
+}
+
+if (!function_exists('wwi_ver')) {
+    function wwi_ver(string $url): string
+    {
+        $url = trim($url);
+        $v = trim((string)(wwi_brand()['asset_version'] ?? ''));
+        if ($url === '' || $v === '' || strpos($url, 'data:') === 0) return $url;
+        return $url . (strpos($url, '?') !== false ? '&' : '?') . 'v=' . rawurlencode($v);
     }
 }
 
@@ -39,10 +50,10 @@ if (!function_exists('wwi_favicon_links')) {
             $path = parse_url($b['favicon'], PHP_URL_PATH) ?: '';
             $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
             $type = $ext === 'ico' ? 'image/x-icon' : ($ext === 'png' ? 'image/png' : ($ext === 'svg' ? 'image/svg+xml' : 'image/png'));
-            $out .= '<link rel="icon" type="' . $type . '" href="' . htmlspecialchars($b['favicon']) . '">' . "\n";
+            $out .= '<link rel="icon" type="' . $type . '" href="' . htmlspecialchars(wwi_ver($b['favicon'])) . '">' . "\n";
         }
         if ($b['favicon_touch'] !== '') {
-            $out .= '<link rel="apple-touch-icon" href="' . htmlspecialchars($b['favicon_touch']) . '">' . "\n";
+            $out .= '<link rel="apple-touch-icon" href="' . htmlspecialchars(wwi_ver($b['favicon_touch'])) . '">' . "\n";
         }
         if ($b['theme_color'] !== '' && preg_match('/^#[0-9a-fA-F]{6}$/', $b['theme_color'])) {
             $out .= '<meta name="theme-color" content="' . htmlspecialchars($b['theme_color']) . '">' . "\n";
@@ -57,6 +68,6 @@ if (!function_exists('wwi_logo_img')) {
         $b = wwi_brand();
         if ($b['logo'] === '') return '';
         $h = max(12, min($max, (int)$b['logo_height']));
-        return '<img src="' . htmlspecialchars($b['logo']) . '" alt="' . htmlspecialchars($b['alt']) . '" style="height:' . $h . 'px;width:auto;max-width:100%;display:block"/>';
+        return '<img src="' . htmlspecialchars(wwi_ver($b['logo'])) . '" alt="' . htmlspecialchars($b['alt']) . '" style="height:' . $h . 'px;width:auto;max-width:100%;display:block"/>';
     }
 }

@@ -416,6 +416,8 @@ $r->delete('/builder/comments/{id}', [\App\Controllers\Admin\BuilderController::
 
     $r->get('/settings', [\App\Controllers\Admin\SettingsController::class, 'index']);
     $r->put('/settings', [\App\Controllers\Admin\SettingsController::class, 'update']);
+    $r->get('/cache', [\App\Controllers\Admin\CacheController::class, 'overview']);
+    $r->post('/cache/purge', [\App\Controllers\Admin\CacheController::class, 'purge']);
     $r->get('/themes', [\App\Controllers\Admin\SettingsController::class, 'themes']);
     $r->put('/themes/active', [\App\Controllers\Admin\SettingsController::class, 'setTheme']);
 

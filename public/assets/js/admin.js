@@ -1302,8 +1302,39 @@ W.renderSettings=function(tab){
     W.state.settingsTab=tab||'general';
     var t=W.state.settingsTab;
     var tabBtn=function(id,label){return '<button class="w-btn '+(t===id?'w-btn-primary':'w-btn-secondary')+'" onclick="wontia.renderSettings(\''+id+'\')">'+label+'</button>';};
-    app.innerHTML='<div class="w-flex w-gap-sm" style="margin-bottom:16px">'+tabBtn('general','Ajustes')+tabBtn('logo','Logo & Favicon')+'</div><div id="settings-panel"></div>';
-    if(t==='logo')W.renderLogoPanel(); else W.renderSettingsGeneral();
+    app.innerHTML='<div class="w-flex w-gap-sm" style="margin-bottom:16px">'+tabBtn('general','Ajustes')+tabBtn('logo','Logo & Favicon')+tabBtn('cache','Administración de caché')+'</div><div id="settings-panel"></div>';
+    if(t==='logo')W.renderLogoPanel();
+    else if(t==='cache')W.renderCachePanel();
+    else W.renderSettingsGeneral();
+};
+
+W.renderCachePanel=async function(){
+    var panel=document.getElementById('settings-panel'); if(!panel)return;
+    panel.innerHTML='<div style="padding:20px;color:var(--w-muted)">Cargando…</div>';
+    var d=await W.api('/api/v1/admin/cache'); var o=d.data||{};
+    var fmt=function(b){ b=b||0; if(b<1024)return b+' B'; if(b<1048576)return (b/1024).toFixed(1)+' KB'; return (b/1048576).toFixed(2)+' MB'; };
+    var dirs=o.dirs||{};
+    var rows=Object.keys(dirs).map(function(k){var x=dirs[k];return '<tr><td>'+W.esc(k)+'</td><td style="font-size:11px">'+W.esc(x.path||'')+'</td><td>'+(x.exists?'sí':'no')+'</td><td>'+(x.files||0)+'</td><td>'+fmt(x.size)+'</td></tr>';}).join('');
+    var html='<div class="w-card"><h3>Administración de caché</h3><div style="font-size:11px;color:var(--w-muted);margin-bottom:12px">Purga caché, elimina archivos temporales y fuerza la recarga de contenido y multimedia en el sitio.</div>';
+    html+='<table class="w-table"><thead><tr><th>Caché</th><th>Ruta</th><th>Existe</th><th>Archivos</th><th>Tamaño</th></tr></thead><tbody>'+rows+'<tr><td><b>uploads</b></td><td style="font-size:11px">/assets/uploads</td><td>sí</td><td>'+(o.uploads_files||0)+'</td><td>'+fmt(o.uploads_size)+'</td></tr></tbody></table>';
+    html+='<div style="font-size:12px;margin-top:10px;color:var(--w-muted)">OPcache: <b>'+(o.opcache?'activo':'no disponible')+'</b> · Última purga: <b>'+W.esc(o.last_purge||'—')+'</b> · Versión de assets: <b>'+W.esc(o.asset_version||'—')+'</b></div></div>';
+    html+='<div class="w-card"><h3>Purgar</h3>';
+    html+='<label style="font-size:13px;display:flex;gap:8px;align-items:center;margin:6px 0"><input type="checkbox" id="cg-app" checked style="width:auto"/> Caché de la aplicación</label>';
+    html+='<label style="font-size:13px;display:flex;gap:8px;align-items:center;margin:6px 0"><input type="checkbox" id="cg-tmp" checked style="width:auto"/> Archivos temporales</label>';
+    html+='<label style="font-size:13px;display:flex;gap:8px;align-items:center;margin:6px 0"><input type="checkbox" id="cg-opcache" style="width:auto"/> OPcache (recarga el código PHP)</label>';
+    html+='<label style="font-size:13px;display:flex;gap:8px;align-items:center;margin:6px 0"><input type="checkbox" id="cg-assets" checked style="width:auto"/> Forzar recarga de assets/multimedia (sube la versión)</label>';
+    html+='<div class="w-flex w-gap-sm" style="margin-top:12px"><button class="w-btn w-btn-primary" onclick="wontia.doPurge()">Purgar ahora</button><button class="w-btn w-btn-secondary" onclick="wontia.renderCachePanel()">Recargar</button></div></div>';
+    panel.innerHTML=html;
+};
+
+W.doPurge=async function(){
+    var chk=function(id){var e=document.getElementById(id);return e&&e.checked?1:0;};
+    var opts={ app_cache:chk('cg-app'), tmp:chk('cg-tmp'), opcache:chk('cg-opcache'), assets:chk('cg-assets') };
+    if(!opts.app_cache&&!opts.tmp&&!opts.opcache&&!opts.assets){ W.notify('Selecciona al menos una acción','error'); return; }
+    if(!window.confirm('¿Purgar la caché seleccionada?'))return;
+    var r=await W.api('/api/v1/admin/cache/purge',{method:'POST',body:{options:opts}});
+    if(r.ok){ W.notify('Caché purgada: '+((r.done||[]).join(', ')||'ok'),'success'); W.renderCachePanel(); }
+    else W.notify((r&&r.message)||'Error','error');
 };
 
 W.renderSettingsGeneral=async function(){
