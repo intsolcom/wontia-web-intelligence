@@ -267,7 +267,8 @@ class SystemUpdateService
 
     public function requestUpdate(string $actor, array $opts = []): array
     {
-        $channel = in_array(($opts['channel'] ?? $this->channel()), self::CHANNELS, true) ? $opts['channel'] : $this->channel();
+        $ch = (string)($opts['channel'] ?? '');
+        $channel = in_array($ch, self::CHANNELS, true) ? $ch : $this->channel();
         $ts = time();
         if ($this->isCentral()) {
             $payload = [
