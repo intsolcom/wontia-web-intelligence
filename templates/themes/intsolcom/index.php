@@ -8,6 +8,7 @@ use App\Widgets\WidgetRegistry;
 $page = $page ?? ['title' => Config::get('site_name', 'INTSOLCOM'), 'meta_title' => '', 'meta_description' => '', 'slug' => ''];
 $sections = $sections ?? [];
 $pageMeta = array_merge($page, ['meta_title' => $page['meta_title'] ?: $page['title']]);
+require_once ROOT_DIR . '/templates/themes/_shared/brand.php';
 
 AnalyticsService::track($_SERVER['REQUEST_URI'], $_SERVER['HTTP_REFERER'] ?? '', $_SERVER['HTTP_USER_AGENT'] ?? '');
 
@@ -46,7 +47,7 @@ if (!$brandPrimary || !preg_match('/^#[0-9a-fA-F]{6}$/', (string)$brandPrimary))
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <?= SeoService::metaTags($pageMeta) ?>
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='10' fill='%2300C896'/%3E%3Ctext x='16' y='23' font-family='sans-serif' font-size='20' font-weight='800' fill='white' text-anchor='middle'%3EI%3C/text%3E%3C/svg%3E" />
+    <?= wwi_favicon_links() ?: '<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 32 32\'%3E%3Crect width=\'32\' height=\'32\' rx=\'10\' fill=\'%2300C896\'/%3E%3Ctext x=\'16\' y=\'23\' font-family=\'sans-serif\' font-size=\'20\' font-weight=\'800\' fill=\'white\' text-anchor=\'middle\'%3EI%3C/text%3E%3C/svg%3E" />' ?>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
     <style>
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -110,8 +111,12 @@ if (!$brandPrimary || !preg_match('/^#[0-9a-fA-F]{6}$/', (string)$brandPrimary))
 
 <nav class="nav">
   <div style="display:flex;align-items:center;gap:10px">
+    <?php if (wwi_brand()['logo'] !== ''): ?>
+      <a href="/" style="display:flex;align-items:center;gap:10px;text-decoration:none"><?= wwi_logo_img(120) ?><?php if (wwi_brand()['show_text']): ?><span style="font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:700;color:#0F172A;letter-spacing:-.02em"><?= htmlspecialchars(wwi_brand()['text']) ?></span><?php endif; ?></a>
+    <?php else: ?>
     <div style="width:32px;height:32px;border-radius:10px;background:<?= $brandPrimary ?>;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;color:#fff">I</div>
     <span style="font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:700;color:#0F172A;letter-spacing:-.02em">INTSOL<span style="color:<?= $brandPrimary ?>">COM</span></span>
+    <?php endif; ?>
   </div>
   <div class="nav-links" style="display:flex;align-items:center;gap:22px">
     <?= $navLinks ?>
