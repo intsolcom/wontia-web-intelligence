@@ -84,9 +84,7 @@ if (!$brandPrimary || !preg_match('/^#[0-9a-fA-F]{6}$/', (string)$brandPrimary))
         .h-sec p{font-size:15px;color:#475569;line-height:1.65}
         .wrap{max-width:1100px;margin:0 auto}
         .hero{position:relative}
-        .hero-bg{position:absolute;top:-120px;left:50%;transform:translateX(-50%);width:800px;height:400px;pointer-events:none;z-index:0;opacity:.35;overflow:visible}
-        .hero-bg svg{width:100%;height:100%;display:block}
-        .hero-bg circle:first-of-type{fill:#DCCFFF}
+        .hero-bg{display:none}
         .nav-hamburger{display:none;background:none;border:none;cursor:pointer;padding:8px;flex-direction:column;gap:4px}
         .nav-hamburger span{display:block;width:20px;height:2px;background:#0F172A;border-radius:2px}
         .nav-mobile{display:none;position:absolute;top:100%;left:0;right:0;background:#FFFFFF;border-bottom:1px solid #E2E8F0;box-shadow:0 20px 40px rgba(15,23,42,.1);padding:14px 20px 24px;flex-direction:column}
