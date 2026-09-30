@@ -1,14 +1,14 @@
 (function(){
   var examples={
-    'store:sell':['TIENDA · EJEMPLO DE EXPERIENCIA','Luna','Una muestra conceptual de presencia digital para una marca de bienestar.'],
-    'store:inquiries':['TIENDA · EJEMPLO DE EXPERIENCIA','Luna','Una muestra conceptual para orientar consultas sobre productos y servicios.'],
-    'store:bookings':['TIENDA · EJEMPLO DE EXPERIENCIA','Luna','Una muestra conceptual de cómo presentar opciones para una cita.'],
-    'restaurant:sell':['RESTAURANTE · EJEMPLO DE EXPERIENCIA','Mesa Clara','Una muestra conceptual para presentar un menú y facilitar pedidos.'],
-    'restaurant:inquiries':['RESTAURANTE · EJEMPLO DE EXPERIENCIA','Mesa Clara','Una muestra conceptual para responder preguntas y recibir consultas.'],
-    'restaurant:bookings':['RESTAURANTE · EJEMPLO DE EXPERIENCIA','Mesa Clara','Una muestra conceptual para explicar una experiencia y solicitar una reserva.'],
-    'services:sell':['SERVICIOS · EJEMPLO DE EXPERIENCIA','Estudio Norte','Una muestra conceptual para presentar servicios y facilitar solicitudes.'],
-    'services:inquiries':['SERVICIOS · EJEMPLO DE EXPERIENCIA','Estudio Norte','Una muestra conceptual para orientar consultas según cada necesidad.'],
-    'services:bookings':['SERVICIOS · EJEMPLO DE EXPERIENCIA','Estudio Norte','Una muestra conceptual para describir un servicio y solicitar una cita.']
+    'store:sell':['TIENDA LOCAL · MUESTRA','Tienda local','Muestra visual conceptual para una tienda local.'],
+    'store:inquiries':['TIENDA LOCAL · MUESTRA','Tienda local','Muestra visual conceptual para presentar una tienda y facilitar consultas.'],
+    'store:bookings':['TIENDA LOCAL · MUESTRA','Tienda local','Muestra visual conceptual con información para solicitar una cita.'],
+    'restaurant:sell':['RESTAURANTE · MUESTRA','Restaurante','Muestra visual conceptual de una página para restaurante.'],
+    'restaurant:inquiries':['RESTAURANTE · MUESTRA','Restaurante','Muestra visual conceptual de un restaurante con información de contacto.'],
+    'restaurant:bookings':['RESTAURANTE · MUESTRA','Restaurante','Muestra visual conceptual para presentar un restaurante y recibir solicitudes.'],
+    'services:sell':['SERVICIOS · MUESTRA','Servicios profesionales','Muestra visual conceptual de una página de servicios profesionales.'],
+    'services:inquiries':['SERVICIOS · MUESTRA','Servicios profesionales','Muestra visual conceptual para organizar la información de servicios.'],
+    'services:bookings':['SERVICIOS · MUESTRA','Servicios profesionales','Muestra visual conceptual para presentar servicios y recibir solicitudes.']
   };
   document.querySelectorAll('[data-wwi-ais-preview]').forEach(function(root){
     if(root.dataset.previewReady==='1')return;

@@ -14,15 +14,15 @@ class AISHeroWidget extends Widget
             ['key' => 'cta_primary_text', 'label' => 'Primary CTA', 'type' => 'text', 'default' => 'Explore Wontia Business'],
             ['key' => 'cta_primary_url', 'label' => 'Primary CTA URL', 'type' => 'text', 'default' => '#ais-concept'],
             ['key' => 'cta_secondary_text', 'label' => 'Secondary CTA', 'type' => 'text', 'default' => 'Meet TIA'],
-            ['key' => 'cta_secondary_url', 'label' => 'Secondary CTA URL', 'type' => 'text', 'default' => '#tia-command'],
+            ['key' => 'cta_secondary_url', 'label' => 'Secondary CTA URL', 'type' => 'text', 'default' => '#plantillas'],
             ['key' => 'preview_enabled', 'label' => 'Enable interactive business preview (feature flag)', 'type' => 'toggle', 'default' => false],
-            ['key' => 'preview_eyebrow', 'label' => 'Preview eyebrow', 'type' => 'text', 'default' => 'INTELIGENCIA APLICADA PARA NEGOCIOS'],
-            ['key' => 'preview_headline', 'label' => 'Preview headline', 'type' => 'html', 'default' => 'Tu negocio, listo para <span class="wwi-ais-preview-gradient">dar el siguiente paso.</span>'],
-            ['key' => 'preview_subtitle', 'label' => 'Preview subtitle', 'type' => 'textarea', 'default' => 'Explora cómo Wontia puede convertir contexto en decisiones y acciones útiles para tu negocio.'],
-            ['key' => 'preview_cta_primary_text', 'label' => 'Preview primary CTA', 'type' => 'text', 'default' => 'Explorar Wontia Business'],
-            ['key' => 'preview_cta_primary_url', 'label' => 'Preview primary CTA URL', 'type' => 'text', 'default' => '#business'],
-            ['key' => 'preview_cta_secondary_text', 'label' => 'Preview secondary CTA', 'type' => 'text', 'default' => 'Conoce cómo funciona'],
-            ['key' => 'preview_cta_secondary_url', 'label' => 'Preview secondary CTA URL', 'type' => 'text', 'default' => '#tia-command'],
+            ['key' => 'preview_eyebrow', 'label' => 'Preview eyebrow', 'type' => 'text', 'default' => 'CREA TU SITIO CON INTELIGENCIA APLICADA'],
+            ['key' => 'preview_headline', 'label' => 'Preview headline', 'type' => 'html', 'default' => 'De tu idea a un <span class="wwi-ais-preview-gradient">sitio web profesional.</span>'],
+            ['key' => 'preview_subtitle', 'label' => 'Preview subtitle', 'type' => 'textarea', 'default' => 'Explora una muestra visual adaptada a tu tipo de negocio. Compara planes y consulta el precio antes de iniciar tu pedido.'],
+            ['key' => 'preview_cta_primary_text', 'label' => 'Preview primary CTA', 'type' => 'text', 'default' => 'Ver planes y precios'],
+            ['key' => 'preview_cta_primary_url', 'label' => 'Preview primary CTA URL', 'type' => 'text', 'default' => '#planes'],
+            ['key' => 'preview_cta_secondary_text', 'label' => 'Preview secondary CTA', 'type' => 'text', 'default' => 'Explorar plantillas'],
+            ['key' => 'preview_cta_secondary_url', 'label' => 'Preview secondary CTA URL', 'type' => 'text', 'default' => '#plantillas'],
         ];
     }
 
@@ -83,7 +83,7 @@ class AISHeroWidget extends Widget
     {
         return '
 <style>
-.wwi-ais-preview{--wap-ink:#24212f;--wap-muted:#686577;--wap-line:#e9e5f2;--wap-purple:#7650e8;--wap-lilac:#f1edff;display:grid;grid-template-columns:minmax(0,1fr) minmax(400px,1.08fr);align-items:center;gap:clamp(32px,5vw,72px);max-width:1240px;margin:0 auto;padding:clamp(112px,14vw,176px) 32px 88px;color:var(--wap-ink);text-align:left}
+.wwi-ais-preview{--wap-ink:#24212f;--wap-muted:#686577;--wap-line:#e9e5f2;--wap-purple:#7650e8;--wap-lilac:#f1edff;display:grid;grid-template-columns:minmax(0,1fr) minmax(400px,1.08fr);align-items:center;gap:clamp(32px,5vw,72px);max-width:1240px;margin:0 auto;padding:clamp(112px,14vw,176px) 32px 88px;background:linear-gradient(135deg,#fff,#fbfaff);border-radius:22px;box-shadow:0 18px 60px rgba(118,80,232,.08);color:var(--wap-ink);text-align:left}
 .wwi-ais-preview *{box-sizing:border-box}.wwi-ais-preview-copy{min-width:0}.wwi-ais-preview-sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 .wwi-ais-preview-eyebrow{margin:0 0 22px;color:var(--wap-purple);font-size:11px;font-weight:750;letter-spacing:.15em;text-transform:uppercase}
 .wwi-ais-preview h1{margin:0 0 22px;color:var(--wap-ink);font-size:clamp(40px,5vw,66px);font-weight:800;line-height:1.04;letter-spacing:-.045em}
@@ -103,7 +103,7 @@ class AISHeroWidget extends Widget
 .wwi-ais-preview-site-art{position:absolute;inset:0 0 0 42%;overflow:hidden}.wwi-ais-preview-site-art:before{position:absolute;top:14%;right:18%;width:40%;height:72%;border-radius:52% 48% 12% 12%;background:linear-gradient(145deg,#657a57,#a8b49a 38%,#566c50);content:""}.wwi-ais-preview-site-art:after{position:absolute;right:8%;bottom:0;width:42%;height:52%;border-radius:50% 50% 0 0;background:linear-gradient(120deg,#b88755,#e1c09b);content:""}
 .wwi-ais-preview-site-copy{position:relative;z-index:1;max-width:56%}.wwi-ais-preview-site-kicker{margin:0 0 7px;color:#665f53;font-size:9px;font-weight:700;letter-spacing:.16em;text-transform:uppercase}
 .wwi-ais-preview-site-title{margin:0 0 7px;color:#25231e;font-family:Georgia,serif;font-size:23px;line-height:1.05}.wwi-ais-preview-site-desc{margin:0;color:#4f4a42;font-size:10px;line-height:1.45}
-.wwi-ais-preview-status{position:absolute;top:12px;right:12px;padding:6px 9px;border-radius:99px;background:#e2f5e9;color:#31734c;font-size:9px;font-weight:800}
+.wwi-ais-preview-status{position:absolute;top:12px;right:12px;padding:6px 9px;border-radius:99px;background:#f1edff;color:#6241c7;font-size:9px;font-weight:800}
 .wwi-ais-preview-flow{display:grid;grid-template-columns:1fr auto 1fr auto 1fr;align-items:center;gap:8px;padding:14px 10px}
 .wwi-ais-preview-step{display:flex;align-items:center;gap:7px;color:#413b51;font-size:10px;font-weight:600;line-height:1.35}.wwi-ais-preview-step-icon{display:grid;width:28px;height:28px;flex:0 0 28px;place-items:center;border-radius:50%;background:var(--wap-lilac);color:var(--wap-purple);font-size:13px}
 .wwi-ais-preview-arrow{color:#8875bd}.wwi-ais-preview-caption{margin:0;padding:0 10px 14px;color:#777284;font-size:10px;line-height:1.5}
@@ -120,10 +120,10 @@ class AISHeroWidget extends Widget
       <a class="btn-primary" href="' . $this->safeHref((string)$c['preview_cta_primary_url']) . '">' . $this->esc((string)$c['preview_cta_primary_text']) . '</a>
       <a class="btn-outline" href="' . $this->safeHref((string)$c['preview_cta_secondary_url']) . '">' . $this->esc((string)$c['preview_cta_secondary_text']) . '</a>
     </div>
-    <p class="wwi-ais-preview-trust"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3 5 6v5c0 4.5 2.8 8 7 10 4.2-2 7-5.5 7-10V6l-7-3Z" stroke="currentColor" stroke-width="1.6"/><path d="m9 12 2 2 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Alcance e inversión claros antes de contratar.</span></p>
+    <p class="wwi-ais-preview-trust"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3 5 6v5c0 4.5 2.8 8 7 10 4.2-2 7-5.5 7-10V6l-7-3Z" stroke="currentColor" stroke-width="1.6"/><path d="m9 12 2 2 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Consulta el precio del plan antes de confirmar tu pedido.</span></p>
   </div>
   <div class="wwi-ais-preview-card">
-    <div class="wwi-ais-preview-card-head"><h2>Explora una idea para tu negocio</h2><span class="wwi-ais-preview-label">EJEMPLO INTERACTIVO</span></div>
+    <div class="wwi-ais-preview-card-head"><h2>Explora una idea para tu sitio</h2><span class="wwi-ais-preview-label">EJEMPLO INTERACTIVO</span></div>
     <fieldset class="wwi-ais-preview-group" data-preview-group="business"><legend>Tipo de negocio</legend><div class="wwi-ais-preview-options">
       <button class="wwi-ais-preview-option" type="button" data-preview-value="store" aria-pressed="true">Tienda</button>
       <button class="wwi-ais-preview-option" type="button" data-preview-value="restaurant" aria-pressed="false">Restaurante</button>
@@ -135,8 +135,8 @@ class AISHeroWidget extends Widget
       <button class="wwi-ais-preview-option" type="button" data-preview-value="bookings" aria-pressed="false">Reservas</button>
     </div></fieldset>
     <div class="wwi-ais-preview-result">
-      <div class="wwi-ais-preview-site"><div class="wwi-ais-preview-site-art" aria-hidden="true"></div><span class="wwi-ais-preview-status">WONTIA BUSINESS · DISPONIBLE</span>
-        <div class="wwi-ais-preview-site-copy"><p class="wwi-ais-preview-site-kicker" data-preview-kicker>TIENDA · EJEMPLO DE EXPERIENCIA</p><h3 class="wwi-ais-preview-site-title" data-preview-title>Luna</h3><p class="wwi-ais-preview-site-desc" data-preview-description>Una muestra conceptual de presencia digital para una marca de bienestar.</p></div>
+      <div class="wwi-ais-preview-site"><div class="wwi-ais-preview-site-art" aria-hidden="true"></div><span class="wwi-ais-preview-status">MUESTRA ILUSTRATIVA</span>
+        <div class="wwi-ais-preview-site-copy"><p class="wwi-ais-preview-site-kicker" data-preview-kicker>TIENDA LOCAL · MUESTRA</p><h3 class="wwi-ais-preview-site-title" data-preview-title>Tienda local</h3><p class="wwi-ais-preview-site-desc" data-preview-description>Muestra visual conceptual para una tienda local.</p></div>
       </div>
       <div class="wwi-ais-preview-flow" aria-label="Flujo ilustrativo de inteligencia aplicada">
         <div class="wwi-ais-preview-step"><span class="wwi-ais-preview-step-icon" aria-hidden="true">1</span><span>Entiende la necesidad</span></div><span class="wwi-ais-preview-arrow" aria-hidden="true">→</span>
