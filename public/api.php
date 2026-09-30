@@ -108,6 +108,11 @@ $router->get('/api/v1/public/asset-version', function () {
     ]]);
 });
 
+$router->get('/api/v1/public/system/manifest', [\App\Controllers\Admin\SystemUpdateController::class, 'publicManifest']);
+$router->get('/api/v1/public/system/status', [\App\Controllers\Admin\SystemUpdateController::class, 'publicStatus']);
+$router->get('/api/v1/public/system/history', [\App\Controllers\Admin\SystemUpdateController::class, 'publicHistory']);
+$router->post('/api/v1/public/system/update-request', [\App\Controllers\Admin\SystemUpdateController::class, 'publicUpdateRequest']);
+
 $router->get('/api/v1/public/plans', [\App\Controllers\Admin\FactoryController::class, 'publicPlans']);
 $router->get('/api/v1/public/plans/{slug}', [\App\Controllers\Admin\FactoryController::class, 'publicPlan']);
 $router->get('/api/v1/public/templates', [\App\Controllers\Admin\FactoryController::class, 'publicTemplates']);
@@ -338,6 +343,13 @@ $r->delete('/trash/{id}', [\App\Controllers\Admin\SectionController::class, 'tra
     $r->get('/system/updates', [\App\Controllers\Admin\FactoryController::class, 'systemUpdates']);
     $r->get('/system/status', [\App\Controllers\Admin\FactoryController::class, 'systemStatus']);
     $r->post('/system/notify-sites', [\App\Controllers\Admin\FactoryController::class, 'systemNotifySites']);
+    $r->get('/system/update/overview', [\App\Controllers\Admin\SystemUpdateController::class, 'overview']);
+    $r->post('/system/update/check', [\App\Controllers\Admin\SystemUpdateController::class, 'check']);
+    $r->post('/system/update/apply', [\App\Controllers\Admin\SystemUpdateController::class, 'apply']);
+    $r->get('/system/update/status', [\App\Controllers\Admin\SystemUpdateController::class, 'status']);
+    $r->get('/system/update/history', [\App\Controllers\Admin\SystemUpdateController::class, 'history']);
+    $r->post('/system/update/settings', [\App\Controllers\Admin\SystemUpdateController::class, 'saveSettings']);
+    $r->post('/system/update/secret', [\App\Controllers\Admin\SystemUpdateController::class, 'regenerateSecret']);
 
     $r->post('/tia/command', [\App\Controllers\Admin\TiaAgentController::class, 'command']);
     $r->post('/tia/confirm', [\App\Controllers\Admin\TiaAgentController::class, 'confirm']);

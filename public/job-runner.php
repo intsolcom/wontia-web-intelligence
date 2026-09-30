@@ -12,4 +12,5 @@ $result = $service->runDueJobs(10);
 $result['previews_cleaned'] = $service->cleanupPreviews();
 $result['store_stock_released'] = (new \App\Services\StoreService())->releaseExpiredOrders(null, 60)['released'];
 $result['bricks_auto_launched'] = (new \App\Services\BrickLifecycleService())->processDueLaunches()['launched'];
+$result['system_auto_update'] = (new \App\Services\SystemUpdateService())->autoTick();
 echo json_encode($result, JSON_UNESCAPED_UNICODE) . "\n";

@@ -1302,9 +1302,10 @@ W.renderSettings=function(tab){
     W.state.settingsTab=tab||'general';
     var t=W.state.settingsTab;
     var tabBtn=function(id,label){return '<button class="w-btn '+(t===id?'w-btn-primary':'w-btn-secondary')+'" onclick="wontia.renderSettings(\''+id+'\')">'+label+'</button>';};
-    app.innerHTML='<div class="w-flex w-gap-sm" style="margin-bottom:16px">'+tabBtn('general','Ajustes')+tabBtn('logo','Logo & Favicon')+tabBtn('cache','Administración de caché')+'</div><div id="settings-panel"></div>';
+    app.innerHTML='<div class="w-flex w-gap-sm" style="margin-bottom:16px;flex-wrap:wrap">'+tabBtn('general','Ajustes')+tabBtn('logo','Logo & Favicon')+tabBtn('cache','Administración de caché')+tabBtn('update','Update')+'</div><div id="settings-panel"></div>';
     if(t==='logo')W.renderLogoPanel();
     else if(t==='cache')W.renderCachePanel();
+    else if(t==='update')W.renderUpdatePanel();
     else W.renderSettingsGeneral();
 };
 
@@ -1335,6 +1336,104 @@ W.doPurge=async function(){
     var r=await W.api('/api/v1/admin/cache/purge',{method:'POST',body:{options:opts}});
     if(r.ok){ W.notify('Caché purgada: '+((r.done||[]).join(', ')||'ok'),'success'); W.renderCachePanel(); }
     else W.notify((r&&r.message)||'Error','error');
+};
+
+W.renderUpdatePanel=async function(){
+    var panel=document.getElementById('settings-panel'); if(!panel)return;
+    panel.innerHTML='<div style="padding:20px;color:var(--w-muted)">Cargando actualizaciones…</div>';
+    var ov={};try{ov=(await W.api('/api/v1/admin/system/update/overview')).data||{}}catch(e){}
+    var loc=ov.local||{},st=ov.settings||{},chans=ov.channels||['stable','beta'],can=!!ov.can_apply;
+    var card=function(v,l,sub){return '<div class="w-stat-card"><div class="w-stat-value">'+v+'</div><div class="w-stat-label">'+W.esc(l)+'</div>'+(sub?'<div style="font-size:10px;color:var(--w-muted);margin-top:2px">'+W.esc(sub)+'</div>':'')+'</div>'};
+    var html='<div class="w-card"><h3 style="margin:0 0 4px">Actualizaciones del sistema</h3><div style="font-size:11px;color:var(--w-muted);line-height:1.7">Consulta al <strong>servidor central WWI</strong> y actualiza el sistema. '+(loc.is_central?'Esta instancia es el <strong style="color:var(--w-primary)">servidor central</strong> y aplica la actualización a todos los sitios WWI.':'Esta instancia se actualiza desde el servidor central: <b>'+W.esc(loc.central_url||'')+'</b>')+'</div>'
+      +'<div class="w-stats" style="margin-top:12px">'
+      +card(W.esc(loc.version||'—'),'Versión local',(loc.build_at||'').slice(0,16))
+      +card(W.esc(String(loc.site_id!=null?loc.site_id:'—')),'SITE_ID',loc.is_central?'servidor central':'cliente')
+      +card(W.esc(loc.php||'—'),'PHP','')
+      +card(loc.has_secret?'✔':'—','Secreto update',loc.has_secret?'configurado':'no configurado')
+      +'</div>'
+      +'<div class="w-flex w-gap-sm" style="margin-top:12px;flex-wrap:wrap">'
+      +'<button class="w-btn w-btn-primary" onclick="wontia.updCheck()">🔍 Buscar actualizaciones</button>'
+      +(can?'<button class="w-btn w-btn-secondary" onclick="wontia.updApply(1)">⬆️ Aplicar actualización</button>':'')
+      +'<button class="w-btn w-btn-secondary" onclick="wontia.renderUpdatePanel()">↻ Recargar</button>'
+      +'</div></div>';
+    html+='<div id="upd-result"></div><div id="upd-progress"></div>';
+    html+='<div class="w-card"><h3>Configuración del actualizador</h3>'
+      +'<div class="w-form-group"><label class="w-label">Canal</label><select class="w-select" id="upd-channel">'+chans.map(function(c){return '<option value="'+W.esc(c)+'"'+(st.channel===c?' selected':'')+'>'+W.esc(c)+'</option>'}).join('')+'</select></div>'
+      +'<div class="w-form-group"><label class="w-label">Servidor central (URL)</label><input class="w-input" id="upd-central" value="'+W.esc(st.central_url||'')+'"/></div>'
+      +'<div class="w-form-group"><label class="w-label">Repositorio (GitHub)</label><input class="w-input" id="upd-repo" value="'+W.esc(st.repo||'')+'"/></div>'
+      +'<div class="w-form-group"><label class="w-label">Ventana de mantenimiento (HH:MM-HH:MM)</label><input class="w-input" id="upd-window" placeholder="02:00-05:00" value="'+W.esc(st.window||'')+'"/></div>'
+      +'<label style="font-size:13px;display:flex;gap:8px;align-items:center;margin:6px 0"><input type="checkbox" id="upd-auto" style="width:auto"'+(st.auto_update?' checked':'')+'/> Auto-actualizar desde el servidor central (según ventana)</label>'
+      +'<div class="w-flex w-gap-sm" style="margin-top:10px;flex-wrap:wrap"><button class="w-btn w-btn-primary" onclick="wontia.updSaveSettings()">Guardar configuración</button>'
+      +(can?'<button class="w-btn w-btn-secondary" onclick="wontia.updRegenSecret()">🔑 Generar secreto de update</button>':'')+'</div>'
+      +'<div id="upd-secret" style="font-size:11px;color:var(--w-muted);margin-top:8px"></div></div>';
+    html+='<div id="upd-history"></div>';
+    panel.innerHTML=html;
+    W.updAutoPoll();
+    W.updHistory();
+};
+
+W.updCheck=async function(){
+    var el=document.getElementById('upd-result');
+    if(el)el.innerHTML='<div class="w-card" style="color:var(--w-muted);font-size:12px">Consultando servidor central y repositorio…</div>';
+    var r={};try{r=await W.api('/api/v1/admin/system/update/check',{method:'POST'})}catch(e){}
+    if(!r.ok){if(el)el.innerHTML='<div class="w-card" style="color:#f87171">No se pudo verificar: '+W.esc((r&&r.message)||'error')+'</div>';return}
+    var d=r.data||{},loc=d.local||{},lat=d.latest||{};
+    var badge=function(t,col){return '<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;background:'+col[0]+';color:'+col[1]+';border:1px solid '+col[2]+'">'+W.esc(t)+'</span>'};
+    var h='<div class="w-card"><div class="w-flex-between"><h3 style="margin:0">Resultado</h3>'+(d.update_available?badge('ACTUALIZACIÓN DISPONIBLE',['rgba(34,211,238,.14)','#22d3ee','rgba(34,211,238,.4)']):badge('AL DÍA',['rgba(52,211,153,.14)','#34d399','rgba(52,211,153,.4)']))+'</div>';
+    h+='<div style="font-size:12px;margin-top:8px;line-height:1.9">Local: <b>'+W.esc(loc.version||'—')+'</b> · Última: <b>'+W.esc(lat.v||'—')+'</b> ('+W.esc(lat.src||'')+')<br>Servidor central: '+(d.central?W.esc(d.central.version||'')+' <span style="color:var(--w-muted)">'+W.esc((d.central.build_at||'').slice(0,16))+'</span>':'<span style="color:#f87171">'+W.esc(d.central_error||'no disponible')+'</span>')+'<br>GitHub: '+(d.github?W.esc(d.github.version||'')+(d.github.url?' <a href="'+W.esc(d.github.url)+'" target="_blank" rel="noopener">ver release</a>':''):'<span style="color:var(--w-muted)">sin releases</span>')+'</div>';
+    var plan=d.plan||{};
+    if(plan.steps)h+='<div style="margin-top:10px;font-size:11px;color:var(--w-muted);border-top:1px dashed var(--w-border);padding-top:8px"><b style="color:var(--w-text)">Plan (dry-run)</b><br>'+plan.steps.map(W.esc).join('<br>')+'<br>Aplica a: <b>'+W.esc(plan.applies_to||'')+'</b> · Downtime: '+W.esc(plan.downtime||'')+'</div>';
+    if(lat.notes)h+='<div style="margin-top:10px"><div style="font-size:11px;color:var(--w-muted);margin-bottom:4px">Cambios (release notes)</div><pre style="white-space:pre-wrap;font-size:11px;background:var(--w-bg2);border:1px solid var(--w-border);border-radius:8px;padding:10px;max-height:200px;overflow:auto">'+W.esc(lat.notes)+'</pre></div>';
+    if(d.update_available)h+='<div style="margin-top:10px"><label style="font-size:12px;display:flex;gap:8px;align-items:center"><input type="checkbox" id="upd-backup" checked style="width:auto"/> Hacer backup antes de actualizar</label><div class="w-flex w-gap-sm" style="margin-top:8px"><button class="w-btn w-btn-primary" onclick="wontia.updApply(1)">⬆️ Actualizar ahora</button></div></div>';
+    h+='<div style="font-size:10px;color:var(--w-muted);margin-top:8px">Verificado: '+W.esc((d.checked_at||'').slice(0,19))+'</div></div>';
+    el.innerHTML=h;
+};
+
+W.updApply=async function(confirmar){
+    var ch=document.getElementById('upd-channel'),channel=ch?ch.value:'';
+    var bk=document.getElementById('upd-backup'),backup=bk?!!bk.checked:true;
+    if(confirmar&&!window.confirm('¿Aplicar la actualización ahora? El sistema se pondrá al día en ~1 minuto.'))return;
+    var r={};try{r=await W.api('/api/v1/admin/system/update/apply',{method:'POST',body:{channel:channel,backup:backup}})}catch(e){}
+    if(r.ok){W.notify(r.message||'Actualización iniciada','success');W.updAutoPoll()}else W.notify((r&&r.message)||'No se pudo iniciar','error');
+};
+
+W.updAutoPoll=function(){
+    if(W._updTimer){clearInterval(W._updTimer);W._updTimer=null;}
+    var step=async function(){
+        var el=document.getElementById('upd-progress');
+        if(!el){if(W._updTimer){clearInterval(W._updTimer);W._updTimer=null;}return}
+        var st={};try{st=(await W.api('/api/v1/admin/system/update/status')).data||{}}catch(e){}
+        var stat=st.status||'idle';
+        if(stat==='idle'){el.innerHTML='';return}
+        var pct=st.pct||0;
+        var label=({running:'En curso',build:'Construyendo imagen',recreate:'Recreando contenedores',health:'Health-check',done:'Completado',failed:'Falló',rolled_back:'Rollback aplicado',stale:'Sin actividad'})[stat]||stat;
+        var col=stat==='failed'?'#f87171':((stat==='done')?'#34d399':'#22d3ee');
+        el.innerHTML='<div class="w-card"><div class="w-flex-between"><h3 style="margin:0">Actualizando — '+W.esc(label)+'</h3><span style="font-size:11px;color:var(--w-muted)">'+(st.containers_done!=null?st.containers_done+'/'+st.containers_total:'')+' &#183; ETA '+(st.eta_s!=null?st.eta_s+'s':'—')+'</span></div><div class="w-brick-bar" style="height:10px;margin-top:10px"><i style="width:'+pct+'%;background:'+col+'"></i></div><div style="font-size:11px;color:var(--w-muted);margin-top:6px">'+W.esc(st.message||'')+(st.commit?' &#183; commit '+W.esc(String(st.commit).slice(0,8)):'')+'</div></div>';
+        if(stat==='done'||stat==='rolled_back'||stat==='failed'){clearInterval(W._updTimer);W._updTimer=null;W.updHistory();setTimeout(function(){W.renderUpdatePanel()},2500)}
+    };
+    step();
+    W._updTimer=setInterval(step,4000);
+};
+
+W.updSaveSettings=async function(){
+    var g=function(id){var e=document.getElementById(id);return e?e.value:''};
+    var auto=document.getElementById('upd-auto');
+    var settings={channel:g('upd-channel'),central_url:g('upd-central'),repo:g('upd-repo'),window:g('upd-window'),auto_update:auto?!!auto.checked:false};
+    var r=await W.api('/api/v1/admin/system/update/settings',{method:'POST',body:{settings:settings}});
+    if(r.ok)W.notify('Configuración guardada','success');else W.notify((r&&r.message)||'Error','error');
+};
+
+W.updRegenSecret=async function(){
+    var r=await W.api('/api/v1/admin/system/update/secret',{method:'POST'});
+    if(r.ok){var el=document.getElementById('upd-secret');if(el)el.innerHTML='Secreto: <code style="user-select:all">'+W.esc(r.secret)+'</code> — cópialo en los demás sitios WWI.';W.notify('Secreto regenerado','success')}
+    else W.notify((r&&r.message)||'Error','error');
+};
+
+W.updHistory=async function(){
+    var el=document.getElementById('upd-history');if(!el)return;
+    var h=[];try{h=(await W.api('/api/v1/admin/system/update/history')).data||[]}catch(e){}
+    var rows=h.map(function(x){var d=x.data||{};var s=x.status==='done'?(d.status||'ok'):'encolada';var col=(s==='success'||s==='done')?'#34d399':((s==='failed'||s==='rolled_back')?'#f87171':'#fbbf24');var when=d.ts?new Date(d.ts*1000).toLocaleString():(d.started_at||'');return '<tr><td style="font-family:var(--w-font-mono);font-size:10px">'+W.esc(when)+'</td><td>'+W.esc(d.requested_by||'—')+'</td><td>'+W.esc(d.channel||'—')+'</td><td><b style="color:'+col+'">'+W.esc(s)+'</b></td><td style="font-size:10px">'+W.esc(String(d.commit||'').slice(0,8))+'</td></tr>'}).join('');
+    el.innerHTML='<div class="w-card"><h3>Historial de actualizaciones</h3><table class="w-table"><thead><tr><th>Cuándo</th><th>Solicitó</th><th>Canal</th><th>Estado</th><th>Commit</th></tr></thead><tbody>'+(rows||'<tr><td colspan="5" style="color:var(--w-muted)">Sin actualizaciones registradas</td></tr>')+'</tbody></table></div>';
 };
 
 W.renderSettingsGeneral=async function(){
