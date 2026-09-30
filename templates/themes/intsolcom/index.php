@@ -151,14 +151,18 @@ if (!$brandPrimary || !preg_match('/^#[0-9a-fA-F]{6}$/', (string)$brandPrimary))
         echo $wwiBuilderHtml;
     else:
     foreach ($sections as $section):
+        $wwiSid = (int)($section['id'] ?? 0);
+        $config = json_decode($section['config'] ?? '{}', true) ?: [];
+        $wwiHide = (!empty($config['_hide_mobile']) ? ' wwi-hide-mobile' : '') . (!empty($config['_hide_tablet']) ? ' wwi-hide-tablet' : '') . (!empty($config['_hide_desktop']) ? ' wwi-hide-desktop' : '');
+        echo '<div class="wwi-section' . $wwiHide . '" data-sid="' . $wwiSid . '" data-widget="' . htmlspecialchars((string)($section['widget_type'] ?? '')) . '">';
         if (!empty($section['widget_type']) && WidgetRegistry::get($section['widget_type'])):
-            $config = json_decode($section['config'] ?? '{}', true) ?: [];
             echo WidgetRegistry::render($section['widget_type'], $config);
         elseif ($section['type'] === 'custom' || $section['type'] === 'html'):
             echo '<section class="section" style="max-width:760px">' . ($section['content'] ?? '') . '</section>';
         else:
             if ($section['content']) echo '<section class="section">' . $section['content'] . '</section>';
         endif;
+        echo '</div>';
     endforeach;
     endif; ?>
 </main>
