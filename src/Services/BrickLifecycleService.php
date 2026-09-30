@@ -62,9 +62,19 @@ class BrickLifecycleService
     {
         $row = $this->get($slug);
         $functional = array_key_exists('functional', $item) ? (bool)$item['functional'] : true;
-        $type = $row['brick_type'] ?? $this->assignType($slug);
+        $usage = (int)($item['usage'] ?? 0);
+        $hint = (string)($item['type'] ?? '');
+        $type = $row['brick_type'] ?? ($hint !== '' ? $hint : $this->assignType($slug));
 
-        $state = $row['state'] ?? ($functional ? 'launched' : 'incubator');
+        if ($row && isset($row['state'])) {
+            $state = $row['state'];
+        } elseif ($hint === 'repo') {
+            $state = 'launched';
+        } elseif ($hint === 'incubator') {
+            $state = 'incubator';
+        } else {
+            $state = ($functional !== false && $usage > 0) ? 'launched' : 'incubator';
+        }
         $target = $row['target_launch_at'] ?? null;
         $estimated = false;
         if ($state === 'incubator' && !$target) {

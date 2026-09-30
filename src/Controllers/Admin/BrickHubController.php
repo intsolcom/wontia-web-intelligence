@@ -61,7 +61,7 @@ class BrickHubController
 
         $lifecycle = new \App\Services\BrickLifecycleService();
         foreach ($availableBricks as &$ab) {
-            $ab['lifecycle'] = $lifecycle->resolve($ab['slug'], ['functional' => true]);
+            $ab['lifecycle'] = $lifecycle->resolve($ab['slug'], ['functional' => true, 'type' => 'repo']);
         }
         unset($ab);
 

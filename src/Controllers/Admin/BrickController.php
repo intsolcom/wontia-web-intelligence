@@ -20,7 +20,7 @@ class BrickController
             $b['usage_count'] = $usage[$id] ?? 0;
             $b['launched_at'] = $this->widgetLaunchedAt($id);
             $b['functional'] = $this->widgetFunctional($id);
-            $b['lifecycle'] = $lifecycle->resolve($id, ['functional' => $b['functional']]);
+            $b['lifecycle'] = $lifecycle->resolve($id, ['functional' => $b['functional'], 'usage' => $b['usage_count'], 'type' => 'core']);
             $b['readiness'] = $lifecycle->readiness($id);
         }
         unset($b);

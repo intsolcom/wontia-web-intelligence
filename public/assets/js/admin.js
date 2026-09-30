@@ -1666,7 +1666,7 @@ W.bmLoad=async function(force){
     var items=[];
     for(var id in core){
         var b=core[id];
-        items.push({slug:id,name:b.name,category:b.category||'general',version:b.version||'1.0.0',launched_at:b.launched_at||'',origin:'core',core:true,installed:false,functional:b.functional!==false,installed_version:'',installed_id:null,source_id:0,source_name:'Core',desc:(b.configSchema&&b.configSchema.length?b.configSchema.length+' campos configurables':'Bloque del sistema'),uses_ai:!!b.uses_ai,usage_count:b.usage_count||0,update_available:false,lifecycle:b.lifecycle||lcFor(id),readiness:b.readiness||null});
+        items.push({slug:id,name:b.name,category:b.category||'general',version:b.version||'1.0.0',launched_at:b.launched_at||'',origin:'core',core:true,installed:(b.usage_count||0)>0,functional:b.functional!==false,installed_version:'',installed_id:null,source_id:0,source_name:'Core',desc:(b.configSchema&&b.configSchema.length?b.configSchema.length+' campos configurables':'Bloque del sistema'),uses_ai:!!b.uses_ai,usage_count:b.usage_count||0,update_available:false,lifecycle:b.lifecycle||lcFor(id),readiness:b.readiness||null});
     }
     (bhList||[]).forEach(function(b){
         if(sgl&&b.slug===sgl.slug)return;
