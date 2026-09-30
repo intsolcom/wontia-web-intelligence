@@ -44,6 +44,7 @@ W.router=function(){
     if(panel==='brickhub'){window.location.replace(window.location.pathname+window.location.search+'#bricks/extensiones');return}
     if(panel==='brick'){window.location.replace(window.location.pathname+window.location.search+'#bricks/ia');return}
     if(panel==='factory'){var ftab=parts[1]||'inicio';if(ftab==='updates')ftab='system';window.location.replace(window.location.pathname+window.location.search+'#wwi/'+ftab);return}
+    if((panel==='wwi'||panel==='factory')&&!window.__WWI_IS_CENTRAL){window.location.replace(window.location.pathname+window.location.search+'#dashboard');return}
     if(panel==='sections'){window.location.replace(window.location.pathname+window.location.search+'#pages/secciones'+(parts[1]?'/'+parts[1]:''));return}
     if(panel.indexOf('section-edit-')===0){W.panels.sectionEditor(panel.replace('section-edit-',''));return}
     if(panel!=='bricks'){W.state.brickHost=null;W.state.bhHost=null}
@@ -3908,7 +3909,7 @@ W.toggleDensity=function(){
 W.mountTopbar=function(){
     var bar=document.querySelector('.w-topbar');
     if(!bar)return;
-    if(document.querySelector('.w-nav-item[data-panel="factory"]')&&!document.getElementById('w-jobs-badge')){
+    if(document.querySelector('.w-nav-item[data-panel="wwi"]')&&!document.getElementById('w-jobs-badge')){
         var b=document.createElement('a');
         b.id='w-jobs-badge';
         b.className='w-jobs-badge';
@@ -4436,7 +4437,6 @@ W.panels={
     bricks:W.renderBricks,
     brickhub:W.renderBrickHub,
     brick:W.renderBrick,
-    wwi:W.renderWWI,
     portal:W.renderPortal,
     blog:W.renderBlogList,
     blogEditor:W.renderBlogEditor,

@@ -90,7 +90,7 @@ endif;
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
             Dashboard
         </a>
-        <?php if (($user['role'] ?? '') === 'superadmin'): ?>
+        <?php if ((($user['role'] ?? '') === 'superadmin') && is_dir('/app/deploy-queue')): ?>
         <a href="#wwi" class="w-nav-item" data-panel="wwi">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
             WWI — Sistema
@@ -165,7 +165,7 @@ endif;
 <div id="w-toast-container" style="position:fixed;top:20px;right:20px;z-index:99999;display:flex;flex-direction:column;gap:8px"></div>
 <div class="w-modal-overlay" id="w-modal" style="display:none" onclick="if(event.target===this)wontia.closeModal()"><div class="w-modal" id="w-modal-content"></div></div>
 
-<script>window.__WWI_VER='<?= filemtime(__DIR__ . '/assets/js/admin.js') ?>';</script>
+<script>window.__WWI_VER='<?= filemtime(__DIR__ . '/assets/js/admin.js') ?>';window.__WWI_IS_CENTRAL=<?= is_dir('/app/deploy-queue') ? 'true' : 'false' ?>;</script>
 <script src="/assets/js/admin.js?v=<?= filemtime(__DIR__ . '/assets/js/admin.js') ?>"></script>
 </body>
 </html>
