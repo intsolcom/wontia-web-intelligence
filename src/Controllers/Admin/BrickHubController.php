@@ -122,8 +122,11 @@ class BrickHubController
         $source = BrickSystem::getSource($sourceId);
         if (!$source) Response::error('Source not found', 404);
 
+        $siteId = (int)Database::instance()->query('SELECT @site_id')->fetchColumn();
+        if ($siteId <= 0) $siteId = 1;
+
         $brickDef = [
-            'site_id' => 1,
+            'site_id' => $siteId,
             'source_id' => $sourceId,
             'name' => $request->input('name', $slug),
             'slug' => $slug,
