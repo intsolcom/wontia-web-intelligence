@@ -3820,6 +3820,14 @@ W.mountTopbar=function(){
         W.refreshJobsBadge();
         setInterval(W.refreshJobsBadge,60000);
     }
+    if(!document.getElementById('w-build-badge')&&window.__WWI_VER){
+        var v=document.createElement('span');
+        v.id='w-build-badge';
+        v.title='Build del admin cargado. Si no ves las mejoras, recarga la página (el SPA no recarga el JS).';
+        v.style.cssText='font-family:var(--w-font-mono,monospace);font-size:10px;color:var(--w-muted);border:1px solid var(--w-border2,#2a3346);border-radius:8px;padding:4px 8px;margin-right:12px';
+        v.textContent='build '+String(window.__WWI_VER).slice(-6);
+        bar.insertBefore(v,bar.lastElementChild);
+    }
     if(!document.getElementById('w-density')){
         var d=document.createElement('button');
         d.id='w-density';
