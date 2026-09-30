@@ -5,10 +5,13 @@ use App\Services\CookieConsentService;
 use App\Services\AnalyticsService;
 use App\Widgets\WidgetRegistry;
 
+require_once ROOT_DIR . '/templates/themes/_shared/brand.php';
+
 $page = $page ?? ['title' => Config::get('site_name', 'INTSOLCOM'), 'meta_title' => '', 'meta_description' => '', 'slug' => ''];
 $sections = $sections ?? [];
 $pageMeta = array_merge($page, ['meta_title' => $page['meta_title'] ?: $page['title']]);
-require_once ROOT_DIR . '/templates/themes/_shared/brand.php';
+
+$brand = wwi_brand();
 
 AnalyticsService::track($_SERVER['REQUEST_URI'], $_SERVER['HTTP_REFERER'] ?? '', $_SERVER['HTTP_USER_AGENT'] ?? '');
 
