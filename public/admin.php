@@ -165,6 +165,7 @@ endif;
 <div id="w-toast-container" style="position:fixed;top:20px;right:20px;z-index:99999;display:flex;flex-direction:column;gap:8px"></div>
 <div class="w-modal-overlay" id="w-modal" style="display:none" onclick="if(event.target===this)wontia.closeModal()"><div class="w-modal" id="w-modal-content"></div></div>
 
+<script>window.__WWI_VER='<?= filemtime(__DIR__ . '/assets/js/admin.js') ?>';</script>
 <script src="/assets/js/admin.js?v=<?= filemtime(__DIR__ . '/assets/js/admin.js') ?>"></script>
 </body>
 </html>

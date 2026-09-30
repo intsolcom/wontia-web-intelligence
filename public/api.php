@@ -99,6 +99,15 @@ $router->get('/api/v1/public/settings', function () {
     Response::json(['ok' => true, 'data' => $settings]);
 });
 
+$router->get('/api/v1/public/asset-version', function () {
+    $js = ROOT_DIR . '/public/assets/js/admin.js';
+    $css = ROOT_DIR . '/public/assets/css/admin.css';
+    Response::json(['ok' => true, 'data' => [
+        'js' => is_file($js) ? (int)filemtime($js) : 0,
+        'css' => is_file($css) ? (int)filemtime($css) : 0,
+    ]]);
+});
+
 $router->get('/api/v1/public/plans', [\App\Controllers\Admin\FactoryController::class, 'publicPlans']);
 $router->get('/api/v1/public/plans/{slug}', [\App\Controllers\Admin\FactoryController::class, 'publicPlan']);
 $router->get('/api/v1/public/templates', [\App\Controllers\Admin\FactoryController::class, 'publicTemplates']);
