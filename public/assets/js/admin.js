@@ -1502,7 +1502,7 @@ W.renderBricks=async function(tab,action){
         {id:'repos',label:'Repos & Sync'},
         {id:'incubadora',label:'Incubadora'}
     ];
-    var bar='<div class="w-card" style="padding:14px 18px;margin-bottom:14px"><div style="font-size:13px;font-weight:700">Bricks — centro de bloques</div><div style="font-size:11px;color:var(--w-muted);margin-top:4px;line-height:1.7"><strong>Brick Marketplace</strong> reúne todos los bricks disponibles (Core, repositorios e incubadora) con valoraciones, instalaciones y métricas. Solo las <strong style="color:var(--w-primary)">extensiones acopladas</strong> cuentan como instaladas; los bricks <strong>Core</strong> están disponibles para añadir a páginas. <strong>Bricks Acoplados</strong> gestiona lo instalado, <strong>IA (BRICK)</strong> la capa de inteligencia y <strong>Repos & Sync</strong> las fuentes GitHub.</div></div>';
+    var bar='<div class="w-card" style="padding:14px 18px;margin-bottom:14px"><div style="font-size:13px;font-weight:700">Bricks — centro de bloques</div><div style="font-size:11px;color:var(--w-muted);margin-top:4px;line-height:1.7"><strong>Brick Marketplace</strong> muestra solo los bricks <strong style="color:var(--w-primary)">lanzados</strong> (terminados) con su etiqueta <span class="w-bm-new">NUEVO</span>. La <strong>Incubadora</strong> reúne lo que está en desarrollo con su <strong>cuenta regresiva</strong> hasta el lanzamiento. <strong>Bricks Acoplados</strong> gestiona lo que ya está en el sitio, <strong>IA (BRICK)</strong> la capa de inteligencia y <strong>Repos & Sync</strong> las fuentes GitHub.</div></div>';
     bar+='<div class="w-toolbar w-mb-lg" style="border-bottom:1px solid var(--w-border);padding-bottom:12px">';
     tabs.forEach(function(t){
         bar+='<button class="w-btn '+(tab===t.id?'w-btn-primary':'w-btn-secondary')+'" onclick="wontia.bricksGo(\''+t.id+'\')">'+t.label+'</button>';
@@ -1528,7 +1528,7 @@ W.bhRefresh=function(){
     else W.renderBrickHub();
 };
 
-W._bm={items:null,metrics:null,loaded:false,cat:'',sort:'recientes',q:''};
+W._bm={items:null,metrics:null,loaded:false,lifecycle:{},lcRecent:[],isAdmin:false,view:'marketplace',cat:'',sort:'recientes',q:''};
 
 W.bmLevels=[
     {n:1,emoji:'🤔',label:'Nada popular'},
@@ -1550,22 +1550,29 @@ W.bmLoad=async function(force){
         W.api('/api/v1/admin/bricks').catch(function(){return{}}),
         W.api('/api/v1/admin/brickhub').catch(function(){return{}}),
         W.api('/api/v1/admin/seo-global-launch').catch(function(){return{}}),
-        W.api('/api/v1/admin/bricks/metrics').catch(function(){return{}})
+        W.api('/api/v1/admin/bricks/metrics').catch(function(){return{}}),
+        W.api('/api/v1/admin/bricklifecycle').catch(function(){return{}})
     ]);
     var core=res[0].data||{};
     var bhList=res[1].data||[];
     var sgl=(res[2].data&&res[2].data.brick)||null;
     W._bm.metrics=res[3].data||{summary:{},my_ratings:{},insights:{}};
+    var lcd=(res[4].data||{});
+    W._bm.lifecycle=lcd.map||{};
+    W._bm.lcRecent=lcd.recent||[];
+    W._bm.isAdmin=!!lcd.is_admin;
+    W._bm.lcConfig=lcd.config||{new_days:30,maturities:['alpha','beta','rc','stable']};
+    var lcFor=function(slug){return W._bm.lifecycle[slug]||null};
     var items=[];
     for(var id in core){
         var b=core[id];
-        items.push({slug:id,name:b.name,category:b.category||'general',version:b.version||'1.0.0',launched_at:b.launched_at||'',origin:'core',core:true,installed:false,functional:b.functional!==false,installed_version:'',installed_id:null,source_id:0,source_name:'Core',desc:(b.configSchema&&b.configSchema.length?b.configSchema.length+' campos configurables':'Bloque del sistema'),uses_ai:!!b.uses_ai,usage_count:b.usage_count||0,update_available:false});
+        items.push({slug:id,name:b.name,category:b.category||'general',version:b.version||'1.0.0',launched_at:b.launched_at||'',origin:'core',core:true,installed:false,functional:b.functional!==false,installed_version:'',installed_id:null,source_id:0,source_name:'Core',desc:(b.configSchema&&b.configSchema.length?b.configSchema.length+' campos configurables':'Bloque del sistema'),uses_ai:!!b.uses_ai,usage_count:b.usage_count||0,update_available:false,lifecycle:b.lifecycle||lcFor(id),readiness:b.readiness||null});
     }
     (bhList||[]).forEach(function(b){
         if(sgl&&b.slug===sgl.slug)return;
-        items.push({slug:b.slug,name:b.name,category:b.category||'general',version:b.version||'1.0.0',launched_at:b.created_at||b.installed_at||'',origin:'brickhub',installed:!!b.installed,installed_version:b.installed_version||'',installed_id:b.installed_id||null,source_id:b.source_id||0,source_name:b.source_name||'Repo',desc:b.description||'Brick instalable desde repositorio',uses_ai:false,usage_count:0,update_available:false});
+        items.push({slug:b.slug,name:b.name,category:b.category||'general',version:b.version||'1.0.0',launched_at:b.created_at||b.installed_at||'',origin:'brickhub',installed:!!b.installed,installed_version:b.installed_version||'',installed_id:b.installed_id||null,source_id:b.source_id||0,source_name:b.source_name||'Repo',desc:b.description||'Brick instalable desde repositorio',uses_ai:false,usage_count:0,update_available:false,lifecycle:b.lifecycle||lcFor(b.slug),readiness:null});
     });
-    if(sgl)items.push({slug:'seo-global-launch',name:'SEO Global Launch',category:'system',version:sgl.version||'1.0.0',launched_at:'',origin:'incubator',installed:!!sgl.installed,installed_version:sgl.version||'1.0.0',installed_id:null,source_id:0,source_name:'Incubadora',desc:'Motor SEO full-site: scan, IA de metadatos, autofix, JSON-LD, auditoría y tracker de bots.',uses_ai:true,usage_count:0,update_available:false});
+    if(sgl)items.push({slug:'seo-global-launch',name:'SEO Global Launch',category:'system',version:sgl.version||'1.0.0',launched_at:'',origin:'incubator',installed:!!sgl.installed,installed_version:sgl.version||'1.0.0',installed_id:null,source_id:0,source_name:'Incubadora',desc:'Motor SEO full-site: scan, IA de metadatos, autofix, JSON-LD, auditoría y tracker de bots.',uses_ai:true,usage_count:0,update_available:false,lifecycle:lcFor('seo-global-launch')||{state:'incubator',brick_type:'incubator',maturity:'beta',countdown:null},readiness:null});
     var seen={},uniq=[];
     items.forEach(function(it){if(seen[it.slug])return;seen[it.slug]=1;uniq.push(it)});
     W._bm.items=uniq;
@@ -1585,6 +1592,7 @@ W.bmSortItems=function(items){
 
 W.bmCard=function(it){
     var mm=W.bmMetrics(it.slug);
+    var lc=it.lifecycle||{};
     var my=(W._bm.metrics&&W._bm.metrics.my_ratings&&W._bm.metrics.my_ratings[it.slug])||0;
     var avg=mm.rating_avg||0;
     var shown=my||Math.round(avg);
@@ -1600,14 +1608,14 @@ W.bmCard=function(it){
     metrics+='<span title="Previews">👁 '+W.num(mm.previews)+'</span>';
     var actions='<button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.bmPreview(\''+W.esc(it.slug)+'\')">Preview</button>';
     if(it.origin==='core'){
-        if(it.functional!==false)actions+='<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.brickAddToPage(\''+W.esc(it.slug)+'\',\''+W.esc(it.name)+'\')">Añadir a página</button>';
+        if(it.functional!==false&&lc.state!=='incubator')actions+='<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.brickAddToPage(\''+W.esc(it.slug)+'\',\''+W.esc(it.name)+'\')">Añadir a página</button>';
         actions+='<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.showBrickConfig(\''+W.esc(it.slug)+'\')">Esquema</button>';
     }else if(it.origin==='brickhub'){
         if(it.installed){
             if(it.update_available)actions+='<button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.bmUpdate('+it.installed_id+',\''+W.esc(it.slug)+'\')">🔄 Actualizar</button>';
             else actions+='<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.bhCheckUpdate('+it.installed_id+')">Check Update</button>';
             actions+='<button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.bmUninstall(this,'+it.installed_id+',\''+W.esc(it.name)+'\',\''+W.esc(it.slug)+'\')">Desacoplar</button>';
-        }else{
+        }else if(lc.state!=='incubator'){
             actions+='<button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.bmInstall(this,'+it.source_id+',\''+W.esc(it.slug)+'\',\''+W.esc(it.name)+'\')">Acoplar</button>';
         }
     }else if(it.origin==='incubator'){
@@ -1618,14 +1626,33 @@ W.bmCard=function(it){
     }
     var updateBadge=it.update_available?'<span class="w-bm-update" title="Actualización disponible">🔄</span>':'';
     var stateLabel=it.installed?'<span class="w-bm-installed-label">✓ Acoplado</span>':'<span class="w-bm-decoupled-label"'+(it.core?' title="Los bricks Core están disponibles sin necesidad de acople"':'')+'>○ Desacoplado</span>';
-    var devChip=(it.origin==='core'&&it.functional===false)?'<span class="w-bm-dev" title="Se está cocinando — aún no renderiza contenido">🔥 En el horno</span>':'';
-    return '<div class="w-bm-card'+(it.installed?' w-bm-installed':'')+'" data-slug="'+W.esc(it.slug)+'">'
+    var devChip=(lc.state==='incubator')?'<span class="w-bm-dev" title="En desarrollo — aún no se lanza al Marketplace">🔥 En el horno</span>':'';
+    var newBadge=lc.is_new?'<span class="w-bm-new" title="Lanzado recientemente al Marketplace">NUEVO</span>':'';
+    var maturityChip=(lc.maturity&&lc.maturity!=='stable')?'<span class="w-bm-mat w-bm-mat-'+W.esc(lc.maturity)+'">'+W.esc(String(lc.maturity).toUpperCase())+'</span>':'';
+    var interestChip=(lc.state==='incubator'&&lc.interest)?'<span class="w-bm-interest" title="Usuarios interesados">🔔 '+W.num(lc.interest)+'</span>':'';
+    var hiddenChip=lc.hidden?'<span class="w-bm-hidden" title="Oculto del catálogo">🙈 Oculto</span>':'';
+    if(W._bm.isAdmin){
+        if(lc.state==='incubator'){
+            actions+='<button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.blLaunch(\''+W.esc(it.slug)+'\',\''+W.esc(it.name)+'\')" title="Lanzar al Marketplace">🚀 Lanzar</button>';
+            actions+='<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.blSchedule(\''+W.esc(it.slug)+'\',\''+W.esc(it.name)+'\')" title="Programar fecha">🗓</button>';
+        }else{
+            actions+='<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.blIncubate(\''+W.esc(it.slug)+'\',\''+W.esc(it.name)+'\')" title="Devolver a la incubadora">↩ Reinculbar</button>';
+        }
+        actions+='<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.blHide(\''+W.esc(it.slug)+'\','+(lc.hidden?0:1)+')" title="'+(lc.hidden?'Mostrar en el catálogo':'Ocultar del catálogo')+'">'+(lc.hidden?'👁 Mostrar':'🙈 Ocultar')+'</button>';
+    }else if(lc.state==='incubator'){
+        actions+='<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.blInterest(\''+W.esc(it.slug)+'\')">🔔 Avísame</button>';
+    }
+    var cdHtml=(lc.state==='incubator')?W.cdHtml(it.slug,lc.target_launch_at,lc.target_estimated):'';
+    var check='<label class="w-bm-check" title="Seleccionar"><input type="checkbox" class="wb-sel" data-slug="'+W.esc(it.slug)+'" onchange="wontia.blSel()"/></label>';
+    return '<div class="w-bm-card'+(it.installed?' w-bm-installed':'')+(lc.state==='incubator'?' w-bm-incubating':'')+(lc.is_new?' w-bm-isnew':'')+'" data-slug="'+W.esc(it.slug)+'">'
         +'<span class="w-bm-blocks'+(it.installed?' on':' off')+'" aria-hidden="true"></span>'
         +(it.installed?'<span class="w-bm-live" title="Funcionando"></span>':'')
-        +'<div class="w-bm-top"><span class="w-bm-chip">'+W.esc(origin)+'</span><span class="w-bm-chip">'+W.esc(it.category)+'</span>'+stateLabel+devChip+updateBadge+'</div>'
+        +check
+        +'<div class="w-bm-top"><span class="w-bm-chip">'+W.esc(origin)+'</span><span class="w-bm-chip">'+W.esc(it.category)+'</span>'+newBadge+maturityChip+stateLabel+devChip+interestChip+hiddenChip+updateBadge+'</div>'
         +'<div class="w-bm-name">'+W.esc(it.name)+'</div>'
         +'<div class="w-bm-desc">'+W.esc(it.desc)+'</div>'
         +'<div class="w-bm-meta"><span>v'+W.esc(it.version)+'</span>'+(it.launched_at?'<span>'+W.esc(String(it.launched_at).slice(0,10))+'</span>':'')+(it.uses_ai?'<span class="w-bm-ia">✦ IA</span>':'')+'</div>'
+        +cdHtml
         +'<div class="w-bm-metrics">'+metrics+'</div>'
         +'<div class="w-bm-rating"><div class="w-bm-stars">'+stars+'</div><div class="w-bm-emoji">'+(lvl?lvl.emoji+' '+W.esc(lvl.label)+' · '+avg.toFixed(1)+' ('+mm.rating_count+')':'Sin valoraciones — sé el primero')+'</div></div>'
         +'<div class="w-bm-actions">'+actions+'</div></div>';
@@ -1640,6 +1667,9 @@ W.bmRender=function(){
     if(!wrap||!W._bm.items)return;
     var q=W._bm.q||'',cat=W._bm.cat||'';
     var items=W._bm.items.filter(function(it){
+        var lc=it.lifecycle||{};
+        if(W._bm.view==='marketplace'&&lc.state!=='launched')return false;
+        if(lc.hidden&&!W._bm.showHidden)return false;
         if(cat&&it.category!==cat)return false;
         if(q&&(it.slug+' '+it.name+' '+(it.category||'')+' '+(it.desc||'')).toLowerCase().indexOf(q)===-1)return false;
         return true;
@@ -1648,8 +1678,9 @@ W.bmRender=function(){
     var coupled=items.filter(function(it){return it.installed});
     var decoupled=items.filter(function(it){return !it.installed});
     var html='';
+    if(W._bm.isAdmin)html+=W.blBatchBar();
     if(coupled.length)html+='<div class="w-bm-section"><div class="w-bm-section-head"><span class="w-bm-section-title">✓ Acoplados</span><span class="w-bm-section-count">'+coupled.length+'</span></div><div class="w-bm-grid">'+coupled.map(W.bmCard).join('')+'</div></div>';
-    if(decoupled.length)html+='<div class="w-bm-section'+(coupled.length?' w-bm-section-sep':'')+'"><div class="w-bm-section-head"><span class="w-bm-section-title off">○ Desacoplados</span><span class="w-bm-section-count">'+decoupled.length+'</span></div><div class="w-bm-grid">'+decoupled.map(W.bmCard).join('')+'</div></div>';
+    if(decoupled.length)html+='<div class="w-bm-section'+(coupled.length?' w-bm-section-sep':'')+'"><div class="w-bm-section-head"><span class="w-bm-section-title off">◻ Lanzados para acoplar</span><span class="w-bm-section-count">'+decoupled.length+'</span></div><div class="w-bm-grid">'+decoupled.map(W.bmCard).join('')+'</div></div>';
     if(!items.length)html='<div class="w-empty-state"><h3>Sin resultados</h3><p>Prueba otra categoría u otra búsqueda.</p></div>';
     wrap.innerHTML=html;
 };
@@ -1851,7 +1882,8 @@ W.bsMarketplace=async function(){
     if(!el)return;
     el.innerHTML='<div style="text-align:center;padding:40px;color:var(--w-muted)">Cargando Brick Marketplace...</div>';
     await W.bmLoad();
-    var items=W._bm.items||[];
+    W._bm.view='marketplace';
+    var items=(W._bm.items||[]).filter(function(it){var lc=it.lifecycle||{};return lc.state==='launched'&&(!lc.hidden||W._bm.showHidden)});
     var cats={};
     items.forEach(function(it){cats[it.category]=1});
     var ins=(W._bm.metrics&&W._bm.metrics.insights)||{};
@@ -1859,7 +1891,8 @@ W.bsMarketplace=async function(){
     var top=(ins.top_rated&&ins.top_rated[0])||null;
     var worst=(ins.worst_rated&&ins.worst_rated[0])||null;
     var ev=tot.events||{};
-    var html='<div class="w-bm-insights">'
+    var html='<div class="w-card" style="padding:14px 18px;margin-bottom:14px"><div style="font-size:13px;font-weight:700">Brick Marketplace</div><div style="font-size:11px;color:var(--w-muted);margin-top:4px;line-height:1.7">Solo se muestran los bricks <strong style="color:var(--w-primary)">lanzados</strong> (terminados). Lo que sigue en desarrollo vive en la <strong>Incubadora</strong> con su cuenta regresiva. La etiqueta <span class="w-bm-new">NUEVO</span> marca los lanzamientos recientes.</div></div>';
+    html+='<div class="w-bm-insights">'
         +'<div class="w-bm-ins"><b>'+W.num(tot.ratings||0)+'</b><span>Valoraciones</span></div>'
         +'<div class="w-bm-ins"><b>'+(tot.avg||0)+' ★ '+(tot.ratings?W.bmLevel(tot.avg).emoji:'')+'</b><span>Promedio global</span></div>'
         +'<div class="w-bm-ins"><b>'+(top?W.esc(top.slug):'—')+'</b><span>Mejor valorado'+(top?' · '+top.rating_avg+'★':'')+'</span></div>'
@@ -1871,7 +1904,9 @@ W.bsMarketplace=async function(){
         +'<input class="w-input" id="bs-search" placeholder="Buscar brick…" style="max-width:240px"/>'
         +'<div class="w-toolbar" id="bs-cats"><button class="w-btn w-btn-primary w-btn-sm" data-cat="">Todas ('+items.length+')</button>';
     Object.keys(cats).sort().forEach(function(c){html+='<button class="w-btn w-btn-secondary w-btn-sm" data-cat="'+W.esc(c)+'">'+W.esc(c)+'</button>'});
-    html+='</div><select class="w-select" id="bs-sort" style="max-width:220px">'
+    html+='</div>'
+        +(W._bm.isAdmin?'<label class="w-flex" style="gap:6px;font-size:11px;align-items:center;color:var(--w-muted);margin-right:10px"><input type="checkbox" id="bs-showhidden"'+(W._bm.showHidden?' checked':'')+' onchange="wontia.blShowHidden(this.checked)"/> Ver ocultos</label>':'')
+        +'<select class="w-select" id="bs-sort" style="max-width:220px">'
         +'<option value="recientes">Más recientes</option>'
         +'<option value="instalados">Más instalados</option>'
         +'<option value="rating">Mejor valorados</option>'
@@ -1900,12 +1935,13 @@ W.bsInstalled=async function(){
     if(!el)return;
     el.innerHTML='<div style="text-align:center;padding:40px;color:var(--w-muted)">Cargando bricks instalados...</div>';
     await W.bmLoad();
+    W._bm.view='installed';
     var upd={};
     try{
         var u=await W.api('/api/v1/admin/brickhub/updates');
         (u.updates||[]).forEach(function(x){upd[x.slug||x.brick_slug||'']=x});
     }catch(e){}
-    var items=(W._bm.items||[]).filter(function(it){return it.installed||(it.origin==='core'&&(it.usage_count||0)>0)});
+    var items=(W._bm.items||[]).filter(function(it){var lc=it.lifecycle||{};return (it.installed||(it.origin==='core'&&(it.usage_count||0)>0))&&lc.state!=='incubator'&&(!lc.hidden||W._bm.showHidden)});
     items.forEach(function(it){it.update_available=!!upd[it.slug]});
     var html='<div class="w-card" style="padding:14px 18px;margin-bottom:14px"><div style="font-size:13px;font-weight:700">Bricks Acoplados</div><div style="font-size:11px;color:var(--w-muted);margin-top:4px;line-height:1.7">Bricks acoplados a este sitio: los instalados desde repositorios/incubadora y los bricks <strong style="color:var(--w-text)">Core</strong> que ya están en uso en las páginas del sitio. El <span style="color:var(--w-primary)">punto verde palpitante</span> indica funcionamiento correcto; el resplandor verde marca los acoplados y 🔄 avisa actualizaciones.</div></div>';
     html+='<div class="w-bm-grid" id="bs-grid"></div>';
@@ -1928,17 +1964,210 @@ W.bsIncubator=async function(){
     if(!el)return;
     el.innerHTML='<div style="text-align:center;padding:40px;color:var(--w-muted)">Cargando incubadora...</div>';
     await W.bmLoad();
-    var inOven=(W._bm.items||[]).filter(function(it){return it.origin==='core'&&it.functional===false});
-    var ecosystem=(W._bm.items||[]).filter(function(it){return it.origin==='incubator'});
-    var html='<div class="w-card" style="padding:14px 18px;margin-bottom:14px"><div style="font-size:13px;font-weight:700">🧪 Incubadora de Bricks</div><div style="font-size:11px;color:var(--w-muted);margin-top:4px;line-height:1.7">Bricks que aún se están cocinando: widgets <strong style="color:var(--w-warn)">🔥 En el horno</strong> (todavía no renderizan) y bricks del ecosistema listos para acoplar. Agrupados por categoría.</div></div>';
-    var groups={};
-    inOven.concat(ecosystem).forEach(function(it){var c=it.category||'general';(groups[c]=groups[c]||[]).push(it)});
-    var cats=Object.keys(groups).sort();
-    if(!cats.length)html+='<div class="w-empty-state"><h3>Incubadora vacía</h3><p>No hay bricks en desarrollo ni del ecosistema pendientes.</p></div>';
-    cats.forEach(function(c){
-        html+='<div class="w-bm-section"><div class="w-bm-section-head"><span class="w-bm-section-title">'+W.esc(c)+'</span><span class="w-bm-section-count">'+groups[c].length+'</span></div><div class="w-bm-grid">'+groups[c].map(W.bmCard).join('')+'</div></div>';
-    });
+    W._bm.view='incubator';
+    var items=(W._bm.items||[]).filter(function(it){var lc=it.lifecycle||{};return lc.state==='incubator'&&(!lc.hidden||W._bm.showHidden)});
+    items.sort(function(a,b){var ta=(a.lifecycle&&a.lifecycle.target_launch_at)||'',tb=(b.lifecycle&&b.lifecycle.target_launch_at)||'';return String(ta).localeCompare(String(tb))});
+    var admin=W._bm.isAdmin;
+    var html='<div class="w-card" style="padding:14px 18px;margin-bottom:14px"><div style="font-size:13px;font-weight:700">🧪 Incubadora de Bricks</div><div style="font-size:11px;color:var(--w-muted);margin-top:4px;line-height:1.7">Bricks en desarrollo (no terminados). Aquí NO aparecen en el Marketplace: solo pasan al lanzarlos. La <strong style="color:var(--w-primary)">cuenta regresiva</strong> indica cuándo se lanzará cada uno.'+(admin?' <strong>Solo admin</strong> ve el botón 🚀 Lanzar.':'')+'</div></div>';
+    html+='<div class="w-bl-roadmap"><div class="w-bl-roadmap-title">🗺️ Roadmap de lanzamientos</div><div class="w-bl-roadmap-list">'
+        +(items.length?items.map(function(it){var lc=it.lifecycle||{};return '<div class="w-bl-rl-item"><span class="w-bm-chip">'+W.esc(it.category||'general')+'</span><span class="w-bl-rl-name">'+W.esc(it.name)+'</span>'+(it.functional===false?'<span class="w-bm-dev">🔥</span>':'')+'<span class="w-bl-rl-date">'+(lc.target_launch_at?W.esc(String(lc.target_launch_at).slice(0,16)):'por definir')+'</span></div>'}).join(''):'<div style="font-size:11px;color:var(--w-muted)">Nada en la incubadora todavía.</div>')
+        +'</div></div>';
+    var recent=(W._bm.lcRecent||[]).slice(0,8);
+    if(recent.length){
+        html+='<div class="w-bl-roadmap"><div class="w-bl-roadmap-title">📜 Actividad reciente</div><div class="w-bl-roadmap-list">'
+            +recent.map(function(e){return '<div class="w-bl-rl-item"><span class="w-bm-chip">'+W.esc(e.event||'')+'</span><span class="w-bl-rl-name">'+W.esc(e.slug||'')+'</span><span class="w-bl-rl-date">'+W.esc(String(e.created_at||'').slice(0,16))+' · '+W.esc(e.actor||'')+'</span></div>'}).join('')
+            +'</div></div>';
+    }
+    if(admin)html+=W.blBatchBar();
+    html+='<div id="bs-grid"></div>';
     el.innerHTML=html;
+    var grid=document.getElementById('bs-grid');
+    if(!items.length){grid.innerHTML='<div class="w-empty-state"><h3>Incubadora vacía</h3><p>No hay bricks en desarrollo. Todo lo terminado está en el Brick Marketplace.</p></div>';return}
+    var groups={};
+    items.forEach(function(it){var c=it.category||'general';(groups[c]=groups[c]||[]).push(it)});
+    var out='';
+    Object.keys(groups).sort().forEach(function(c){
+        out+=W.blCatHead(c,groups[c],admin)+'<div class="w-bm-grid">'+groups[c].map(W.bmCard).join('')+'</div></div>';
+    });
+    grid.innerHTML=out;
+    W.startCdTick();
+};
+
+W.blCatHead=function(cat,items,admin){
+    var slugs=items.map(function(it){return W.esc(it.slug)}).join(',');
+    return '<div class="w-bm-section" data-cat="'+W.esc(cat)+'"><div class="w-bm-section-head">'
+        +(admin?'<label class="w-bm-check" title="Seleccionar categoría"><input type="checkbox" onchange="wontia.blCatSel(\''+W.esc(cat)+'\',this.checked)"/></label>':'')
+        +'<span class="w-bm-section-title">'+W.esc(cat)+'</span><span class="w-bm-section-count">'+items.length+'</span>'
+        +(admin?'<span style="flex:1"></span><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.blCatConfig(\''+W.esc(cat)+'\')" title="Configuración de la categoría">⚙ Config</button><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.blCatHide(\''+slugs+'\',1)" title="Ocultar categoría">🙈 Ocultar</button>':'')
+        +'</div>';
+};
+
+W.blCatSel=function(cat,checked){
+    (W._bm.items||[]).forEach(function(it){
+        if((it.category||'general')===cat){
+            var cb=document.querySelector('.wb-sel[data-slug="'+it.slug+'"]');
+            if(cb)cb.checked=checked;
+        }
+    });
+    W.blSel();
+};
+
+W.blCatHide=async function(slugs,hidden){
+    var list=(slugs||'').split(',').filter(Boolean);
+    for(var i=0;i<list.length;i++){try{await W.api('/api/v1/admin/bricklifecycle/'+encodeURIComponent(list[i])+'/hide',{method:'POST',body:{hidden:hidden}})}catch(e){}}
+    W.notify(hidden?'Categoría oculta del catálogo':'Categoría visible','success');
+    W.blReload();
+};
+
+W.blCatConfig=function(cat){
+    var items=(W._bm.items||[]).filter(function(it){return (it.category||'general')===cat&&it.origin==='core'});
+    var html='<div style="font-size:11px;color:var(--w-muted);margin-bottom:10px">Bricks de <strong>'+W.esc(cat)+'</strong>. Abre la configuración (esquema) de cada uno.</div><div style="display:flex;flex-direction:column;gap:6px">';
+    if(!items.length)html+='<div style="font-size:11px;color:var(--w-muted)">Esta categoría no tiene bricks Core configurables.</div>';
+    items.forEach(function(it){html+='<button class="w-btn w-btn-secondary" style="justify-content:space-between" onclick="wontia.showBrickConfig(\''+W.esc(it.slug)+'\')"><span>'+W.esc(it.name)+'</span><span style="font-size:10px;color:var(--w-muted)">⚙ Esquema</span></button>'});
+    html+='</div>';
+    W.modal('Configuración — '+cat,html,'<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cerrar</button>');
+};
+
+W.blBatchBar=function(){
+    return '<div class="w-card w-bl-batch" id="wb-batch" style="padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">'
+        +'<span style="font-size:11px;color:var(--w-muted)">Seleccionados: <b id="wb-batch-n">0</b></span>'
+        +'<button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.blBatch(\'launch\')">🚀 Lanzar</button>'
+        +'<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.blBatch(\'incubate\')">↩ Reinculbar</button>'
+        +'<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.blBatch(\'hide\')">🙈 Ocultar</button>'
+        +'<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.blBatch(\'show\')">👁 Mostrar</button>'
+        +'</div>';
+};
+
+W.blSel=function(){
+    var n=document.querySelectorAll('.wb-sel:checked').length;
+    var el=document.getElementById('wb-batch-n');
+    if(el)el.textContent=n;
+};
+
+W.blBatch=async function(action){
+    var sel=Array.prototype.slice.call(document.querySelectorAll('.wb-sel:checked')).map(function(cb){return cb.dataset.slug});
+    if(!sel.length){W.notify('Selecciona al menos un brick','error');return}
+    var body={};
+    if(action==='hide')body={hidden:1};
+    if(action==='show')body={hidden:0};
+    if(action==='launch')body={release_notes:'Lanzamiento en lote desde la incubadora',maturity:'stable'};
+    for(var i=0;i<sel.length;i++){
+        try{
+            var url=action==='hide'||action==='show'?'/hide':(action==='launch'?'/launch':'/incubate');
+            await W.api('/api/v1/admin/bricklifecycle/'+encodeURIComponent(sel[i])+url,{method:'POST',body:body});
+        }catch(e){}
+    }
+    W.notify('Acción "'+action+'" aplicada a '+sel.length+' bricks','success');
+    if(action==='launch')W.confetti();
+    W.blReload();
+};
+
+W.cdHtml=function(slug,target,estimated){
+    if(!target)return '';
+    var p=W.cdParts(target);
+    if(!p)return '<div class="w-bm-cd expired"><span class="w-cd-cap">⏳ Lanzamiento inminente</span></div>';
+    return '<div class="w-bm-cd" data-cd-target="'+W.esc(target)+'"><span class="w-cd-cap">⏳ Lanzamiento en'+(estimated?' (estimado)':'')+'</span><div class="w-cd-grid" aria-label="cuenta regresiva" aria-live="off">'+W.cdSegs(p)+'</div></div>';
+};
+
+W.cdSegs=function(p){
+    var u=[['años',p.years],['meses',p.months],['sem',p.weeks],['días',p.days],['h',p.hours],['min',p.minutes],['seg',p.seconds]];
+    return u.map(function(x){return '<span class="w-cd-seg"><b>'+x[1]+'</b><i>'+x[0]+'</i></span>'}).join('');
+};
+
+W.cdParts=function(target){
+    var now=new Date(),t=new Date(target);
+    var total=Math.floor((t-now)/1000);
+    if(isNaN(total)||total<=0)return null;
+    var y=t.getFullYear()-now.getFullYear(),mo=t.getMonth()-now.getMonth(),d=t.getDate()-now.getDate(),h=t.getHours()-now.getHours(),mi=t.getMinutes()-now.getMinutes(),se=t.getSeconds()-now.getSeconds();
+    if(se<0){se+=60;mi--}
+    if(mi<0){mi+=60;h--}
+    if(h<0){h+=24;d--}
+    if(d<0){var pm=new Date(t.getFullYear(),t.getMonth(),0).getDate();d+=pm;mo--}
+    if(mo<0){mo+=12;y--}
+    return {years:Math.max(0,y),months:Math.max(0,mo),weeks:Math.floor(d/7),days:d%7,hours:h,minutes:mi,seconds:se,total:total};
+};
+
+W.startCdTick=function(){
+    if(W._cdTimer)clearInterval(W._cdTimer);
+    var reduce=false;try{reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches}catch(e){}
+    if(reduce)return;
+    W._cdTimer=setInterval(function(){
+        var nodes=document.querySelectorAll('.w-bm-cd[data-cd-target]');
+        if(!nodes.length){clearInterval(W._cdTimer);W._cdTimer=null;return}
+        nodes.forEach(function(n){
+            var p=W.cdParts(n.getAttribute('data-cd-target'));
+            var grid=n.querySelector('.w-cd-grid');
+            if(!p){n.innerHTML='<span class="w-cd-cap">⏳ Lanzamiento inminente</span>';return}
+            if(!grid)return;
+            grid.innerHTML=W.cdSegs(p);
+        });
+    },1000);
+};
+
+W.blReload=function(){
+    W._bm.loaded=false;
+    var t=W.state.bricksTab||'marketplace';
+    if(t==='incubadora')W.bsIncubator();
+    else if(t==='instalados')W.bsInstalled();
+    else W.bsMarketplace();
+};
+
+W.blShowHidden=function(v){W._bm.showHidden=!!v;W.blReload()};
+
+W.blLaunch=async function(slug,name){
+    var r=null;try{r=await W.api('/api/v1/admin/bricklifecycle/'+encodeURIComponent(slug)+'/readiness')}catch(e){}
+    var rd=(r&&r.data)||{score:0,checks:[]};
+    var checks=(rd.checks||[]).map(function(c){return '<div style="display:flex;justify-content:space-between;font-size:11px;padding:4px 0;border-bottom:1px solid var(--w-border)"><span>'+(c.ok?'✅':'⬜')+' '+W.esc(c.label)+'</span><span style="color:var(--w-muted)">'+c.weight+'%</span></div>'}).join('');
+    var html='<div style="font-size:11px;color:var(--w-muted);margin-bottom:8px">Vas a lanzar <strong>'+W.esc(name)+'</strong> al Brick Marketplace.</div>';
+    html+='<div style="margin-bottom:10px"><div class="w-flex-between" style="font-size:11px"><span>Preparación</span><b>'+rd.score+'%</b></div><div class="w-brick-bar" style="height:8px"><i style="width:'+rd.score+'%"></i></div></div>'+checks;
+    html+='<div class="w-form-group" style="margin-top:10px"><label class="w-label">Notas de versión (obligatorio)</label><textarea class="w-textarea" id="bl-notes" placeholder="Qué incluye este lanzamiento…"></textarea></div>';
+    html+='<div class="w-form-group"><label class="w-label">Madurez</label><select class="w-select" id="bl-maturity"><option value="stable">STABLE</option><option value="rc">RC</option><option value="beta">BETA</option><option value="alpha">ALPHA</option></select></div>';
+    W.modal('🚀 Lanzar al Marketplace',html,'<button class="w-btn w-btn-primary" onclick="wontia.blLaunchDo(\''+W.esc(slug)+'\')">Lanzar</button> <button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cancelar</button>');
+};
+
+W.blLaunchDo=async function(slug){
+    var notes=(document.getElementById('bl-notes')||{}).value||'';
+    var maturity=(document.getElementById('bl-maturity')||{}).value||'stable';
+    if(notes.trim().length<3){W.notify('Escribe las notas de versión','error');return}
+    var r=await W.api('/api/v1/admin/bricklifecycle/'+encodeURIComponent(slug)+'/launch',{method:'POST',body:{release_notes:notes,maturity:maturity}});
+    if(r.ok){W.closeModal();W.confetti();W.notify('Brick lanzado al Marketplace ✓','success');W.blReload()}
+    else W.notify(r.message||'No se pudo lanzar','error');
+};
+
+W.blSchedule=async function(slug,name){
+    var base=new Date(Date.now()+90*86400000);
+    var val=base.toISOString().slice(0,16);
+    function preset(days){var d=new Date(Date.now()+days*86400000);return d.toISOString().slice(0,16)}
+    var html='<div style="font-size:11px;color:var(--w-muted);margin-bottom:8px">Programa el lanzamiento de <strong>'+W.esc(name)+'</strong>.</div>';
+    html+='<div class="w-toolbar" style="margin-bottom:8px"><button class="w-btn w-btn-secondary w-btn-sm" onclick="document.getElementById(\'bl-date\').value=\''+preset(30)+'\'">+1 mes</button><button class="w-btn w-btn-secondary w-btn-sm" onclick="document.getElementById(\'bl-date\').value=\''+preset(90)+'\'">+3 meses</button><button class="w-btn w-btn-secondary w-btn-sm" onclick="document.getElementById(\'bl-date\').value=\''+preset(365)+'\'">+1 año</button></div>';
+    html+='<div class="w-form-group"><label class="w-label">Fecha y hora</label><input class="w-input" type="datetime-local" id="bl-date" value="'+val+'"/></div>';
+    W.modal('🗓 Programar lanzamiento',html,'<button class="w-btn w-btn-primary" onclick="wontia.blScheduleDo(\''+W.esc(slug)+'\')">Programar</button> <button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cancelar</button>');
+};
+
+W.blScheduleDo=async function(slug){
+    var v=(document.getElementById('bl-date')||{}).value||'';
+    if(!v){W.notify('Elige una fecha','error');return}
+    var r=await W.api('/api/v1/admin/bricklifecycle/'+encodeURIComponent(slug)+'/schedule',{method:'POST',body:{target_launch_at:v}});
+    if(r.ok){W.closeModal();W.notify('Lanzamiento programado ✓','success');W.blReload()}
+    else W.notify(r.message||'No se pudo programar','error');
+};
+
+W.blIncubate=function(slug,name){
+    W.confirm('¿Reinculbar "'+W.esc(name)+'"? Volverá a la Incubadora y saldrá del Marketplace.',async function(){
+        var r=await W.api('/api/v1/admin/bricklifecycle/'+encodeURIComponent(slug)+'/incubate',{method:'POST',body:{reason:'manual'}});
+        if(r.ok){W.notify('Brick reinculbado','success');W.blReload()}else W.notify(r.message||'No se pudo','error');
+    });
+};
+
+W.blInterest=async function(slug){
+    var r=await W.api('/api/v1/admin/bricklifecycle/'+encodeURIComponent(slug)+'/interest',{method:'POST'});
+    if(r.ok){W.notify('¡Gracias! Te avisaremos cuando se lance 🔔','success')}
+};
+
+W.blHide=async function(slug,hidden){
+    var r=await W.api('/api/v1/admin/bricklifecycle/'+encodeURIComponent(slug)+'/hide',{method:'POST',body:{hidden:hidden?1:0}});
+    if(r.ok){W.notify(hidden?'Brick oculto del catálogo':'Brick visible en el catálogo','success');W.blReload()}
+    else W.notify(r.message||'No se pudo','error');
 };
 
 W.brickPreview=async function(type){

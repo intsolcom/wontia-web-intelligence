@@ -59,6 +59,12 @@ class BrickHubController
             }
         }
 
+        $lifecycle = new \App\Services\BrickLifecycleService();
+        foreach ($availableBricks as &$ab) {
+            $ab['lifecycle'] = $lifecycle->resolve($ab['slug'], ['functional' => true]);
+        }
+        unset($ab);
+
         Response::json(['ok' => true, 'data' => array_values($availableBricks), 'total' => count($availableBricks)]);
     }
 

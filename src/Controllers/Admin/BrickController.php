@@ -14,11 +14,14 @@ class BrickController
     {
         $bricks = WidgetRegistry::all();
         $usage = $this->usageCounts();
+        $lifecycle = new \App\Services\BrickLifecycleService();
         foreach ($bricks as $id => &$b) {
             $b['uses_ai'] = $this->widgetUsesAi($id);
             $b['usage_count'] = $usage[$id] ?? 0;
             $b['launched_at'] = $this->widgetLaunchedAt($id);
             $b['functional'] = $this->widgetFunctional($id);
+            $b['lifecycle'] = $lifecycle->resolve($id, ['functional' => $b['functional']]);
+            $b['readiness'] = $lifecycle->readiness($id);
         }
         unset($b);
         Response::json(['ok' => true, 'data' => $bricks, 'total' => WidgetRegistry::count()]);

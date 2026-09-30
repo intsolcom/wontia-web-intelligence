@@ -231,6 +231,18 @@ $r->delete('/trash/{id}', [\App\Controllers\Admin\SectionController::class, 'tra
     $r->post('/bricks/{type}/rate', [\App\Controllers\Admin\BrickController::class, 'rate']);
     $r->post('/bricks/{type}/event', [\App\Controllers\Admin\BrickController::class, 'event']);
 
+    $r->get('/bricklifecycle', [\App\Controllers\Admin\BrickLifecycleController::class, 'index']);
+    $r->post('/bricklifecycle/ensure-tables', [\App\Controllers\Admin\BrickLifecycleController::class, 'ensureTables']);
+    $r->post('/bricklifecycle/run-due', [\App\Controllers\Admin\BrickLifecycleController::class, 'runDue']);
+    $r->get('/bricklifecycle/{slug}/readiness', [\App\Controllers\Admin\BrickLifecycleController::class, 'readiness']);
+    $r->get('/bricklifecycle/{slug}/events', [\App\Controllers\Admin\BrickLifecycleController::class, 'events']);
+    $r->post('/bricklifecycle/{slug}/launch', [\App\Controllers\Admin\BrickLifecycleController::class, 'launch']);
+    $r->post('/bricklifecycle/{slug}/schedule', [\App\Controllers\Admin\BrickLifecycleController::class, 'schedule']);
+    $r->post('/bricklifecycle/{slug}/incubate', [\App\Controllers\Admin\BrickLifecycleController::class, 'incubate']);
+    $r->post('/bricklifecycle/{slug}/maturity', [\App\Controllers\Admin\BrickLifecycleController::class, 'maturity']);
+    $r->post('/bricklifecycle/{slug}/hide', [\App\Controllers\Admin\BrickLifecycleController::class, 'hide']);
+    $r->post('/bricklifecycle/{slug}/interest', [\App\Controllers\Admin\BrickLifecycleController::class, 'interest']);
+
     $r->get('/brickhub', [\App\Controllers\Admin\BrickHubController::class, 'marketplace']);
     $r->get('/brickhub/sources', [\App\Controllers\Admin\BrickHubController::class, 'sources']);
     $r->post('/brickhub/sources', [\App\Controllers\Admin\BrickHubController::class, 'addSource']);
