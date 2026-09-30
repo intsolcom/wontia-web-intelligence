@@ -66,7 +66,7 @@ body{font-family:'Inter',Segoe UI,system-ui;font-size:14px;line-height:1.45;back
 a{color:inherit;text-decoration:none}
 .grid-bg{position:fixed;inset:0;z-index:0;pointer-events:none;background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);background-size:42px 42px;-webkit-mask-image:radial-gradient(ellipse 90% 60% at 50% 0%,#000 30%,transparent 75%);mask-image:radial-gradient(ellipse 90% 60% at 50% 0%,#000 30%,transparent 75%);opacity:.35}
 main{position:relative;z-index:1}
-.w-nav{position:fixed;top:0;left:0;right:0;z-index:100;height:60px;display:flex;align-items:center;justify-content:space-between;padding:0 28px;background:var(--nav-bg);backdrop-filter:blur(14px);border-bottom:1px solid var(--border)}
+.w-nav{position:fixed;top:0;left:0;right:0;z-index:100;min-height:60px;display:flex;align-items:center;justify-content:space-between;padding:0 28px;background:var(--nav-bg);backdrop-filter:blur(14px);border-bottom:1px solid var(--border)}
 .w-nav-brand{display:flex;align-items:center;gap:10px}
 .w-nav-logo{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#22d3ee,#8b5cf6);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;color:#041018}
 .w-nav-brand span{font-size:13px;font-weight:700;letter-spacing:.08em}
@@ -137,13 +137,14 @@ section{position:relative}
 @media(min-width:721px) and (max-width:1100px){.wwi-hide-tablet{display:none!important}}
 @media(min-width:1101px){.wwi-hide-desktop{display:none!important}}
 </style>
+<?php require_once ROOT_DIR . '/templates/themes/_shared/brand.php'; ?><?= wwi_favicon_links() ?>
 </head>
 <body>
 <div class="aurora"></div>
 <div class="orbs"><i></i><i></i><i></i></div>
 <div class="grid-bg"></div>
 <nav class="w-nav">
-  <div class="w-nav-brand"><div class="w-nav-logo" data-source="settings:nav:logo_letter"><?= htmlspecialchars((string)$wwiNav['logo_letter']) ?></div><span data-source="settings:nav:brand"><?= htmlspecialchars((string)$wwiNav['brand']) ?></span></div>
+  <div class="w-nav-brand"><?php if (wwi_brand()['logo'] !== ''): ?><a href="/" style="display:flex;align-items:center;gap:11px;text-decoration:none"><?= wwi_logo_img(120) ?><?php if (wwi_brand()['show_text']): ?><span><?= htmlspecialchars(wwi_brand()['text']) ?></span><?php endif; ?></a><?php else: ?><div class="w-nav-logo" data-source="settings:nav:logo_letter"><?= htmlspecialchars((string)$wwiNav['logo_letter']) ?></div><span data-source="settings:nav:brand"><?= htmlspecialchars((string)$wwiNav['brand']) ?></span><?php endif; ?></div>
   <div class="w-nav-links">
     <?php foreach ($wwiNav['links'] as $i => $l): ?>
     <a href="<?= htmlspecialchars((string)($l['url'] ?? '#')) ?>" data-source="settings:nav:link:<?= (int)$i ?>:label"><?= htmlspecialchars((string)($l['label'] ?? '')) ?></a>

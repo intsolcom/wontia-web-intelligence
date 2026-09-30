@@ -1297,20 +1297,91 @@ W.runSeoAudit=async function(){
     el.innerHTML='<div class="w-card"><h3>Audit Results ('+d.total_issues+' issues)</h3>'+(d.issues||[]).map(function(i){return '<div style="font-size:12px;padding:6px 0;border-bottom:1px solid var(--w-border)">['+i.type+'] '+(i.page||i.post)+' ('+i.slug+')</div>'}).join('')+'</div>';
 };
 
-W.renderSettings=async function(){
+W.renderSettings=function(tab){
     var app=document.getElementById('wontia-app');
-    var d=await W.api('/api/v1/admin/settings');
-    var s=d.data||{};
-    var th=await W.api('/api/v1/admin/themes');
-    var td=th.data||{themes:[],active:''};
+    W.state.settingsTab=tab||'general';
+    var t=W.state.settingsTab;
+    var tabBtn=function(id,label){return '<button class="w-btn '+(t===id?'w-btn-primary':'w-btn-secondary')+'" onclick="wontia.renderSettings(\''+id+'\')">'+label+'</button>';};
+    app.innerHTML='<div class="w-flex w-gap-sm" style="margin-bottom:16px">'+tabBtn('general','Ajustes')+tabBtn('logo','Logo & Favicon')+'</div><div id="settings-panel"></div>';
+    if(t==='logo')W.renderLogoPanel(); else W.renderSettingsGeneral();
+};
+
+W.renderSettingsGeneral=async function(){
+    var panel=document.getElementById('settings-panel'); if(!panel)return;
+    var d=await W.api('/api/v1/admin/settings'); var s=d.data||{};
+    var th=await W.api('/api/v1/admin/themes'); var td=th.data||{themes:[],active:''};
     var keys=['site_name','site_description','ga_measurement_id','cookie_consent_enabled','primary_color','logo_text'];
     var html='<div class="w-card"><h3>Site Settings</h3>';
     keys.forEach(function(k){
         html+='<div class="w-form-group"><label class="w-label">'+W.esc(k)+'</label><input class="w-input" id="set-'+k+'" value="'+W.esc(s[k]||'')+'"/></div>';
     });
-    html+='<button class="w-btn w-btn-primary" onclick="wontia.saveSettings()">Save Settings</button></div>';
+    html+='<button class="w-btn w-btn-primary" onclick="wontia.saveSettings()">Guardar ajustes</button></div>';
     html+='<div class="w-card"><h3>Tema del sitio</h3><div style="font-size:11px;color:var(--w-muted);margin-bottom:10px">Activa o desactiva la apariencia del sitio en cualquier momento. El cambio es reversible y no afecta el contenido.</div><div class="w-flex w-gap-sm" style="flex-wrap:wrap"><select class="w-select" id="set-theme" style="max-width:300px">'+td.themes.map(function(t){return '<option value="'+W.esc(t)+'"'+(t===td.active?' selected':'')+'>'+W.esc(t)+'</option>'}).join('')+'</select><button class="w-btn w-btn-primary" onclick="wontia.saveTheme()">Activar tema</button></div><div style="font-size:11px;color:var(--w-muted);margin-top:8px">Tema activo: <strong>'+W.esc(td.active||'—')+'</strong></div></div>';
-    app.innerHTML=html;
+    panel.innerHTML=html;
+};
+
+W.renderLogoPanel=async function(){
+    var panel=document.getElementById('settings-panel'); if(!panel)return;
+    panel.innerHTML='<div style="padding:20px;color:var(--w-muted)">Cargando…</div>';
+    var d=await W.api('/api/v1/admin/settings'); var s=d.data||{};
+    var logo=s.logo_image||'', fav=s.favicon||'', touch=s.favicon_touch||'', tc=s.theme_color||'';
+    var h=parseInt(s.logo_height||'40',10); if(!h||h<16)h=40;
+    var show=(s.logo_show_text!=='0'), alt=s.logo_alt||'', txt=s.logo_text||'WONTIA';
+    var html='<div class="w-card"><h3>Logo</h3><div style="font-size:11px;color:var(--w-muted);margin-bottom:12px">Logo del sitio actual. Formatos: PNG, JPG, WebP, GIF, ICO (SVG no permitido).</div>';
+    html+='<div style="display:flex;gap:16px;flex-wrap:wrap"><div style="flex:1;min-width:260px">';
+    html+='<div id="logo-preview" style="border:1px dashed var(--w-border);border-radius:10px;min-height:96px;display:flex;align-items:center;justify-content:center;background:var(--w-bg);padding:10px">'+(logo?'<img src="'+W.esc(logo)+'" style="height:'+h+'px;width:auto;max-width:100%"/>':'<span style="font-size:12px;color:var(--w-muted)">Sin logo (se usa el texto/letra del tema)</span>')+'</div>';
+    html+='<div class="w-flex w-gap-sm" style="margin-top:10px;flex-wrap:wrap"><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.brandPick(\'logo\')">Elegir del Media</button><label class="w-btn w-btn-secondary w-btn-sm" style="cursor:pointer">Subir<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" style="display:none" onchange="wontia.brandUpload(this,\'logo\')"/></label><button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.brandClear(\'logo\')">Quitar</button></div>';
+    html+='<input type="hidden" id="logo-image" value="'+W.esc(logo)+'"/>';
+    html+='<div style="margin-top:14px"><label class="w-label">Tamaño — alto del logo: <span id="logo-h-lbl">'+h+'</span>px</label><input type="range" id="logo-height" min="16" max="160" step="1" value="'+h+'" style="width:100%" oninput="wontia.brandSlider(this.value)"/></div>';
+    html+='<div class="w-form-group" style="margin-top:10px"><label class="w-label">Texto junto al logo</label><input class="w-input" id="logo-text" value="'+W.esc(txt)+'"/></div>';
+    html+='<label style="font-size:12px;display:flex;align-items:center;gap:8px"><input type="checkbox" id="logo-show-text" '+(show?'checked':'')+' style="width:auto"/> Mostrar el texto junto al logo</label>';
+    html+='<div class="w-form-group" style="margin-top:10px"><label class="w-label">Texto alternativo (alt) — obligatorio si hay logo</label><input class="w-input" id="logo-alt" value="'+W.esc(alt)+'" placeholder="Ej: Logo de INTSOLCOM"/></div>';
+    html+='</div></div><div id="logo-lib" style="display:none;margin-top:12px"></div></div>';
+    html+='<div class="w-card"><h3>Favicon</h3><div style="font-size:11px;color:var(--w-muted);margin-bottom:12px">.ico o PNG (32×32; 180×180 para apple-touch).</div>';
+    html+='<div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap"><div id="fav-preview" style="width:48px;height:48px;border:1px solid var(--w-border);border-radius:10px;display:flex;align-items:center;justify-content:center;overflow:hidden;background:var(--w-bg)">'+(fav?'<img src="'+W.esc(fav)+'" style="width:32px;height:32px;object-fit:contain"/>':'<span style="font-size:10px;color:var(--w-muted)">—</span>')+'</div>';
+    html+='<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.brandPick(\'favicon\')">Elegir del Media</button><label class="w-btn w-btn-secondary w-btn-sm" style="cursor:pointer">Subir<input type="file" accept=".ico,image/x-icon,image/png,image/vnd.microsoft.icon" style="display:none" onchange="wontia.brandUpload(this,\'favicon\')"/></label><button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.brandClear(\'favicon\')">Quitar</button></div>';
+    html+='<input type="hidden" id="logo-favicon" value="'+W.esc(fav)+'"/>';
+    html+='<div class="w-form-group" style="margin-top:10px"><label class="w-label">Apple touch icon (opcional)</label><input class="w-input" id="logo-favicon-touch" value="'+W.esc(touch)+'" placeholder="/assets/uploads/..."/></div>';
+    html+='<div class="w-form-group"><label class="w-label">Color de tema (opcional)</label><input class="w-input" id="logo-theme-color" value="'+W.esc(tc)+'" placeholder="#7c3cff"/></div>';
+    html+='</div>';
+    html+='<div class="w-flex w-gap-sm"><button class="w-btn w-btn-primary" onclick="wontia.saveBrand()">Guardar logo y favicon</button><button class="w-btn w-btn-secondary" onclick="wontia.renderSettings(\'logo\')">Recargar</button></div>';
+    panel.innerHTML=html;
+};
+
+W.brandSlider=function(v){ var l=document.getElementById('logo-h-lbl'); if(l)l.textContent=v; var img=document.querySelector('#logo-preview img'); if(img)img.style.height=parseInt(v,10)+'px'; };
+W.brandClear=function(which){
+    var id=which==='logo'?'logo-image':'logo-favicon'; var el=document.getElementById(id); if(el)el.value='';
+    var box=document.getElementById(which==='logo'?'logo-preview':'fav-preview');
+    if(box)box.innerHTML='<span style="font-size:'+(which==='logo'?'12':'10')+'px;color:var(--w-muted)">Sin '+(which==='logo'?'logo':'favicon')+'</span>';
+};
+W.brandSet=function(which,url){
+    var id=which==='logo'?'logo-image':'logo-favicon'; var el=document.getElementById(id); if(el)el.value=url;
+    if(which==='logo'){ var h=(document.getElementById('logo-height')||{}).value||40; var p=document.getElementById('logo-preview'); if(p)p.innerHTML='<img src="'+url+'" style="height:'+parseInt(h,10)+'px;width:auto;max-width:100%"/>'; }
+    else { var f=document.getElementById('fav-preview'); if(f)f.innerHTML='<img src="'+url+'" style="width:32px;height:32px;object-fit:contain"/>'; }
+    var box=document.getElementById('logo-lib'); if(box)box.style.display='none';
+};
+W.brandPick=async function(which){
+    var box=document.getElementById('logo-lib'); if(!box)return; box.style.display='block'; box.innerHTML='<div style="font-size:12px;color:var(--w-muted)">Cargando…</div>';
+    try{ var d=await W.api('/api/v1/admin/media?type=image'); var items=d.data||[]; }catch(e){ var items=[]; }
+    if(!items.length){ box.innerHTML='<div style="font-size:12px;color:var(--w-muted)">No hay imágenes en la biblioteca. Usa “Subir”.</div>'; return; }
+    box.innerHTML='<div style="font-size:11px;color:var(--w-muted);margin-bottom:6px">Elige una imagen:</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:8px">'+items.map(function(m){return '<button type="button" onclick="wontia.brandSet(\''+which+'\',\''+W.esc(m.url)+'\')" title="'+W.esc(m.filename||'')+'" style="border:1px solid var(--w-border);border-radius:8px;overflow:hidden;background:none;cursor:pointer;aspect-ratio:1;padding:0"><img src="'+W.esc(m.url)+'" style="width:100%;height:100%;object-fit:cover"/></button>';}).join('')+'</div>';
+};
+W.brandUpload=async function(input,which){
+    var f=input.files&&input.files[0]; if(!f)return;
+    var fd=new FormData(); fd.append('file',f);
+    try{
+        var r=await fetch('/api/v1/admin/media/upload',{method:'POST',headers:W.token?{Authorization:'Bearer '+W.token}:{},body:fd});
+        var d=await r.json();
+        if(d.ok&&d.data&&d.data.url){ W.brandSet(which,d.data.url); W.notify('Imagen subida','success'); }
+        else W.notify((d&&d.message)||'No se pudo subir','error');
+    }catch(e){ W.notify('Error de subida','error'); }
+    input.value='';
+};
+W.saveBrand=async function(){
+    var data={ logo_image:W.val('logo-image'), logo_height:(document.getElementById('logo-height')||{}).value||'40', logo_show_text:(document.getElementById('logo-show-text')&&document.getElementById('logo-show-text').checked)?1:0, logo_text:W.val('logo-text'), logo_alt:W.val('logo-alt'), favicon:W.val('logo-favicon'), favicon_touch:W.val('logo-favicon-touch'), theme_color:W.val('logo-theme-color') };
+    if(data.logo_image && !data.logo_alt){ W.notify('Añade el texto alternativo (alt) del logo','error'); return; }
+    var r=await W.api('/api/v1/admin/settings',{method:'PUT',body:data});
+    if(r.ok)W.notify('Logo y favicon guardados','success'); else W.notify((r&&r.message)||'Error','error');
 };
 
 W.saveTheme=async function(){

@@ -105,7 +105,7 @@ main{position:relative;z-index:1}
     .scroll-progress{animation:iqProgress linear;animation-timeline:scroll(root)}
     @keyframes iqProgress{from{transform:scaleX(0)}to{transform:scaleX(1)}}
 }
-.w-nav{position:fixed;top:0;left:0;right:0;z-index:100;height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 26px;background:var(--nav-bg);backdrop-filter:blur(18px);border-bottom:1px solid var(--border)}
+.w-nav{position:fixed;top:0;left:0;right:0;z-index:100;min-height:64px;display:flex;align-items:center;justify-content:space-between;padding:0 26px;background:var(--nav-bg);backdrop-filter:blur(18px);border-bottom:1px solid var(--border)}
 .w-nav-brand{display:flex;align-items:center;gap:11px}
 .w-nav-logo{width:32px;height:32px;border-radius:10px;background:linear-gradient(135deg,#7c3cff,#b78cff);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;color:#fff;box-shadow:0 0 22px var(--glow)}
 .w-nav-brand span{font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
@@ -278,13 +278,14 @@ main{position:relative;z-index:1}
 @media(min-width:1101px){.wwi-hide-desktop{display:none!important}}
 </style>
 
+<?php require_once ROOT_DIR . '/templates/themes/_shared/brand.php'; ?><?= wwi_favicon_links() ?>
 </head>
 <body>
 <div class="aurora"></div>
 <div class="orbs"><i></i><i></i><i></i></div>
 <div class="grid-bg"></div>
 <nav class="w-nav">
-  <div class="w-nav-brand"><div class="w-nav-logo" data-source="settings:nav:logo_letter"><?= htmlspecialchars((string)$wwiNav['logo_letter']) ?></div><span data-source="settings:nav:brand"><?= htmlspecialchars((string)$wwiNav['brand']) ?></span></div>
+  <div class="w-nav-brand"><?php if (wwi_brand()['logo'] !== ''): ?><a href="/" style="display:flex;align-items:center;gap:11px;text-decoration:none"><?= wwi_logo_img(120) ?><?php if (wwi_brand()['show_text']): ?><span><?= htmlspecialchars(wwi_brand()['text']) ?></span><?php endif; ?></a><?php else: ?><div class="w-nav-logo" data-source="settings:nav:logo_letter"><?= htmlspecialchars((string)$wwiNav['logo_letter']) ?></div><span data-source="settings:nav:brand"><?= htmlspecialchars((string)$wwiNav['brand']) ?></span><?php endif; ?></div>
   <div class="w-nav-links">
     <?php foreach ($wwiNav['links'] as $i => $l): ?>
     <a href="<?= htmlspecialchars((string)($l['url'] ?? '#')) ?>" data-source="settings:nav:link:<?= (int)$i ?>:label"><?= htmlspecialchars((string)($l['label'] ?? '')) ?></a>
