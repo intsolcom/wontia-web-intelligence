@@ -189,12 +189,23 @@ if (!function_exists('sonika_site_head')) {
   <div class="wrap">
     <div class="nav">
       <a class="logo" href="/"><?= sonika_logo_tag() ?></a>
-      <form class="search" action="/buscar" method="get" role="search" autocomplete="off">
-        <span class="s-ic" aria-hidden="true">&#128269;</span>
-        <input type="search" name="q" id="skSearch" placeholder="¿Qué instrumento estás buscando?" aria-label="Buscar productos" value="<?= sonika_esc($_GET['q'] ?? '') ?>" />
-        <button type="submit">Buscar</button>
-        <div class="sug" id="skSug" role="listbox" aria-label="Sugerencias" hidden></div>
-      </form>
+      <?php
+      $__advBrands = []; $__advMax = 0.0;
+      foreach (sonika_products() as $__p) {
+          $__v = trim((string)($__p['vendor'] ?? ''));
+          if ($__v !== '') $__advBrands[$__v] = true;
+          $__pr = sonika_price($__p);
+          if ($__pr > $__advMax) $__advMax = $__pr;
+      }
+      $__advBrands = array_keys($__advBrands); sort($__advBrands);
+      $__advCats = array_map(fn($cc) => [$cc['slug'], $cc['name']], sonika_categories());
+      echo \App\Widgets\WidgetRegistry::render('advance-search-product', [
+          'brands' => $__advBrands,
+          'categories' => $__advCats,
+          'max_price' => $__advMax,
+          'placeholder' => '¿Qué instrumento estás buscando?',
+      ]);
+      ?>
       <div class="nav-actions">
         <a class="icon-btn" href="/cuenta"><span class="ic" aria-hidden="true">&#128100;</span><span class="lbl">Mi cuenta</span></a>
         <a class="icon-btn" href="/carrito" aria-label="Carrito"><span class="ic" aria-hidden="true">&#128722;</span><span class="lbl">Carrito</span><span class="cart-badge" id="cartCount">0</span></a>
