@@ -39,6 +39,22 @@ class FactoryController
         $result['ok'] ? Response::success($result, $result['message']) : Response::error($result['message']);
     }
 
+    public function provision(Request $request): void
+    {
+        $this->requireSuper();
+        $d = $request->json();
+        $result = $this->service->onboardClient([
+            'client' => (string)($d['client'] ?? ''),
+            'email' => (string)($d['email'] ?? ''),
+            'domain' => (string)($d['domain'] ?? ''),
+            'plan' => (string)($d['plan'] ?? ''),
+            'theme' => (string)($d['theme'] ?? 'default'),
+            'sector' => (string)($d['sector'] ?? ''),
+        ]);
+        if (empty($result['ok'])) Response::error($result['message'] ?? 'No se pudo provisionar', 422, $result);
+        Response::json($result);
+    }
+
     public function siteStatus(Request $request, $id): void
     {
         $this->requireSuper();

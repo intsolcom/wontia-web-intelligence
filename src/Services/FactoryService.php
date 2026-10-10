@@ -1085,6 +1085,71 @@ class FactoryService
         return ['ok' => true, 'tenant_id' => $tenantId, 'site_uuid' => $siteUuid];
     }
 
+    /**
+     * Onboarding de cliente (usado por CLI provision.php y por el panel Factory).
+     * Idempotente por dominio. Devuelve credenciales del cliente.
+     */
+    public function onboardClient(array $d): array
+    {
+        $client = trim((string)($d['client'] ?? ''));
+        $email = trim((string)($d['email'] ?? ''));
+        $domain = trim((string)($d['domain'] ?? ''));
+        $planSlug = trim((string)($d['plan'] ?? ''));
+        $theme = preg_replace('/[^a-z0-9\-]/', '', strtolower((string)($d['theme'] ?? 'default'))) ?: 'default';
+        $sector = trim((string)($d['sector'] ?? ''));
+        if ($client === '' || $email === '') return ['ok' => false, 'message' => 'Cliente y email son obligatorios.'];
+
+        $db = Database::instance();
+        $plan = $planSlug !== '' ? $this->planBySlug($planSlug) : null;
+        if (!$plan) {
+            $plan = $db->query("SELECT * FROM wwi_plans WHERE site_id = @site_id AND is_active = 1 ORDER BY price_cop ASC LIMIT 1")->fetch() ?: null;
+        }
+        if (!$plan) return ['ok' => false, 'message' => 'No hay planes disponibles.'];
+
+        if ($domain !== '') {
+            $st = $db->prepare("SELECT tenant_id FROM wwi_orders WHERE site_id = @site_id AND domain_name = ? AND tenant_id IS NOT NULL ORDER BY id DESC LIMIT 1");
+            $st->execute([$domain]);
+            $ex = (int)$st->fetchColumn();
+            if ($ex > 0) return ['ok' => true, 'existing' => true, 'tenant_id' => $ex, 'message' => 'El dominio ya tiene un sitio provisionado.'];
+        }
+
+        $order = $this->addOrder(['customer_name' => $client, 'customer_email' => $email, 'plan_id' => (int)$plan['id'], 'domain_name' => $domain, 'locale' => 'es']);
+        if (empty($order['ok'])) return $order;
+        try {
+            $prov = $this->provisionSite(['order_id' => (int)$order['id']]);
+        } catch (\Throwable $e) {
+            return ['ok' => false, 'message' => 'Error provisionando: ' . $e->getMessage()];
+        }
+        if (empty($prov['ok'])) return $prov;
+        $tenantId = (int)$prov['tenant_id'];
+
+        $db->prepare("UPDATE sites SET theme = ? WHERE id = ?")->execute([$theme, $tenantId]);
+        $ins = $db->prepare("INSERT INTO settings (site_id, `key`, `value`) VALUES (?,?,?) ON DUPLICATE KEY UPDATE `value` = VALUES(`value`)");
+        $ins->execute([$tenantId, 'site_name', $client]);
+        $ins->execute([$tenantId, 'logo_text', $client]);
+        if ($sector !== '') $ins->execute([$tenantId, 'site_sector', $sector]);
+
+        $u = $db->prepare("SELECT id, username, email FROM users WHERE site_id = ? AND role = 'client' ORDER BY id ASC LIMIT 1");
+        $u->execute([$tenantId]);
+        $user = $u->fetch();
+        $password = bin2hex(random_bytes(6));
+        if ($user) $db->prepare("UPDATE users SET password_hash = ? WHERE id = ?")->execute([password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]), $user['id']]);
+
+        $this->runDueJobs(10);
+        $host = $domain !== '' ? $domain : ('cliente' . $tenantId . '.wontia.com');
+        return [
+            'ok' => true,
+            'tenant_id' => $tenantId,
+            'site_uuid' => $prov['site_uuid'] ?? null,
+            'plan' => $plan['slug'] ?? null,
+            'theme' => $theme,
+            'domain' => $domain,
+            'admin_url' => 'https://' . $host . '/admin.php',
+            'username' => $user['username'] ?? null,
+            'password' => $password,
+        ];
+    }
+
     public function copyMailConfig(int $siteId): int
     {
         $map = ['wwi.mail_host' => 'mail_host', 'wwi.mail_port' => 'mail_port', 'wwi.mail_user' => 'mail_user',

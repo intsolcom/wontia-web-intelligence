@@ -333,6 +333,7 @@ $r->delete('/trash/{id}', [\App\Controllers\Admin\SectionController::class, 'tra
     $r->get('/factory/dashboard', [\App\Controllers\Admin\FactoryController::class, 'dashboard']);
     $r->get('/factory/sites', [\App\Controllers\Admin\FactoryController::class, 'sites']);
     $r->post('/factory/sites', [\App\Controllers\Admin\FactoryController::class, 'addSite']);
+    $r->post('/factory/provision', [\App\Controllers\Admin\FactoryController::class, 'provision']);
     $r->put('/factory/sites/{id}/status', [\App\Controllers\Admin\FactoryController::class, 'siteStatus']);
     $r->post('/factory/sites/{id}/credentials', [\App\Controllers\Admin\FactoryController::class, 'siteCredentials']);
     $r->get('/factory/domains', [\App\Controllers\Admin\FactoryController::class, 'domains']);

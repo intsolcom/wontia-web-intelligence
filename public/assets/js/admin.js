@@ -1533,6 +1533,32 @@ W.agentBridgePoll=function(){
     check(); setInterval(check, 60000);
 };
 
+W.factoryWizard=async function(){
+    var plansR=await W.api('/api/v1/admin/factory/plans'); var plans=(plansR.data||[]);
+    var opts=plans.map(function(p){return '<option value="'+W.esc(p.slug)+'">'+W.esc(p.name||p.slug)+'</option>'}).join('');
+    var themesR=await W.api('/api/v1/admin/themes/marketplace'); var themes=((themesR.data||{}).themes||[]);
+    var topts=themes.filter(function(t){return !t.locked}).map(function(t){return '<option value="'+W.esc(t.slug)+'"'+(t.slug==='default'?' selected':'')+'>'+W.esc(t.name)+'</option>'}).join('');
+    var body='<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
+      +'<div class="w-form-group"><label class="w-label">Cliente *</label><input class="w-input" id="pw-client"/></div>'
+      +'<div class="w-form-group"><label class="w-label">Email *</label><input class="w-input" id="pw-email" type="email"/></div>'
+      +'<div class="w-form-group"><label class="w-label">Dominio (vacío = subdominio .wontia.com)</label><input class="w-input" id="pw-domain" placeholder="cliente.com"/></div>'
+      +'<div class="w-form-group"><label class="w-label">Plan</label><select class="w-select" id="pw-plan">'+opts+'</select></div>'
+      +'<div class="w-form-group"><label class="w-label">Tema</label><select class="w-select" id="pw-theme">'+topts+'</select></div>'
+      +'<div class="w-form-group"><label class="w-label">Sector (opcional)</label><input class="w-input" id="pw-sector"/></div>'
+      +'</div><div style="font-size:11px;color:var(--w-muted);margin-top:6px">Crea site + usuario + deploy automático (contenedor/SSL) en &lt;1 min.</div><div id="pw-out" style="margin-top:10px"></div>';
+    W.modal('Nuevo sitio (onboarding)', body, '<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cancelar</button><button class="w-btn w-btn-primary" id="pw-go">Provisionar</button>');
+    var go=document.getElementById('pw-go'); if(go)go.addEventListener('click',W.factoryProvision);
+};
+W.factoryProvision=async function(){
+    var g=function(id){return (document.getElementById(id)||{}).value||''};
+    var body={client:g('pw-client'),email:g('pw-email'),domain:g('pw-domain'),plan:g('pw-plan'),theme:g('pw-theme'),sector:g('pw-sector')};
+    if(!body.client||!body.email){W.notify('Cliente y email son obligatorios','error');return}
+    W.notify('Provisionando… (puede tardar unos segundos)','info');
+    var r=await W.api('/api/v1/admin/factory/provision',{method:'POST',body:body});
+    var o=document.getElementById('pw-out');
+    if(r.ok && o){ o.innerHTML='<div class="w-card" style="border-color:rgba(52,211,153,.5);padding:12px;font-size:12px;line-height:1.8"><b>¡Sitio creado!</b> · tenant #'+r.tenant_id+'<br>Admin: <a href="'+W.esc(r.admin_url||'')+'" target="_blank">'+W.esc(r.admin_url||'')+'</a><br>Usuario: <b>'+W.esc(r.username||'')+'</b><br>Contraseña: <code>'+W.esc(r.password||'')+'</code><br><span style="color:var(--w-muted)">El contenedor y SSL se crean por el auto-deployer en &lt;1 min.</span></div>'; W.notify('Sitio creado','success'); }
+};
+
 W.loadQrLib=function(){
     return new Promise(function(res){
         if(window.QRCode)return res(true);

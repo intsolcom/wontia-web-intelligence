@@ -160,8 +160,20 @@ class NavService
         if (self::$seeded) return;
         self::$seeded = true;
         try {
-            $c = (int)Database::instance()->query('SELECT COUNT(*) FROM nav_menus WHERE site_id=@site_id')->fetchColumn();
-            if ($c === 0) $this->seedDefaults();
+            $db = Database::instance();
+            $c = (int)$db->query('SELECT COUNT(*) FROM nav_menus WHERE site_id=@site_id')->fetchColumn();
+            if ($c > 0) return;
+            // Solo sembrar si el tema activo opta por el CMS de menús (theme.json -> "cms_nav": true).
+            $theme = (string)$db->query('SELECT theme FROM sites WHERE id=@site_id')->fetchColumn();
+            $opts = false;
+            if ($theme !== '' && preg_match('/^[a-z0-9\-]{2,50}$/', $theme)) {
+                $f = ROOT_DIR . '/templates/themes/' . $theme . '/theme.json';
+                if (is_file($f)) {
+                    $m = json_decode((string)file_get_contents($f), true) ?: [];
+                    $opts = !empty($m['cms_nav']);
+                }
+            }
+            if ($opts) $this->seedDefaults();
         } catch (\Throwable $e) {
         }
     }

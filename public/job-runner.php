@@ -15,4 +15,5 @@ $result['bricks_auto_launched'] = (new \App\Services\BrickLifecycleService())->p
 $result['system_auto_update'] = (new \App\Services\SystemUpdateService())->autoTick();
 $result['auth_otps_purged'] = (new \App\Services\AuthSecurityService())->purgeExpiredOtps();
 $result['agent_bridge'] = (new \App\Services\AgentBridgeService())->autoRespond(3);
+$result['bridge_mirror'] = (new \App\Services\AgentBridgeService())->exportAll()['files'];
 echo json_encode($result, JSON_UNESCAPED_UNICODE) . "\n";

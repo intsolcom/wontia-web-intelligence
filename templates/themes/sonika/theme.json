@@ -6,6 +6,7 @@
     "description": "Theme ecommerce premium para SONIKA.COM.CO: instrumentos musicales, acordeones y audio. Identidad rojo/negro/blanco con catálogo, ficha de producto, carrito y checkout integrados nativamente con WWI (StoreService + Bricks + Live Editor).",
     "tier": "premium",
     "category": "ecommerce",
+    "cms_nav": true,
     "license": "Proprietary",
     "requires": { "wwi": ">=3.4.0", "php": ">=8.1" },
     "features": [
