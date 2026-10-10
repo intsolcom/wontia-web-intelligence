@@ -194,6 +194,8 @@ $router->group('/api/v1/brick', function (Router $r) {
     $r->post('/command', [\App\Controllers\Admin\AiBrickController::class, 'command']);
 }, [\App\Middleware\BrickKeyMiddleware::class]);
 
+$router->post('/api/v1/agent-bridge/{site}', [\App\Controllers\Admin\AgentBridgeController::class, 'agentPost']);
+
 $router->group('/api/v1/admin', function (Router $r) {
     $r->post('/auth/logout', [\App\Controllers\Admin\AuthController::class, 'logout']);
     $r->get('/auth/me', [\App\Controllers\Admin\AuthController::class, 'me']);
@@ -477,6 +479,12 @@ $r->delete('/builder/comments/{id}', [\App\Controllers\Admin\BuilderController::
     $r->post('/nav/items', [\App\Controllers\Admin\NavController::class, 'saveItem']);
     $r->delete('/nav/items/{id}', [\App\Controllers\Admin\NavController::class, 'deleteItem']);
     $r->post('/nav/reorder', [\App\Controllers\Admin\NavController::class, 'reorder']);
+
+    $r->get('/agent-bridge', [\App\Controllers\Admin\AgentBridgeController::class, 'index']);
+    $r->post('/agent-bridge', [\App\Controllers\Admin\AgentBridgeController::class, 'post']);
+    $r->patch('/agent-bridge/{id}', [\App\Controllers\Admin\AgentBridgeController::class, 'setStatus']);
+    $r->get('/agent-bridge/agents', [\App\Controllers\Admin\AgentBridgeController::class, 'agents']);
+    $r->post('/agent-bridge/agents', [\App\Controllers\Admin\AgentBridgeController::class, 'createAgent']);
 
     $r->get('/users', [\App\Controllers\Admin\UserController::class, 'index']);
     $r->post('/users', [\App\Controllers\Admin\UserController::class, 'store']);

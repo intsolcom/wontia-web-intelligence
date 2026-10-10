@@ -1464,6 +1464,62 @@ W.themeCfgSave=async function(){
     if(r.ok)W.notify(r.message||'Guardado','success');
 };
 
+W.agentBridgeOpen=function(){
+    W.modal('Canal de agentes',
+      '<div id="w-bridge-feed" style="max-height:52vh;overflow:auto;font-size:12px">Cargando…</div>'
+      +'<div class="w-form-group" style="margin-top:10px"><label class="w-label">Responder como Head Team Leader</label><textarea class="w-textarea" id="w-bridge-reply" placeholder="Escribe una ORDEN / RESPUESTA…"></textarea></div>'
+      +'<div class="w-flex w-gap-sm" style="flex-wrap:wrap"><select class="w-select" id="w-bridge-type" style="max-width:160px"><option>ORDEN</option><option>RESPUESTA</option><option>ACLARACION</option><option>NOTA</option></select><button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.agentBridgePost()">Publicar</button><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.agentBridgeAgents()">Agentes</button><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.closeModal()">Cerrar</button></div>','');
+    W.agentBridgeLoad();
+    if(W.agentBridgeTimer)clearInterval(W.agentBridgeTimer);
+    W.agentBridgeTimer=setInterval(W.agentBridgeLoad,5000);
+    var ov=document.getElementById('w-modal');
+    if(ov&&!W._bridgeObs){ W._bridgeObs=new MutationObserver(function(){if(ov.style.display==='none'){clearInterval(W.agentBridgeTimer);W.agentBridgeTimer=null}}); W._bridgeObs.observe(ov,{attributes:true,attributeFilter:['style']}); }
+};
+W.agentBridgeLoad=async function(){
+    var box=document.getElementById('w-bridge-feed'); if(!box)return;
+    var r=await W.api('/api/v1/admin/agent-bridge'); var d=r.data||{};
+    var msgs=d.messages||[]; var max=0;
+    var cols={SOLICITUD:'#f59e0b',ORDEN:'#22d3ee',RESULTADO:'#34d399',RESPUESTA:'#8b5cf6',ACLARACION:'#94a3b8',NOTA:'#64748b'};
+    var html='';
+    msgs.forEach(function(m){
+        if(m.id>max)max=m.id;
+        var mine=(m.from_role==='head-team-leader');
+        html+='<div style="margin:8px 0;padding:8px 10px;border-radius:8px;background:'+(mine?'rgba(34,211,238,.08)':'var(--w-surface)')+';border:1px solid var(--w-border)">'
+          +'<div style="font-size:10px;color:var(--w-muted);display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span style="color:'+(cols[m.type]||'#64748b')+';font-weight:800">'+W.esc(m.type)+'</span><b>'+W.esc(m.from_role)+'</b> → '+W.esc(m.to_role)+(m.site_slug?' · '+W.esc(m.site_slug):'')+' · '+W.esc(m.created_at)+' · '+W.esc(m.status)+'</div>'
+          +(m.subject?'<div style="font-weight:600;margin-top:4px">'+W.esc(m.subject)+'</div>':'')
+          +'<div style="margin-top:4px;white-space:pre-wrap;line-height:1.5">'+W.esc(m.body)+'</div></div>';
+    });
+    if(!msgs.length)html='<div style="color:var(--w-muted);padding:16px;text-align:center">Sin mensajes aún.</div>';
+    box.innerHTML=html; box.scrollTop=box.scrollHeight;
+    W.agentBridgeLastId=max; try{localStorage.setItem('wwi_bridge_last',String(max))}catch(e){}
+    W.agentBridgePaintBadge(0);
+};
+W.agentBridgePost=async function(){
+    var body=(document.getElementById('w-bridge-reply')||{}).value||'';
+    var type=(document.getElementById('w-bridge-type')||{}).value||'ORDEN';
+    if(!body.trim()){W.notify('Escribe un mensaje','error');return}
+    var r=await W.api('/api/v1/admin/agent-bridge',{method:'POST',body:{type:type,body:body,from_role:'head-team-leader',to_role:'agent',status:'abierto'}});
+    if(r.ok){document.getElementById('w-bridge-reply').value='';W.agentBridgeLoad();}
+};
+W.agentBridgeAgents=async function(){
+    var r=await W.api('/api/v1/admin/agent-bridge/agents');
+    var list=(r.data||[]);
+    var html='<div style="font-size:12px;max-height:40vh;overflow:auto">'+(list.length?list.map(function(a){return '<div style="padding:6px 0;border-bottom:1px solid var(--w-border)"><b>'+W.esc(a.slug)+'</b> · '+W.esc(a.name||'')+' · site '+W.esc(a.site_id||'-')+' · '+(a.is_active?'activo':'inactivo')+' · visto '+W.esc(a.last_seen||'-')+'</div>'}).join(''):'<div style="color:var(--w-muted)">Sin agentes.</div>')+'</div>'
+      +'<div class="w-flex w-gap-sm" style="margin-top:10px;flex-wrap:wrap"><input class="w-input" id="w-ag-slug" placeholder="slug (sonika-agent)" style="max-width:200px"/><input class="w-input" id="w-ag-name" placeholder="Nombre" style="max-width:200px"/><input class="w-input" id="w-ag-site" placeholder="site_id" type="number" style="max-width:100px"/><button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.agentBridgeCreate()">Crear clave</button></div><div id="w-ag-out" style="margin-top:10px"></div>';
+    W.modal('Agentes del canal', html, '<button class="w-btn w-btn-secondary" onclick="wontia.agentBridgeOpen()">Volver al canal</button>');
+};
+W.agentBridgeCreate=async function(){
+    var slug=(document.getElementById('w-ag-slug')||{}).value||'', name=(document.getElementById('w-ag-name')||{}).value||'', sid=(document.getElementById('w-ag-site')||{}).value||'';
+    var r=await W.api('/api/v1/admin/agent-bridge/agents',{method:'POST',body:{slug:slug,name:name,site_id:sid||null}});
+    if(r.ok){var o=document.getElementById('w-ag-out'); if(o)o.innerHTML='<div class="w-card" style="border-color:rgba(52,211,153,.5);padding:12px"><div style="font-size:11px;color:var(--w-muted)">Clave de «'+W.esc(r.slug)+'» (cópiala ahora):</div><code style="font-family:monospace;font-size:14px;word-break:break-all">'+W.esc(r.key)+'</code></div>';}
+};
+W.agentBridgePaintBadge=function(n){var b=document.getElementById('w-bridge-badge'); if(!b)return; if(n>0){b.textContent=n;b.style.display='block'}else{b.style.display='none'}};
+W.agentBridgePoll=function(){
+    if(!document.getElementById('w-bridge-bell'))return;
+    var check=async function(){ try{ var r=await W.api('/api/v1/admin/agent-bridge'); var d=r.data||{}; var max=d.max_id||0; var last=parseInt(localStorage.getItem('wwi_bridge_last')||'0',10); if(max>last && !document.getElementById('w-bridge-feed')) W.agentBridgePaintBadge(max-last); }catch(e){} };
+    check(); setInterval(check, 60000);
+};
+
 W.loadQrLib=function(){
     return new Promise(function(res){
         if(window.QRCode)return res(true);
@@ -4732,6 +4788,6 @@ W.watchVersion=function(){
 };
 
 window.addEventListener('hashchange',function(){W.router()});
-window.addEventListener('load',function(){W.mountTopbar();W.router();W.updateBHBadge();setInterval(W.updateBHBadge,300000);W.watchVersion()});
+window.addEventListener('load',function(){W.mountTopbar();W.router();W.updateBHBadge();setInterval(W.updateBHBadge,300000);W.watchVersion();W.agentBridgePoll()});
 window.wontia=W;
 })();

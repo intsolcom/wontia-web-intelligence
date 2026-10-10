@@ -277,6 +277,9 @@ endif;
         <button class="w-mobile-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">&#9776;</button>
         <h1 id="panel-title">Dashboard</h1>
         <div style="flex:1"></div>
+        <?php if (($user['role'] ?? '') === 'superadmin' && is_dir('/app/deploy-queue')): ?>
+        <button id="w-bridge-bell" onclick="wontia.agentBridgeOpen()" title="Canal de agentes" style="position:relative;background:none;border:none;cursor:pointer;font-size:16px;color:#8593ab;margin-right:14px">&#128276;<span id="w-bridge-badge" style="display:none;position:absolute;top:-6px;right:-10px;min-width:16px;height:16px;padding:0 4px;border-radius:999px;background:#22d3ee;color:#041018;font-size:10px;font-weight:800;line-height:16px;text-align:center"></span></button>
+        <?php endif; ?>
         <a href="/" target="_blank" style="font-size:12px;color:#67e8f9;text-decoration:none">View Site &#8599;</a>
     </header>
     <div class="w-content" id="wontia-app"></div>
