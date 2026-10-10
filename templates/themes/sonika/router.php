@@ -13,6 +13,32 @@ if (!function_exists('sonika_grid')) {
         echo '</div>';
     }
 }
+if (!function_exists('sonika_slice')) {
+    function sonika_slice(array $items, int $perPage = 24): array {
+        $page = max(1, (int)($_GET['page'] ?? 1));
+        $total = count($items);
+        $offset = ($page - 1) * $perPage;
+        return ['items' => array_slice($items, $offset, $perPage), 'total' => $total, 'page' => $page, 'perPage' => $perPage];
+    }
+}
+if (!function_exists('sonika_pager')) {
+    function sonika_pager(int $total, int $perPage, int $current, string $base): void {
+        $pages = (int)ceil($total / max(1, $perPage));
+        if ($pages <= 1) return;
+        $sep = str_contains($base, '?') ? '&' : '?';
+        echo '<nav class="pager">';
+        if ($current > 1) echo '<a class="pg" href="' . sonika_esc($base . $sep . 'page=' . ($current - 1)) . '">‹ Anterior</a>';
+        for ($i = 1; $i <= $pages; $i++) {
+            if ($pages > 14 && $i > 3 && $i < $pages - 2 && abs($i - $current) > 1) {
+                if ($i === 4 || $i === $pages - 3) echo '<span class="pgap">…</span>';
+                continue;
+            }
+            echo '<a class="pg' . ($i === $current ? ' on' : '') . '" href="' . sonika_esc($base . $sep . 'page=' . $i) . '">' . $i . '</a>';
+        }
+        if ($current < $pages) echo '<a class="pg" href="' . sonika_esc($base . $sep . 'page=' . ($current + 1)) . '">Siguiente ›</a>';
+        echo '</nav>';
+    }
+}
 
 $path = trim((string)$uri, '/');
 $segments = $path === '' ? [] : explode('/', $path);
@@ -33,9 +59,7 @@ if (($segments[0] ?? '') === 'producto' && !empty($segments[1])) {
         $avail = sonika_available($product);
         ?>
         <section class="wrap pdp">
-          <div>
-            <div class="pdp-gallery"><?php if ($img): ?><img src="<?= sonika_esc($img) ?>" alt="<?= sonika_esc($product['title']) ?>" /><?php endif; ?></div>
-          </div>
+          <div><div class="pdp-gallery"><?php if ($img): ?><img src="<?= sonika_esc($img) ?>" alt="<?= sonika_esc($product['title']) ?>" /><?php endif; ?></div></div>
           <div>
             <span class="pdp-vendor"><?= sonika_esc($product['vendor'] ?? '') ?></span>
             <h1><?= sonika_esc($product['title']) ?></h1>
@@ -85,21 +109,21 @@ if (($segments[0] ?? '') === 'producto' && !empty($segments[1])) {
 
 $cat = sonika_category($path);
 if ($cat) {
-    $items = sonika_category_products($cat['slug']);
+    $pg = sonika_slice(sonika_category_products($cat['slug']), 24);
     sonika_site_head($cat['name'] . ' — SONIKA', $cat['name'] . ': ' . $cat['tags'] . '. Compra en SONIKA con envío a toda Colombia.');
     sonika_breadcrumb([$cat['name'] => null]);
     ?>
     <section class="pad wrap">
       <div class="head"><h1><?= sonika_esc($cat['name']) ?></h1><a href="/tienda">Ver toda la tienda →</a></div>
       <div class="toolbar">
-        <span class="resultcount"><?= count($items) ?> producto(s) en <?= sonika_esc($cat['name']) ?></span>
+        <span class="resultcount"><?= (int)$pg['total'] ?> producto(s) en <?= sonika_esc($cat['name']) ?></span>
         <div class="filters">
           <?php foreach (sonika_categories() as $c): ?>
             <a class="<?= $c['slug'] === $cat['slug'] ? 'on' : '' ?>" href="/<?= sonika_esc($c['slug']) ?>"><?= sonika_esc($c['name']) ?></a>
           <?php endforeach; ?>
         </div>
       </div>
-      <?php sonika_grid($items); ?>
+      <?php sonika_grid($pg['items']); sonika_pager($pg['total'], $pg['perPage'], $pg['page'], '/' . $cat['slug']); ?>
     </section>
     <?php
     sonika_site_footer();
@@ -108,30 +132,31 @@ if ($cat) {
 
 switch ($segments[0] ?? '') {
     case 'tienda':
-        $items = sonika_products();
+        $pg = sonika_slice(sonika_products(), 24);
         sonika_site_head('Tienda — SONIKA', 'Todos los instrumentos, audio, iluminación y accesorios disponibles en SONIKA.');
         sonika_breadcrumb(['Tienda' => null]);
         ?>
         <section class="pad wrap">
-          <div class="head"><h1>Tienda</h1><span class="resultcount"><?= count($items) ?> productos</span></div>
+          <div class="head"><h1>Tienda</h1><span class="resultcount"><?= (int)$pg['total'] ?> productos</span></div>
           <div class="filters" style="margin-bottom:20px">
             <a href="/tienda" class="on">Todos</a>
             <?php foreach (sonika_categories() as $c): ?><a href="/<?= sonika_esc($c['slug']) ?>"><?= sonika_esc($c['name']) ?></a><?php endforeach; ?>
           </div>
-          <?php sonika_grid($items); ?>
+          <?php sonika_grid($pg['items']); sonika_pager($pg['total'], $pg['perPage'], $pg['page'], '/tienda'); ?>
         </section>
         <?php
         sonika_site_footer();
         return true;
 
     case 'ofertas':
-        $items = array_values(array_filter(sonika_products(), function ($p) { return sonika_compare($p) > sonika_price($p) && sonika_price($p) > 0; }));
+        $all = array_values(array_filter(sonika_products(), function ($p) { return sonika_compare($p) > sonika_price($p) && sonika_price($p) > 0; }));
+        $pg = sonika_slice($all, 24);
         sonika_site_head('Ofertas — SONIKA', 'Instrumentos y equipos en oferta en SONIKA.');
         sonika_breadcrumb(['Ofertas' => null]);
         ?>
         <section class="pad wrap">
-          <div class="head"><h1>Ofertas 🔥</h1><span class="resultcount"><?= count($items) ?> productos en promoción</span></div>
-          <?php sonika_grid($items); ?>
+          <div class="head"><h1>Ofertas 🔥</h1><span class="resultcount"><?= (int)$pg['total'] ?> productos en promoción</span></div>
+          <?php sonika_grid($pg['items']); sonika_pager($pg['total'], $pg['perPage'], $pg['page'], '/ofertas'); ?>
         </section>
         <?php
         sonika_site_footer();
@@ -139,13 +164,14 @@ switch ($segments[0] ?? '') {
 
     case 'buscar':
         $q = trim((string)($_GET['q'] ?? ''));
-        $items = $q === '' ? [] : sonika_search($q);
+        $all = $q === '' ? [] : sonika_search($q);
+        $pg = sonika_slice($all, 24);
         sonika_site_head('Buscar' . ($q ? ': ' . $q : '') . ' — SONIKA', 'Resultados de búsqueda en SONIKA.');
         sonika_breadcrumb(['Buscar' => null]);
         ?>
         <section class="pad wrap">
-          <div class="head"><h1><?= $q !== '' ? 'Resultados para “' . sonika_esc($q) . '”' : 'Buscar' ?></h1><span class="resultcount"><?= count($items) ?> resultado(s)</span></div>
-          <?php sonika_grid($items); ?>
+          <div class="head"><h1><?= $q !== '' ? 'Resultados para “' . sonika_esc($q) . '”' : 'Buscar' ?></h1><span class="resultcount"><?= (int)$pg['total'] ?> resultado(s)</span></div>
+          <?php sonika_grid($pg['items']); sonika_pager($pg['total'], $pg['perPage'], $pg['page'], '/buscar?q=' . urlencode($q)); ?>
         </section>
         <?php
         sonika_site_footer();
@@ -157,10 +183,7 @@ switch ($segments[0] ?? '') {
         ?>
         <section class="wrap" id="cartPage">
           <h1 style="font-family:'Sora',sans-serif;padding:24px 0 6px">Tu carrito</h1>
-          <div class="cart-wrap">
-            <div id="cartItems"></div>
-            <aside class="summary" id="cartSummary"></aside>
-          </div>
+          <div class="cart-wrap"><div id="cartItems"></div><aside class="summary" id="cartSummary"></aside></div>
         </section>
         <?php
         sonika_site_footer();
@@ -181,10 +204,7 @@ switch ($segments[0] ?? '') {
           <div class="head"><h1>Marcas</h1><span class="resultcount"><?= count($brands) ?> marcas</span></div>
           <div class="cat-grid">
             <?php foreach ($brands as $name => $n): ?>
-              <a class="cat" href="/buscar?q=<?= urlencode($name) ?>">
-                <h3><?= sonika_esc($name) ?></h3>
-                <p><?= (int)$n ?> producto(s)</p>
-              </a>
+              <a class="cat" href="/buscar?q=<?= urlencode($name) ?>"><h3><?= sonika_esc($name) ?></h3><p><?= (int)$n ?> producto(s)</p></a>
             <?php endforeach; ?>
           </div>
         </section>

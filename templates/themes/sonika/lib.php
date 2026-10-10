@@ -356,6 +356,11 @@ if (!function_exists('sonika_css')) {
         .fbot{border-top:1px solid #1F2937;margin-top:30px;padding-top:18px;font-size:12px;text-align:center}
         .toast{position:fixed;bottom:24px;right:24px;background:#111827;color:#fff;padding:14px 20px;border-radius:12px;font-size:14px;font-weight:600;box-shadow:0 12px 30px rgba(0,0,0,.25);opacity:0;transform:translateY(10px);transition:.3s;z-index:9998}
         .toast.show{opacity:1;transform:translateY(0)}
+        .pager{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center;margin:34px 0 6px}
+        .pg{display:inline-flex;align-items:center;justify-content:center;min-width:38px;height:38px;padding:0 12px;border:1px solid var(--line);border-radius:10px;background:#fff;font-size:13.5px;font-weight:600;color:var(--ink)}
+        .pg:hover{border-color:var(--brand);color:var(--brand)}
+        .pg.on{background:var(--brand);border-color:var(--brand);color:#fff}
+        .pgap{padding:0 6px;color:#9CA3AF}
         @media(max-width:960px){.hero-in,.pdp,.cart-wrap{grid-template-columns:1fr}.cat-grid,.prod-grid{grid-template-columns:repeat(2,1fr)}.fgrid{grid-template-columns:1fr 1fr}.summary{position:static}}
         @media(max-width:600px){.hero h1{font-size:34px}.search{display:none}.cat-grid,.prod-grid{grid-template-columns:repeat(2,1fr);gap:12px}.topbar{font-size:11px}}
 CSS;
