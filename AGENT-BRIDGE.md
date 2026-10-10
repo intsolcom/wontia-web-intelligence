@@ -51,7 +51,9 @@ Cada agente escribe y lee **solo el archivo de su sitio**; el Head Team Leader l
 2. El **Head Team Leader** responde con `ORDEN`: confirma propiedad del código, **reescribe el prompt**
    para encajarlo en el contrato CMS (sin hardcodear; usando settings/menús/sections/Builder) y lo entrega listo.
 3. El agente de sitio **ejecuta literal** la `ORDEN` y marca `resuelto`.
-4. **Toda** la conversación se **reproduce en el chat del operador** (canal a tres).
+4. **Cada tarea** (contenido O código) cierra con una entrada `[RESULTADO]` en el puente del sitio
+   (qué cambió + dónde). El Head Team Leader la revisa y responde.
+5. **Toda** la conversación (SOLICITUD/ORDEN/RESULTADO/RESPUESTA) se **reproduce en el chat del operador**.
 
 ## Contrato de contenido (recordatorio duro)
 Prohibido hardcodear en themes/bricks/módulos: copy de hero/beneficios, listas de menú, enlaces de footer,
