@@ -1128,6 +1128,7 @@ class FactoryService
         $ins->execute([$tenantId, 'site_name', $client]);
         $ins->execute([$tenantId, 'logo_text', $client]);
         if ($sector !== '') $ins->execute([$tenantId, 'site_sector', $sector]);
+        try { (new \App\Services\NavService())->seedForSite($tenantId); } catch (\Throwable $e) {}
 
         $u = $db->prepare("SELECT id, username, email FROM users WHERE site_id = ? AND role = 'client' ORDER BY id ASC LIMIT 1");
         $u->execute([$tenantId]);

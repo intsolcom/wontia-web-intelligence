@@ -178,6 +178,17 @@ class NavService
         }
     }
 
+    /** Menú por defecto (referencia, también usado por el onboarding). */
+    private function defaultMenu(): array
+    {
+        return [
+            'primary' => [['Inicio', '/'], ['Tienda', '/tienda'], ['Ofertas', '/ofertas'], ['Marcas', '/marcas'], ['Contacto', '/contacto'], ['Blog', '/blog']],
+            'footer_shop' => [['Todos los productos', '/tienda'], ['Ofertas', '/ofertas'], ['Marcas', '/marcas']],
+            'footer_help' => [['Envíos y entregas', '/envios'], ['Devoluciones', '/devoluciones'], ['Garantía', '/garantia'], ['Contacto', '/contacto']],
+            'footer_legal' => [['Privacidad', '/privacidad'], ['Términos', '/terminos'], ['Cookies', '/cookies']],
+        ];
+    }
+
     /** Siembra menús por defecto (idempotente) si el sitio no tiene ninguno. */
     public function seedDefaults(): array
     {
@@ -185,22 +196,32 @@ class NavService
         $db = Database::instance();
         $count = (int)$db->query('SELECT COUNT(*) FROM nav_menus WHERE site_id=@site_id')->fetchColumn();
         if ($count > 0) return ['ok' => true, 'seeded' => false];
-        $defaults = [
-            'primary' => [
-                ['Inicio', '/'], ['Tienda', '/tienda'], ['Ofertas', '/ofertas'],
-                ['Marcas', '/marcas'], ['Contacto', '/contacto'], ['Blog', '/blog'],
-            ],
-            'footer_shop' => [['Todos los productos', '/tienda'], ['Ofertas', '/ofertas'], ['Marcas', '/marcas']],
-            'footer_help' => [['Envíos y entregas', '/envios'], ['Devoluciones', '/devoluciones'], ['Garantía', '/garantia'], ['Contacto', '/contacto']],
-            'footer_legal' => [['Privacidad', '/privacidad'], ['Términos', '/terminos'], ['Cookies', '/cookies']],
-        ];
-        foreach ($defaults as $loc => $items) {
+        foreach ($this->defaultMenu() as $loc => $items) {
             $menuId = $this->menuId($loc);
             $order = 1;
             foreach ($items as $it) {
                 $db->prepare('INSERT INTO nav_items (site_id, menu_id, label, url, sort_order, is_visible, target) VALUES (@site_id,?,?,?,?,1,\'_self\')')
                    ->execute([$menuId, $it[0], $it[1], $order++]);
             }
+        }
+        return ['ok' => true, 'seeded' => true];
+    }
+
+    /** Siembra menús por defecto para un site_id explícito (onboarding de clientes). */
+    public function seedForSite(int $siteId): array
+    {
+        $this->ensureTables();
+        $db = Database::instance();
+        $st = $db->prepare('SELECT COUNT(*) FROM nav_menus WHERE site_id = ?');
+        $st->execute([$siteId]);
+        if ((int)$st->fetchColumn() > 0) return ['ok' => true, 'seeded' => false];
+        foreach ($this->defaultMenu() as $loc => $items) {
+            $db->prepare('INSERT INTO nav_menus (site_id, location, name) VALUES (?,?,?)')
+               ->execute([$siteId, $loc, self::LOCATIONS[$loc] ?? $loc]);
+            $menuId = (int)$db->lastInsertId();
+            $order = 1;
+            $ins = $db->prepare('INSERT INTO nav_items (site_id, menu_id, label, url, sort_order, is_visible, target) VALUES (?,?,?,?,?,1,\'_self\')');
+            foreach ($items as $it) { $ins->execute([$siteId, $menuId, $it[0], $it[1], $order++]); }
         }
         return ['ok' => true, 'seeded' => true];
     }
