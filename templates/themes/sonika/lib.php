@@ -185,22 +185,41 @@ if (!function_exists('sonika_site_head')) {
   <div class="wrap">
     <div class="nav">
       <a class="logo" href="/"><?= sonika_logo_tag() ?></a>
-      <form class="search" action="/buscar" method="get" role="search">
-        <input type="search" name="q" placeholder="Busca instrumentos, marcas, referencias…" aria-label="Buscar" value="<?= sonika_esc($_GET['q'] ?? '') ?>" />
+      <form class="search" action="/buscar" method="get" role="search" autocomplete="off">
+        <span class="s-ic" aria-hidden="true">&#128269;</span>
+        <input type="search" name="q" id="skSearch" placeholder="¿Qué instrumento estás buscando?" aria-label="Buscar productos" value="<?= sonika_esc($_GET['q'] ?? '') ?>" />
         <button type="submit">Buscar</button>
+        <div class="sug" id="skSug" role="listbox" aria-label="Sugerencias" hidden></div>
       </form>
       <div class="nav-actions">
-        <a class="icon-btn" href="/cuenta" aria-label="Mi cuenta">👤</a>
-        <a class="icon-btn" href="/carrito" aria-label="Carrito">🛒<span class="cart-badge" id="cartCount">0</span></a>
+        <a class="icon-btn" href="/cuenta"><span class="ic" aria-hidden="true">&#128100;</span><span class="lbl">Mi cuenta</span></a>
+        <a class="icon-btn" href="/carrito" aria-label="Carrito"><span class="ic" aria-hidden="true">&#128722;</span><span class="lbl">Carrito</span><span class="cart-badge" id="cartCount">0</span></a>
       </div>
     </div>
-    <nav class="cats" aria-label="Categorías">
-      <?php foreach (sonika_categories() as $c): ?>
-        <a href="/<?= sonika_esc($c['slug']) ?>"><?= sonika_esc($c['name']) ?></a>
-      <?php endforeach; ?>
-      <a href="/ofertas" style="color:var(--accent);font-weight:700">Ofertas</a>
-    </nav>
   </div>
+  <nav class="mainnav" aria-label="Menú principal">
+    <div class="wrap">
+      <ul>
+        <li><a href="/">Inicio</a></li>
+        <li><a href="/tienda">Instrumentos</a></li>
+        <li><a href="/acordeon">Acordeones</a></li>
+        <li><a href="/amplificadores">Audio</a></li>
+        <li><a href="/cuerdas-guitarras">Accesorios</a></li>
+        <li><a href="/marcas">Marcas</a></li>
+        <li><a class="hot" href="/ofertas">Ofertas</a></li>
+        <li><a href="/tienda">Novedades</a></li>
+        <li class="has-sub"><a href="#" aria-haspopup="true" aria-expanded="false">Más categorías <span aria-hidden="true">&#9662;</span></a>
+          <div class="submenu">
+            <?php foreach (sonika_categories() as $c): if (in_array($c['slug'], ['acordeon','amplificadores','cuerdas-guitarras'], true)) continue; ?>
+              <a href="/<?= sonika_esc($c['slug']) ?>"><?= sonika_esc($c['name']) ?></a>
+            <?php endforeach; ?>
+          </div>
+        </li>
+        <li><a href="/contacto">Soporte</a></li>
+        <li><a href="/blog">Blog</a></li>
+      </ul>
+    </div>
+  </nav>
 </header>
 <main>
 <?php
@@ -275,7 +294,7 @@ if (!function_exists('sonika_css')) {
         body{font-family:'Inter',system-ui,sans-serif;color:var(--ink);background:#fff;-webkit-font-smoothing:antialiased}
         a{color:inherit;text-decoration:none}
         .wrap{max-width:1180px;margin:0 auto;padding:0 22px}
-        .topbar{background:linear-gradient(90deg,var(--brand),var(--brand2));color:#fff;font-size:12.5px;text-align:center;padding:8px 12px;font-weight:600}
+        .topbar{background:#111111;color:#fff;font-size:12.5px;text-align:center;padding:8px 12px;font-weight:600;letter-spacing:.01em}
         header.site{position:sticky;top:0;z-index:80;background:rgba(255,255,255,.92);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
         .nav{display:flex;align-items:center;gap:20px;padding:14px 0}
         .logo{display:flex;align-items:center;gap:10px;font-family:'Sora',sans-serif;font-weight:800;font-size:21px;letter-spacing:-.02em}
@@ -371,8 +390,35 @@ if (!function_exists('sonika_css')) {
         .pg:hover{border-color:var(--brand);color:var(--brand)}
         .pg.on{background:var(--brand);border-color:var(--brand);color:#fff}
         .pgap{padding:0 6px;color:#9CA3AF}
+        /* Menú principal (fila negra full-width) */
+        .mainnav{background:#111111;border-bottom:1px solid #000}
+        .mainnav ul{display:flex;align-items:center;gap:2px;list-style:none;padding:0;margin:0;overflow-x:auto;scrollbar-width:none}
+        .mainnav ul::-webkit-scrollbar{display:none}
+        .mainnav li{position:relative}
+        .mainnav li>a{display:block;padding:13px 14px;color:#fff;font-size:13.5px;font-weight:600;white-space:nowrap}
+        .mainnav li>a:hover,.mainnav li>a:focus-visible{background:#1f1f1f;color:#fff;border-bottom:2px solid var(--brand);outline:none}
+        .mainnav li>a.hot{color:#fff;background:rgba(242,13,22,.14);border-bottom:2px solid var(--brand)}
+        .mainnav .submenu{position:absolute;left:0;top:100%;min-width:210px;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 18px 40px rgba(0,0,0,.14);padding:8px;display:none;z-index:120}
+        .mainnav li.has-sub:hover .submenu,.mainnav li.has-sub:focus-within .submenu{display:block}
+        .mainnav .submenu a{display:block;padding:9px 12px;border-radius:8px;color:var(--ink);font-size:13px;font-weight:500}
+        .mainnav .submenu a:hover{background:var(--soft);color:var(--brand)}
+        /* Buscador inteligente + sugerencias */
+        .search{position:relative}
+        .search .s-ic{position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:15px;opacity:.55;pointer-events:none}
+        .search input{padding-left:38px}
+        .sug{position:absolute;left:0;right:0;top:calc(100% + 8px);background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 24px 60px rgba(0,0,0,.16);overflow:hidden;z-index:130;max-height:420px;overflow-y:auto}
+        .sug a{display:flex;align-items:center;gap:12px;padding:10px 12px;border-bottom:1px solid var(--line)}
+        .sug a:last-child{border-bottom:none}
+        .sug a:hover,.sug a.on{background:var(--soft)}
+        .sug img{width:46px;height:46px;object-fit:contain;background:#F3F4F6;border-radius:9px;mix-blend-mode:multiply;flex-shrink:0}
+        .sug .s-t{font-size:13.5px;font-weight:600;color:var(--ink);line-height:1.3}
+        .sug .s-v{font-size:11px;color:var(--muted)}
+        .sug .s-p{margin-left:auto;font-weight:800;font-size:13.5px;color:var(--brand);white-space:nowrap}
+        .sug .s-empty{padding:14px;font-size:13px;color:var(--muted);text-align:center}
+        .icon-btn{width:auto;padding:0 12px;gap:7px}
+        .icon-btn .lbl{font-size:13px;font-weight:600}
         @media(max-width:960px){.hero-in,.pdp,.cart-wrap{grid-template-columns:1fr}.cat-grid,.prod-grid{grid-template-columns:repeat(2,1fr)}.fgrid{grid-template-columns:1fr 1fr}.summary{position:static}}
-        @media(max-width:600px){.hero h1{font-size:34px}.search{display:none}.cat-grid,.prod-grid{grid-template-columns:repeat(2,1fr);gap:12px}.topbar{font-size:11px}}
+        @media(max-width:600px){.hero h1{font-size:34px}.nav{flex-wrap:wrap}.search{order:9;flex-basis:100%;margin-top:8px}.icon-btn .lbl{display:none}.cat-grid,.prod-grid{grid-template-columns:repeat(2,1fr);gap:12px}.topbar{font-size:11px}}
 CSS;
     }
 }
@@ -380,6 +426,37 @@ if (!function_exists('sonika_js')) {
     function sonika_js(): string {
         return <<<'JS'
 (function(){
+  var SEARCH=document.getElementById('skSearch'), SUG=document.getElementById('skSug'), sTimer=null, sIdx=-1, sData=[];
+  function sClose(){if(SUG){SUG.hidden=true;SUG.innerHTML='';}sIdx=-1;sData=[]}
+  function sRender(list){
+    if(!SUG)return;
+    if(!list.length){SUG.innerHTML='<div class="s-empty">Sin coincidencias. Prueba con otra palabra.</div>';SUG.hidden=false;return}
+    SUG.innerHTML=list.map(function(r,i){return '<a href="'+r.url+'" data-i="'+i+'">'+(r.thumb?'<img src="'+r.thumb+'" alt="" loading="lazy">':'')+'<span><span class="s-t">'+esc(r.title)+'</span><span class="s-v">'+esc(r.vendor||'')+'</span></span><span class="s-p">'+money(r.price)+'</span></a>';}).join('');
+    SUG.hidden=false;sData=list;
+    SUG.querySelectorAll('a').forEach(function(a){a.addEventListener('mousedown',function(e){e.preventDefault()})});
+  }
+  if(SEARCH){
+    SEARCH.addEventListener('input',function(){
+      var q=SEARCH.value.trim();
+      clearTimeout(sTimer);
+      if(q.length<2){sClose();return}
+      sTimer=setTimeout(function(){
+        fetch('/buscar/sugerencias?q='+encodeURIComponent(q)).then(function(r){return r.json()}).then(function(d){sRender(d.results||[])}).catch(function(){sClose()});
+      },180);
+    });
+    SEARCH.addEventListener('keydown',function(e){
+      if(SUG&&!SUG.hidden){
+        var items=SUG.querySelectorAll('a');
+        if(e.key==='ArrowDown'){e.preventDefault();sIdx=Math.min(sIdx+1,items.length-1)}
+        else if(e.key==='ArrowUp'){e.preventDefault();sIdx=Math.max(sIdx-1,0)}
+        else if(e.key==='Enter'&&sIdx>=0){e.preventDefault();if(items[sIdx])items[sIdx].click();return}
+        else if(e.key==='Escape'){sClose();return}
+        items.forEach(function(a,i){a.classList.toggle('on',i===sIdx)});
+      }
+    });
+    document.addEventListener('click',function(e){if(SUG&&!SUG.contains(e.target)&&e.target!==SEARCH)sClose()});
+    SEARCH.addEventListener('blur',function(){setTimeout(sClose,200)});
+  }
   var CART='sonika_cart';
   function read(){try{return JSON.parse(localStorage.getItem(CART))||[]}catch(e){return []}}
   function count(){return read().reduce(function(a,i){return a+(i.qty||0)},0)}

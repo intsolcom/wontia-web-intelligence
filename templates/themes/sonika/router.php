@@ -163,6 +163,22 @@ switch ($segments[0] ?? '') {
         return true;
 
     case 'buscar':
+        if (($segments[1] ?? '') === 'sugerencias') {
+            $q = trim((string)($_GET['q'] ?? ''));
+            $res = $q === '' ? [] : array_slice(sonika_search($q), 0, 6);
+            $out = array_map(function ($p) {
+                return [
+                    'title' => (string)($p['title'] ?? ''),
+                    'vendor' => (string)($p['vendor'] ?? ''),
+                    'price' => sonika_price($p),
+                    'thumb' => sonika_img($p, 90),
+                    'url' => '/producto/' . ($p['handle'] ?? ''),
+                ];
+            }, $res);
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode(['q' => $q, 'results' => $out], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            return true;
+        }
         $q = trim((string)($_GET['q'] ?? ''));
         $all = $q === '' ? [] : sonika_search($q);
         $pg = sonika_slice($all, 24);

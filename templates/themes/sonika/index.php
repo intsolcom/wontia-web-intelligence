@@ -13,16 +13,18 @@ sonika_site_head('SONIKA — Instrumentos Musicales', 'Compra instrumentos music
   <div class="wrap">
     <div class="hero-in">
       <div>
-        <h1>Tu música, con <em>el mejor sonido</em> del mercado.</h1>
-        <p>Instrumentos, audio profesional, iluminación y accesorios de las mejores marcas — con precio justo, asesoría real y entrega en toda Colombia.</p>
-        <a class="cta" href="#catalogo">Explorar catálogo →</a>
+        <span class="eyebrow" style="display:inline-block;font-size:12.5px;font-weight:800;letter-spacing:.14em;color:#111111;text-transform:uppercase;margin-bottom:14px">Instrumentos | Audio | Tu pasión</span>
+        <h1>EL SONIDO QUE TE <em>MUEVE</em>.</h1>
+        <p>Instrumentos y equipos de audio para llevar tu música más lejos.</p>
+        <a class="cta" href="/tienda">Explorar productos →</a>
         <a class="cta sec" href="/ofertas">Ver ofertas</a>
       </div>
       <div class="hero-art">
-        <div class="art a">Percusión</div>
-        <div class="art b">Cuerdas</div>
-        <div class="art c">Vientos</div>
-        <div class="art d">Audio &amp; Luces</div>
+        <div class="art a">Acordeón</div>
+        <div class="art b">Guitarra eléctrica</div>
+        <div class="art c">Monitores de estudio</div>
+        <div class="art d">Audífonos</div>
+        <div class="art e" style="grid-column:1 / -1">Consola &amp; mezcla</div>
       </div>
     </div>
   </div>
@@ -30,21 +32,20 @@ sonika_site_head('SONIKA — Instrumentos Musicales', 'Compra instrumentos music
 
 <div class="wrap">
   <div class="trust">
-    <span>✅ <b>Compra 100% segura</b></span>
-    <span>🚚 <b>Envíos nacionales</b></span>
-    <span>🛡️ <b>Garantía oficial</b></span>
-    <span>🎧 <b>Asesoría experta</b></span>
+    <span>🚚 <b>Envíos a toda Colombia</b></span>
+    <span>🛡️ <b>Compra segura y garantizada</b></span>
+    <span>🎧 <b>Asesoría especializada</b></span>
   </div>
 </div>
 
 <section class="pad wrap" id="categorias">
   <div class="head"><h2>Explora por categoría</h2><a href="/tienda">Ver todo →</a></div>
   <div class="cat-grid">
-    <?php foreach (sonika_categories() as $c): ?>
-      <a class="cat" href="/<?= sonika_esc($c['slug']) ?>">
-        <div class="ic"><?= $c['icon'] ?></div>
-        <h3><?= sonika_esc($c['name']) ?></h3>
-        <p><?= sonika_esc($c['tags']) ?></p>
+    <?php foreach ([['guitarras','Guitarras','🎸'],['acordeon','Acordeones','🪗'],['amplificadores','Audio profesional','🔊'],['pianos','Teclados','🎹'],['percusion','Baterías y percusión','🥁'],['cuerdas-guitarras','Accesorios','🎛️']] as $fc): ?>
+      <a class="cat" href="/<?= sonika_esc($fc[0]) ?>">
+        <div class="ic"><?= $fc[2] ?></div>
+        <h3><?= sonika_esc($fc[1]) ?></h3>
+        <p><?= sonika_esc(sonika_category($fc[0])['tags'] ?? '') ?></p>
       </a>
     <?php endforeach; ?>
   </div>
