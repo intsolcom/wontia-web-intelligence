@@ -179,53 +179,28 @@ switch ($segments[0] ?? '') {
             echo json_encode(['q' => $q, 'results' => $out], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
             return true;
         }
-        $q = trim((string)($_GET['q'] ?? ''));
-        $fmin = (float)($_GET['min'] ?? 0);
-        $fmax = (float)($_GET['max'] ?? 0);
-        $fmarca = trim((string)($_GET['marca'] ?? ''));
-        $ftipo = trim((string)($_GET['tipo'] ?? ''));
-        $fcat = trim((string)($_GET['cat'] ?? ''));
-        $fdesc = (float)($_GET['desc'] ?? 0);
-        $orden = trim((string)($_GET['orden'] ?? ''));
-        $oferta = isset($_GET['oferta']);
-        $nuevo = isset($_GET['nuevo']);
-        $disp = isset($_GET['disp']);
-        $newDays = 90;
-        $hasFilter = ($q !== '' || $fmin > 0 || $fmax > 0 || $fmarca !== '' || $ftipo !== '' || $fcat !== '' || $fdesc > 0 || $oferta || $nuevo || $disp);
-        if (!$hasFilter) {
-            $all = [];
-        } elseif ($fcat !== '' && sonika_category($fcat)) {
-            $all = sonika_category_products($fcat);
-        } elseif ($q !== '') {
-            $all = sonika_search($q);
-        } else {
-            $all = sonika_products();
-        }
-        $all = array_values(array_filter($all, function ($p) use ($fmin, $fmax, $fmarca, $ftipo, $fdesc, $oferta, $nuevo, $disp, $newDays) {
-            $price = sonika_price($p);
-            $cmp = sonika_compare($p);
-            if ($fmin > 0 && $price < $fmin) return false;
-            if ($fmax > 0 && $price > $fmax) return false;
-            if ($fmarca !== '' && strcasecmp((string)($p['vendor'] ?? ''), $fmarca) !== 0) return false;
-            if ($ftipo !== '' && strcasecmp((string)($p['product_type'] ?? ''), $ftipo) !== 0) return false;
-            if ($oferta && !($cmp > $price && $price > 0)) return false;
-            if ($fdesc > 0) { $d = ($cmp > 0) ? (($cmp - $price) / $cmp * 100) : 0; if ($d < $fdesc) return false; }
-            if ($nuevo) { $pa = (string)($p['published_at'] ?? ''); if ($pa !== '' && (time() - strtotime($pa)) > $newDays * 86400) return false; }
-            if ($disp && !sonika_available($p)) return false;
+        if (($segments[1] ?? '') === 'live') {
+            $all = sonika_filter_products($_GET);
+            $pg = sonika_slice($all, 24);
+            ob_start();
+            sonika_grid($pg['items']);
+            $__qs = $_GET; unset($__qs['page']);
+            sonika_pager($pg['total'], $pg['perPage'], $pg['page'], '/buscar?' . http_build_query($__qs));
+            $html = ob_get_clean();
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode(['ok' => true, 'count' => (int)$pg['total'], 'html' => $html], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
             return true;
-        }));
-        if ($orden === 'precio_asc') { usort($all, fn($a, $b) => sonika_price($a) <=> sonika_price($b)); }
-        elseif ($orden === 'precio_desc') { usort($all, fn($a, $b) => sonika_price($b) <=> sonika_price($a)); }
-        elseif ($orden === 'descuento') { $__dsc = fn($p) => sonika_compare($p) > 0 ? ((sonika_compare($p) - sonika_price($p)) / sonika_compare($p) * 100) : 0; usort($all, fn($a, $b) => $__dsc($b) <=> $__dsc($a)); }
-        elseif ($orden === 'nuevo' && isset($all[0]['published_at'])) { usort($all, fn($a, $b) => strcmp((string)($b['published_at'] ?? ''), (string)($a['published_at'] ?? ''))); }
-        try { (new \App\Services\SearchAnalyticsService())->log($q, ['marca' => $fmarca, 'tipo' => $ftipo, 'cat' => $fcat, 'min' => $fmin, 'max' => $fmax, 'desc' => $fdesc, 'oferta' => $oferta, 'nuevo' => $nuevo, 'disp' => $disp, 'orden' => $orden], count($all)); } catch (\Throwable $e) {}
+        }
+        $q = trim((string)($_GET['q'] ?? ''));
+        $all = sonika_filter_products($_GET);
+        try { (new \App\Services\SearchAnalyticsService())->log($q, ['marca' => (string)($_GET['marca'] ?? ''), 'tipo' => (string)($_GET['tipo'] ?? ''), 'cat' => (string)($_GET['cat'] ?? ''), 'min' => (float)($_GET['min'] ?? 0), 'max' => (float)($_GET['max'] ?? 0), 'desc' => (float)($_GET['desc'] ?? 0), 'oferta' => !empty($_GET['oferta']), 'nuevo' => !empty($_GET['nuevo']), 'disp' => !empty($_GET['disp']), 'orden' => (string)($_GET['orden'] ?? '')], count($all)); } catch (\Throwable $e) {}
         $pg = sonika_slice($all, 24);
         sonika_site_head('Buscar' . ($q ? ': ' . $q : '') . ' — SONIKA', 'Resultados de búsqueda en SONIKA.');
         sonika_breadcrumb(['Buscar' => null]);
         ?>
         <section class="pad wrap">
-          <div class="head"><h1><?= $q !== '' ? 'Resultados para “' . sonika_esc($q) . '”' : 'Buscar' ?></h1><span class="resultcount"><?= (int)$pg['total'] ?> resultado(s)</span></div>
-          <?php sonika_grid($pg['items']); $__qs = $_GET; unset($__qs['page']); sonika_pager($pg['total'], $pg['perPage'], $pg['page'], '/buscar?' . http_build_query($__qs)); ?>
+          <div class="head"><h1><?= $q !== '' ? 'Resultados para “' . sonika_esc($q) . '”' : 'Buscar' ?></h1><span class="resultcount" id="skCount"><?= (int)$pg['total'] ?> resultado(s)</span></div>
+          <div id="skResults"><?php sonika_grid($pg['items']); $__qs = $_GET; unset($__qs['page']); sonika_pager($pg['total'], $pg['perPage'], $pg['page'], '/buscar?' . http_build_query($__qs)); ?></div>
         </section>
         <?php
         sonika_site_footer();
