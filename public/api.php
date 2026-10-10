@@ -459,6 +459,7 @@ $r->delete('/builder/comments/{id}', [\App\Controllers\Admin\BuilderController::
     $r->get('/seo-global-launch/bots', [\App\Controllers\Admin\SeoGlobalLaunchController::class, 'bots']);
 
     $r->get('/analytics', [\App\Controllers\Admin\AnalyticsController::class, 'index']);
+    $r->get('/search/analytics', [\App\Controllers\Admin\SearchAnalyticsController::class, 'index']);
     $r->put('/analytics/ga4', [\App\Controllers\Admin\AnalyticsController::class, 'updateGa4']);
 
     $r->get('/settings', [\App\Controllers\Admin\SettingsController::class, 'index']);

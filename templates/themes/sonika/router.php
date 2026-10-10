@@ -218,6 +218,7 @@ switch ($segments[0] ?? '') {
         elseif ($orden === 'precio_desc') { usort($all, fn($a, $b) => sonika_price($b) <=> sonika_price($a)); }
         elseif ($orden === 'descuento') { $__dsc = fn($p) => sonika_compare($p) > 0 ? ((sonika_compare($p) - sonika_price($p)) / sonika_compare($p) * 100) : 0; usort($all, fn($a, $b) => $__dsc($b) <=> $__dsc($a)); }
         elseif ($orden === 'nuevo' && isset($all[0]['published_at'])) { usort($all, fn($a, $b) => strcmp((string)($b['published_at'] ?? ''), (string)($a['published_at'] ?? ''))); }
+        try { (new \App\Services\SearchAnalyticsService())->log($q, ['marca' => $fmarca, 'tipo' => $ftipo, 'cat' => $fcat, 'min' => $fmin, 'max' => $fmax, 'desc' => $fdesc, 'oferta' => $oferta, 'nuevo' => $nuevo, 'disp' => $disp, 'orden' => $orden], count($all)); } catch (\Throwable $e) {}
         $pg = sonika_slice($all, 24);
         sonika_site_head('Buscar' . ($q ? ': ' . $q : '') . ' — SONIKA', 'Resultados de búsqueda en SONIKA.');
         sonika_breadcrumb(['Buscar' => null]);

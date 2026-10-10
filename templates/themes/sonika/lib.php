@@ -124,13 +124,49 @@ if (!function_exists('sonika_search')) {
     function sonika_search(string $q): array {
         $q = trim(mb_strtolower($q));
         if ($q === '') return [];
-        $terms = preg_split('/\s+/', $q) ?: [];
+        $terms = array_values(array_filter(preg_split('/\s+/', $q) ?: [], fn($t) => $t !== ''));
+        $syn = [
+            'bateria' => ['bateria', 'batería', 'percusion', 'percusión'],
+            'batería' => ['bateria', 'batería'],
+            'guitarra' => ['guitarra', 'guitarras'],
+            'bajo' => ['bajo', 'bajos'],
+            'parlante' => ['parlante', 'altavoz', 'bafle'],
+            'bafle' => ['bafle', 'parlante', 'altavoz'],
+            'consola' => ['consola', 'mixer', 'mezcladora'],
+            'mixer' => ['mixer', 'consola', 'mezcladora'],
+            'audifonos' => ['audifonos', 'audífonos', 'auriculares'],
+            'microfono' => ['microfono', 'micrófono'],
+            'acordeon' => ['acordeon', 'acordeón'],
+            'teclado' => ['teclado', 'piano', 'sintetizador'],
+            'cuerda' => ['cuerda', 'cuerdas'],
+        ];
+        $products = sonika_products();
         $out = [];
-        foreach (sonika_products() as $p) {
+        foreach ($products as $p) {
             $hay = mb_strtolower(($p['title'] ?? '') . ' ' . ($p['vendor'] ?? '') . ' ' . ($p['product_type'] ?? ''));
             $ok = true;
-            foreach ($terms as $t) { if ($t !== '' && !str_contains($hay, $t)) { $ok = false; break; } }
+            foreach ($terms as $t) {
+                if ($t === '') continue;
+                $hit = false;
+                foreach (($syn[$t] ?? [$t]) as $c) { if (str_contains($hay, $c)) { $hit = true; break; } }
+                if (!$hit) { $ok = false; break; }
+            }
             if ($ok) $out[] = $p;
+        }
+        if (empty($out) && count($terms) <= 3) {
+            foreach ($products as $p) {
+                $hay = mb_strtolower(($p['title'] ?? '') . ' ' . ($p['vendor'] ?? ''));
+                $tokens = preg_split('/[^a-z0-9áéíóúñ]+/u', $hay) ?: [];
+                $matched = false;
+                foreach ($terms as $t) {
+                    if (mb_strlen($t) < 4) continue;
+                    foreach ($tokens as $tok) {
+                        if ($tok === '') continue;
+                        if (levenshtein($t, $tok) <= 1) { $matched = true; break 2; }
+                    }
+                }
+                if ($matched) $out[] = $p;
+            }
         }
         return $out;
     }
