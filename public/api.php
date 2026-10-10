@@ -138,6 +138,7 @@ $router->get('/api/v1/public/domain/check', function ($request) {
     Response::json(['ok' => true, 'data' => $svc->check($name)]);
 });
 
+$router->post('/api/v1/public/search/ai', [\App\Controllers\SearchAiController::class, 'suggest']);
 $router->get('/api/v1/public/store/config', [\App\Controllers\StorePublicController::class, 'config']);
 $router->get('/api/v1/public/store/products', [\App\Controllers\StorePublicController::class, 'products']);
 $router->get('/api/v1/public/store/products/{slug}', [\App\Controllers\StorePublicController::class, 'product']);

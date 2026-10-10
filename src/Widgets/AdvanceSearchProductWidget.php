@@ -93,9 +93,10 @@ class AdvanceSearchProductWidget extends Widget
         ob_start();
         echo $this->assets();
         ?>
-<form class="search ska" action="/buscar" method="get" role="search" autocomplete="off" id="ska-form" data-max="<?= (float)$sliderMax ?>">
+<form class="search ska" action="/buscar" method="get" role="search" autocomplete="off" id="ska-form" data-max="<?= (float)$sliderMax ?>" data-brands="<?= $esc(implode(',', array_map(fn($b) => $b[0], $brands))) ?>" data-types="<?= $esc(implode(',', array_map(fn($t) => $t[0], $types))) ?>" data-cats="<?= $esc(implode(',', array_map(fn($c) => $c[0], $cats))) ?>">
   <span class="s-ic" aria-hidden="true">&#128269;</span>
   <input type="search" name="q" id="skSearch" placeholder="<?= $esc($placeholder) ?>" aria-label="Buscar productos" value="<?= $esc($q) ?>" />
+  <button type="button" class="ska-ai" onclick="skaAi()" title="Buscar con IA (TIA)">&#10024;</button>
   <button type="button" class="ska-toggle" onclick="skaToggle(this)" aria-expanded="false" aria-controls="ska-panel" title="Filtros avanzados">&#9881;</button>
   <button type="submit">Buscar</button>
   <div class="sug" id="skSug" role="listbox" aria-label="Sugerencias" hidden></div>
@@ -184,10 +185,12 @@ class AdvanceSearchProductWidget extends Widget
 .ska-clear{font-size:12.5px;color:#777}
 .ska-apply{border:none;border-radius:10px;background:var(--sk-primary,#F20D16);color:#fff;font-weight:700;font-size:13px;padding:11px 20px;cursor:pointer}
 .ska-apply:hover{filter:brightness(.95)}
+.ska-ai{border:none;background:transparent;color:var(--sk-primary,#F20D16);cursor:pointer;font-size:15px;padding:0 8px;align-self:stretch}
 @media(max-width:900px){.ska-panel{grid-template-columns:1fr}}
 </style>
 <script>if(!window.skaToggle){window.skaToggle=function(b){var p=document.getElementById('ska-panel');if(!p)return;var on=p.hidden;p.hidden=!on;b.setAttribute('aria-expanded',on?'true':'false')};
-window.skaSync=function(){var f=document.getElementById('ska-form');if(!f)return;var a=document.getElementById('ska-min'),b=document.getElementById('ska-max');if(!a||!b)return;var max=parseFloat(f.getAttribute('data-max'))||0;var mn=parseFloat(a.value),mx=parseFloat(b.value);if(mn>mx){if(document.activeElement===a)a.value=mx;else b.value=mn;mn=parseFloat(a.value);mx=parseFloat(b.value)}var fmt=function(n){return '$'+Math.round(n).toLocaleString('es-CO')};document.getElementById('ska-min-o').textContent=fmt(mn);document.getElementById('ska-max-o').textContent=fmt(mx)+(mx>=max?'+':'')};}</script>
+window.skaSync=function(){var f=document.getElementById('ska-form');if(!f)return;var a=document.getElementById('ska-min'),b=document.getElementById('ska-max');if(!a||!b)return;var max=parseFloat(f.getAttribute('data-max'))||0;var mn=parseFloat(a.value),mx=parseFloat(b.value);if(mn>mx){if(document.activeElement===a)a.value=mx;else b.value=mn;mn=parseFloat(a.value);mx=parseFloat(b.value)}var fmt=function(n){return '$'+Math.round(n).toLocaleString('es-CO')};document.getElementById('ska-min-o').textContent=fmt(mn);document.getElementById('ska-max-o').textContent=fmt(mx)+(mx>=max?'+':'')};
+window.skaAi=function(){var f=document.getElementById('ska-form');if(!f)return;var inp=document.getElementById('skSearch');var phrase=(inp&&inp.value||'').trim();if(phrase.length<3){if(inp){inp.focus();inp.style.boxShadow='0 0 0 2px rgba(242,13,22,.4)'}return}var btn=document.querySelector('.ska-ai');if(btn)btn.textContent='\u23F3';fetch('/api/v1/public/search/ai',{method:'POST',headers:{'Content-Type':'application/json; charset=UTF-8'},body:JSON.stringify({phrase:phrase,brands:f.getAttribute('data-brands')||'',types:f.getAttribute('data-types')||'',cats:f.getAttribute('data-cats')||''})}).then(function(r){return r.json()}).then(function(d){if(btn)btn.textContent='\u2728';if(!d||!d.ok){f.submit();return}var qs=[];Object.keys(d.filters||{}).forEach(function(k){qs.push(encodeURIComponent(k)+'='+encodeURIComponent(d.filters[k]))});window.location='/buscar?'+qs.join('&')}).catch(function(){if(btn)btn.textContent='\u2728';f.submit()})};}</script>
 HTML;
     }
 }
