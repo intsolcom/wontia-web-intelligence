@@ -295,7 +295,7 @@ if (!function_exists('sonika_css')) {
         .hero h1{font-family:'Sora',sans-serif;font-size:48px;line-height:1.05;letter-spacing:-.03em;font-weight:800}
         .hero h1 em{font-style:normal;background:linear-gradient(120deg,var(--brand),var(--brand2));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
         .hero p{margin:18px 0 26px;color:var(--muted);font-size:17px;max-width:520px;line-height:1.6}
-        .cta{display:inline-flex;align-items:center;gap:10px;background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;padding:15px 30px;border-radius:13px;font-weight:700;box-shadow:0 12px 30px rgba(79,70,229,.32)}
+        .cta{display:inline-flex;align-items:center;gap:10px;background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;padding:15px 30px;border-radius:13px;font-weight:700;box-shadow:0 12px 30px rgba(242,13,22,.32)}
         .cta.sec{background:#fff;color:var(--ink);border:1px solid var(--line);box-shadow:none;margin-left:10px}
         .hero-art{display:grid;grid-template-columns:1fr 1fr;gap:14px}
         .art{border-radius:18px;min-height:130px;display:flex;align-items:flex-end;padding:14px;color:#fff;font-weight:700;font-size:15px}
@@ -343,7 +343,7 @@ if (!function_exists('sonika_css')) {
         .qty{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-right:12px}
         .qty button{width:40px;height:46px;border:none;background:#fff;font-size:18px;cursor:pointer}
         .qty input{width:46px;height:46px;border:none;text-align:center;font-size:15px;font-family:inherit}
-        .btn-buy{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;border:none;border-radius:12px;padding:14px 34px;font-weight:700;font-size:15px;cursor:pointer;box-shadow:0 10px 26px rgba(79,70,229,.3)}
+        .btn-buy{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;border:none;border-radius:12px;padding:14px 34px;font-weight:700;font-size:15px;cursor:pointer;box-shadow:0 10px 26px rgba(242,13,22,.3)}
         .pdp-desc{margin-top:34px;padding-top:26px;border-top:1px solid var(--line)}
         .pdp-desc h3{font-family:'Sora',sans-serif;font-size:18px;margin-bottom:12px}
         .pdp-desc p{margin:10px 0;line-height:1.7;color:#374151}
