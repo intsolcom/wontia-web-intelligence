@@ -470,6 +470,13 @@ $r->delete('/builder/comments/{id}', [\App\Controllers\Admin\BuilderController::
     $r->post('/themes/serials', [\App\Controllers\Admin\ThemeController::class, 'generateSerial']);
     $r->delete('/themes/serials/{id}', [\App\Controllers\Admin\ThemeController::class, 'revokeSerial']);
     $r->get('/themes/events', [\App\Controllers\Admin\ThemeController::class, 'events']);
+    $r->get('/themes/{slug}/config', [\App\Controllers\Admin\ThemeController::class, 'config']);
+    $r->put('/themes/{slug}/config', [\App\Controllers\Admin\ThemeController::class, 'saveConfig']);
+
+    $r->get('/nav', [\App\Controllers\Admin\NavController::class, 'index']);
+    $r->post('/nav/items', [\App\Controllers\Admin\NavController::class, 'saveItem']);
+    $r->delete('/nav/items/{id}', [\App\Controllers\Admin\NavController::class, 'deleteItem']);
+    $r->post('/nav/reorder', [\App\Controllers\Admin\NavController::class, 'reorder']);
 
     $r->get('/users', [\App\Controllers\Admin\UserController::class, 'index']);
     $r->post('/users', [\App\Controllers\Admin\UserController::class, 'store']);

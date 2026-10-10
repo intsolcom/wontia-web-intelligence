@@ -4,6 +4,8 @@ use App\Services\SeoService;
 use App\Services\CookieConsentService;
 use App\Services\AnalyticsService;
 
+require_once __DIR__ . '/../_shared/brand.php';
+
 if (!function_exists('sonika_esc')) {
     function sonika_esc($s): string { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 }
@@ -154,6 +156,8 @@ if (!function_exists('sonika_related')) {
 
 if (!function_exists('sonika_logo_tag')) {
     function sonika_logo_tag(): string {
+        $img = wwi_logo_img(150);
+        if ($img !== '') return $img;
         $root = defined('ROOT_DIR') ? ROOT_DIR : dirname(__DIR__, 3);
         if (is_file($root . '/public/assets/themes/sonika/logo-transparent.png')) {
             return '<img class="logo-img" src="/assets/themes/sonika/logo-transparent.png" alt="SONIKA" />';
@@ -174,13 +178,13 @@ if (!function_exists('sonika_site_head')) {
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <?= SeoService::metaTags($pageMeta) ?>
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%23F20D16'/%3E%3Ctext x='16' y='23' font-family='sans-serif' font-size='19' font-weight='800' fill='white' text-anchor='middle'%3ES%3C/text%3E%3C/svg%3E" />
+    <?php if (($__fav = wwi_favicon_links()) !== '') { echo $__fav; } else { echo '<link rel="icon" type="image/png" href="/assets/themes/sonika/isotipo.png">'; } ?>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Sora:wght@600;700;800&display=swap" rel="stylesheet" />
     <style><?= sonika_css() ?></style>
 </head>
 <body>
-<div class="topbar">Envío a toda Colombia · 3 a 5 días hábiles · Pago seguro</div>
+<div class="topbar"><?= sonika_esc((string)wwi_tc('sonika', 'topbar_text', 'Envío a toda Colombia · 3 a 5 días hábiles · Pago seguro')) ?></div>
 <header class="site">
   <div class="wrap">
     <div class="nav">
@@ -200,23 +204,18 @@ if (!function_exists('sonika_site_head')) {
   <nav class="mainnav" aria-label="Menú principal">
     <div class="wrap">
       <ul>
-        <li><a href="/">Inicio</a></li>
-        <li><a href="/tienda">Instrumentos</a></li>
-        <li><a href="/acordeon">Acordeones</a></li>
-        <li><a href="/amplificadores">Audio</a></li>
-        <li><a href="/cuerdas-guitarras">Accesorios</a></li>
-        <li><a href="/marcas">Marcas</a></li>
-        <li><a class="hot" href="/ofertas">Ofertas</a></li>
-        <li><a href="/tienda">Novedades</a></li>
-        <li class="has-sub"><a href="#" aria-haspopup="true" aria-expanded="false">Más categorías <span aria-hidden="true">&#9662;</span></a>
+        <?php foreach (wwi_nav('primary') as $it): $hot = (mb_stripos((string)$it['label'], 'oferta') !== false); ?>
+        <li<?= !empty($it['children']) ? ' class="has-sub"' : '' ?>>
+          <a href="<?= sonika_esc($it['url']) ?>"<?= $hot ? ' class="hot"' : '' ?>><?= sonika_esc($it['label']) ?><?= !empty($it['children']) ? ' <span aria-hidden="true">&#9662;</span>' : '' ?></a>
+          <?php if (!empty($it['children'])): ?>
           <div class="submenu">
-            <?php foreach (sonika_categories() as $c): if (in_array($c['slug'], ['acordeon','amplificadores','cuerdas-guitarras'], true)) continue; ?>
-              <a href="/<?= sonika_esc($c['slug']) ?>"><?= sonika_esc($c['name']) ?></a>
+            <?php foreach ($it['children'] as $ch): ?>
+              <a href="<?= sonika_esc($ch['url']) ?>"><?= sonika_esc($ch['label']) ?></a>
             <?php endforeach; ?>
           </div>
+          <?php endif; ?>
         </li>
-        <li><a href="/contacto">Soporte</a></li>
-        <li><a href="/blog">Blog</a></li>
+        <?php endforeach; ?>
       </ul>
     </div>
   </nav>
@@ -269,14 +268,20 @@ if (!function_exists('sonika_site_footer')) {
   <div class="wrap">
     <div class="fgrid">
       <div>
-        <a class="logo" href="/" style="color:#fff"><span class="mark">S</span>SONIKA</a>
-        <p style="margin-top:14px;font-size:13px;line-height:1.6;max-width:300px">Instrumentos musicales, audio e iluminación profesional. Sonido de alto nivel para músicos, estudios y eventos.</p>
+        <a class="logo" href="/" style="color:#fff"><?php $lg = wwi_logo_img(120); if ($lg !== '') { echo str_replace('display:block', 'display:block;filter:brightness(0) invert(1)', $lg); } else { echo '<span class="mark">S</span>SONIKA'; } ?></a>
+        <p style="margin-top:14px;font-size:13px;line-height:1.6;max-width:300px"><?= sonika_esc((string)wwi_tc('sonika', 'footer_about', 'Instrumentos musicales, audio e iluminación profesional. Sonido de alto nivel para músicos, estudios y eventos.')) ?></p>
+        <?php $phone = (string)wwi_tc('sonika', 'contact_phone', ''); $mail = (string)wwi_tc('sonika', 'contact_email', ''); if ($phone !== '' || $mail !== ''): ?>
+        <p style="margin-top:10px;font-size:13px;line-height:1.7">
+          <?php if ($phone !== ''): ?><span>&#128222; <?= sonika_esc($phone) ?></span><br><?php endif; ?>
+          <?php if ($mail !== ''): ?><span>&#9993; <?= sonika_esc($mail) ?></span><?php endif; ?>
+        </p>
+        <?php endif; ?>
       </div>
-      <div><h4>Tienda</h4><a href="/tienda">Todos los productos</a><a href="/ofertas">Ofertas</a><a href="/marcas">Marcas</a></div>
-      <div><h4>Ayuda</h4><a href="/envios">Envíos y entregas</a><a href="/devoluciones">Devoluciones</a><a href="/garantia">Garantía</a><a href="/contacto">Contacto</a></div>
-      <div><h4>Legal</h4><a href="/privacidad">Privacidad</a><a href="/terminos">Términos</a><a href="/cookies">Cookies</a></div>
+      <?php $footCols = ['footer_shop' => 'Tienda', 'footer_help' => 'Ayuda', 'footer_legal' => 'Legal']; foreach ($footCols as $loc => $title): $items = wwi_nav($loc); ?>
+      <div><h4><?= sonika_esc($title) ?></h4><?php foreach ($items as $it): ?><a href="<?= sonika_esc($it['url']) ?>"><?= sonika_esc($it['label']) ?></a><?php endforeach; ?></div>
+      <?php endforeach; ?>
     </div>
-    <div class="fbot">© <?= date('Y') ?> SONIKA · Todos los derechos reservados.</div>
+    <div class="fbot">© <?= date('Y') ?> <?= sonika_esc(wwi_site_name('SONIKA')) ?> · Todos los derechos reservados.</div>
   </div>
 </footer>
 <?= CookieConsentService::render() ?>

@@ -27,6 +27,34 @@
         "radius": "12px",
         "font": "Inter"
     },
+    "config": [
+        { "key": "_h_hero", "label": "Hero", "type": "heading" },
+        { "key": "hero_eyebrow", "label": "Texto superior (eyebrow)", "type": "text", "default": "Instrumentos | Audio | Tu pasión" },
+        { "key": "hero_title", "label": "Título (usa *palabra* para resaltar en rojo)", "type": "text", "default": "EL SONIDO QUE TE *MUEVE*." },
+        { "key": "hero_subtitle", "label": "Descripción", "type": "textarea", "default": "Instrumentos y equipos de audio para llevar tu música más lejos." },
+        { "key": "hero_cta_label", "label": "Botón principal", "type": "text", "default": "Explorar productos" },
+        { "key": "hero_cta_url", "label": "Enlace del botón", "type": "text", "default": "/tienda" },
+        { "key": "hero_cta2_label", "label": "Botón secundario (opcional)", "type": "text", "default": "Ver ofertas" },
+        { "key": "hero_cta2_url", "label": "Enlace secundario", "type": "text", "default": "/ofertas" },
+        { "key": "_h_benefits", "label": "Beneficios", "type": "heading" },
+        { "key": "benefits", "label": "Franja de beneficios", "type": "repeater", "fields": [
+            { "key": "icon", "label": "Icono (emoji)", "type": "text" },
+            { "key": "text", "label": "Texto", "type": "text" }
+        ], "default": [
+            { "icon": "🚚", "text": "Envíos a toda Colombia" },
+            { "icon": "🛡️", "text": "Compra segura y garantizada" },
+            { "icon": "🎧", "text": "Asesoría especializada" }
+        ] },
+        { "key": "_h_cats", "label": "Categorías destacadas", "type": "heading" },
+        { "key": "home_categories", "label": "Slugs de categorías (separados por coma)", "type": "text", "default": "guitarras,acordeon,amplificadores,pianos,percusion,cuerdas-guitarras" },
+        { "key": "_h_footer", "label": "Footer / contacto", "type": "heading" },
+        { "key": "footer_about", "label": "Texto del footer", "type": "textarea", "default": "Instrumentos musicales, audio e iluminación profesional. Sonido de alto nivel para músicos, estudios y eventos." },
+        { "key": "contact_phone", "label": "Teléfono", "type": "text", "default": "" },
+        { "key": "contact_email", "label": "Correo", "type": "text", "default": "" },
+        { "key": "social_instagram", "label": "Instagram (URL)", "type": "text", "default": "" },
+        { "key": "social_facebook", "label": "Facebook (URL)", "type": "text", "default": "" },
+        { "key": "topbar_text", "label": "Barra superior (anuncio)", "type": "text", "default": "Envío a toda Colombia · 3 a 5 días hábiles · Pago seguro" }
+    ],
     "assets": {
         "logo": "/assets/themes/sonika/logo-transparent.png",
         "isotipo": "/assets/themes/sonika/isotipo.png"

@@ -1303,8 +1303,9 @@ W.renderSettings=function(tab){
     W.state.settingsTab=tab||'general';
     var t=W.state.settingsTab;
     var tabBtn=function(id,label){return '<button class="w-btn '+(t===id?'w-btn-primary':'w-btn-secondary')+'" onclick="wontia.renderSettings(\''+id+'\')">'+label+'</button>';};
-    app.innerHTML='<div class="w-flex w-gap-sm" style="margin-bottom:16px;flex-wrap:wrap">'+tabBtn('general','Ajustes')+tabBtn('themes','Themes')+tabBtn('logo','Logo & Favicon')+tabBtn('security','Seguridad')+tabBtn('cache','Administración de caché')+tabBtn('update','Update')+'</div><div id="settings-panel"></div>';
+    app.innerHTML='<div class="w-flex w-gap-sm" style="margin-bottom:16px;flex-wrap:wrap">'+tabBtn('general','Ajustes')+tabBtn('themes','Themes')+tabBtn('nav','Menús')+tabBtn('logo','Logo & Favicon')+tabBtn('security','Seguridad')+tabBtn('cache','Administración de caché')+tabBtn('update','Update')+'</div><div id="settings-panel"></div>';
     if(t==='themes')W.renderThemesPanel();
+    else if(t==='nav')W.renderNavPanel();
     else if(t==='logo')W.renderLogoPanel();
     else if(t==='security')W.renderSecurityPanel();
     else if(t==='cache')W.renderCachePanel();
@@ -1332,7 +1333,7 @@ W.renderThemesPanel=async function(){
         html+='<div style="font-size:11px;color:var(--w-muted)">v'+W.esc(m.version||'1.0.0')+' · '+W.esc(m.author||'Wontia')+' · '+W.esc(m.category||'general')+'</div>';
         html+='<div style="font-size:12px;color:var(--w-muted);line-height:1.6;flex:1">'+W.esc(m.description||'')+'</div>';
         html+='<div class="w-flex w-gap-sm" style="flex-wrap:wrap;margin-top:4px">';
-        if(m.active){ html+='<span class="w-btn w-btn-secondary" style="pointer-events:none">✓ Activo</span>'; }
+        if(m.active){ html+='<span class="w-btn w-btn-secondary" style="pointer-events:none">✓ Activo</span><button class="w-btn w-btn-primary" onclick="wontia.themeConfig(\''+W.esc(m.slug)+'\')">⚙ Configurar</button>'; }
         else if(m.locked){ html+='<button class="w-btn w-btn-primary" onclick="wontia.themeRedeem(\''+W.esc(m.slug)+'\')">🔒 Desbloquear</button>'; }
         else { html+='<button class="w-btn w-btn-primary" onclick="wontia.themeActivate(\''+W.esc(m.slug)+'\')">Activar</button>'; }
         html+='<a class="w-btn w-btn-secondary" href="/" target="_blank">Vista ↗</a>';
@@ -1357,7 +1358,7 @@ W.renderThemesPanel=async function(){
         }
         html+='</div>';
     }
-    panel.innerHTML=html;
+    panel.innerHTML=html+'<div id="sk-cfg-box" style="margin-top:14px"></div>';
 };
 
 W.themeActivate=async function(slug){
@@ -1398,6 +1399,69 @@ W.themeRevoke=async function(id){
     if(!window.confirm('¿Revocar este serial? Se desactivará la licencia del sitio que lo usó.'))return;
     var r=await W.api('/api/v1/admin/themes/serials/'+id,{method:'DELETE'});
     if(r.ok){W.notify('Serial revocado','success');W.renderThemesPanel();}
+};
+
+W.renderNavPanel=async function(){
+    var panel=document.getElementById('settings-panel'); if(!panel)return;
+    panel.innerHTML='<div style="padding:20px;color:var(--w-muted)">Cargando menús…</div>';
+    var r=await W.api('/api/v1/admin/nav'); var d=r.data||{};
+    var locs=d.locations||{}, menus=d.menus||{};
+    var html='<div class="w-card" style="padding:14px 18px;margin-bottom:14px"><div style="font-size:13px;font-weight:700">Navegación administrable</div><div style="font-size:11px;color:var(--w-muted);margin-top:4px;line-height:1.6">Edita los menús del sitio. El tema los consume automáticamente, sin tocar código.</div></div>';
+    Object.keys(locs).forEach(function(loc){
+        var items=(menus[loc]&&menus[loc].items)||[];
+        var tops=items.filter(function(x){return x.parent_id===null});
+        html+='<div class="w-card" style="margin-bottom:14px"><h3>'+W.esc(locs[loc])+'</h3>';
+        if(items.length){
+            html+='<table class="w-table"><thead><tr><th>Etiqueta</th><th>URL</th><th>Visible</th><th>Padre</th><th></th></tr></thead><tbody>';
+            items.forEach(function(it){
+                var opts='<option value="0">— Raíz —</option>'+tops.filter(function(t){return t.id!==it.id}).map(function(t){return '<option value="'+t.id+'"'+(it.parent_id===t.id?' selected':'')+'>'+W.esc(t.label)+'</option>'}).join('');
+                html+='<tr id="navrow-'+it.id+'"><td><input class="w-input nav-label" value="'+W.esc(it.label)+'" style="min-width:130px"/></td>'
+                    +'<td><input class="w-input nav-url" value="'+W.esc(it.url)+'" style="min-width:150px"/></td>'
+                    +'<td style="text-align:center"><input type="checkbox" class="nav-visible" '+(it.is_visible?'checked':'')+'/></td>'
+                    +'<td><select class="w-select nav-parent">'+opts+'</select></td>'
+                    +'<td style="white-space:nowrap"><button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.navSaveRow('+it.id+',\''+loc+'\')">Guardar</button> <button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.navDel('+it.id+')">✕</button></td></tr>';
+            });
+            html+='</tbody></table>';
+        } else html+='<div style="font-size:12px;color:var(--w-muted);padding:8px 0">Sin elementos.</div>';
+        html+='<div class="w-flex w-gap-sm" style="flex-wrap:wrap;margin-top:10px"><input class="w-input" id="nav2l-'+loc+'" placeholder="Etiqueta" style="max-width:180px"/><input class="w-input" id="nav2u-'+loc+'" placeholder="/ruta o https://" style="max-width:220px"/><select class="w-select" id="nav2p-'+loc+'"><option value="0">— Raíz —</option>'+tops.map(function(t){return '<option value="'+t.id+'">'+W.esc(t.label)+'</option>'}).join('')+'</select><button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.navAdd(\''+loc+'\')">+ Añadir</button></div>';
+        html+='</div>';
+    });
+    panel.innerHTML=html;
+};
+W.navAdd=async function(loc){
+    var label=(document.getElementById('nav2l-'+loc)||{}).value||'';
+    var url=(document.getElementById('nav2u-'+loc)||{}).value||'#';
+    var pid=parseInt((document.getElementById('nav2p-'+loc)||{}).value||'0',10);
+    if(!label.trim()){W.notify('Falta la etiqueta','error');return}
+    var r=await W.api('/api/v1/admin/nav/items',{method:'POST',body:{location:loc,label:label,url:url,parent_id:pid||null,is_visible:true}});
+    if(r.ok){W.notify('Añadido','success');W.renderNavPanel();}
+};
+W.navSaveRow=async function(id,loc){
+    var row=document.getElementById('navrow-'+id); if(!row)return;
+    var body={id:id,location:loc,label:row.querySelector('.nav-label').value,url:row.querySelector('.nav-url').value,is_visible:row.querySelector('.nav-visible').checked,parent_id:(parseInt(row.querySelector('.nav-parent').value,10)||null)};
+    var r=await W.api('/api/v1/admin/nav/items',{method:'POST',body:body});
+    if(r.ok){W.notify('Guardado','success');W.renderNavPanel();}
+};
+W.navDel=async function(id){
+    if(!window.confirm('¿Eliminar este elemento del menú?'))return;
+    var r=await W.api('/api/v1/admin/nav/items/'+id,{method:'DELETE'});
+    if(r.ok){W.notify('Eliminado','success');W.renderNavPanel();}
+};
+W.themeConfig=async function(slug){
+    var r=await W.api('/api/v1/admin/themes/'+encodeURIComponent(slug)+'/config');
+    if(!r.ok)return;
+    var d=r.data||{}; W.state.themeCfgSchema=d.schema||[]; W.state.themeCfgSlug=slug;
+    var box=document.getElementById('sk-cfg-box'); if(!box)return;
+    if(!W.state.themeCfgSchema.length){ box.innerHTML='<div class="w-card"><h3>Configurar «'+W.esc(slug)+'»</h3><div style="font-size:12px;color:var(--w-muted)">Este tema no declara campos configurables (theme.json → config).</div></div>'; box.scrollIntoView({behavior:'smooth'}); return; }
+    box.innerHTML='<div class="w-card"><h3>Configurar «'+W.esc(slug)+'»</h3><div style="font-size:11px;color:var(--w-muted);margin-bottom:8px">Estos campos se guardan como settings del sitio y el tema los usa automáticamente.</div>'+W.renderSchemaFields(W.state.themeCfgSchema, d.values||{})+'<div class="w-flex w-gap-sm" style="margin-top:12px"><button class="w-btn w-btn-primary" onclick="wontia.themeCfgSave()">Guardar</button><button class="w-btn w-btn-secondary" onclick="wontia.renderThemesPanel()">Cancelar</button></div></div>';
+    if(W.repInit)W.repInit(W.state.themeCfgSchema);
+    box.scrollIntoView({behavior:'smooth'});
+};
+W.themeCfgSave=async function(){
+    var slug=W.state.themeCfgSlug; if(!slug)return;
+    var values=W.collectSchemaFields(W.state.themeCfgSchema);
+    var r=await W.api('/api/v1/admin/themes/'+encodeURIComponent(slug)+'/config',{method:'PUT',body:{values:values}});
+    if(r.ok)W.notify(r.message||'Guardado','success');
 };
 
 W.loadQrLib=function(){

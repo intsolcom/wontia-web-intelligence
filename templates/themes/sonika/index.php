@@ -13,11 +13,14 @@ sonika_site_head('SONIKA — Instrumentos Musicales', 'Compra instrumentos music
   <div class="wrap">
     <div class="hero-in">
       <div>
-        <span class="eyebrow" style="display:inline-block;font-size:12.5px;font-weight:800;letter-spacing:.14em;color:#111111;text-transform:uppercase;margin-bottom:14px">Instrumentos | Audio | Tu pasión</span>
-        <h1>EL SONIDO QUE TE <em>MUEVE</em>.</h1>
-        <p>Instrumentos y equipos de audio para llevar tu música más lejos.</p>
-        <a class="cta" href="/tienda">Explorar productos →</a>
-        <a class="cta sec" href="/ofertas">Ver ofertas</a>
+        <span class="eyebrow" style="display:inline-block;font-size:12.5px;font-weight:800;letter-spacing:.14em;color:#111111;text-transform:uppercase;margin-bottom:14px"><?= sonika_esc((string)wwi_tc('sonika', 'hero_eyebrow', 'Instrumentos | Audio | Tu pasión')) ?></span>
+        <?php $hTitle = (string)wwi_tc('sonika', 'hero_title', 'EL SONIDO QUE TE *MUEVE*.'); ?>
+        <h1><?= preg_replace('/\*(.+?)\*/', '<em>$1</em>', sonika_esc($hTitle)) ?></h1>
+        <p><?= sonika_esc((string)wwi_tc('sonika', 'hero_subtitle', 'Instrumentos y equipos de audio para llevar tu música más lejos.')) ?></p>
+        <a class="cta" href="<?= sonika_esc((string)wwi_tc('sonika', 'hero_cta_url', '/tienda')) ?>"><?= sonika_esc((string)wwi_tc('sonika', 'hero_cta_label', 'Explorar productos')) ?> &#8594;</a>
+        <?php $c2 = (string)wwi_tc('sonika', 'hero_cta2_label', ''); if ($c2 !== ''): ?>
+        <a class="cta sec" href="<?= sonika_esc((string)wwi_tc('sonika', 'hero_cta2_url', '/ofertas')) ?>"><?= sonika_esc($c2) ?></a>
+        <?php endif; ?>
       </div>
       <div class="hero-art">
         <div class="art a">Acordeón</div>
@@ -32,20 +35,25 @@ sonika_site_head('SONIKA — Instrumentos Musicales', 'Compra instrumentos music
 
 <div class="wrap">
   <div class="trust">
-    <span>🚚 <b>Envíos a toda Colombia</b></span>
-    <span>🛡️ <b>Compra segura y garantizada</b></span>
-    <span>🎧 <b>Asesoría especializada</b></span>
+    <?php foreach ((array)wwi_tc('sonika', 'benefits', []) as $b): ?>
+    <span><?= sonika_esc((string)($b['icon'] ?? '')) ?> <b><?= sonika_esc((string)($b['text'] ?? '')) ?></b></span>
+    <?php endforeach; ?>
   </div>
 </div>
 
 <section class="pad wrap" id="categorias">
   <div class="head"><h2>Explora por categoría</h2><a href="/tienda">Ver todo →</a></div>
   <div class="cat-grid">
-    <?php foreach ([['guitarras','Guitarras','🎸'],['acordeon','Acordeones','🪗'],['amplificadores','Audio profesional','🔊'],['pianos','Teclados','🎹'],['percusion','Baterías y percusión','🥁'],['cuerdas-guitarras','Accesorios','🎛️']] as $fc): ?>
-      <a class="cat" href="/<?= sonika_esc($fc[0]) ?>">
-        <div class="ic"><?= $fc[2] ?></div>
-        <h3><?= sonika_esc($fc[1]) ?></h3>
-        <p><?= sonika_esc(sonika_category($fc[0])['tags'] ?? '') ?></p>
+    <?php
+    $catSlugs = array_filter(array_map('trim', explode(',', (string)wwi_tc('sonika', 'home_categories', 'guitarras,acordeon,amplificadores,pianos,percusion,cuerdas-guitarras'))));
+    foreach ($catSlugs as $slug):
+        $cat = sonika_category($slug);
+        if (!$cat) continue;
+    ?>
+      <a class="cat" href="/<?= sonika_esc($cat['slug']) ?>">
+        <div class="ic"><?= $cat['icon'] ?></div>
+        <h3><?= sonika_esc($cat['name']) ?></h3>
+        <p><?= sonika_esc($cat['tags']) ?></p>
       </a>
     <?php endforeach; ?>
   </div>

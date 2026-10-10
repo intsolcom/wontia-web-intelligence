@@ -71,3 +71,57 @@ if (!function_exists('wwi_logo_img')) {
         return '<img src="' . htmlspecialchars(wwi_ver($b['logo'])) . '" alt="' . htmlspecialchars($b['alt']) . '" style="height:' . $h . 'px;width:auto;max-width:100%;display:block"/>';
     }
 }
+
+if (!function_exists('wwi_setting')) {
+    /** Lee un setting del sitio actual (con caché por request). */
+    function wwi_setting(string $key, $default = '')
+    {
+        static $cache = [];
+        if (array_key_exists($key, $cache)) return $cache[$key];
+        $v = $default;
+        try {
+            $st = Database::instance()->prepare("SELECT `value` FROM settings WHERE site_id = @site_id AND `key` = ? LIMIT 1");
+            $st->execute([$key]);
+            $row = $st->fetch();
+            if ($row && $row['value'] !== null && $row['value'] !== '') $v = $row['value'];
+        } catch (\Throwable $e) {
+        }
+        $cache[$key] = $v;
+        return $v;
+    }
+}
+
+if (!function_exists('wwi_nav')) {
+    /** Navegación administrable por ubicación (primary, footer_shop, footer_help, footer_legal). */
+    function wwi_nav(string $location = 'primary', bool $visibleOnly = true): array
+    {
+        try {
+            return (new \App\Services\NavService())->tree($location, $visibleOnly);
+        } catch (\Throwable $e) {
+            return [];
+        }
+    }
+}
+
+if (!function_exists('wwi_tc')) {
+    /** Config de theme (schema en theme.json 'config'). Uso: wwi_tc('sonika','hero_title','default'). */
+    function wwi_tc(string $slug, string $key, $default = null)
+    {
+        try {
+            $v = \App\Services\ThemeConfig::get($slug, $key, $default);
+            return ($v === '' || $v === null) ? $default : $v;
+        } catch (\Throwable $e) {
+            return $default;
+        }
+    }
+}
+
+if (!function_exists('wwi_site_name')) {
+    function wwi_site_name(string $fallback = 'Wontia'): string
+    {
+        $n = (string)wwi_setting('site_name', '');
+        if ($n !== '') return $n;
+        $b = wwi_brand();
+        return (string)($b['text'] ?? $fallback) ?: $fallback;
+    }
+}

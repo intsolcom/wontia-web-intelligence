@@ -5,6 +5,7 @@ use App\Core\Request;
 use App\Core\Response;
 use App\Core\Session;
 use App\Services\SystemUpdateService;
+use App\Services\ThemeConfig;
 use App\Services\ThemeService;
 
 class ThemeController
@@ -93,5 +94,22 @@ class ThemeController
     {
         $this->requireSuperadmin();
         Response::json(['ok' => true, 'data' => $this->svc()->recentEvents(50)]);
+    }
+
+    public function config(Request $req, string $slug): void
+    {
+        $this->requireSuperadmin();
+        $schema = ThemeConfig::schema($slug);
+        Response::json(['ok' => true, 'data' => ['slug' => $slug, 'schema' => $schema, 'values' => ThemeConfig::all($slug)]]);
+    }
+
+    public function saveConfig(Request $req, string $slug): void
+    {
+        $this->requireSuperadmin();
+        $values = $req->input('values', []);
+        if (!is_array($values)) $values = [];
+        ThemeConfig::save($slug, $values);
+        $this->svc()->event('config_saved', $slug, 'ok', ['fields' => count($values)]);
+        Response::json(['ok' => true, 'message' => 'Configuración del tema guardada.']);
     }
 }
