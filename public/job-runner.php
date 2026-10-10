@@ -14,4 +14,5 @@ $result['store_stock_released'] = (new \App\Services\StoreService())->releaseExp
 $result['bricks_auto_launched'] = (new \App\Services\BrickLifecycleService())->processDueLaunches()['launched'];
 $result['system_auto_update'] = (new \App\Services\SystemUpdateService())->autoTick();
 $result['auth_otps_purged'] = (new \App\Services\AuthSecurityService())->purgeExpiredOtps();
+$result['agent_bridge'] = (new \App\Services\AgentBridgeService())->autoRespond(3);
 echo json_encode($result, JSON_UNESCAPED_UNICODE) . "\n";

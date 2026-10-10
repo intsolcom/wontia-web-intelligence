@@ -3,6 +3,7 @@ namespace App\Services;
 
 use App\Core\Config;
 use App\Core\Database;
+use App\Core\AiBrick\AiRouter;
 
 /**
  * AgentBridgeService — canal de coordinación de agentes de WWI (núcleo).
@@ -73,7 +74,11 @@ class AgentBridgeService
             $status,
             !empty($d['meta']) ? json_encode($d['meta'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : null,
         ]);
-        return ['ok' => true, 'id' => (int)Database::instance()->lastInsertId()];
+        $id = (int)Database::instance()->lastInsertId();
+        if ($to === 'head-team-leader' && $from !== 'head-team-leader') {
+            $this->notify($from, $type, (string)($d['subject'] ?? ''), $body);
+        }
+        return ['ok' => true, 'id' => $id];
     }
 
     public function feed(?int $siteId = null, int $limit = 200, ?int $afterId = null): array
@@ -148,5 +153,98 @@ class AgentBridgeService
         if (!$row) return null;
         Database::instance()->prepare('UPDATE agent_bridge_agents SET last_seen = NOW() WHERE id = ?')->execute([$row['id']]);
         return $row;
+    }
+
+    // ── Auto-responder Head Team Leader (BRICK) ──
+
+    /** Mensajes dirigidos al Head Team Leader pendientes de respuesta. */
+    public function pendingForHtl(int $limit = 5): array
+    {
+        $this->ensureTables();
+        $limit = max(1, min(20, $limit));
+        $st = Database::instance()->prepare("SELECT * FROM agent_bridge_messages
+            WHERE to_role = 'head-team-leader' AND from_role <> 'head-team-leader'
+              AND status = 'abierto' AND type IN ('SOLICITUD','NOTA','RESULTADO')
+            ORDER BY id ASC LIMIT " . $limit);
+        $st->execute();
+        return $st->fetchAll();
+    }
+
+    /** Responde automáticamente los pendientes con BRICK (genera ORDEN). */
+    public function autoRespond(int $limit = 3): array
+    {
+        $this->ensureTables();
+        $answered = 0; $failed = 0;
+        foreach ($this->pendingForHtl($limit) as $m) {
+            $r = $this->htlRespond($m);
+            if (!empty($r['ok'])) $answered++; else $failed++;
+        }
+        return ['ok' => true, 'answered' => $answered, 'failed' => $failed];
+    }
+
+    private function htlRespond(array $m): array
+    {
+        $reply = $this->brainstorm($m);
+        if ($reply === '') return ['ok' => false, 'message' => 'BRICK no disponible'];
+        $this->post([
+            'site_id' => $m['site_id'] ?? null,
+            'site_slug' => $m['site_slug'] ?? '',
+            'from_role' => 'head-team-leader',
+            'to_role' => (string)$m['from_role'],
+            'type' => 'ORDEN',
+            'subject' => 'Re: ' . (string)($m['subject'] ?? ('#' . $m['id'])),
+            'body' => $reply,
+            'status' => 'abierto',
+            'meta' => ['re' => (int)$m['id'], 'auto' => true],
+        ]);
+        $this->setStatus((int)$m['id'], 'en_curso');
+        return ['ok' => true];
+    }
+
+    private function brainstorm(array $m): string
+    {
+        $system = "Eres el Head Team Leader de WWI (plataforma). Un agente de sitio te escribe. Reglas: "
+            . "(1) la estructura del CMS (src/**, motor de themes, menús, settings, admin.js, api.php) es TUYA, NO del agente. "
+            . "(2) El agente de sitio solo hace CONTENIDO vía el admin (settings, menús, sections/Builder, catálogo). "
+            . "(3) PROHIBIDO hardcodear contenido editable; todo va a settings/menús/sections/config de tema. "
+            . "Responde SIEMPRE en español, breve y accionable. Formato: VEREDICTO (¿es plataforma o contenido?); "
+            . "si es plataforma, escribe el PROMPT CORREGIDO que el agente debe ejecutar (encajado al contrato CMS, sin tocar código de plataforma) + criterios de aceptación; "
+            . "si es contenido, indícale exactamente qué editar desde el admin. Nunca le pidas al agente tocar código de plataforma.";
+        $user = "De: {$m['from_role']} | Tipo: {$m['type']} | Asunto: " . ($m['subject'] ?? '') . "\nMensaje:\n" . $m['body'];
+        try {
+            $router = new AiRouter();
+            $r = $router->route([
+                'system_id' => 'wontia',
+                'module' => 'agent-bridge',
+                'function' => 'head-team-leader',
+                'system_prompt' => $system,
+                'messages' => [['role' => 'user', 'content' => $user]],
+                'temperature' => 0.3,
+                'max_tokens' => 900,
+            ]);
+            if (!empty($r['ok']) && !empty($r['content'])) return trim((string)$r['content']);
+        } catch (\Throwable $e) {
+        }
+        return '';
+    }
+
+    private function notify(string $from, string $type, string $subject, string $body): void
+    {
+        try {
+            $st = Database::instance()->prepare('SELECT `value` FROM settings WHERE site_id = @site_id AND `key` = ? LIMIT 1');
+            $st->execute(['wwi.bridge_notify_email']);
+            $to = trim((string)$st->fetchColumn());
+            if ($to === '' || !filter_var($to, FILTER_VALIDATE_EMAIL)) return;
+            $e = new EmailService();
+            if (!$e->configured()) return;
+            $safe = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
+            $html = '<div style="font-family:Inter,Arial,sans-serif;max-width:560px;margin:auto">'
+                . '<h2 style="margin:0 0 8px">WWI · Canal de agentes</h2>'
+                . '<p style="font-size:14px"><b>' . $safe($from) . '</b> envió <b>' . $safe($type) . '</b>: ' . $safe($subject) . '</p>'
+                . '<pre style="white-space:pre-wrap;background:#f5f5f5;padding:12px;border-radius:8px">' . $safe($body) . '</pre>'
+                . '<p style="color:#777;font-size:12px">Abre el panel del central (campana) para responder.</p></div>';
+            $e->sendHtml($to, '[WWI] ' . $type . ' de ' . $from, $html);
+        } catch (\Throwable $e) {
+        }
     }
 }
