@@ -45,6 +45,7 @@ W.router=function(){
     if(panel==='brick'){window.location.replace(window.location.pathname+window.location.search+'#bricks/ia');return}
     if(panel==='factory'){var ftab=parts[1]||'inicio';if(ftab==='updates')ftab='system';window.location.replace(window.location.pathname+window.location.search+'#wwi/'+ftab);return}
     if((panel==='wwi'||panel==='factory')&&!window.__WWI_IS_CENTRAL){window.location.replace(window.location.pathname+window.location.search+'#dashboard');return}
+    if(panel==='seo'||panel==='seo-global-launch'){window.location.replace(window.location.pathname+window.location.search+'#dashboard');return}
     if(panel==='sections'){window.location.replace(window.location.pathname+window.location.search+'#pages/secciones'+(parts[1]?'/'+parts[1]:''));return}
     if(panel.indexOf('section-edit-')===0){W.panels.sectionEditor(panel.replace('section-edit-',''));return}
     if(panel!=='bricks'){W.state.brickHost=null;W.state.bhHost=null}
