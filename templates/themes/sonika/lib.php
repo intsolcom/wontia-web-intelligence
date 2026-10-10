@@ -254,7 +254,7 @@ if (!function_exists('sonika_product_card')) {
               <span class="price"><?= sonika_cop($price) ?></span>
               <?php if ($cmp > $price && $price > 0): ?><span class="cmp"><?= sonika_cop($cmp) ?></span><?php endif; ?>
             </div>
-            <button class="add" type="button" data-add="<?= sonika_esc($p['handle']) ?>" data-title="<?= sonika_esc($p['title']) ?>" data-price="<?= (float)$price ?>" data-img="<?= sonika_esc($img) ?>">Agregar</button>
+            <button class="add" type="button" data-add="<?= sonika_esc($p['handle']) ?>" data-title="<?= sonika_esc($p['title']) ?>" data-price="<?= (float)$price ?>" data-img="<?= sonika_esc($img) ?>"><?= sonika_esc((string)wwi_tc('sonika', 'card_add_label', 'Agregar')) ?></button>
           </div>
         </div>
         <?php
