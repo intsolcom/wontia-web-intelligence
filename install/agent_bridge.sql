@@ -30,3 +30,18 @@ CREATE TABLE IF NOT EXISTS agent_bridge_agents (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY uk_slug (slug)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Cola de tareas de plataforma (modo 1): las ORDEN "PLATAFORMA" se convierten en tickets.
+CREATE TABLE IF NOT EXISTS bridge_tasks (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    site_id INT NULL,
+    site_slug VARCHAR(80) NULL,
+    message_id INT NULL,
+    title VARCHAR(200) NULL,
+    detail TEXT NULL,
+    status ENUM('pending','in_progress','done') NOT NULL DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    KEY idx_status (status),
+    KEY idx_site (site_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

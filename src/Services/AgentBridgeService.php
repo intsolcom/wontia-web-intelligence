@@ -45,6 +45,19 @@ class AgentBridgeService
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             UNIQUE KEY uk_slug (slug)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+        $db->exec("CREATE TABLE IF NOT EXISTS bridge_tasks (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            site_id INT NULL,
+            site_slug VARCHAR(80) NULL,
+            message_id INT NULL,
+            title VARCHAR(200) NULL,
+            detail TEXT NULL,
+            status ENUM('pending','in_progress','done') NOT NULL DEFAULT 'pending',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            KEY idx_status (status),
+            KEY idx_site (site_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
         self::$ensured = true;
         return ['ok' => true, 'cached' => false];
     }
@@ -186,7 +199,7 @@ class AgentBridgeService
     {
         $reply = $this->brainstorm($m);
         if ($reply === '') return ['ok' => false, 'message' => 'BRICK no disponible'];
-        $this->post([
+        $post = $this->post([
             'site_id' => $m['site_id'] ?? null,
             'site_slug' => $m['site_slug'] ?? '',
             'from_role' => 'head-team-leader',
@@ -198,6 +211,56 @@ class AgentBridgeService
             'meta' => ['re' => (int)$m['id'], 'auto' => true],
         ]);
         $this->setStatus((int)$m['id'], 'en_curso');
+        // Modo 1: si la ORDEN es de PLATAFORMA → crear ticket de plataforma.
+        if (preg_match('/VEREDICTO\s*:?\s*\*{0,2}\s*PLATAFORMA/i', $reply) || stripos($reply, 'PLATAFORMA') !== false) {
+            $this->createTask([
+                'site_id' => $m['site_id'] ?? null,
+                'site_slug' => $m['site_slug'] ?? '',
+                'message_id' => (int)($post['id'] ?? 0),
+                'title' => (string)($m['subject'] ?? ('Solicitud #' . $m['id'])),
+                'detail' => mb_substr(strip_tags($reply), 0, 4000),
+            ]);
+        }
+        return ['ok' => true];
+    }
+
+    // ── Cola de tareas de plataforma (modo 1) ──
+
+    public function createTask(array $d): array
+    {
+        $this->ensureTables();
+        $st = Database::instance()->prepare('INSERT INTO bridge_tasks (site_id, site_slug, message_id, title, detail, status) VALUES (?,?,?,?,?,\'pending\')');
+        $st->execute([
+            isset($d['site_id']) && $d['site_id'] !== null ? (int)$d['site_id'] : null,
+            isset($d['site_slug']) ? substr((string)$d['site_slug'], 0, 80) : null,
+            (int)($d['message_id'] ?? 0) ?: null,
+            mb_substr((string)($d['title'] ?? ''), 0, 200),
+            (string)($d['detail'] ?? ''),
+        ]);
+        return ['ok' => true, 'id' => (int)Database::instance()->lastInsertId()];
+    }
+
+    public function tasks(?string $status = null, int $limit = 100): array
+    {
+        $this->ensureTables();
+        $limit = max(1, min(300, $limit));
+        $sql = 'SELECT id, site_id, site_slug, message_id, title, detail, status, created_at FROM bridge_tasks';
+        $params = [];
+        if ($status !== null && in_array($status, ['pending', 'in_progress', 'done'], true)) {
+            $sql .= ' WHERE status = ?';
+            $params[] = $status;
+        }
+        $sql .= ' ORDER BY (status="pending") DESC, id DESC LIMIT ' . $limit;
+        $st = Database::instance()->prepare($sql);
+        $st->execute($params);
+        return $st->fetchAll();
+    }
+
+    public function setTaskStatus(int $id, string $status): array
+    {
+        $this->ensureTables();
+        if (!in_array($status, ['pending', 'in_progress', 'done'], true)) return ['ok' => false];
+        Database::instance()->prepare('UPDATE bridge_tasks SET status = ? WHERE id = ?')->execute([$status, $id]);
         return ['ok' => true];
     }
 

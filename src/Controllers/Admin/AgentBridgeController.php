@@ -59,6 +59,19 @@ class AgentBridgeController
         Response::json($this->svc()->setStatus((int)$id, (string)$req->input('status', 'resuelto')));
     }
 
+    public function tasks(Request $req): void
+    {
+        $this->requireAdmin();
+        $status = (string)$req->get('status', '');
+        Response::json(['ok' => true, 'data' => $this->svc()->tasks($status !== '' ? $status : null)]);
+    }
+
+    public function taskStatus(Request $req, string $id): void
+    {
+        $this->requireAdmin();
+        Response::json($this->svc()->setTaskStatus((int)$id, (string)$req->input('status', 'done')));
+    }
+
     public function agents(): void
     {
         $this->requireAdmin();

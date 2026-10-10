@@ -424,6 +424,10 @@ if (!function_exists('sonika_css')) {
         .icon-btn .lbl{font-size:13px;font-weight:600}
         @media(max-width:960px){.hero-in,.pdp,.cart-wrap{grid-template-columns:1fr}.cat-grid,.prod-grid{grid-template-columns:repeat(2,1fr)}.fgrid{grid-template-columns:1fr 1fr}.summary{position:static}}
         @media(max-width:600px){.hero h1{font-size:34px}.nav{flex-wrap:wrap}.search{order:9;flex-basis:100%;margin-top:8px}.icon-btn .lbl{display:none}.cat-grid,.prod-grid{grid-template-columns:repeat(2,1fr);gap:12px}.topbar{font-size:11px}}
+        .hero{position:relative;overflow:hidden}
+        .hero-bg-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;opacity:.4}
+        .hero>.wrap{position:relative;z-index:1}
+        @media(prefers-reduced-motion:reduce){.hero-bg-video{display:none}}
 CSS;
     }
 }

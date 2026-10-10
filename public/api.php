@@ -483,6 +483,8 @@ $r->delete('/builder/comments/{id}', [\App\Controllers\Admin\BuilderController::
 
     $r->get('/agent-bridge', [\App\Controllers\Admin\AgentBridgeController::class, 'index']);
     $r->get('/agent-bridge/export', [\App\Controllers\Admin\AgentBridgeController::class, 'export']);
+    $r->get('/agent-bridge/tasks', [\App\Controllers\Admin\AgentBridgeController::class, 'tasks']);
+    $r->patch('/agent-bridge/tasks/{id}', [\App\Controllers\Admin\AgentBridgeController::class, 'taskStatus']);
     $r->post('/agent-bridge', [\App\Controllers\Admin\AgentBridgeController::class, 'post']);
     $r->patch('/agent-bridge/{id}', [\App\Controllers\Admin\AgentBridgeController::class, 'setStatus']);
     $r->get('/agent-bridge/agents', [\App\Controllers\Admin\AgentBridgeController::class, 'agents']);

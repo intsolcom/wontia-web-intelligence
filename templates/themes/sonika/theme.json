@@ -37,6 +37,8 @@
         { "key": "hero_cta_url", "label": "Enlace del botón", "type": "text", "default": "/tienda" },
         { "key": "hero_cta2_label", "label": "Botón secundario (opcional)", "type": "text", "default": "Ver ofertas" },
         { "key": "hero_cta2_url", "label": "Enlace secundario", "type": "text", "default": "/ofertas" },
+        { "key": "hero_bg_video", "label": "Video de fondo del hero (URL .mp4/.webm)", "type": "url", "default": "" },
+        { "key": "hero_bg_poster", "label": "Poster del video (imagen de respaldo)", "type": "url", "default": "" },
         { "key": "_h_benefits", "label": "Beneficios", "type": "heading" },
         { "key": "benefits", "label": "Franja de beneficios", "type": "repeater", "fields": [
             { "key": "icon", "label": "Icono (emoji)", "type": "text" },

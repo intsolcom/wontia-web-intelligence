@@ -10,6 +10,9 @@ sonika_site_head('SONIKA — Instrumentos Musicales', 'Compra instrumentos music
 ?>
 
 <div class="hero">
+  <?php $bgv = trim((string)wwi_tc('sonika', 'hero_bg_video', '')); $bgp = trim((string)wwi_tc('sonika', 'hero_bg_poster', '')); if ($bgv !== ''): ?>
+  <video class="hero-bg-video" autoplay muted loop playsinline preload="metadata"<?= $bgp !== '' ? ' poster="' . sonika_esc($bgp) . '"' : '' ?>><source src="<?= sonika_esc($bgv) ?>"></video>
+  <?php endif; ?>
   <div class="wrap">
     <div class="hero-in">
       <div>
