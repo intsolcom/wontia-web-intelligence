@@ -1468,7 +1468,7 @@ W.agentBridgeOpen=function(){
     W.modal('Canal de agentes',
       '<div id="w-bridge-feed" style="max-height:52vh;overflow:auto;font-size:12px">Cargando…</div>'
       +'<div class="w-form-group" style="margin-top:10px"><label class="w-label">Responder como Head Team Leader</label><textarea class="w-textarea" id="w-bridge-reply" placeholder="Escribe una ORDEN / RESPUESTA…"></textarea></div>'
-      +'<div class="w-flex w-gap-sm" style="flex-wrap:wrap"><select class="w-select" id="w-bridge-type" style="max-width:160px"><option>ORDEN</option><option>RESPUESTA</option><option>ACLARACION</option><option>NOTA</option></select><button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.agentBridgePost()">Publicar</button><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.agentBridgeAgents()">Agentes</button><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.closeModal()">Cerrar</button></div>','');
+      +'<div class="w-flex w-gap-sm" style="flex-wrap:wrap"><select class="w-select" id="w-bridge-type" style="max-width:160px"><option>ORDEN</option><option>RESPUESTA</option><option>ACLARACION</option><option>NOTA</option></select><button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.agentBridgePost()">Publicar</button><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.agentBridgeExport()">Exportar .md</button><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.agentBridgeAgents()">Agentes</button><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.closeModal()">Cerrar</button></div>','');
     W.agentBridgeLoad();
     if(W.agentBridgeTimer)clearInterval(W.agentBridgeTimer);
     W.agentBridgeTimer=setInterval(W.agentBridgeLoad,5000);
@@ -1487,7 +1487,9 @@ W.agentBridgeLoad=async function(){
         html+='<div style="margin:8px 0;padding:8px 10px;border-radius:8px;background:'+(mine?'rgba(34,211,238,.08)':'var(--w-surface)')+';border:1px solid var(--w-border)">'
           +'<div style="font-size:10px;color:var(--w-muted);display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span style="color:'+(cols[m.type]||'#64748b')+';font-weight:800">'+W.esc(m.type)+'</span><b>'+W.esc(m.from_role)+'</b> → '+W.esc(m.to_role)+(m.site_slug?' · '+W.esc(m.site_slug):'')+' · '+W.esc(m.created_at)+' · '+W.esc(m.status)+'</div>'
           +(m.subject?'<div style="font-weight:600;margin-top:4px">'+W.esc(m.subject)+'</div>':'')
-          +'<div style="margin-top:4px;white-space:pre-wrap;line-height:1.5">'+W.esc(m.body)+'</div></div>';
+          +'<div style="margin-top:4px;white-space:pre-wrap;line-height:1.5">'+W.esc(m.body)+'</div>'
+          +(m.status!=='resuelto'?'<div style="margin-top:6px"><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.agentBridgeResolve('+m.id+')">✓ Resolver</button></div>':'')
+          +'</div>';
     });
     if(!msgs.length)html='<div style="color:var(--w-muted);padding:16px;text-align:center">Sin mensajes aún.</div>';
     box.innerHTML=html; box.scrollTop=box.scrollHeight;
@@ -1514,6 +1516,17 @@ W.agentBridgeCreate=async function(){
     if(r.ok){var o=document.getElementById('w-ag-out'); if(o)o.innerHTML='<div class="w-card" style="border-color:rgba(52,211,153,.5);padding:12px"><div style="font-size:11px;color:var(--w-muted)">Clave de «'+W.esc(r.slug)+'» (cópiala ahora):</div><code style="font-family:monospace;font-size:14px;word-break:break-all">'+W.esc(r.key)+'</code></div>';}
 };
 W.agentBridgePaintBadge=function(n){var b=document.getElementById('w-bridge-badge'); if(!b)return; if(n>0){b.textContent=n;b.style.display='block'}else{b.style.display='none'}};
+W.agentBridgeResolve=async function(id){
+    var r=await W.api('/api/v1/admin/agent-bridge/'+id,{method:'PATCH',body:{status:'resuelto'}});
+    if(r.ok){W.notify('Resuelto','success');W.agentBridgeLoad();}
+};
+W.agentBridgeExport=async function(){
+    try{
+        var r=await fetch('/api/v1/admin/agent-bridge/export',{headers:{'Authorization':'Bearer '+(W.token||'')}});
+        var t=await r.text();
+        W.modal('Puente (markdown)', '<pre style="max-height:60vh;overflow:auto;white-space:pre-wrap;font-size:11px">'+W.esc(t)+'</pre>', '<button class="w-btn w-btn-primary" onclick="wontia.agentBridgeOpen()">Volver al canal</button>');
+    }catch(e){W.notify('No se pudo exportar','error')}
+};
 W.agentBridgePoll=function(){
     if(!document.getElementById('w-bridge-bell'))return;
     var check=async function(){ try{ var r=await W.api('/api/v1/admin/agent-bridge'); var d=r.data||{}; var max=d.max_id||0; var last=parseInt(localStorage.getItem('wwi_bridge_last')||'0',10); if(max>last && !document.getElementById('w-bridge-feed')) W.agentBridgePaintBadge(max-last); }catch(e){} };

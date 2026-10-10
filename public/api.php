@@ -481,6 +481,7 @@ $r->delete('/builder/comments/{id}', [\App\Controllers\Admin\BuilderController::
     $r->post('/nav/reorder', [\App\Controllers\Admin\NavController::class, 'reorder']);
 
     $r->get('/agent-bridge', [\App\Controllers\Admin\AgentBridgeController::class, 'index']);
+    $r->get('/agent-bridge/export', [\App\Controllers\Admin\AgentBridgeController::class, 'export']);
     $r->post('/agent-bridge', [\App\Controllers\Admin\AgentBridgeController::class, 'post']);
     $r->patch('/agent-bridge/{id}', [\App\Controllers\Admin\AgentBridgeController::class, 'setStatus']);
     $r->get('/agent-bridge/agents', [\App\Controllers\Admin\AgentBridgeController::class, 'agents']);

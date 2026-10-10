@@ -99,4 +99,20 @@ class AgentBridgeController
         if (empty($r['ok'])) Response::error($r['message'] ?? 'No se pudo publicar', 422, $r);
         Response::json($r);
     }
+
+    /** Exporta el puente (markdown) para espejo/versionado. */
+    public function export(Request $req): void
+    {
+        $this->requireAdmin();
+        $siteSlug = (string)$req->get('site', '');
+        $siteId = $req->get('site_id', null);
+        $md = $this->svc()->exportMarkdown(
+            ($siteId !== null && $siteId !== '') ? (int)$siteId : null,
+            $siteSlug !== '' ? $siteSlug : null
+        );
+        header('Content-Type: text/markdown; charset=utf-8');
+        header('Content-Disposition: attachment; filename="bridge-' . ($siteSlug ?: 'all') . '.md"');
+        echo $md;
+        exit;
+    }
 }

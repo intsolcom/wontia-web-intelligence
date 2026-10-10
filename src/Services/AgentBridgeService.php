@@ -228,6 +228,37 @@ class AgentBridgeService
         return '';
     }
 
+    public function exportMarkdown(?int $siteId = null, ?string $siteSlug = null): string
+    {
+        $msgs = $this->feed($siteId, 500);
+        $title = ($siteSlug !== null && $siteSlug !== '') ? $siteSlug : ('site ' . ($siteId ?? '?'));
+        $out = "# Puente de agente — " . $title . "\n";
+        $out .= "> Espejo generado desde `agent_bridge_messages` (fuente de verdad en la BD).\n";
+        $out .= "> Head Team Leader: estructura del CMS. Agente de sitio: contenido vía CMS.\n\n";
+        foreach ($msgs as $m) {
+            $out .= "## [{$m['type']}] — De: {$m['from_role']} → Para: {$m['to_role']}\n";
+            $out .= "- Fecha (UTC): {$m['created_at']}\n- Estado: {$m['status']}\n";
+            if (!empty($m['subject'])) $out .= "- Asunto: {$m['subject']}\n";
+            $out .= "\n" . rtrim((string)$m['body']) . "\n\n";
+        }
+        return $out;
+    }
+
+    public function exportAll(): array
+    {
+        $this->ensureTables();
+        $db = Database::instance();
+        $rows = $db->query("SELECT DISTINCT site_id, site_slug FROM agent_bridge_messages WHERE site_slug IS NOT NULL AND site_slug <> ''")->fetchAll();
+        $dir = ROOT_DIR . '/agent-bridges';
+        if (!is_dir($dir)) @mkdir($dir, 0775, true);
+        $files = 0;
+        foreach ($rows as $r) {
+            $md = $this->exportMarkdown((int)$r['site_id'], (string)$r['site_slug']);
+            if (@file_put_contents($dir . '/' . basename((string)$r['site_slug']) . '.md', $md) !== false) $files++;
+        }
+        return ['ok' => true, 'files' => $files];
+    }
+
     private function notify(string $from, string $type, string $subject, string $body): void
     {
         try {
