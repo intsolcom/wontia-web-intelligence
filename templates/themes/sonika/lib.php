@@ -190,19 +190,23 @@ if (!function_exists('sonika_site_head')) {
     <div class="nav">
       <a class="logo" href="/"><?= sonika_logo_tag() ?></a>
       <?php
-      $__advBrands = []; $__advMax = 0.0;
+      $__advBrands = []; $__advTypes = []; $__advMax = 0.0;
       foreach (sonika_products() as $__p) {
-          $__v = trim((string)($__p['vendor'] ?? ''));
-          if ($__v !== '') $__advBrands[$__v] = true;
-          $__pr = sonika_price($__p);
-          if ($__pr > $__advMax) $__advMax = $__pr;
+          $__v = trim((string)($__p['vendor'] ?? '')); if ($__v !== '') $__advBrands[$__v] = ($__advBrands[$__v] ?? 0) + 1;
+          $__t = trim((string)($__p['product_type'] ?? '')); if ($__t !== '') $__advTypes[$__t] = ($__advTypes[$__t] ?? 0) + 1;
+          $__pr = sonika_price($__p); if ($__pr > $__advMax) $__advMax = $__pr;
       }
-      $__advBrands = array_keys($__advBrands); sort($__advBrands);
-      $__advCats = array_map(fn($cc) => [$cc['slug'], $cc['name']], sonika_categories());
+      arsort($__advBrands); arsort($__advTypes);
+      $__advBrands = array_slice($__advBrands, 0, 40, true);
+      $__advTypes = array_slice($__advTypes, 0, 40, true);
+      $__advCats = [];
+      foreach (sonika_categories() as $__cc) { $__n = count(sonika_category_products($__cc['slug'])); if ($__n > 0) $__advCats[] = [$__cc['slug'], $__cc['name'] . ' (' . $__n . ')']; }
       echo \App\Widgets\WidgetRegistry::render('advance-search-product', [
           'brands' => $__advBrands,
+          'types' => $__advTypes,
           'categories' => $__advCats,
           'max_price' => $__advMax,
+          'new_days' => 90,
           'placeholder' => '¿Qué instrumento estás buscando?',
       ]);
       ?>

@@ -3,13 +3,12 @@ namespace App\Widgets;
 
 /**
  * Advance Search Product — brick (widget) de búsqueda avanzada para WWI.
- * Reemplaza la caja de búsqueda hardcodeada por un buscador con FILTROS
- * (rango de precios con sliders, marca, categoría, ofertas, novedades,
- * disponibilidad, orden). El filtrado real es SERVER-SIDE (router del tema
- * + StoreService/catálogo); este brick solo pinta la interfaz y arma la query.
- *
- * Estado: INCUBADORA (en desarrollo). No hardcodea contenido: los filtros y
- * los datos (marcas, categorías, precio máximo) se inyectan por config.
+ * Reemplaza la caja de búsqueda hardcodeada por un buscador con FILTROS:
+ * texto, rango de precios (sliders), marca, tipo, categoría, descuento mínimo,
+ * ofertas, novedades (por fecha), disponibilidad y orden. Facetas con conteo.
+ * El filtrado real es SERVER-SIDE (router del tema); el brick pinta la UI y
+ * arma la query. No hardcodea contenido: datos/facetas por config.
+ * Estado: INCUBADORA (alpha).
  */
 class AdvanceSearchProductWidget extends Widget
 {
@@ -17,7 +16,7 @@ class AdvanceSearchProductWidget extends Widget
 
     public static function meta(): array
     {
-        return ['id' => 'advance-search-product', 'name' => 'Advance Search Product', 'icon' => 'search', 'category' => 'ecommerce', 'version' => '0.1.0'];
+        return ['id' => 'advance-search-product', 'name' => 'Advance Search Product', 'icon' => 'search', 'category' => 'ecommerce', 'version' => '0.2.0'];
     }
 
     public static function configSchema(): array
@@ -26,23 +25,42 @@ class AdvanceSearchProductWidget extends Widget
             ['key' => 'placeholder', 'label' => 'Placeholder del buscador', 'type' => 'text', 'default' => '¿Qué instrumento estás buscando?'],
             ['key' => 'show_price', 'label' => 'Filtro: rango de precios', 'type' => 'toggle', 'default' => true],
             ['key' => 'show_brand', 'label' => 'Filtro: marcas', 'type' => 'toggle', 'default' => true],
+            ['key' => 'show_type', 'label' => 'Filtro: tipo de producto', 'type' => 'toggle', 'default' => true],
             ['key' => 'show_category', 'label' => 'Filtro: categorías', 'type' => 'toggle', 'default' => true],
+            ['key' => 'show_discount', 'label' => 'Filtro: descuento mínimo', 'type' => 'toggle', 'default' => true],
             ['key' => 'show_order', 'label' => 'Filtro: orden', 'type' => 'toggle', 'default' => true],
             ['key' => 'show_offers', 'label' => 'Filtro: ofertas', 'type' => 'toggle', 'default' => true],
-            ['key' => 'show_new', 'label' => 'Filtro: artículos nuevos', 'type' => 'toggle', 'default' => true],
+            ['key' => 'show_new', 'label' => 'Filtro: novedades (por fecha)', 'type' => 'toggle', 'default' => true],
             ['key' => 'show_available', 'label' => 'Filtro: disponibilidad', 'type' => 'toggle', 'default' => true],
-            ['key' => 'brands', 'label' => 'Marcas (se autodetectan del catálogo)', 'type' => 'textarea', 'default' => ''],
-            ['key' => 'categories', 'label' => 'Categorías (se autodetectan del catálogo)', 'type' => 'text', 'default' => ''],
+            ['key' => 'new_days', 'label' => 'Novedades: días hacia atrás', 'type' => 'number', 'default' => 90],
+            ['key' => 'brands', 'label' => 'Marcas (autodetectadas)', 'type' => 'textarea', 'default' => ''],
+            ['key' => 'types', 'label' => 'Tipos (autodetectados)', 'type' => 'textarea', 'default' => ''],
+            ['key' => 'categories', 'label' => 'Categorías (autodetectadas)', 'type' => 'text', 'default' => ''],
             ['key' => 'max_price', 'label' => 'Precio máximo (0 = autodetectar)', 'type' => 'number', 'default' => 0],
         ];
     }
 
-    private function list($value): array
+    /** Normaliza a [[value, label], ...] aceptando assoc (con conteo), lista de [v,l], lista o CSV. */
+    private function pairs($value): array
     {
-        if (is_array($value)) return array_values(array_filter(array_map('strval', $value), fn($v) => $v !== ''));
-        $value = trim((string)$value);
-        if ($value === '') return [];
-        return array_values(array_filter(array_map('trim', explode(',', $value)), fn($v) => $v !== ''));
+        $out = [];
+        if (is_array($value)) {
+            $isAssoc = array_keys($value) !== range(0, count($value) - 1);
+            if ($isAssoc) {
+                foreach ($value as $k => $v) {
+                    $label = is_numeric($v) ? ($k . ' (' . (int)$v . ')') : (string)$v;
+                    $out[] = [(string)$k, $label];
+                }
+            } else {
+                foreach ($value as $item) {
+                    if (is_array($item)) $out[] = [(string)($item[0] ?? ''), (string)($item[1] ?? $item[0] ?? '')];
+                    elseif ($item !== '') $out[] = [(string)$item, (string)$item];
+                }
+            }
+            return $out;
+        }
+        foreach (array_filter(array_map('trim', explode(',', (string)$value))) as $v) $out[] = [$v, $v];
+        return $out;
     }
 
     private function money(float $n): string
@@ -56,27 +74,21 @@ class AdvanceSearchProductWidget extends Widget
         $esc = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
 
         $placeholder = (string)($c['placeholder'] ?? '¿Qué instrumento estás buscando?');
-        $brands = $this->list($c['brands'] ?? []);
-        $cats = [];
-        foreach ((array)($c['categories'] ?? []) as $cat) {
-            if (is_array($cat) && isset($cat[0])) $cats[] = [(string)$cat[0], (string)($cat[1] ?? $cat[0])];
-            elseif (is_string($cat)) $cats[] = [$cat, ucfirst($cat)];
-        }
+        $brands = $this->pairs($c['brands'] ?? []);
+        $types = $this->pairs($c['types'] ?? []);
+        $cats = $this->pairs($c['categories'] ?? []);
         $maxPrice = (float)($c['max_price'] ?? 0);
         $sliderMax = $maxPrice > 0 ? $maxPrice : 1000000;
         $step = max(1000, (int)round($sliderMax / 200 / 1000) * 1000);
+        $newDays = max(1, (int)($c['new_days'] ?? 90));
 
         $g = fn($k) => isset($_GET[$k]) ? (string)$_GET[$k] : '';
         $q = $g('q');
         $fmin = (float)($g('min') ?: 0);
         $fmax = (float)($g('max') ?: 0);
         $fmaxV = $fmax > 0 ? min($fmax, $sliderMax) : $sliderMax;
-        $fmarca = $g('marca');
-        $fcat = $g('cat');
-        $orden = $g('orden');
-        $oferta = isset($_GET['oferta']);
-        $nuevo = isset($_GET['nuevo']);
-        $disp = isset($_GET['disp']);
+        $fmarca = $g('marca'); $ftipo = $g('tipo'); $fcat = $g('cat'); $fdesc = $g('desc'); $orden = $g('orden');
+        $oferta = isset($_GET['oferta']); $nuevo = isset($_GET['nuevo']); $disp = isset($_GET['disp']);
 
         ob_start();
         echo $this->assets();
@@ -102,16 +114,27 @@ class AdvanceSearchProductWidget extends Widget
     <?php if (!empty($c['show_brand']) && $brands): ?>
     <div class="ska-group"><label class="ska-lbl">Marca</label>
       <select name="marca" class="ska-sel"><option value="">Todas</option>
-        <?php foreach ($brands as $b): ?><option value="<?= $esc($b) ?>"<?= strcasecmp($fmarca, (string)$b) === 0 ? ' selected' : '' ?>><?= $esc($b) ?></option><?php endforeach; ?>
-      </select>
-    </div>
+        <?php foreach ($brands as $b): ?><option value="<?= $esc($b[0]) ?>"<?= strcasecmp($fmarca, $b[0]) === 0 ? ' selected' : '' ?>><?= $esc($b[1]) ?></option><?php endforeach; ?>
+      </select></div>
+    <?php endif; ?>
+    <?php if (!empty($c['show_type']) && $types): ?>
+    <div class="ska-group"><label class="ska-lbl">Tipo de producto</label>
+      <select name="tipo" class="ska-sel"><option value="">Todos</option>
+        <?php foreach ($types as $t): ?><option value="<?= $esc($t[0]) ?>"<?= strcasecmp($ftipo, $t[0]) === 0 ? ' selected' : '' ?>><?= $esc($t[1]) ?></option><?php endforeach; ?>
+      </select></div>
     <?php endif; ?>
     <?php if (!empty($c['show_category']) && $cats): ?>
     <div class="ska-group"><label class="ska-lbl">Categoría</label>
       <select name="cat" class="ska-sel"><option value="">Todas</option>
-        <?php foreach ($cats as $cat): ?><option value="<?= $esc($cat[0]) ?>"<?= $fcat === (string)$cat[0] ? ' selected' : '' ?>><?= $esc($cat[1]) ?></option><?php endforeach; ?>
-      </select>
-    </div>
+        <?php foreach ($cats as $cat): ?><option value="<?= $esc($cat[0]) ?>"<?= $fcat === $cat[0] ? ' selected' : '' ?>><?= $esc($cat[1]) ?></option><?php endforeach; ?>
+      </select></div>
+    <?php endif; ?>
+    <?php if (!empty($c['show_discount'])): ?>
+    <div class="ska-group"><label class="ska-lbl">Descuento mínimo</label>
+      <select name="desc" class="ska-sel">
+        <option value="">Cualquiera</option>
+        <?php foreach ([10, 20, 30, 50] as $d): ?><option value="<?= $d ?>"<?= $fdesc === (string)$d ? ' selected' : '' ?>>≥ <?= $d ?>%</option><?php endforeach; ?>
+      </select></div>
     <?php endif; ?>
     <?php if (!empty($c['show_order'])): ?>
     <div class="ska-group"><label class="ska-lbl">Ordenar por</label>
@@ -119,13 +142,13 @@ class AdvanceSearchProductWidget extends Widget
         <option value="">Relevancia</option>
         <option value="precio_asc"<?= $orden === 'precio_asc' ? ' selected' : '' ?>>Precio: menor a mayor</option>
         <option value="precio_desc"<?= $orden === 'precio_desc' ? ' selected' : '' ?>>Precio: mayor a menor</option>
+        <option value="descuento"<?= $orden === 'descuento' ? ' selected' : '' ?>>Mayor descuento</option>
         <option value="nuevo"<?= $orden === 'nuevo' ? ' selected' : '' ?>>Novedades</option>
-      </select>
-    </div>
+      </select></div>
     <?php endif; ?>
     <div class="ska-group ska-full ska-checks">
       <?php if (!empty($c['show_offers'])): ?><label><input type="checkbox" name="oferta" value="1"<?= $oferta ? ' checked' : '' ?>> Ofertas</label><?php endif; ?>
-      <?php if (!empty($c['show_new'])): ?><label><input type="checkbox" name="nuevo" value="1"<?= $nuevo ? ' checked' : '' ?>> Artículos nuevos</label><?php endif; ?>
+      <?php if (!empty($c['show_new'])): ?><label><input type="checkbox" name="nuevo" value="1"<?= $nuevo ? ' checked' : '' ?>> Novedades (<?= (int)$newDays ?> días)</label><?php endif; ?>
       <?php if (!empty($c['show_available'])): ?><label><input type="checkbox" name="disp" value="1"<?= $disp ? ' checked' : '' ?>> Solo disponibles</label><?php endif; ?>
     </div>
     <div class="ska-actions ska-full">
@@ -152,7 +175,7 @@ class AdvanceSearchProductWidget extends Widget
 .ska-group{display:flex;flex-direction:column;gap:4px}
 .ska-full{grid-column:1/-1}
 .ska-lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#777}
-.ska-sel{width:100%;border:1px solid #E6E6E6;border-radius:9px;padding:9px 10px;font:inherit;font-size:13px;background:#fff}
+.ska-sel{width:100%;border:1px solid #E6E6E6;border-radius:9px;padding:9px 10px;font:inherit;font-size:13px;background:#fff;max-height:180px}
 .ska-price input[type=range]{width:100%;accent-color:var(--sk-primary,#F20D16);margin:4px 0}
 .ska-price-out{font-size:12.5px;font-weight:700;color:#111;font-family:'JetBrains Mono',Consolas,monospace}
 .ska-checks{flex-direction:row;flex-wrap:wrap;gap:14px}
