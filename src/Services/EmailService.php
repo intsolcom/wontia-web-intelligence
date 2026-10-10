@@ -37,6 +37,39 @@ class EmailService
         return true;
     }
 
+    public function sendHtml(string $to, string $subject, string $html): bool
+    {
+        $c = $this->resolve();
+        if ($c['host'] === '' || $c['host'] === 'smtp.example.com' || $c['user'] === '' || $c['pass'] === '') {
+            return false;
+        }
+        $errno = 0;
+        $errstr = '';
+        $fp = @stream_socket_client("ssl://{$c['host']}:{$c['port']}", $errno, $errstr, 15);
+        if (!$fp) return false;
+        stream_set_timeout($fp, 15);
+        $this->read($fp);
+        $this->cmd($fp, "EHLO wontia");
+        $this->cmd($fp, 'AUTH LOGIN');
+        $this->cmd($fp, base64_encode($c['user']));
+        $this->cmd($fp, base64_encode($c['pass']));
+        $fromAddr = preg_replace('/.*<([^>]+)>.*/', '$1', $c['from']);
+        if (!filter_var($fromAddr, FILTER_VALIDATE_EMAIL)) $fromAddr = $c['user'];
+        $this->cmd($fp, 'MAIL FROM:<' . $fromAddr . '>');
+        $this->cmd($fp, 'RCPT TO:<' . $to . '>');
+        $this->cmd($fp, 'DATA');
+        $fromHeader = $c['from_name'] !== '' ? ('=?UTF-8?B?' . base64_encode($c['from_name']) . '?= <' . $fromAddr . '>') : $fromAddr;
+        $headers = "From: $fromHeader\r\nTo: $to\r\nSubject: =?UTF-8?B?" . base64_encode($subject) . "?=\r\n"
+            . "MIME-Version: 1.0\r\nContent-Type: text/html; charset=UTF-8\r\n"
+            . "Content-Transfer-Encoding: base64\r\n\r\n";
+        $body = rtrim(chunk_split(base64_encode($html), 76, "\r\n"));
+        fwrite($fp, $headers . $body . "\r\n.\r\n");
+        $this->read($fp);
+        $this->cmd($fp, 'QUIT');
+        fclose($fp);
+        return true;
+    }
+
     public function configured(): bool
     {
         $c = $this->resolve();

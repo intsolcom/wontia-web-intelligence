@@ -33,35 +33,155 @@ if (!$loggedIn):
         .login-box input:focus{border-color:#22d3ee;box-shadow:0 0 0 3px rgba(34,211,238,.12)}
         .login-box button{width:100%;padding:12px;border-radius:8px;border:none;background:linear-gradient(120deg,#22d3ee,#8b5cf6);color:#041018;font-size:14px;font-weight:700;cursor:pointer;transition:filter .2s}
         .login-box button:hover{filter:brightness(1.1)}
+        .login-box button.ghost{background:transparent;border:1px solid rgba(148,163,184,.28);color:#a9b6c9}
         .login-error{color:#f87171;font-size:12px;margin-bottom:12px;display:none}
+        .login-ok{color:#34d399;font-size:12px;margin-bottom:12px;display:none}
+        .login-alt{text-align:center;margin-top:16px}
+        .login-alt a{font-size:12px;color:#67e8f9;text-decoration:none}
+        .login-alt a:hover{text-decoration:underline}
+        .otp-input{letter-spacing:8px;text-align:center;font-family:'JetBrains Mono',Consolas,monospace;font-size:20px}
         .logo{display:flex;align-items:center;gap:8px;margin-bottom:24px}
         .logo-icon{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#22d3ee,#8b5cf6);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;color:#041018}
     </style>
 </head>
 <body>
-<div class="login-box">
+<div class="login-box" id="login-box">
     <div class="logo"><div class="logo-icon">W</div><span style="font-weight:600;font-size:15px">WWI Wontia Web Intelligence</span></div>
     <h1>Welcome back</h1>
     <p>Sign in to manage your website</p>
     <div class="login-error" id="login-error">Invalid credentials</div>
+    <div class="login-ok" id="login-ok"></div>
     <form id="login-form">
         <label>Username or Email</label>
-        <input type="text" id="login-user" placeholder="admin" required/>
+        <input type="text" id="login-user" placeholder="admin" autocomplete="username" required/>
         <label>Password</label>
-        <input type="password" id="login-pass" placeholder="Password" required/>
+        <input type="password" id="login-pass" placeholder="Password" autocomplete="current-password" required/>
         <button type="submit">Sign in</button>
     </form>
+    <div class="login-alt"><a href="#" id="forgot-link">¿Olvidaste tu contraseña?</a></div>
+</div>
+
+<div class="login-box" id="twofa-box" style="display:none">
+    <div class="logo"><div class="logo-icon">W</div><span style="font-weight:600;font-size:15px">Verificación en dos pasos</span></div>
+    <h1>Código de seguridad</h1>
+    <p>Abre Google Authenticator e introduce el código de 6 dígitos.</p>
+    <div class="login-error" id="twofa-error">Código incorrecto</div>
+    <form id="twofa-form">
+        <input type="hidden" id="twofa-challenge"/>
+        <input type="hidden" id="twofa-recovery-mode" value="0"/>
+        <label id="twofa-code-label">Código de autenticación</label>
+        <input type="text" id="twofa-code" class="otp-input" inputmode="numeric" autocomplete="one-time-code" maxlength="9" placeholder="000000" required/>
+        <button type="submit">Verificar</button>
+    </form>
+    <div class="login-alt"><a href="#" id="twofa-recovery-toggle">Usar código de recuperación</a></div>
+    <div class="login-alt"><a href="#" id="twofa-cancel">Volver al inicio de sesión</a></div>
+</div>
+
+<div class="login-box" id="forgot-box" style="display:none">
+    <div class="logo"><div class="logo-icon">W</div><span style="font-weight:600;font-size:15px">Recuperar acceso</span></div>
+    <h1>Recuperar contraseña</h1>
+    <p>Te enviaremos un código de verificación a tu correo registrado.</p>
+    <div class="login-error" id="forgot-error">Error</div>
+
+    <form id="forgot-step1">
+        <label>Usuario o correo</label>
+        <input type="text" id="forgot-login" placeholder="usuario o correo registrado" required/>
+        <button type="submit">Enviar código</button>
+    </form>
+
+    <form id="forgot-step2" style="display:none">
+        <div class="login-error" id="forgot-error2">Código inválido o expirado</div>
+        <label>Código de verificación (6 dígitos)</label>
+        <input type="text" id="otp-code" class="otp-input" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000" required/>
+        <button type="submit">Verificar código</button>
+    </form>
+
+    <form id="forgot-step3" style="display:none">
+        <div class="login-error" id="forgot-error3">Error</div>
+        <input type="hidden" id="reset-token"/>
+        <label>Nueva contraseña</label>
+        <input type="password" id="reset-pass" autocomplete="new-password" placeholder="Mín. 10, mayúscula, minúscula y número" required/>
+        <label>Confirmar contraseña</label>
+        <input type="password" id="reset-pass2" autocomplete="new-password" placeholder="Repite la contraseña" required/>
+        <button type="submit">Restablecer contraseña</button>
+    </form>
+
+    <div class="login-alt"><a href="#" id="forgot-back">Volver al inicio de sesión</a></div>
 </div>
 <script>
-document.getElementById('login-form').addEventListener('submit',async function(e){
-    e.preventDefault();
-    var u=document.getElementById('login-user').value,p=document.getElementById('login-pass').value,e=document.getElementById('login-error');
-    try{
-        var r=await fetch('/api/v1/admin/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,password:p})});
-        var d=await r.json();
-        if(d.ok){try{localStorage.setItem('wwi_token',d.token||'')}catch(x){}window.location.reload()}else{e.textContent=d.message||'Invalid credentials';e.style.display='block'}
-    }catch(x){e.textContent='Connection error';e.style.display='block'}
-});
+(function(){
+    var $=function(id){return document.getElementById(id)};
+    function api(url,body){
+        return fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body||{})})
+            .then(function(r){return r.json().then(function(d){return {status:r.status,body:d}})})
+            .catch(function(){return {status:0,body:{message:'Connection error. Intenta de nuevo.'}}});
+    }
+    function err(id,msg){var e=$(id);e.textContent=msg;e.style.display='block'}
+    function hideErr(id){var e=$(id);if(e)e.style.display='none'}
+    function box(id,show){$(id).style.display=show?'block':'none'}
+    function done(d){try{localStorage.setItem('wwi_token',d.token||'')}catch(x){}window.location.reload()}
+
+    $('login-form').addEventListener('submit',async function(e){
+        e.preventDefault();
+        hideErr('login-error');
+        var r=await api('/api/v1/admin/auth/login',{username:$('login-user').value,password:$('login-pass').value});
+        var d=r.body;
+        if(d.ok){done(d);return}
+        if(d.twofa_required){$('twofa-challenge').value=d.challenge||'';box('login-box',false);box('twofa-box',true);$('twofa-code').focus();return}
+        err('login-error',d.message||'Invalid credentials');
+    });
+
+    $('twofa-form').addEventListener('submit',async function(e){
+        e.preventDefault();
+        hideErr('twofa-error');
+        var r=await api('/api/v1/admin/auth/2fa/verify',{challenge:$('twofa-challenge').value,code:$('twofa-code').value,recovery:$('twofa-recovery-mode').value==='1'});
+        var d=r.body;
+        if(d.ok){done(d);return}
+        err('twofa-error',d.message||'Código incorrecto');
+    });
+    $('twofa-recovery-toggle').addEventListener('click',function(e){
+        e.preventDefault();
+        var m=$('twofa-recovery-mode');m.value=m.value==='1'?'0':'1';
+        var rec=m.value==='1';
+        $('twofa-code-label').textContent=rec?'Código de recuperación':'Código de autenticación';
+        $('twofa-code').setAttribute('inputmode',rec?'text':'numeric');
+        $('twofa-code').setAttribute('maxlength',rec?'9':'6');
+        $('twofa-code').value='';
+        this.textContent=rec?'Usar código de autenticación':'Usar código de recuperación';
+    });
+    $('twofa-cancel').addEventListener('click',function(e){e.preventDefault();box('twofa-box',false);box('login-box',true);$('twofa-code').value=''});
+
+    $('forgot-link').addEventListener('click',function(e){e.preventDefault();box('login-box',false);box('forgot-box',true);$('forgot-login').focus()});
+    $('forgot-back').addEventListener('click',function(e){e.preventDefault();box('forgot-box',false);box('login-box',true)});
+
+    $('forgot-step1').addEventListener('submit',async function(e){
+        e.preventDefault();
+        hideErr('forgot-error');
+        var r=await api('/api/v1/admin/auth/forgot',{login:$('forgot-login').value});
+        if(r.status===429){err('forgot-error',r.body.message||'Demasiadas solicitudes.');return}
+        box('forgot-step1',false);box('forgot-step2',true);$('otp-code').focus();
+    });
+    $('forgot-step2').addEventListener('submit',async function(e){
+        e.preventDefault();
+        hideErr('forgot-error2');
+        var r=await api('/api/v1/admin/auth/verify-otp',{login:$('forgot-login').value,code:$('otp-code').value});
+        var d=r.body;
+        if(!d.ok){err('forgot-error2',d.message||'Código inválido o expirado');return}
+        $('reset-token').value=d.reset_token||'';
+        box('forgot-step2',false);box('forgot-step3',true);$('reset-pass').focus();
+    });
+    $('forgot-step3').addEventListener('submit',async function(e){
+        e.preventDefault();
+        hideErr('forgot-error3');
+        var r=await api('/api/v1/admin/auth/reset-password',{token:$('reset-token').value,password:$('reset-pass').value,password_confirm:$('reset-pass2').value});
+        var d=r.body;
+        if(!d.ok){err('forgot-error3',d.message||'Error');return}
+        box('forgot-box',false);box('login-box',true);
+        hideErr('login-error');
+        var ok=$('login-ok');ok.textContent='Contraseña actualizada. Inicia sesión con tu nueva contraseña.';ok.style.display='block';
+        $('login-pass').value='';$('login-pass').focus();
+    });
+})();
 </script>
 </body>
 </html>

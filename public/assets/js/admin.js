@@ -1303,11 +1303,114 @@ W.renderSettings=function(tab){
     W.state.settingsTab=tab||'general';
     var t=W.state.settingsTab;
     var tabBtn=function(id,label){return '<button class="w-btn '+(t===id?'w-btn-primary':'w-btn-secondary')+'" onclick="wontia.renderSettings(\''+id+'\')">'+label+'</button>';};
-    app.innerHTML='<div class="w-flex w-gap-sm" style="margin-bottom:16px;flex-wrap:wrap">'+tabBtn('general','Ajustes')+tabBtn('logo','Logo & Favicon')+tabBtn('cache','Administración de caché')+tabBtn('update','Update')+'</div><div id="settings-panel"></div>';
+    app.innerHTML='<div class="w-flex w-gap-sm" style="margin-bottom:16px;flex-wrap:wrap">'+tabBtn('general','Ajustes')+tabBtn('logo','Logo & Favicon')+tabBtn('security','Seguridad')+tabBtn('cache','Administración de caché')+tabBtn('update','Update')+'</div><div id="settings-panel"></div>';
     if(t==='logo')W.renderLogoPanel();
+    else if(t==='security')W.renderSecurityPanel();
     else if(t==='cache')W.renderCachePanel();
     else if(t==='update')W.renderUpdatePanel();
     else W.renderSettingsGeneral();
+};
+
+W.loadQrLib=function(){
+    return new Promise(function(res){
+        if(window.QRCode)return res(true);
+        var s=document.createElement('script');
+        s.src='https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js';
+        s.onload=function(){res(!!window.QRCode)};
+        s.onerror=function(){res(false)};
+        document.head.appendChild(s);
+    });
+};
+
+W.renderSecurityPanel=async function(){
+    var panel=document.getElementById('settings-panel'); if(!panel)return;
+    panel.innerHTML='<div style="padding:20px;color:var(--w-muted)">Cargando…</div>';
+    var d=await W.api('/api/v1/admin/auth/2fa/status'); var o=d.data||{};
+    var html='<div class="w-card"><h3>Acceso y seguridad</h3><div style="font-size:11px;color:var(--w-muted);line-height:1.7;margin-bottom:4px">Protege tu cuenta con autenticación en dos pasos (Google Authenticator) y recuperación por correo.</div></div>';
+    html+='<div class="w-card"><h3>Autenticación en dos pasos (2FA)</h3>';
+    html+='<div style="font-size:11px;color:var(--w-muted);line-height:1.7;margin-bottom:12px">Además de tu contraseña, al iniciar sesión pediremos un código temporal de 6 dígitos generado por tu app.</div>';
+    if(o.enabled){
+        html+='<div style="font-size:12px;margin-bottom:4px">Estado: <b style="color:#34d399">ACTIVO</b></div>';
+        html+='<div style="font-size:11px;color:var(--w-muted)">Activado: '+W.esc(o.confirmed_at||'—')+' · Códigos de recuperación restantes: <b>'+o.recovery_remaining+'</b></div>';
+        html+='<div class="w-flex w-gap-sm" style="margin-top:12px;flex-wrap:wrap"><button class="w-btn w-btn-secondary" onclick="wontia.secRegenRecovery()">Regenerar códigos de recuperación</button><button class="w-btn w-btn-danger" onclick="wontia.secDisable()">Desactivar 2FA</button></div>';
+    }else{
+        html+='<div style="font-size:12px;margin-bottom:10px">Estado: <b style="color:#fbbf24">INACTIVO</b></div>';
+        if(!o.mail_configured){ html+='<div style="font-size:11px;color:#fbbf24;margin-bottom:10px">Aviso: el correo SMTP no está configurado; la recuperación por email no podrá enviar códigos.</div>'; }
+        html+='<button class="w-btn w-btn-primary" onclick="wontia.secSetup()">Activar 2FA</button>';
+    }
+    html+='</div>';
+    html+='<div class="w-card"><h3>Recuperación de contraseña</h3><div style="font-size:11px;color:var(--w-muted);line-height:1.7">En la pantalla de login, el enlace <b>¿Olvidaste tu contraseña?</b> envía un código OTP de un solo uso al correo registrado del usuario. Correo SMTP: <b>'+(o.mail_configured?'configurado':'no configurado')+'</b>.</div></div>';
+    html+='<div id="sec-setup"></div>';
+    panel.innerHTML=html;
+};
+
+W.secSetup=async function(){
+    var r=await W.api('/api/v1/admin/auth/2fa/setup',{method:'POST'});
+    if(!r.ok)return;
+    var d=r.data||{};
+    var box=document.getElementById('sec-setup');
+    if(!box)return;
+    box.innerHTML='<div class="w-card"><h3>Escanea el código QR</h3>'+
+        '<div style="font-size:11px;color:var(--w-muted);margin-bottom:12px">Abre Google Authenticator → “+” → Escanear código QR. Si no puedes escanear, añade la clave manual.</div>'+
+        '<div id="sec-qr" style="background:#fff;width:220px;height:220px;border-radius:12px;display:flex;align-items:center;justify-content:center;margin-bottom:12px"></div>'+
+        '<div style="font-size:11px;color:var(--w-muted);margin-bottom:6px">Clave manual:</div>'+
+        '<code style="font-family:\'JetBrains Mono\',monospace;font-size:13px;letter-spacing:1px;background:var(--w-surface);padding:8px 10px;border-radius:8px;display:inline-block;word-break:break-all">'+W.esc(d.secret)+'</code>'+
+        '<div class="w-form-group" style="margin-top:14px;max-width:220px"><label class="w-label">Código de 6 dígitos de la app</label><input class="w-input" id="sec-enable-code" inputmode="numeric" maxlength="6" placeholder="000000"/></div>'+
+        '<div class="w-flex w-gap-sm"><button class="w-btn w-btn-primary" onclick="wontia.secEnable()">Verificar y activar</button><button class="w-btn w-btn-secondary" onclick="wontia.renderSecurityPanel()">Cancelar</button></div></div>';
+    var ok=await W.loadQrLib();
+    var qr=document.getElementById('sec-qr');
+    if(ok&&window.QRCode){
+        var canvas=document.createElement('canvas');
+        qr.appendChild(canvas);
+        try{
+            window.QRCode.toCanvas(canvas,d.otpauth_uri,{width:200,margin:1},function(e){
+                if(e)qr.innerHTML='<span style="color:#111;font-size:11px;padding:10px;text-align:center">No se pudo dibujar el QR. Usa la clave manual.</span>';
+            });
+        }catch(e){ qr.innerHTML='<span style="color:#111;font-size:11px;padding:10px;text-align:center">Usa la clave manual.</span>'; }
+    }else{
+        qr.innerHTML='<span style="color:#111;font-size:11px;padding:10px;text-align:center">QR no disponible sin conexión. Usa la clave manual.</span>';
+    }
+};
+
+W.secEnable=async function(){
+    var code=(document.getElementById('sec-enable-code')||{}).value||'';
+    var r=await W.api('/api/v1/admin/auth/2fa/enable',{method:'POST',body:{code:code}});
+    if(!r.ok)return;
+    var codes=(r.data&&r.data.recovery_codes)||[];
+    W._secCodes=codes;
+    var box=document.getElementById('sec-setup');
+    box.innerHTML='<div class="w-card" style="border-color:rgba(52,211,153,.5)"><h3 style="color:#34d399">2FA activado</h3>'+
+        '<div style="font-size:11px;color:var(--w-muted);margin-bottom:10px">Guarda estos códigos de recuperación en un lugar seguro. Cada uno sirve una sola vez si pierdes tu dispositivo.</div>'+
+        '<div style="font-family:\'JetBrains Mono\',monospace;font-size:13px;line-height:2;background:var(--w-surface);padding:12px;border-radius:10px">'+codes.map(function(c){return W.esc(c)}).join('<br>')+'</div>'+
+        '<div class="w-flex w-gap-sm" style="margin-top:12px"><button class="w-btn w-btn-secondary" onclick="wontia.secCopyCodes()">Copiar códigos</button><button class="w-btn w-btn-primary" onclick="wontia.renderSecurityPanel()">Listo</button></div></div>';
+    W.notify('2FA activado','success');
+};
+
+W.secCopyCodes=function(){
+    var txt=(W._secCodes||[]).join('\n');
+    try{navigator.clipboard.writeText(txt);W.notify('Códigos copiados','success')}catch(e){W.notify('No se pudo copiar','error')}
+};
+
+W.secDisable=function(){
+    var body='<div class="w-form-group"><label class="w-label">Contraseña actual</label><input class="w-input" type="password" id="sec-dis-pass" placeholder="Tu contraseña"/></div>'+
+        '<div class="w-form-group"><label class="w-label">o un código 2FA / de recuperación</label><input class="w-input" id="sec-dis-code" placeholder="000000" maxlength="9"/></div>';
+    W.modal('Desactivar 2FA',body,'<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cancelar</button><button class="w-btn w-btn-danger" id="sec-dis-go">Desactivar</button>');
+    document.getElementById('sec-dis-go').addEventListener('click',async function(){
+        var r=await W.api('/api/v1/admin/auth/2fa/disable',{method:'POST',body:{password:(document.getElementById('sec-dis-pass').value||''),code:(document.getElementById('sec-dis-code').value||'')}});
+        if(r.ok){W.closeModal();W.notify('2FA desactivado','success');W.renderSecurityPanel();}
+    });
+};
+
+W.secRegenRecovery=function(){
+    var body='<div class="w-form-group"><label class="w-label">Código 2FA actual</label><input class="w-input" id="sec-reg-code" inputmode="numeric" maxlength="6" placeholder="000000"/></div>';
+    W.modal('Regenerar códigos de recuperación',body,'<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cancelar</button><button class="w-btn w-btn-primary" id="sec-reg-go">Generar</button>');
+    document.getElementById('sec-reg-go').addEventListener('click',async function(){
+        var r=await W.api('/api/v1/admin/auth/2fa/recovery/regenerate',{method:'POST',body:{code:(document.getElementById('sec-reg-code').value||'')}});
+        if(!r.ok)return;
+        var codes=(r.data&&r.data.recovery_codes)||[];W._secCodes=codes;
+        W.closeModal();
+        W.modal('Nuevos códigos', '<div style="font-size:11px;color:var(--w-muted);margin-bottom:10px">Guárdalos ahora; no se volverán a mostrar.</div><div style="font-family:\'JetBrains Mono\',monospace;font-size:13px;line-height:2">'+codes.map(function(c){return W.esc(c)}).join('<br>')+'</div>','<button class="w-btn w-btn-primary" onclick="wontia.closeModal();wontia.renderSecurityPanel()">Entendido</button>');
+    });
 };
 
 W.renderCachePanel=async function(){

@@ -169,6 +169,10 @@ $router->get('/api/v1/health', function () {
 });
 
 $router->post('/api/v1/admin/auth/login', [\App\Controllers\Admin\AuthController::class, 'login']);
+$router->post('/api/v1/admin/auth/forgot', [\App\Controllers\Admin\AuthController::class, 'forgot']);
+$router->post('/api/v1/admin/auth/verify-otp', [\App\Controllers\Admin\AuthController::class, 'verifyOtp']);
+$router->post('/api/v1/admin/auth/reset-password', [\App\Controllers\Admin\AuthController::class, 'resetPassword']);
+$router->post('/api/v1/admin/auth/2fa/verify', [\App\Controllers\Admin\AuthController::class, 'twofaVerify']);
 
 $router->get('/api/v1/brick/health', function () {
     $db = \App\Core\Database::instance();
@@ -193,6 +197,12 @@ $router->group('/api/v1/brick', function (Router $r) {
 $router->group('/api/v1/admin', function (Router $r) {
     $r->post('/auth/logout', [\App\Controllers\Admin\AuthController::class, 'logout']);
     $r->get('/auth/me', [\App\Controllers\Admin\AuthController::class, 'me']);
+
+    $r->get('/auth/2fa/status', [\App\Controllers\Admin\AuthController::class, 'twofaStatus']);
+    $r->post('/auth/2fa/setup', [\App\Controllers\Admin\AuthController::class, 'twofaSetup']);
+    $r->post('/auth/2fa/enable', [\App\Controllers\Admin\AuthController::class, 'twofaEnable']);
+    $r->post('/auth/2fa/disable', [\App\Controllers\Admin\AuthController::class, 'twofaDisable']);
+    $r->post('/auth/2fa/recovery/regenerate', [\App\Controllers\Admin\AuthController::class, 'twofaRecoveryRegenerate']);
 
     $r->get('/dashboard', [\App\Controllers\Admin\DashboardController::class, 'index']);
 

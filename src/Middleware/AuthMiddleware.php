@@ -55,16 +55,52 @@ class AuthMiddleware
 
     public static function validateJwt(string $token): ?array
     {
+        $payload = self::decodeSigned($token);
+        if (!$payload || !isset($payload['exp'])) return null;
+        if ($payload['exp'] < time()) return null;
+        // Los tokens con propósito (2fa, reset) nunca son sesión válida.
+        if (!empty($payload['purpose'])) return null;
+        return $payload;
+    }
+
+    private static function decodeSigned(string $token): ?array
+    {
         $parts = explode('.', $token);
         if (count($parts) !== 3) return null;
         $payload = json_decode(base64_decode(strtr($parts[1], '-_', '+/')), true);
-        if (!$payload || !isset($payload['exp'])) return null;
-        if ($payload['exp'] < time()) return null;
+        if (!$payload) return null;
         $secret = self::secret();
         if ($secret === null) return null;
         $sig = hash_hmac('sha256', "$parts[0].$parts[1]", $secret, true);
         $sigB64 = rtrim(strtr(base64_encode($sig), '+/', '-_'), '=');
         if (!hash_equals($sigB64, $parts[2])) return null;
+        return $payload;
+    }
+
+    /** Emite un token firmado con propósito (challenge 2FA, reset de contraseña). */
+    public static function generatePurposeToken(string $purpose, array $claims = [], int $ttlSeconds = 300): string
+    {
+        $secret = self::secret() ?? bin2hex(random_bytes(32));
+        $now = time();
+        $header = rtrim(strtr(base64_encode(json_encode(['alg' => 'HS256', 'typ' => 'JWT'])), '+/', '-_'), '=');
+        $payload = rtrim(strtr(base64_encode(json_encode(array_merge($claims, [
+            'purpose' => $purpose,
+            'iat' => $now,
+            'exp' => $now + $ttlSeconds,
+            'nbf' => $now,
+        ]))), '+/', '-_'), '=');
+        $sig = hash_hmac('sha256', "$header.$payload", $secret, true);
+        $sigB64 = rtrim(strtr(base64_encode($sig), '+/', '-_'), '=');
+        return "$header.$payload.$sigB64";
+    }
+
+    /** Valida un token de propósito y devuelve sus claims, o null. */
+    public static function validatePurposeToken(string $token, string $purpose): ?array
+    {
+        $payload = self::decodeSigned($token);
+        if (!$payload || !isset($payload['exp'])) return null;
+        if ($payload['exp'] < time()) return null;
+        if (($payload['purpose'] ?? '') !== $purpose) return null;
         return $payload;
     }
 
