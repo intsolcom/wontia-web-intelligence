@@ -1,0 +1,34 @@
+{
+    "name": "SEO Optimizer",
+    "slug": "seo-optimizer",
+    "version": "1.0.0",
+    "description": "Optimizador SEO por artículo con IA DeepSeek: scorecard 0-100, metadatos optimizados, keywords & LSI, enlaces internos y sugerencias de mejora",
+    "author": "Wontia",
+    "category": "seo",
+    "brick_class": "App\\Bricks\\SeoOptimizer\\SeoOptimizerBrick",
+    "requires": {
+        "php": ">=8.1",
+        "extensions": ["pdo_mysql", "json", "curl"]
+    },
+    "config": {
+        "ai_enabled": true,
+        "ai_fallback_deepseek": true,
+        "auto_apply": true
+    },
+    "features": [
+        "Análisis SEO completo por artículo con IA",
+        "Scorecard 0-100 con desglose (título, meta, contenido, legibilidad, estructura)",
+        "Metadatos optimizados: SEO Title (≤60), Meta Description (≤155), Keywords",
+        "Keywords & LSI con volumen, dificultad e intención de búsqueda",
+        "Enlaces internos sugeridos (cruza con otros posts del blog)",
+        "Sugerencias de mejora concretas por problema detectado",
+        "Aplicar recomendaciones con un clic (seo_apply_recommendations)",
+        "Dashboard: score promedio, análisis hechos, pendientes, enlaces internos",
+        "Botón \"Analizar todo\": analiza todos los posts en lote",
+        "Tablas DB: seo_analyses, seo_keywords, seo_internal_links"
+    ],
+    "tags": ["seo", "meta", "ai", "analysis", "content", "keywords", "links"],
+    "changelog": {
+        "1.0.0": "Extracción desde admin/seo_module.php: análisis por artículo, scorecard, metadatos IA, keywords LSI, enlaces internos, dashboard"
+    }
+}
