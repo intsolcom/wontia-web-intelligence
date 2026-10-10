@@ -56,7 +56,14 @@ try {
     $stmt->execute(['slug' => $slug]);
     $page = $stmt->fetch();
 
+    $theme = $db->query("SELECT theme FROM sites WHERE id = @site_id")->fetchColumn() ?: Config::get('theme', 'default');
+
     if (!$page) {
+        $themeRouter = ROOT_DIR . '/templates/themes/' . $theme . '/router.php';
+        if (is_file($themeRouter)) {
+            $handled = require $themeRouter;
+            if ($handled) exit;
+        }
         http_response_code(404);
         echo '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>404 — Wontia</title><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet"/><style>body{font-family:Inter,sans-serif;background:#F6F6F3;color:#2F2F2F;text-align:center;padding:100px 20px}h1{font-size:80px;color:#9B8CDE;margin-bottom:8px}p{color:#6B6B6B;margin-bottom:24px}a{display:inline-block;padding:12px 28px;border-radius:12px;background:linear-gradient(135deg,#9B8CDE,#B89EFF);color:#fff;text-decoration:none;font-weight:600}</style></head><body><h1>404</h1><p>The page you\'re looking for doesn\'t exist.</p><a href="/">Go home</a></body></html>';
         exit;
@@ -66,7 +73,6 @@ try {
     $sec->execute(['pid' => $page['id']]);
     $sections = $sec->fetchAll();
 
-    $theme = $db->query("SELECT theme FROM sites WHERE id = @site_id")->fetchColumn() ?: Config::get('theme', 'default');
     require ROOT_DIR . '/templates/themes/' . $theme . '/index.php';
 } catch (\Exception $e) {
     if (Config::get('APP_DEBUG', 'false') === 'true') {

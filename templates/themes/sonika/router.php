@@ -1,0 +1,196 @@
+<?php
+use App\Services\AnalyticsService;
+
+require_once __DIR__ . '/lib.php';
+
+AnalyticsService::track($_SERVER['REQUEST_URI'], $_SERVER['HTTP_REFERER'] ?? '', $_SERVER['HTTP_USER_AGENT'] ?? '');
+
+if (!function_exists('sonika_grid')) {
+    function sonika_grid(array $products): void {
+        if (empty($products)) { echo '<div class="empty">No encontramos productos en esta sección.</div>'; return; }
+        echo '<div class="prod-grid">';
+        foreach ($products as $p) sonika_product_card($p);
+        echo '</div>';
+    }
+}
+
+$path = trim((string)$uri, '/');
+$segments = $path === '' ? [] : explode('/', $path);
+
+if (($segments[0] ?? '') === 'producto' && !empty($segments[1])) {
+    $product = sonika_find($segments[1]);
+    if ($product) {
+        $cat = null;
+        foreach (sonika_categories() as $c) { if (sonika_match($product, $c['kw'])) { $cat = $c; break; } }
+        sonika_site_head(($product['title'] ?? 'Producto') . ' — SONIKA', mb_substr(strip_tags($product['body_html'] ?? ''), 0, 155));
+        $crumbs = [];
+        if ($cat) { $crumbs[$cat['name']] = '/' . $cat['slug']; }
+        $crumbs[$product['title'] ?? 'Producto'] = null;
+        sonika_breadcrumb($crumbs);
+        $img = sonika_img($product, 900);
+        $price = sonika_price($product);
+        $cmp = sonika_compare($product);
+        $avail = sonika_available($product);
+        ?>
+        <section class="wrap pdp">
+          <div>
+            <div class="pdp-gallery"><?php if ($img): ?><img src="<?= sonika_esc($img) ?>" alt="<?= sonika_esc($product['title']) ?>" /><?php endif; ?></div>
+          </div>
+          <div>
+            <span class="pdp-vendor"><?= sonika_esc($product['vendor'] ?? '') ?></span>
+            <h1><?= sonika_esc($product['title']) ?></h1>
+            <div class="pricebox">
+              <span class="price"><?= sonika_cop($price) ?></span>
+              <?php if ($cmp > $price && $price > 0): ?><span class="cmp"><?= sonika_cop($cmp) ?></span><?php endif; ?>
+            </div>
+            <div class="meta">
+              <span class="chip <?= $avail ? 'ok' : 'no' ?>"><?= $avail ? '● Disponible' : '● Agotado' ?></span>
+              <?php if (!empty($product['product_type'])): ?><span class="chip"><?= sonika_esc($product['product_type']) ?></span><?php endif; ?>
+              <span class="chip">SKU <?= sonika_esc(sonika_variant($product)['sku'] ?? '—') ?></span>
+            </div>
+            <div style="display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin:8px 0 20px">
+              <div class="qty">
+                <button type="button" onclick="var i=document.getElementById('qty');i.value=Math.max(1,(+i.value)-1)">−</button>
+                <input id="qty" type="text" value="1" inputmode="numeric" />
+                <button type="button" onclick="var i=document.getElementById('qty');i.value=(+i.value)+1">+</button>
+              </div>
+              <button class="btn-buy" type="button" data-add="<?= sonika_esc($product['handle']) ?>" data-qty-target="qty" data-title="<?= sonika_esc($product['title']) ?>" data-price="<?= (float)$price ?>" data-img="<?= sonika_esc(sonika_img($product)) ?>">Agregar al carrito</button>
+              <a class="cta sec" href="/carrito" style="margin:0">Ir al carrito</a>
+            </div>
+            <div class="trust" style="justify-content:flex-start;gap:16px;border:none;padding:0">
+              <span>🚚 <b>Envío nacional</b></span><span>🛡️ <b>Garantía</b></span><span>💳 <b>Pago seguro</b></span>
+            </div>
+          </div>
+        </section>
+
+        <?php if (!empty($product['body_html'])): ?>
+        <section class="wrap pdp-desc">
+          <h3>Descripción del producto</h3>
+          <div><?= sonika_safe_html((string)$product['body_html']) ?></div>
+        </section>
+        <?php endif; ?>
+
+        <?php $rel = sonika_related($product, 4); if (!empty($rel)): ?>
+        <section class="pad wrap">
+          <div class="head"><h2>Productos relacionados</h2></div>
+          <?php sonika_grid($rel); ?>
+        </section>
+        <?php endif; ?>
+        <?php
+        sonika_site_footer();
+        return true;
+    }
+    return false;
+}
+
+$cat = sonika_category($path);
+if ($cat) {
+    $items = sonika_category_products($cat['slug']);
+    sonika_site_head($cat['name'] . ' — SONIKA', $cat['name'] . ': ' . $cat['tags'] . '. Compra en SONIKA con envío a toda Colombia.');
+    sonika_breadcrumb([$cat['name'] => null]);
+    ?>
+    <section class="pad wrap">
+      <div class="head"><h1><?= sonika_esc($cat['name']) ?></h1><a href="/tienda">Ver toda la tienda →</a></div>
+      <div class="toolbar">
+        <span class="resultcount"><?= count($items) ?> producto(s) en <?= sonika_esc($cat['name']) ?></span>
+        <div class="filters">
+          <?php foreach (sonika_categories() as $c): ?>
+            <a class="<?= $c['slug'] === $cat['slug'] ? 'on' : '' ?>" href="/<?= sonika_esc($c['slug']) ?>"><?= sonika_esc($c['name']) ?></a>
+          <?php endforeach; ?>
+        </div>
+      </div>
+      <?php sonika_grid($items); ?>
+    </section>
+    <?php
+    sonika_site_footer();
+    return true;
+}
+
+switch ($segments[0] ?? '') {
+    case 'tienda':
+        $items = sonika_products();
+        sonika_site_head('Tienda — SONIKA', 'Todos los instrumentos, audio, iluminación y accesorios disponibles en SONIKA.');
+        sonika_breadcrumb(['Tienda' => null]);
+        ?>
+        <section class="pad wrap">
+          <div class="head"><h1>Tienda</h1><span class="resultcount"><?= count($items) ?> productos</span></div>
+          <div class="filters" style="margin-bottom:20px">
+            <a href="/tienda" class="on">Todos</a>
+            <?php foreach (sonika_categories() as $c): ?><a href="/<?= sonika_esc($c['slug']) ?>"><?= sonika_esc($c['name']) ?></a><?php endforeach; ?>
+          </div>
+          <?php sonika_grid($items); ?>
+        </section>
+        <?php
+        sonika_site_footer();
+        return true;
+
+    case 'ofertas':
+        $items = array_values(array_filter(sonika_products(), function ($p) { return sonika_compare($p) > sonika_price($p) && sonika_price($p) > 0; }));
+        sonika_site_head('Ofertas — SONIKA', 'Instrumentos y equipos en oferta en SONIKA.');
+        sonika_breadcrumb(['Ofertas' => null]);
+        ?>
+        <section class="pad wrap">
+          <div class="head"><h1>Ofertas 🔥</h1><span class="resultcount"><?= count($items) ?> productos en promoción</span></div>
+          <?php sonika_grid($items); ?>
+        </section>
+        <?php
+        sonika_site_footer();
+        return true;
+
+    case 'buscar':
+        $q = trim((string)($_GET['q'] ?? ''));
+        $items = $q === '' ? [] : sonika_search($q);
+        sonika_site_head('Buscar' . ($q ? ': ' . $q : '') . ' — SONIKA', 'Resultados de búsqueda en SONIKA.');
+        sonika_breadcrumb(['Buscar' => null]);
+        ?>
+        <section class="pad wrap">
+          <div class="head"><h1><?= $q !== '' ? 'Resultados para “' . sonika_esc($q) . '”' : 'Buscar' ?></h1><span class="resultcount"><?= count($items) ?> resultado(s)</span></div>
+          <?php sonika_grid($items); ?>
+        </section>
+        <?php
+        sonika_site_footer();
+        return true;
+
+    case 'carrito':
+        sonika_site_head('Carrito — SONIKA', 'Revisa los productos de tu carrito.');
+        sonika_breadcrumb(['Carrito' => null]);
+        ?>
+        <section class="wrap" id="cartPage">
+          <h1 style="font-family:'Sora',sans-serif;padding:24px 0 6px">Tu carrito</h1>
+          <div class="cart-wrap">
+            <div id="cartItems"></div>
+            <aside class="summary" id="cartSummary"></aside>
+          </div>
+        </section>
+        <?php
+        sonika_site_footer();
+        return true;
+
+    case 'marcas':
+        $brands = [];
+        foreach (sonika_products() as $p) {
+            $v = trim((string)($p['vendor'] ?? ''));
+            if ($v === '') continue;
+            $brands[$v] = ($brands[$v] ?? 0) + 1;
+        }
+        ksort($brands);
+        sonika_site_head('Marcas — SONIKA', 'Marcas disponibles en SONIKA.');
+        sonika_breadcrumb(['Marcas' => null]);
+        ?>
+        <section class="pad wrap">
+          <div class="head"><h1>Marcas</h1><span class="resultcount"><?= count($brands) ?> marcas</span></div>
+          <div class="cat-grid">
+            <?php foreach ($brands as $name => $n): ?>
+              <a class="cat" href="/buscar?q=<?= urlencode($name) ?>">
+                <h3><?= sonika_esc($name) ?></h3>
+                <p><?= (int)$n ?> producto(s)</p>
+              </a>
+            <?php endforeach; ?>
+          </div>
+        </section>
+        <?php
+        sonika_site_footer();
+        return true;
+}
+
+return false;
