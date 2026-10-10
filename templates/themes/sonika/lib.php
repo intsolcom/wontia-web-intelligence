@@ -152,6 +152,15 @@ if (!function_exists('sonika_related')) {
     }
 }
 
+if (!function_exists('sonika_logo_tag')) {
+    function sonika_logo_tag(): string {
+        $root = defined('ROOT_DIR') ? ROOT_DIR : dirname(__DIR__, 3);
+        if (is_file($root . '/public/assets/themes/sonika/logo-transparent.png')) {
+            return '<img class="logo-img" src="/assets/themes/sonika/logo-transparent.png" alt="SONIKA" />';
+        }
+        return '<span class="mark">S</span>SONIKA';
+    }
+}
 if (!function_exists('sonika_site_head')) {
     function sonika_site_head(string $title, string $desc = ''): void {
         $pageMeta = [
@@ -165,7 +174,7 @@ if (!function_exists('sonika_site_head')) {
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <?= SeoService::metaTags($pageMeta) ?>
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%234F46E5'/%3E%3Ctext x='16' y='23' font-family='sans-serif' font-size='19' font-weight='800' fill='white' text-anchor='middle'%3ES%3C/text%3E%3C/svg%3E" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%23F20D16'/%3E%3Ctext x='16' y='23' font-family='sans-serif' font-size='19' font-weight='800' fill='white' text-anchor='middle'%3ES%3C/text%3E%3C/svg%3E" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Sora:wght@600;700;800&display=swap" rel="stylesheet" />
     <style><?= sonika_css() ?></style>
@@ -175,7 +184,7 @@ if (!function_exists('sonika_site_head')) {
 <header class="site">
   <div class="wrap">
     <div class="nav">
-      <a class="logo" href="/"><span class="mark">S</span>SONIKA</a>
+      <a class="logo" href="/"><?= sonika_logo_tag() ?></a>
       <form class="search" action="/buscar" method="get" role="search">
         <input type="search" name="q" placeholder="Busca instrumentos, marcas, referencias…" aria-label="Buscar" value="<?= sonika_esc($_GET['q'] ?? '') ?>" />
         <button type="submit">Buscar</button>
@@ -262,7 +271,7 @@ if (!function_exists('sonika_css')) {
     function sonika_css(): string {
         return <<<'CSS'
         *{box-sizing:border-box;margin:0;padding:0}
-        :root{--ink:#111827;--muted:#6B7280;--line:#E5E7EB;--soft:#F7F7FB;--brand:#4F46E5;--brand2:#7C3AED;--accent:#FF7A18;--ok:#059669;--radius:16px}
+        :root{--ink:#111111;--muted:#777777;--line:#E6E6E6;--soft:#F5F5F5;--brand:#F20D16;--brand2:#C70A12;--accent:#F20D16;--ok:#0E9F6E;--radius:12px}
         body{font-family:'Inter',system-ui,sans-serif;color:var(--ink);background:#fff;-webkit-font-smoothing:antialiased}
         a{color:inherit;text-decoration:none}
         .wrap{max-width:1180px;margin:0 auto;padding:0 22px}
@@ -270,7 +279,8 @@ if (!function_exists('sonika_css')) {
         header.site{position:sticky;top:0;z-index:80;background:rgba(255,255,255,.92);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
         .nav{display:flex;align-items:center;gap:20px;padding:14px 0}
         .logo{display:flex;align-items:center;gap:10px;font-family:'Sora',sans-serif;font-weight:800;font-size:21px;letter-spacing:-.02em}
-        .logo .mark{width:36px;height:36px;border-radius:11px;background:linear-gradient(135deg,var(--brand),var(--brand2));display:flex;align-items:center;justify-content:center;color:#fff;font-size:19px;box-shadow:0 6px 18px rgba(79,70,229,.35)}
+        .logo .mark{width:36px;height:36px;border-radius:11px;background:linear-gradient(135deg,var(--brand),var(--brand2));display:flex;align-items:center;justify-content:center;color:#fff;font-size:19px;box-shadow:0 6px 18px rgba(242,13,22,.35)}
+        .logo-img{height:34px;width:auto;display:block}
         .search{flex:1;display:flex;align-items:center;gap:8px;background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:10px 14px;min-width:140px}
         .search input{flex:1;border:none;background:none;outline:none;font-size:14px;font-family:inherit}
         .search button{border:none;background:var(--brand);color:#fff;border-radius:9px;padding:8px 14px;font-weight:600;cursor:pointer;font-size:13px}
@@ -280,7 +290,7 @@ if (!function_exists('sonika_css')) {
         .cats{display:flex;gap:18px;padding:10px 0;overflow-x:auto;font-size:13.5px;font-weight:500;color:var(--muted)}
         .cats a{white-space:nowrap;padding:6px 2px;border-bottom:2px solid transparent}
         .cats a:hover{color:var(--ink);border-color:var(--brand)}
-        .hero{overflow:hidden;background:radial-gradient(1200px 500px at 80% -10%,#EEF2FF 0%,#fff 55%);border-bottom:1px solid var(--line)}
+        .hero{overflow:hidden;background:radial-gradient(1200px 500px at 80% -10%,#FFEAEA 0%,#fff 55%);border-bottom:1px solid var(--line)}
         .hero-in{display:grid;grid-template-columns:1.1fr .9fr;gap:40px;align-items:center;padding:64px 0}
         .hero h1{font-family:'Sora',sans-serif;font-size:48px;line-height:1.05;letter-spacing:-.03em;font-weight:800}
         .hero h1 em{font-style:normal;background:linear-gradient(120deg,var(--brand),var(--brand2));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
@@ -289,7 +299,7 @@ if (!function_exists('sonika_css')) {
         .cta.sec{background:#fff;color:var(--ink);border:1px solid var(--line);box-shadow:none;margin-left:10px}
         .hero-art{display:grid;grid-template-columns:1fr 1fr;gap:14px}
         .art{border-radius:18px;min-height:130px;display:flex;align-items:flex-end;padding:14px;color:#fff;font-weight:700;font-size:15px}
-        .art.a{background:linear-gradient(135deg,#4F46E5,#7C3AED)}.art.b{background:linear-gradient(135deg,#FF7A18,#F59E0B)}.art.c{background:linear-gradient(135deg,#0EA5E9,#22D3EE)}.art.d{background:linear-gradient(135deg,#111827,#374151)}
+        .art.a{background:linear-gradient(135deg,#F20D16,#C70A12)}.art.b{background:linear-gradient(135deg,#111111,#3F3F46)}.art.c{background:linear-gradient(135deg,#F20D16,#F59E0B)}.art.d{background:linear-gradient(135deg,#111827,#374151)}
         .trust{display:flex;flex-wrap:wrap;gap:22px;justify-content:center;padding:20px 0;border-bottom:1px solid var(--line);color:var(--muted);font-size:13px;font-weight:600}
         .trust b{color:var(--ink)}
         section.pad{padding:48px 0}
@@ -318,8 +328,8 @@ if (!function_exists('sonika_css')) {
         .add{margin-top:8px;border:none;background:var(--ink);color:#fff;border-radius:10px;padding:10px;font-weight:600;cursor:pointer;font-size:13px;font-family:inherit}
         .add:hover{background:var(--brand)}
         .empty{padding:40px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:var(--radius)}
-        .band{background:linear-gradient(120deg,#111827,#312E81);color:#fff;border-radius:22px;padding:42px;display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap}
-        .band h2{font-family:'Sora',sans-serif;font-size:28px;letter-spacing:-.02em}.band p{color:#C7D2FE;margin-top:8px;max-width:520px}
+        .band{background:linear-gradient(120deg,#111111,#C70A12);color:#fff;border-radius:22px;padding:42px;display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap}
+        .band h2{font-family:'Sora',sans-serif;font-size:28px;letter-spacing:-.02em}.band p{color:#FFD9DB;margin-top:8px;max-width:520px}
         .pdp{display:grid;grid-template-columns:1.05fr .95fr;gap:44px;padding:28px 0 10px}
         .pdp-gallery{border:1px solid var(--line);border-radius:20px;overflow:hidden;background:#F8F8FB;aspect-ratio:1;display:flex;align-items:center;justify-content:center}
         .pdp-gallery img{width:100%;height:100%;object-fit:contain;mix-blend-mode:multiply}
@@ -349,11 +359,11 @@ if (!function_exists('sonika_css')) {
         .summary{border:1px solid var(--line);border-radius:18px;padding:22px;position:sticky;top:120px}
         .summary .row{display:flex;justify-content:space-between;padding:8px 0;font-size:14px}
         .summary .total{font-size:20px;font-weight:800;border-top:1px solid var(--line);margin-top:10px;padding-top:14px}
-        footer.site{background:#0B1020;color:#9CA3AF;padding:48px 0 26px;margin-top:20px}
+        footer.site{background:#111111;color:#BBBBBB;padding:48px 0 26px;margin-top:20px}
         .fgrid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:28px}
         footer.site h4{color:#fff;font-size:14px;margin-bottom:12px}
         footer.site a{display:block;padding:4px 0;font-size:13px}footer.site a:hover{color:#fff}
-        .fbot{border-top:1px solid #1F2937;margin-top:30px;padding-top:18px;font-size:12px;text-align:center}
+        .fbot{border-top:1px solid #262626;margin-top:30px;padding-top:18px;font-size:12px;text-align:center}
         .toast{position:fixed;bottom:24px;right:24px;background:#111827;color:#fff;padding:14px 20px;border-radius:12px;font-size:14px;font-weight:600;box-shadow:0 12px 30px rgba(0,0,0,.25);opacity:0;transform:translateY(10px);transition:.3s;z-index:9998}
         .toast.show{opacity:1;transform:translateY(0)}
         .pager{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center;margin:34px 0 6px}
