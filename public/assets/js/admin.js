@@ -1303,12 +1303,101 @@ W.renderSettings=function(tab){
     W.state.settingsTab=tab||'general';
     var t=W.state.settingsTab;
     var tabBtn=function(id,label){return '<button class="w-btn '+(t===id?'w-btn-primary':'w-btn-secondary')+'" onclick="wontia.renderSettings(\''+id+'\')">'+label+'</button>';};
-    app.innerHTML='<div class="w-flex w-gap-sm" style="margin-bottom:16px;flex-wrap:wrap">'+tabBtn('general','Ajustes')+tabBtn('logo','Logo & Favicon')+tabBtn('security','Seguridad')+tabBtn('cache','Administración de caché')+tabBtn('update','Update')+'</div><div id="settings-panel"></div>';
-    if(t==='logo')W.renderLogoPanel();
+    app.innerHTML='<div class="w-flex w-gap-sm" style="margin-bottom:16px;flex-wrap:wrap">'+tabBtn('general','Ajustes')+tabBtn('themes','Themes')+tabBtn('logo','Logo & Favicon')+tabBtn('security','Seguridad')+tabBtn('cache','Administración de caché')+tabBtn('update','Update')+'</div><div id="settings-panel"></div>';
+    if(t==='themes')W.renderThemesPanel();
+    else if(t==='logo')W.renderLogoPanel();
     else if(t==='security')W.renderSecurityPanel();
     else if(t==='cache')W.renderCachePanel();
     else if(t==='update')W.renderUpdatePanel();
     else W.renderSettingsGeneral();
+};
+
+W.renderThemesPanel=async function(){
+    var panel=document.getElementById('settings-panel'); if(!panel)return;
+    panel.innerHTML='<div style="padding:20px;color:var(--w-muted)">Cargando mercado de temas…</div>';
+    var r=await W.api('/api/v1/admin/themes/marketplace'); var d=r.data||{};
+    var themes=d.themes||[];
+    var tierChip=function(m){
+        if(m.tier==='premium'){
+            if(m.locked)return '<span class="w-badge" style="background:rgba(242,13,22,.14);color:#f20d16">🔒 PREMIUM</span>';
+            return '<span class="w-badge" style="background:rgba(52,211,153,.16);color:#34d399">★ PREMIUM ACTIVO</span>';
+        }
+        return '<span class="w-badge" style="background:var(--w-surface);color:var(--w-muted)">GRATIS</span>';
+    };
+    var html='<div class="w-card" style="padding:14px 18px;margin-bottom:14px"><div style="font-size:13px;font-weight:700">Mercado de temas</div><div style="font-size:11px;color:var(--w-muted);margin-top:4px;line-height:1.7">Instala y activa la apariencia de tu sitio. Los temas <b>GRATIS</b> se activan con un clic. Los <b>PREMIUM</b> requieren un <b>código de instalación</b> de 16 caracteres que solo el equipo de Wontia entrega.</div></div>';
+    html+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">';
+    themes.forEach(function(m){
+        html+='<div class="w-card" style="padding:16px;display:flex;flex-direction:column;gap:8px'+(m.active?';border-color:rgba(34,211,238,.5)':'')+'">';
+        html+='<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px"><strong style="font-size:14px">'+W.esc(m.name)+'</strong>'+tierChip(m)+'</div>';
+        html+='<div style="font-size:11px;color:var(--w-muted)">v'+W.esc(m.version||'1.0.0')+' · '+W.esc(m.author||'Wontia')+' · '+W.esc(m.category||'general')+'</div>';
+        html+='<div style="font-size:12px;color:var(--w-muted);line-height:1.6;flex:1">'+W.esc(m.description||'')+'</div>';
+        html+='<div class="w-flex w-gap-sm" style="flex-wrap:wrap;margin-top:4px">';
+        if(m.active){ html+='<span class="w-btn w-btn-secondary" style="pointer-events:none">✓ Activo</span>'; }
+        else if(m.locked){ html+='<button class="w-btn w-btn-primary" onclick="wontia.themeRedeem(\''+W.esc(m.slug)+'\')">🔒 Desbloquear</button>'; }
+        else { html+='<button class="w-btn w-btn-primary" onclick="wontia.themeActivate(\''+W.esc(m.slug)+'\')">Activar</button>'; }
+        html+='<a class="w-btn w-btn-secondary" href="/" target="_blank">Vista ↗</a>';
+        html+='</div></div>';
+    });
+    html+='</div>';
+
+    if(d.can_generate){
+        html+='<div class="w-card" style="margin-top:16px"><h3>Códigos de instalación (equipo Wontia)</h3>';
+        html+='<div style="font-size:11px;color:var(--w-muted);margin-bottom:10px">Genera un serial de 16 caracteres para un theme premium. Se muestra una sola vez; entrégalo al cliente.</div>';
+        var prem=themes.filter(function(m){return m.tier==='premium'});
+        html+='<div class="w-flex w-gap-sm" style="flex-wrap:wrap;align-items:flex-end"><div class="w-form-group" style="margin:0"><label class="w-label">Theme</label><select class="w-select" id="sk-serial-theme">'+prem.map(function(m){return '<option value="'+W.esc(m.slug)+'">'+W.esc(m.name)+'</option>'}).join('')+'</select></div><div class="w-form-group" style="margin:0"><label class="w-label">Etiqueta / cliente (opcional)</label><input class="w-input" id="sk-serial-label" placeholder="Ej: sonika.com.co"/></div><button class="w-btn w-btn-primary" onclick="wontia.themeGen()">Generar código</button></div>';
+        html+='<div id="sk-serial-out" style="margin-top:12px"></div>';
+        var serials=d.serials||[];
+        if(serials.length){
+            html+='<div style="margin-top:16px;font-size:12px"><b>Seriales recientes</b></div><table class="w-table" style="margin-top:6px"><thead><tr><th>Código (id)</th><th>Theme</th><th>Etiqueta</th><th>Estado</th><th></th></tr></thead><tbody>';
+            serials.forEach(function(s){
+                var st=s.revoked_at?'revocado':(s.bound_site_id?('sitio '+s.bound_site_id):'disponible');
+                html+='<tr><td>#'+s.id+'</td><td>'+W.esc(s.theme_slug)+'</td><td>'+W.esc(s.label||'—')+'</td><td>'+W.esc(st)+'</td><td>'+(s.revoked_at?'':'<button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.themeRevoke('+s.id+')">Revocar</button>')+'</td></tr>';
+            });
+            html+='</tbody></table>';
+        }
+        html+='</div>';
+    }
+    panel.innerHTML=html;
+};
+
+W.themeActivate=async function(slug){
+    var r=await W.api('/api/v1/admin/themes/activate',{method:'POST',body:{theme:slug}});
+    if(r.ok){W.notify(r.message||'Tema activado','success');W.renderThemesPanel();}
+};
+
+W.themeRedeem=function(slug){
+    var body='<div style="font-size:12px;color:var(--w-muted);margin-bottom:10px">Introduce el código de instalación de 16 caracteres para el theme <b>'+W.esc(slug)+'</b>.</div>'+
+        '<div class="w-form-group"><label class="w-label">Código de instalación</label><input class="w-input" id="sk-redeem-code" placeholder="A1b2!..." autocomplete="off" style="font-family:\'JetBrains Mono\',monospace"/></div>';
+    W.modal('Desbloquear theme premium',body,'<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cancelar</button><button class="w-btn w-btn-primary" id="sk-redeem-go">Activar licencia</button>');
+    var go=document.getElementById('sk-redeem-go'); go.addEventListener('click',async function(){
+        var code=(document.getElementById('sk-redeem-code').value||'').trim();
+        if(!code){W.notify('Introduce el código','error');return}
+        var r=await W.api('/api/v1/admin/themes/redeem',{method:'POST',body:{code:code}});
+        if(r.ok){ W.closeModal(); W.notify(r.message||'Licencia activada','success'); var a=await W.api('/api/v1/admin/themes/activate',{method:'POST',body:{theme:r.theme||slug}}); if(a.ok)W.notify(a.message,'success'); W.renderThemesPanel(); }
+    });
+};
+
+W.themeGen=async function(){
+    var theme=(document.getElementById('sk-serial-theme')||{}).value||'';
+    var label=(document.getElementById('sk-serial-label')||{}).value||'';
+    var r=await W.api('/api/v1/admin/themes/serials',{method:'POST',body:{theme:theme,label:label}});
+    if(!r.ok)return;
+    var out=document.getElementById('sk-serial-out');
+    if(out){
+        out.innerHTML='<div class="w-card" style="border-color:rgba(52,211,153,.5);padding:14px"><div style="font-size:11px;color:var(--w-muted);margin-bottom:6px">Código para «'+W.esc(theme)+'» (cópialo ahora, no se vuelve a mostrar):</div>'
+            +'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><code id="sk-code" style="font-family:\'JetBrains Mono\',monospace;font-size:16px;letter-spacing:1px;background:var(--w-surface);padding:10px 12px;border-radius:8px">'+W.esc(r.code)+'</code>'
+            +'<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.themeCopy()">Copiar</button></div></div>';
+        W._lastSerial=r.code;
+    }
+    W.notify('Código generado','success');
+};
+
+W.themeCopy=function(){ try{navigator.clipboard.writeText(W._lastSerial||'');W.notify('Código copiado','success')}catch(e){W.notify('No se pudo copiar','error')} };
+
+W.themeRevoke=async function(id){
+    if(!window.confirm('¿Revocar este serial? Se desactivará la licencia del sitio que lo usó.'))return;
+    var r=await W.api('/api/v1/admin/themes/serials/'+id,{method:'DELETE'});
+    if(r.ok){W.notify('Serial revocado','success');W.renderThemesPanel();}
 };
 
 W.loadQrLib=function(){

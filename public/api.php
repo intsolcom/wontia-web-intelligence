@@ -464,6 +464,13 @@ $r->delete('/builder/comments/{id}', [\App\Controllers\Admin\BuilderController::
     $r->get('/themes', [\App\Controllers\Admin\SettingsController::class, 'themes']);
     $r->put('/themes/active', [\App\Controllers\Admin\SettingsController::class, 'setTheme']);
 
+    $r->get('/themes/marketplace', [\App\Controllers\Admin\ThemeController::class, 'marketplace']);
+    $r->post('/themes/activate', [\App\Controllers\Admin\ThemeController::class, 'activate']);
+    $r->post('/themes/redeem', [\App\Controllers\Admin\ThemeController::class, 'redeem']);
+    $r->post('/themes/serials', [\App\Controllers\Admin\ThemeController::class, 'generateSerial']);
+    $r->delete('/themes/serials/{id}', [\App\Controllers\Admin\ThemeController::class, 'revokeSerial']);
+    $r->get('/themes/events', [\App\Controllers\Admin\ThemeController::class, 'events']);
+
     $r->get('/users', [\App\Controllers\Admin\UserController::class, 'index']);
     $r->post('/users', [\App\Controllers\Admin\UserController::class, 'store']);
     $r->put('/users/{id}', [\App\Controllers\Admin\UserController::class, 'update']);

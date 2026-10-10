@@ -1,0 +1,9 @@
+{
+    "name": "WWI Landing",
+    "slug": "wwi",
+    "version": "2.0.0",
+    "author": "Wontia",
+    "description": "Landing oscura de Wontia Web Intelligence (AIS/Factory) con hero interactivo y wizard.",
+    "tier": "free",
+    "category": "landing"
+}
