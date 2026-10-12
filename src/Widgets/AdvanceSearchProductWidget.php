@@ -23,6 +23,7 @@ class AdvanceSearchProductWidget extends Widget
     {
         return [
             ['key' => 'placeholder', 'label' => 'Placeholder del buscador', 'type' => 'text', 'default' => '¿Qué instrumento estás buscando?'],
+            ['key' => 'show_ai', 'label' => 'Botón "Buscar con IA (TIA)"', 'type' => 'toggle', 'default' => false],
             ['key' => 'show_price', 'label' => 'Filtro: rango de precios', 'type' => 'toggle', 'default' => true],
             ['key' => 'show_brand', 'label' => 'Filtro: marcas', 'type' => 'toggle', 'default' => true],
             ['key' => 'show_type', 'label' => 'Filtro: tipo de producto', 'type' => 'toggle', 'default' => true],
@@ -96,8 +97,10 @@ class AdvanceSearchProductWidget extends Widget
 <form class="search ska" action="/buscar" method="get" role="search" autocomplete="off" id="ska-form" data-max="<?= (float)$sliderMax ?>" data-brands="<?= $esc(implode(',', array_map(fn($b) => $b[0], $brands))) ?>" data-types="<?= $esc(implode(',', array_map(fn($t) => $t[0], $types))) ?>" data-cats="<?= $esc(implode(',', array_map(fn($c) => $c[0], $cats))) ?>">
   <span class="s-ic" aria-hidden="true">&#128269;</span>
   <input type="search" name="q" id="skSearch" placeholder="<?= $esc($placeholder) ?>" aria-label="Buscar productos" value="<?= $esc($q) ?>" />
-  <button type="button" class="ska-ai" onclick="skaAi()" title="Buscar con IA (TIA)">&#10024;</button>
-  <button type="button" class="ska-toggle" onclick="skaToggle(this)" aria-expanded="false" aria-controls="ska-panel" title="Filtros avanzados">&#9881;</button>
+  <?php if (!empty($c['show_ai'])): ?><button type="button" class="ska-ai" onclick="skaAi()" title="Buscar con IA (TIA)">&#10024;</button><?php endif; ?>
+  <button type="button" class="ska-toggle" onclick="skaToggle(this)" aria-expanded="false" aria-controls="ska-panel" title="Filtros avanzados" aria-label="Filtros avanzados">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="6" y1="3" x2="6" y2="21"/><line x1="12" y1="3" x2="12" y2="21"/><line x1="18" y1="3" x2="18" y2="21"/><circle cx="6" cy="8.5" r="2.6" fill="currentColor" stroke="none"/><circle cx="12" cy="15" r="2.6" fill="currentColor" stroke="none"/><circle cx="18" cy="6.5" r="2.6" fill="currentColor" stroke="none"/></svg>
+  </button>
   <button type="submit">Buscar</button>
   <div class="sug" id="skSug" role="listbox" aria-label="Sugerencias" hidden></div>
 
@@ -169,7 +172,7 @@ class AdvanceSearchProductWidget extends Widget
         return <<<'HTML'
 <style>
 .ska{position:relative}
-.ska .ska-toggle{border:none;background:transparent;color:var(--sk-muted,#777);cursor:pointer;font-size:15px;padding:0 10px;align-self:stretch}
+.ska .ska-toggle{border:none;background:transparent;color:var(--sk-muted,#777);cursor:pointer;font-size:15px;padding:0 10px;align-self:stretch;display:inline-flex;align-items:center;justify-content:center}
 .ska .ska-toggle[aria-expanded="true"]{color:var(--sk-primary,#F20D16)}
 .ska-panel{position:absolute;top:calc(100% + 8px);left:0;right:0;background:#fff;border:1px solid #E6E6E6;border-radius:14px;box-shadow:0 24px 60px rgba(0,0,0,.16);padding:16px;z-index:140;display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .ska-panel[hidden]{display:none}
