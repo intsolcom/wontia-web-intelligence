@@ -2141,7 +2141,7 @@ W.bmCard=function(it){
         }else actions+='<button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.bmActivate(this)">Acoplar</button>';
     }
     var updateBadge=it.update_available?'<span class="w-bm-update" title="Actualización disponible">🔄</span>':'';
-    var stateLabel=it.installed?'<span class="w-bm-installed-label">✓ Acoplado</span>':'<span class="w-bm-decoupled-label"'+(it.core?' title="Los bricks Core están disponibles sin necesidad de acople"':'')+'>○ Desacoplado</span>';
+    var stateLabel=it.core?'<span class="w-bm-decoupled-label" title="Los bricks Core están disponibles sin necesidad de acople">◆ Core · siempre disponible</span>':(it.installed?'<span class="w-bm-installed-label">✓ Acoplado</span>':'<span class="w-bm-decoupled-label">○ Desacoplado</span>');
     var devChip=(lc.state==='incubator')?'<span class="w-bm-dev" title="En desarrollo — aún no se lanza al Marketplace">🔥 En el horno</span>':'';
     var newBadge=lc.is_new?'<span class="w-bm-new" title="Lanzado recientemente al Marketplace">NUEVO</span>':'';
     var maturityChip=(lc.maturity&&lc.maturity!=='stable')?'<span class="w-bm-mat w-bm-mat-'+W.esc(lc.maturity)+'">'+W.esc(String(lc.maturity).toUpperCase())+'</span>':'';
@@ -2192,11 +2192,14 @@ W.bmRender=function(){
     });
     items=W.bmSortItems(items);
     var coupled=items.filter(function(it){return it.installed});
-    var decoupled=items.filter(function(it){return !it.installed});
+    var coreFree=items.filter(function(it){return !it.installed&&it.origin==='core'});
+    var decoupled=items.filter(function(it){return !it.installed&&it.origin!=='core'});
     var html='';
     if(W._bm.isCentral)html+=W.blBatchBar();
-    if(coupled.length)html+='<div class="w-bm-section"><div class="w-bm-section-head"><span class="w-bm-section-title">✓ Acoplados</span><span class="w-bm-section-count">'+coupled.length+'</span></div><div class="w-bm-grid">'+coupled.map(W.bmCard).join('')+'</div></div>';
-    if(decoupled.length)html+='<div class="w-bm-section'+(coupled.length?' w-bm-section-sep':'')+'"><div class="w-bm-section-head"><span class="w-bm-section-title off">◻ Lanzados para acoplar</span><span class="w-bm-section-count">'+decoupled.length+'</span></div><div class="w-bm-grid">'+decoupled.map(W.bmCard).join('')+'</div></div>';
+    var sep='';
+    if(coupled.length){html+='<div class="w-bm-section'+sep+'"><div class="w-bm-section-head"><span class="w-bm-section-title">✓ Acoplados</span><span class="w-bm-section-count">'+coupled.length+'</span></div><div class="w-bm-grid">'+coupled.map(W.bmCard).join('')+'</div></div>';sep=' w-bm-section-sep'}
+    if(decoupled.length){html+='<div class="w-bm-section'+sep+'"><div class="w-bm-section-head"><span class="w-bm-section-title off">◻ Lanzados para acoplar</span><span class="w-bm-section-count">'+decoupled.length+'</span></div><div class="w-bm-grid">'+decoupled.map(W.bmCard).join('')+'</div></div>';sep=' w-bm-section-sep'}
+    if(coreFree.length){html+='<div class="w-bm-section'+sep+'"><div class="w-bm-section-head"><span class="w-bm-section-title">◆ Bricks Core (siempre disponibles)</span><span class="w-bm-section-count">'+coreFree.length+'</span></div><div class="w-bm-grid">'+coreFree.map(W.bmCard).join('')+'</div></div>'}
     if(!items.length)html='<div class="w-empty-state"><h3>Sin resultados</h3><p>Prueba otra categoría u otra búsqueda.</p></div>';
     wrap.innerHTML=html;
 };
