@@ -270,11 +270,20 @@ switch ($segments[0] ?? '') {
         $acctPos = (string)wwi_tc('sonika', 'account_visual_image_position', 'center');
         if (!in_array($acctPos, ['center', 'top', 'bottom', 'left', 'right'], true)) $acctPos = 'center';
         $acctOverlay = max(0, min(100, (int)wwi_tc('sonika', 'account_visual_overlay', 88)));
+        $acctVideo = trim((string)wwi_tc('sonika', 'account_visual_video', ''));
+        $acctVideoSafe = ($acctVideo !== '' && preg_match('~^(https?://|/)~i', $acctVideo)) ? $acctVideo : '';
+        $acctFormWidth = (int)wwi_tc('sonika', 'account_form_width', 560);
+        if ($acctFormWidth < 320 || $acctFormWidth > 900) $acctFormWidth = 560;
+        $acctSocial = (bool)wwi_tc('sonika', 'account_social_proof', true);
+        $acctSocialText = trim((string)wwi_tc('sonika', 'account_social_text', '4.9/5 · +1.200 clientes nos eligen'));
         $acctImgSafe = ($acctImg !== '' && preg_match('~^(https?://|/)~i', $acctImg)) ? $acctImg : '';
         $acctStyle = '--sonika-acct-pos:' . $acctPos . ';--sonika-acct-overlay:' . ($acctOverlay / 100);
         if ($acctImgSafe) $acctStyle .= ';--sonika-account-login-background-image:url(\'' . htmlspecialchars($acctImgSafe, ENT_QUOTES) . '\')';
-        $panelHtml = '<aside class="sonika-account-login__visual' . ($acctImgSafe ? ' has-background-image' : '') . '" style="' . $acctStyle . '"'
-            . ' aria-hidden="true"><div class="sonika-account-login__visual-content">'
+        $acctVisualClass = $acctVideoSafe !== '' ? ' has-video' : ($acctImgSafe !== '' ? ' has-background-image' : '');
+        $panelHtml = '<aside class="sonika-account-login__visual' . $acctVisualClass . '" style="' . $acctStyle . '"'
+            . ' aria-hidden="true">'
+            . ($acctVideoSafe !== '' ? '<video class="sonika-account-login__vbg" autoplay muted loop playsinline' . ($acctImgSafe !== '' ? ' poster="' . htmlspecialchars($acctImgSafe, ENT_QUOTES) . '"' : '') . '><source src="' . htmlspecialchars($acctVideoSafe, ENT_QUOTES) . '"/></video>' : '')
+            . '<div class="sonika-account-login__visual-content">'
             . '<p class="sonika-account-login__eyebrow">' . htmlspecialchars($acctEyebrow, ENT_QUOTES) . '</p>'
             . '<h2 class="sonika-account-login__visual-title">' . $acctHl($acctTitle) . '</h2>'
             . '<p class="sonika-account-login__visual-description">' . htmlspecialchars($acctText, ENT_QUOTES) . '</p>'
@@ -286,6 +295,9 @@ switch ($segments[0] ?? '') {
             $bd = (string)($b['text'] ?? '');
             if ($bt === '' && $bd === '') continue;
             $panelHtml .= '<div class="sonika-account-login__benefit"><div class="sonika-account-login__benefit-icon" aria-hidden="true">' . htmlspecialchars($bi, ENT_QUOTES) . '</div><div><p class="sonika-account-login__benefit-title">' . htmlspecialchars($bt, ENT_QUOTES) . '</p><p class="sonika-account-login__benefit-description">' . htmlspecialchars($bd, ENT_QUOTES) . '</p></div></div>';
+        }
+        if ($acctSocial && $acctSocialText !== '') {
+            $panelHtml .= '<div class="sonika-account-login__social">' . htmlspecialchars($acctSocialText, ENT_QUOTES) . '</div>';
         }
         $panelHtml .= '</div></div></aside>';
         $acctI18n = [
@@ -321,7 +333,7 @@ switch ($segments[0] ?? '') {
         .sonika-account-login *,.sonika-account-login *::before,.sonika-account-login *::after{box-sizing:border-box}
         .sonika-account-login__layout{display:grid;grid-template-columns:minmax(0,.92fr) minmax(0,1.08fr);gap:clamp(20px,2.6vw,44px);align-items:stretch}
         .sonika-account-login__panel{min-width:0}
-        .sonika-account-login__form-card{width:100%;max-width:560px;margin-inline:auto;padding:clamp(22px,2.8vw,38px);background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:0 10px 34px rgba(0,0,0,.06)}
+        .sonika-account-login__form-card{width:100%;max-width:var(--sonika-acct-formw,560px);margin-inline:auto;padding:clamp(22px,2.8vw,38px);background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:0 10px 34px rgba(0,0,0,.06)}
         .sonika-account-login__eyebrow{display:flex;align-items:center;gap:10px;margin:0 0 14px;color:var(--brand);font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase}
         .sonika-account-login__eyebrow::before{content:"";width:38px;height:2px;background:var(--brand)}
         .sonika-account-login__title{margin:0 0 8px;color:var(--ink);font-family:'Sora',sans-serif;font-size:clamp(25px,2.3vw,34px);font-weight:800;line-height:1.12;letter-spacing:-.03em}
@@ -355,14 +367,16 @@ switch ($segments[0] ?? '') {
         @media(max-width:1024px){.sonika-account-login__layout{grid-template-columns:minmax(0,.95fr) minmax(0,1.05fr);gap:22px}.sonika-account-login__form-card{padding:26px}.sonika-account-login__visual{min-height:500px;padding:26px}}
         @media(max-width:760px){.sonika-account-login__layout{grid-template-columns:minmax(0,1fr);gap:18px}.sonika-account-login__form-card{max-width:none;padding:22px 18px;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.05)}.sonika-account-login__visual{min-height:auto;padding:26px 20px;border-radius:12px}.sonika-account-login__benefits{margin-top:20px}}
         .sonika-account-login__visual.has-background-image{background-image:var(--sonika-account-login-background-image);background-size:cover;background-position:var(--sonika-acct-pos,center);background-repeat:no-repeat}
-        .sonika-account-login__visual.has-background-image::before{content:"";position:absolute;inset:0;z-index:0;background:linear-gradient(90deg,#fff 0%,rgba(255,255,255,.9) 42%,rgba(255,255,255,.15) 100%);opacity:var(--sonika-acct-overlay,.88);pointer-events:none}
+        .sonika-account-login__visual.has-background-image::before,.sonika-account-login__visual.has-video::before{content:"";position:absolute;inset:0;z-index:0;background:linear-gradient(90deg,#fff 0%,rgba(255,255,255,.9) 42%,rgba(255,255,255,.15) 100%);opacity:var(--sonika-acct-overlay,.88);pointer-events:none}
+        .sonika-account-login__vbg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-1}
+        .sonika-account-login__social{margin-top:22px;padding-top:14px;border-top:1px solid rgba(0,0,0,.08);font-size:13px;font-weight:600;color:var(--ink)}
         .sonika-account-login--left .sonika-account-login__visual{order:-1}
         .sonika-account-login--minimal{display:flex;align-items:center;justify-content:center;min-height:min(78vh,760px)}
         .sonika-account-login--minimal .sonika-account-login__panel{width:100%;max-width:520px}
         @media(prefers-reduced-motion:reduce){.sonika-account-login *{transition-duration:.01ms!important;animation-duration:.01ms!important}}
         </style>
         <section class="wrap" style="padding:28px 0 56px">
-          <div id="acct">Cargando…</div>
+          <div id="acct" style="--sonika-acct-formw:<?= (int)$acctFormWidth ?>px">Cargando…</div>
         </section>
         <script>var SITE=<?= (int)\App\Core\Config::get('SITE_ID', '1') ?>;
         var E=<?= json_encode($acctI18n, JSON_UNESCAPED_UNICODE) ?>;
