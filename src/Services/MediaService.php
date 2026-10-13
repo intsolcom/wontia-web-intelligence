@@ -112,13 +112,26 @@ class MediaService
     public function upload(array $file, string $alt = '', ?int $folderId = null): array
     {
         $this->ensureTables();
-        $maxSize = 8 * 1024 * 1024;
-        if (empty($file) || empty($file['tmp_name'])) return ['ok' => false, 'message' => 'No se recibió archivo.'];
+        $maxSize = 12 * 1024 * 1024;
+        $err = (int)($file['error'] ?? UPLOAD_ERR_NO_FILE);
+        if ($err === UPLOAD_ERR_INI_SIZE || $err === UPLOAD_ERR_FORM_SIZE) {
+            return ['ok' => false, 'message' => 'El archivo supera el límite del servidor (' . ini_get('upload_max_filesize') . '). Optimízalo o usa uno más pequeño.'];
+        }
+        if ($err === UPLOAD_ERR_PARTIAL) return ['ok' => false, 'message' => 'La subida se interrumpió. Inténtalo de nuevo.'];
+        if ($err === UPLOAD_ERR_NO_TMP_DIR || $err === UPLOAD_ERR_CANT_WRITE) return ['ok' => false, 'message' => 'Error de escritura en el servidor.'];
+        if (empty($file) || empty($file['tmp_name'])) {
+            $cl = (int)($_SERVER['CONTENT_LENGTH'] ?? 0);
+            $pmax = $this->toBytes((string)ini_get('post_max_size'));
+            if ($cl > 0 && $pmax > 0 && $cl > $pmax) {
+                return ['ok' => false, 'message' => 'El archivo supera el límite del servidor (post_max_size=' . ini_get('post_max_size') . ').'];
+            }
+            return ['ok' => false, 'message' => 'No se recibió archivo.'];
+        }
         $origName = (string)($file['name'] ?? 'archivo');
         $ext = strtolower(pathinfo($origName, PATHINFO_EXTENSION));
         if (!isset(self::TYPE[$ext])) return ['ok' => false, 'message' => 'Tipo no permitido: .' . $ext];
         [$mime, $kind] = self::TYPE[$ext];
-        if (($file['size'] ?? 0) <= 0 || $file['size'] > $maxSize) return ['ok' => false, 'message' => 'Archivo muy grande (máx 8MB).'];
+        if (($file['size'] ?? 0) <= 0 || $file['size'] > $maxSize) return ['ok' => false, 'message' => 'Archivo muy grande (máx 12MB).'];
         $tmp = $file['tmp_name'];
         if (!is_uploaded_file($tmp)) return ['ok' => false, 'message' => 'Subida inválida.'];
 
@@ -234,6 +247,18 @@ class MediaService
         if ($thumb !== $img) imagedestroy($thumb);
         imagedestroy($img);
         return $out;
+    }
+
+    private function toBytes(string $v): int
+    {
+        $v = trim($v);
+        if ($v === '') return 0;
+        $unit = strtolower(substr($v, -1));
+        $num = (float)$v;
+        if ($unit === 'g') $num *= 1024 * 1024 * 1024;
+        elseif ($unit === 'm') $num *= 1024 * 1024;
+        elseif ($unit === 'k') $num *= 1024;
+        return (int)$num;
     }
 
     private function svgSafe(string $svg): string

@@ -1296,6 +1296,7 @@ W.handleMediaUpload=function(){W.uploadFiles(this.files)};
 W.uploadFiles=async function(files){
     var folder=W.state.media&&W.state.media.folder?W.state.media.folder:0;
     for(var i=0;i<files.length;i++){
+        if(files[i].size>12*1024*1024){W.notify('“'+files[i].name+'” supera 12MB. Optimízala antes de subir.','error');continue;}
         var fd=new FormData();fd.append('file',files[i]);if(folder)fd.append('folder_id',folder);
         W.notify('Subiendo '+files[i].name+'…','info');
         var r=await W.api('/api/v1/admin/media/upload',{method:'POST',body:fd});
