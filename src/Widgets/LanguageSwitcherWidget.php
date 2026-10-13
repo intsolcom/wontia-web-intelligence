@@ -20,8 +20,8 @@ class LanguageSwitcherWidget extends Widget
     public static function configSchema(): array
     {
         return [
-            ['key' => 'label_left', 'label' => 'Etiqueta izquierda (idioma base)', 'type' => 'text', 'default' => 'ESPAÑOL'],
-            ['key' => 'label_right', 'label' => 'Etiqueta derecha', 'type' => 'text', 'default' => 'INGLÉS'],
+            ['key' => 'label_left', 'label' => 'Etiqueta izquierda (idioma base)', 'type' => 'text', 'default' => 'ESP'],
+            ['key' => 'label_right', 'label' => 'Etiqueta derecha', 'type' => 'text', 'default' => 'ENG'],
             ['key' => 'label_left_short', 'label' => 'Etiqueta corta izquierda (móvil)', 'type' => 'text', 'default' => 'ES'],
             ['key' => 'label_right_short', 'label' => 'Etiqueta corta derecha (móvil)', 'type' => 'text', 'default' => 'EN'],
         ];
@@ -29,12 +29,12 @@ class LanguageSwitcherWidget extends Widget
 
     public static function defaultConfig(): array
     {
-        return ['label_left' => 'ESPAÑOL', 'label_right' => 'INGLÉS', 'label_left_short' => 'ES', 'label_right_short' => 'EN'];
+        return ['label_left' => 'ESP', 'label_right' => 'ENG', 'label_left_short' => 'ES', 'label_right_short' => 'EN'];
     }
 
     public static function adminPreview(): string
     {
-        return '<div style="padding:18px;border:1px dashed #ccc;border-radius:8px;color:#666">🌐 Selector de idioma — interruptor ESPAÑOL | INGLÉS.</div>';
+        return '<div style="padding:18px;border:1px dashed #ccc;border-radius:8px;color:#666">🌐 Selector de idioma — interruptor ESP | ENG.</div>';
     }
 
     public function render(array $config = []): string
@@ -47,8 +47,8 @@ class LanguageSwitcherWidget extends Widget
         $cur = Lang::current();
         $leftOn = ($cur !== $alt);
 
-        $lLeft = trim((string)($c['label_left'] ?? '')) ?: 'ESPAÑOL';
-        $lRight = trim((string)($c['label_right'] ?? '')) ?: 'INGLÉS';
+        $lLeft = trim((string)($c['label_left'] ?? '')) ?: 'ESP';
+        $lRight = trim((string)($c['label_right'] ?? '')) ?: 'ENG';
         $sLeft = trim((string)($c['label_left_short'] ?? '')) ?: 'ES';
         $sRight = trim((string)($c['label_right_short'] ?? '')) ?: 'EN';
 
