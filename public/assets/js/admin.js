@@ -1048,6 +1048,11 @@ W.repRefresh=function(key){
                     +'</div><div class="w-rt-edit rep-in" data-i="'+i+'" data-k="'+W.esc(sf.key)+'" id="'+id+'" contenteditable="true">'+W.sanitizeRich(val)+'</div></div>';
             }
             else if(st==='textarea')inp='<textarea class="w-textarea rep-in" data-i="'+i+'" data-k="'+W.esc(sf.key)+'" id="'+id+'" style="min-height:60px">'+W.esc(val)+'</textarea>';
+            else if(st==='image')inp='<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input class="w-input rep-in" data-i="'+i+'" data-k="'+W.esc(sf.key)+'" id="'+id+'" value="'+W.esc(val)+'" style="flex:1;min-width:150px"/><button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.repPickImage(\''+id+'\')">📁 Media</button><img id="'+id+'-prev" src="'+W.esc(val)+'" alt="" style="'+(val?'':'display:none;')+'height:34px;width:34px;object-fit:cover;border-radius:6px;border:1px solid var(--w-border)"/></div>';
+            else if(st==='toggle')inp='<label style="display:flex;align-items:center;gap:6px"><input type="checkbox" class="rep-in" data-i="'+i+'" data-k="'+W.esc(sf.key)+'" id="'+id+'"'+(val?' checked':'')+'/> <span style="font-size:12px;color:var(--w-muted)">'+(val?'Sí':'No')+'</span></label>';
+            else if(st==='color')inp='<input type="color" class="rep-in" data-i="'+i+'" data-k="'+W.esc(sf.key)+'" id="'+id+'" value="'+W.esc(val||'#111111')+'"/>';
+            else if(st==='number')inp='<input type="number" class="w-input rep-in" data-i="'+i+'" data-k="'+W.esc(sf.key)+'" id="'+id+'" value="'+W.esc(val)+'"/>';
+            else if(st==='select'){var kopts=sf.options||{};inp='<select class="w-select rep-in" data-i="'+i+'" data-k="'+W.esc(sf.key)+'" id="'+id+'">'+(Array.isArray(kopts)?kopts.map(function(o){var v=(o.value!==undefined?o.value:o),ll=(o.label!==undefined?o.label:v);return '<option value="'+W.esc(v)+'"'+(String(val)===String(v)?' selected':'')+'>'+W.esc(ll)+'</option>'}).join(''):Object.keys(kopts).map(function(k2){return '<option value="'+W.esc(k2)+'"'+(String(val)===String(k2)?' selected':'')+'>'+W.esc(kopts[k2])+'</option>'}).join(''))+'</select>';}
             else inp='<input class="w-input rep-in" data-i="'+i+'" data-k="'+W.esc(sf.key)+'" id="'+id+'" value="'+W.esc(val)+'"/>';
             return '<label class="rep-lb"><span>'+W.esc(sf.label||sf.key)+'</span>'+inp+'</label>';
         }).join('');
@@ -1069,7 +1074,7 @@ W.repCollect=function(key){
     el.querySelectorAll('.rep-in').forEach(function(inp){
         var i=parseInt(inp.getAttribute('data-i'),10),k=inp.getAttribute('data-k');
         if(!W._rep[key][i])W._rep[key][i]={};
-        W._rep[key][i][k]=(inp.getAttribute('contenteditable')==='true')?W.sanitizeRich(inp.innerHTML||''):inp.value;
+        W._rep[key][i][k]=(inp.getAttribute('contenteditable')==='true')?W.sanitizeRich(inp.innerHTML||''):(inp.type==='checkbox'?(inp.checked?1:0):inp.value);
     });
     W.repSync(key);
 };
@@ -1079,6 +1084,14 @@ W.repDup=function(key,i){W.repCollect(key);var c=JSON.parse(JSON.stringify(W._re
 W.repMove=function(key,i,d){W.repCollect(key);var j=i+d;if(j<0||j>=(W._rep[key]||[]).length)return;var t=W._rep[key][i];W._rep[key][i]=W._rep[key][j];W._rep[key][j]=t;W.repRefresh(key);if(W.markDirty)W.markDirty()};
 W.repReset=function(key){var f=W._repSchema[key];W._rep=W._rep||{};W._rep[key]=(f&&Array.isArray(f.default))?JSON.parse(JSON.stringify(f.default)):[];W.repRefresh(key);if(W.markDirty)W.markDirty()};
 W.repInit=function(schema){(schema||[]).forEach(function(f){if((f.type||'')==='repeater'&&document.getElementById('rep-items-'+f.key))W.repRefresh(f.key)})};
+W.repPickImage=async function(inputId){
+    var d=await W.api('/api/v1/admin/media?type=image');
+    var items=(d&&d.data)||[];
+    var h=items.length?'<div class="w-lib-grid">'+items.map(function(m){return '<button type="button" class="w-lib-item" title="'+W.esc(m.filename||'')+'" onclick="wontia.repSetImage(\''+inputId+'\',\''+W.esc(m.url)+'\')"><img src="'+W.esc(m.url)+'" alt=""/></button>'}).join('')+'</div>':'<div style="color:var(--w-muted)">No hay imágenes en la Biblioteca. Sube una en el menú <b>Media</b>.</div>';
+    h+='<div style="margin-top:12px;display:flex;gap:8px"><input class="w-input" id="rep-img-url" placeholder="…o pega una URL de imagen" style="flex:1"/><button type="button" class="w-btn w-btn-secondary" onclick="wontia.repSetImage(\''+inputId+'\',document.getElementById(\'rep-img-url\').value)">Usar URL</button></div>';
+    W.modal('Elegir imagen (Biblioteca de Media)',h,'<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cerrar</button>');
+};
+W.repSetImage=function(inputId,url){var el=document.getElementById(inputId);if(el)el.value=url;var p=document.getElementById(inputId+'-prev');if(p){p.src=url;p.style.display=url?'':'none'}W.closeModal();if(W.markDirty)W.markDirty()};
 
 W.collectSchemaFields=function(schema){
     var cfg={};
