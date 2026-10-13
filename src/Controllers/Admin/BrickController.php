@@ -15,12 +15,14 @@ class BrickController
     {
         $bricks = WidgetRegistry::all();
         $usage = $this->usageCounts();
+        $themeUsed = $this->themeUsedWidgets();
         $lifecycle = new \App\Services\BrickLifecycleService();
         foreach ($bricks as $id => &$b) {
             $b['uses_ai'] = $this->widgetUsesAi($id);
             $b['usage_count'] = $usage[$id] ?? 0;
             $b['launched_at'] = $this->widgetLaunchedAt($id);
             $b['functional'] = $this->widgetFunctional($id);
+            $b['theme_used'] = in_array((string)$id, $themeUsed, true);
             $b['lifecycle'] = $lifecycle->resolve($id, ['functional' => $b['functional'], 'usage' => $b['usage_count'], 'type' => 'core']);
             $b['readiness'] = $lifecycle->readiness($id);
         }
@@ -126,6 +128,33 @@ class BrickController
             . '<script>window.__WWI_PREVIEW__=true;</script>'
             . '<script>' . $js . '</script>'
             . '</body></html>';
+    }
+
+    private function themeUsedWidgets(): array
+    {
+        $theme = 'default';
+        try {
+            $theme = (string)(Database::instance()->query("SELECT theme FROM sites WHERE id = @site_id")->fetchColumn() ?: 'default');
+        } catch (\Throwable $e) {
+        }
+        $theme = preg_replace('/[^a-z0-9_-]/i', '', $theme) ?: 'default';
+        $roots = [ROOT_DIR . '/templates/themes/' . $theme, ROOT_DIR . '/templates/themes/_shared'];
+        $out = [];
+        foreach ($roots as $root) {
+            if (!is_dir($root)) continue;
+            try {
+                $it = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS));
+                foreach ($it as $f) {
+                    if (!$f->isFile() || strtolower($f->getExtension()) !== 'php') continue;
+                    $src = (string)@file_get_contents($f->getPathname());
+                    if (preg_match_all("/WidgetRegistry::render\(\s*'([a-z0-9_\-]+)'/i", $src, $m)) {
+                        foreach ($m[1] as $wid) $out[$wid] = true;
+                    }
+                }
+            } catch (\Throwable $e) {
+            }
+        }
+        return array_keys($out);
     }
 
     private function usageCounts(): array
