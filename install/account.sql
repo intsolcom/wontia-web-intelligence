@@ -37,3 +37,11 @@ CREATE TABLE IF NOT EXISTS store_customer_favorites (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY uk_fav (site_id, customer_id, product_ref)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Alertas de favoritos (bajada de precio / vuelve en stock)
+ALTER TABLE store_customer_favorites ADD COLUMN IF NOT EXISTS alert_price TINYINT NOT NULL DEFAULT 1;
+ALTER TABLE store_customer_favorites ADD COLUMN IF NOT EXISTS alert_stock TINYINT NOT NULL DEFAULT 1;
+ALTER TABLE store_customer_favorites ADD COLUMN IF NOT EXISTS last_price_cents INT NULL;
+ALTER TABLE store_customer_favorites ADD COLUMN IF NOT EXISTS in_stock TINYINT NULL;
+ALTER TABLE store_customer_favorites ADD COLUMN IF NOT EXISTS notified_price_at DATETIME NULL;
+ALTER TABLE store_customer_favorites ADD COLUMN IF NOT EXISTS notified_stock_at DATETIME NULL;

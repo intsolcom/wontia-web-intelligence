@@ -144,6 +144,9 @@ $router->post('/api/v1/public/account/register', [\App\Controllers\CustomerAccou
 $router->post('/api/v1/public/account/login', [\App\Controllers\CustomerAccountController::class, 'login']);
 $router->post('/api/v1/public/account/forgot', [\App\Controllers\CustomerAccountController::class, 'forgot']);
 $router->post('/api/v1/public/account/reset', [\App\Controllers\CustomerAccountController::class, 'reset']);
+$router->post('/api/v1/public/account/verify-email', [\App\Controllers\CustomerAccountController::class, 'verifyEmail']);
+$router->post('/api/v1/public/account/verify-email/resend', [\App\Controllers\CustomerAccountController::class, 'verifyEmailResend']);
+$router->post('/api/v1/public/account/favorites/{ref}/alert', [\App\Controllers\CustomerAccountController::class, 'favoriteAlert']);
 $router->post('/api/v1/public/account/logout', [\App\Controllers\CustomerAccountController::class, 'logout']);
 $router->get('/api/v1/public/account/me', [\App\Controllers\CustomerAccountController::class, 'me']);
 $router->get('/api/v1/public/account/export', [\App\Controllers\CustomerAccountController::class, 'exportData']);

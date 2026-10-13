@@ -16,4 +16,9 @@ $result['system_auto_update'] = (new \App\Services\SystemUpdateService())->autoT
 $result['auth_otps_purged'] = (new \App\Services\AuthSecurityService())->purgeExpiredOtps();
 $result['agent_bridge'] = (new \App\Services\AgentBridgeService())->autoRespond(3);
 $result['bridge_mirror'] = (new \App\Services\AgentBridgeService())->exportAll()['files'];
+try {
+    $result['favorites_alerts'] = (new \App\Services\FavoritesAlertService())->runIfDue(360);
+} catch (\Throwable $e) {
+    $result['favorites_alerts'] = ['error' => $e->getMessage()];
+}
 echo json_encode($result, JSON_UNESCAPED_UNICODE) . "\n";

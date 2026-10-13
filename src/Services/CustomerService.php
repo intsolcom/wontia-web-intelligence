@@ -43,6 +43,21 @@ class CustomerService
             price_cents INT DEFAULT 0, url VARCHAR(500) NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             UNIQUE KEY uk_fav (site_id, customer_id, product_ref)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+        foreach ([
+            'alert_price' => "ALTER TABLE store_customer_favorites ADD COLUMN alert_price TINYINT NOT NULL DEFAULT 1",
+            'alert_stock' => "ALTER TABLE store_customer_favorites ADD COLUMN alert_stock TINYINT NOT NULL DEFAULT 1",
+            'last_price_cents' => "ALTER TABLE store_customer_favorites ADD COLUMN last_price_cents INT NULL",
+            'in_stock' => "ALTER TABLE store_customer_favorites ADD COLUMN in_stock TINYINT NULL",
+            'notified_price_at' => "ALTER TABLE store_customer_favorites ADD COLUMN notified_price_at DATETIME NULL",
+            'notified_stock_at' => "ALTER TABLE store_customer_favorites ADD COLUMN notified_stock_at DATETIME NULL",
+        ] as $fcol => $fsql) {
+            try {
+                $st = $db->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'store_customer_favorites' AND COLUMN_NAME = ?");
+                $st->execute([$fcol]);
+                if ((int)$st->fetchColumn() === 0) $db->exec($fsql);
+            } catch (\Throwable $e) {
+            }
+        }
         self::$ensured = true;
         return ['ok' => true, 'cached' => false];
     }
@@ -62,6 +77,7 @@ class CustomerService
         $st->execute([$name, $email, $phone, $hash]);
         $id = (int)$db->lastInsertId();
         $this->setSession(['id' => $id, 'name' => $name, 'email' => $email]);
+        $this->sendEmailVerification($id, $email);
         return ['ok' => true, 'customer' => ['id' => $id, 'name' => $name, 'email' => $email]];
     }
 
@@ -96,7 +112,7 @@ class CustomerService
         $s = Session::get(self::SESSION_KEY);
         if (!is_array($s) || empty($s['id'])) return null;
         $this->ensureTables();
-        $st = Database::instance()->prepare('SELECT id, name, email, phone, document, orders_count, total_spent_cents, created_at FROM store_customers WHERE id = ? AND site_id = @site_id LIMIT 1');
+        $st = Database::instance()->prepare('SELECT id, name, email, phone, document, orders_count, total_spent_cents, created_at, email_verified_at FROM store_customers WHERE id = ? AND site_id = @site_id LIMIT 1');
         $st->execute([(int)$s['id']]);
         return $st->fetch() ?: null;
     }
@@ -257,6 +273,51 @@ class CustomerService
         Database::instance()->prepare('UPDATE store_customers SET password_hash = ? WHERE site_id = @site_id AND email = ?')
            ->execute([password_hash($password, PASSWORD_BCRYPT, ['cost' => 11]), $email]);
         return ['ok' => true, 'message' => 'Contraseña actualizada. Ya puedes iniciar sesión.'];
+    }
+
+    // ── Verificación de email ──
+
+    public function sendEmailVerification(int $id, string $email): array
+    {
+        $this->ensureTables();
+        $email = trim(strtolower($email));
+        if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) return ['ok' => false];
+        $st = Database::instance()->prepare('SELECT email_verified_at FROM store_customers WHERE id = ? AND site_id = @site_id LIMIT 1');
+        $st->execute([$id]);
+        if ($st->fetchColumn()) return ['ok' => true, 'already' => true];
+        $sec = new AuthSecurityService();
+        $code = $sec->createOtp(0, $email, 'customer_verify', 1440);
+        $sec->sendOtpEmail($email, $code, $this->siteName(), 1440);
+        return ['ok' => true];
+    }
+
+    public function verifyEmail(string $email, string $code): array
+    {
+        $this->ensureTables();
+        $email = trim(strtolower($email));
+        $sec = new AuthSecurityService();
+        $r = $sec->verifyOtp($email, $code, 'customer_verify');
+        if (empty($r['ok'])) return ['ok' => false, 'message' => 'Código inválido o expirado.'];
+        Database::instance()->prepare('UPDATE store_customers SET email_verified_at = NOW() WHERE site_id = @site_id AND email = ? AND email_verified_at IS NULL')->execute([$email]);
+        return ['ok' => true, 'message' => 'Email verificado. ¡Gracias!'];
+    }
+
+    // ── Alertas de favoritos (bajada de precio / vuelve en stock) ──
+
+    public function favoriteAlertToggle(int $customerId, string $ref, array $d): array
+    {
+        $this->ensureTables();
+        $ref = trim($ref);
+        if ($ref === '') return ['ok' => false, 'message' => 'Falta el producto.'];
+        $fields = [];
+        $params = [];
+        if (array_key_exists('alert_price', $d)) { $fields[] = 'alert_price = ?'; $params[] = !empty($d['alert_price']) ? 1 : 0; }
+        if (array_key_exists('alert_stock', $d)) { $fields[] = 'alert_stock = ?'; $params[] = !empty($d['alert_stock']) ? 1 : 0; }
+        if (!$fields) return ['ok' => true];
+        $params[] = $customerId;
+        $params[] = $ref;
+        Database::instance()->prepare('UPDATE store_customer_favorites SET ' . implode(', ', $fields) . ' WHERE customer_id = ? AND product_ref = ? AND site_id = @site_id')->execute($params);
+        return ['ok' => true];
     }
 
     private function siteName(): string

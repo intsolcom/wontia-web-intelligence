@@ -155,6 +155,28 @@ class CustomerAccountController
         Response::json($this->svc()->deleteAccount((int)$c['id'], (string)$c['email']));
     }
 
+    public function verifyEmail(Request $req): void
+    {
+        if (!$this->allow($req, 'verify', 12)) return;
+        $r = $this->svc()->verifyEmail((string)$req->input('email', ''), (string)$req->input('code', ''));
+        if (empty($r['ok'])) Response::error($r['message'] ?? 'Código inválido', 422, $r);
+        Response::json($r);
+    }
+
+    public function verifyEmailResend(): void
+    {
+        $c = $this->requireLogin();
+        if (!$c) return;
+        Response::json($this->svc()->sendEmailVerification((int)$c['id'], (string)$c['email']));
+    }
+
+    public function favoriteAlert(Request $req, string $ref): void
+    {
+        $c = $this->requireLogin();
+        if (!$c) return;
+        Response::json($this->svc()->favoriteAlertToggle((int)$c['id'], urldecode($ref), $req->json()));
+    }
+
     private function allow(Request $req, string $scope, int $max): bool
     {
         $dir = ROOT_DIR . '/cache/security';
