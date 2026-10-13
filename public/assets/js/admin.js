@@ -1334,14 +1334,34 @@ W.renderBanners=async function(){
     h+='</div>';
     var cc=await W.api('/api/v1/admin/banners/config');
     W._bnSchema=(cc&&cc.schema)||[];
-    h+='<div class="w-card" style="margin-top:20px"><div class="w-flex-between" style="flex-wrap:wrap;gap:8px"><h3 style="margin:0">Editar la barra superior (brick Banner)</h3><button class="w-btn w-btn-primary" onclick="wontia.bnEditorSave()">Guardar</button></div>';
+    h+='<div class="w-card" style="margin-top:20px"><div class="w-flex-between" style="flex-wrap:wrap;gap:8px"><h3 style="margin:0">Editar la barra superior (brick Banner)</h3><button class="w-btn w-btn-primary" onclick="wontia.bnEditorSave()">💾 Guardar</button></div>';
     h+='<div style="font-size:12px;color:var(--w-muted);margin:8px 0">Texto, mensajes, imagen o colores de fondo, modal, programación, segmentación… Es la <b>única</b> fuente de configuración del brick.</div>';
-    h+='<div id="bn-editor" class="schema-fields"></div></div>';
+    h+='<div id="bn-editor" class="schema-fields"></div>';
+    h+='<div class="sec-foot" style="position:sticky;bottom:0;background:var(--w-bg);padding:12px 0;border-top:1px solid var(--w-border);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><span id="bn-status" class="sec-status">Listo</span><button class="w-btn w-btn-primary" onclick="wontia.bnEditorSave()">💾 Guardar cambios</button></div>';
+    h+='</div>';
     app.innerHTML=h;
     W.bnEditorRender(W._bnSchema,(cc&&cc.data)||{});
 };
-W.bnEditorRender=function(schema,cfg){var el=document.getElementById('bn-editor');if(!el)return;el.innerHTML=W.renderSchemaFields(schema||[],cfg||{});if(W.repInit)W.repInit(schema||[]);if(W.secLinkInit)W.secLinkInit()};
-W.bnEditorSave=async function(){var cfg=W.collectSchemaFields(W._bnSchema||[]);var r=await W.api('/api/v1/admin/banners/config',{method:'POST',body:cfg});if(r.ok)W.notify('Barra guardada','success');else W.notify('Error','error')};
+if(!window.__wwiBnUnload){window.__wwiBnUnload=1;window.addEventListener('beforeunload',function(e){if(W._bnDirty){e.preventDefault();e.returnValue=''}});}
+W.bnEditorRender=function(schema,cfg){
+    var el=document.getElementById('bn-editor');if(!el)return;
+    el.innerHTML=W.renderSchemaFields(schema||[],cfg||{});
+    if(W.repInit)W.repInit(schema||[]);
+    if(W.secLinkInit)W.secLinkInit();
+    W._bnDirty=false;
+    var st=function(s,c){var e=document.getElementById('bn-status');if(e){e.textContent=s;e.className='sec-status'+(c?' '+c:'')}};
+    st('Listo');
+    var mark=function(){W._bnDirty=true;st('Sin guardar','dirty')};
+    el.addEventListener('input',mark);el.addEventListener('change',mark);
+    el.addEventListener('click',function(ev){var b=ev.target;while(b&&b!==el){if(b.tagName==='BUTTON'){setTimeout(mark,60);break}b=b.parentElement}});
+};
+W.bnEditorSave=async function(){
+    var cfg=W.collectSchemaFields(W._bnSchema||[]);
+    var r=await W.api('/api/v1/admin/banners/config',{method:'POST',body:cfg});
+    var e=document.getElementById('bn-status');
+    if(r.ok){W._bnDirty=false;if(e){e.textContent='Guardado';e.className='sec-status saved'}W.notify('Barra guardada','success')}
+    else{if(e){e.textContent='Error';e.className='sec-status err'}W.notify('Error al guardar','error')}
+};
 W.bnTplSave=async function(){var n=(document.getElementById('bn-tpl-name')||{}).value;if(!n)return W.notify('Pon un nombre','error');var r=await W.api('/api/v1/admin/banners/templates',{method:'POST',body:{name:n}});if(r.ok){W.notify('Plantilla guardada','success');W.renderBanners()}else W.notify((r.data&&r.data.message)||'Error','error')};
 W.bnTplApply=async function(id){if(!confirm('¿Aplicar esta plantilla a la barra superior? Se sobrescribirá la config actual.'))return;var r=await W.api('/api/v1/admin/banners/templates/'+id+'/apply',{method:'POST',body:{}});if(r.ok)W.notify('Plantilla aplicada','success')};
 W.bnTplDel=async function(id){if(!confirm('¿Eliminar la plantilla?'))return;var r=await W.api('/api/v1/admin/banners/templates/'+id,{method:'DELETE'});if(r.ok)W.renderBanners()};
