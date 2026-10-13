@@ -26,7 +26,8 @@ class AdvanceSearchProductWidget extends Widget
             ['key' => 'show_ai', 'label' => 'Botón "Buscar con IA (TIA)"', 'type' => 'toggle', 'default' => false],
             ['key' => 'show_price', 'label' => 'Filtro: rango de precios', 'type' => 'toggle', 'default' => true],
             ['key' => 'show_brand', 'label' => 'Filtro: marcas', 'type' => 'toggle', 'default' => true],
-            ['key' => 'show_type', 'label' => 'Filtro: tipo de producto', 'type' => 'toggle', 'default' => true],
+            ['key' => 'show_type', 'label' => 'Filtro: tipo de producto', 'type' => 'toggle', 'default' => false],
+            ['key' => 'show_subcategory', 'label' => 'Filtro: subcategoría', 'type' => 'toggle', 'default' => true],
             ['key' => 'show_category', 'label' => 'Filtro: categorías', 'type' => 'toggle', 'default' => true],
             ['key' => 'show_discount', 'label' => 'Filtro: descuento mínimo', 'type' => 'toggle', 'default' => true],
             ['key' => 'show_order', 'label' => 'Filtro: orden', 'type' => 'toggle', 'default' => true],
@@ -36,6 +37,7 @@ class AdvanceSearchProductWidget extends Widget
             ['key' => 'new_days', 'label' => 'Novedades: días hacia atrás', 'type' => 'number', 'default' => 90],
             ['key' => 'brands', 'label' => 'Marcas (autodetectadas)', 'type' => 'textarea', 'default' => ''],
             ['key' => 'types', 'label' => 'Tipos (autodetectados)', 'type' => 'textarea', 'default' => ''],
+            ['key' => 'subcats', 'label' => 'Subcategorías (autodetectadas)', 'type' => 'textarea', 'default' => ''],
             ['key' => 'categories', 'label' => 'Categorías (autodetectadas)', 'type' => 'text', 'default' => ''],
             ['key' => 'max_price', 'label' => 'Precio máximo (0 = autodetectar)', 'type' => 'number', 'default' => 0],
         ];
@@ -77,6 +79,7 @@ class AdvanceSearchProductWidget extends Widget
         $placeholder = (string)($c['placeholder'] ?? '¿Qué instrumento estás buscando?');
         $brands = $this->pairs($c['brands'] ?? []);
         $types = $this->pairs($c['types'] ?? []);
+        $subcats = $this->pairs($c['subcats'] ?? []);
         $cats = $this->pairs($c['categories'] ?? []);
         $maxPrice = (float)($c['max_price'] ?? 0);
         $sliderMax = $maxPrice > 0 ? $maxPrice : 1000000;
@@ -88,7 +91,7 @@ class AdvanceSearchProductWidget extends Widget
         $fmin = (float)($g('min') ?: 0);
         $fmax = (float)($g('max') ?: 0);
         $fmaxV = $fmax > 0 ? min($fmax, $sliderMax) : $sliderMax;
-        $fmarca = $g('marca'); $ftipo = $g('tipo'); $fcat = $g('cat'); $fdesc = $g('desc'); $orden = $g('orden');
+        $fmarca = $g('marca'); $ftipo = $g('tipo'); $fsub = $g('sub'); $fcat = $g('cat'); $fdesc = $g('desc'); $orden = $g('orden');
         $oferta = isset($_GET['oferta']); $nuevo = isset($_GET['nuevo']); $disp = isset($_GET['disp']);
 
         ob_start();
@@ -125,6 +128,12 @@ class AdvanceSearchProductWidget extends Widget
     <div class="ska-group"><label class="ska-lbl">Tipo de producto</label>
       <select name="tipo" class="ska-sel"><option value="">Todos</option>
         <?php foreach ($types as $t): ?><option value="<?= $esc($t[0]) ?>"<?= strcasecmp($ftipo, $t[0]) === 0 ? ' selected' : '' ?>><?= $esc($t[1]) ?></option><?php endforeach; ?>
+      </select></div>
+    <?php endif; ?>
+    <?php if (!empty($c['show_subcategory']) && $subcats): ?>
+    <div class="ska-group"><label class="ska-lbl">Subcategoría</label>
+      <select name="sub" class="ska-sel"><option value="">Todas</option>
+        <?php foreach ($subcats as $s): ?><option value="<?= $esc($s[0]) ?>"<?= strcasecmp($fsub, $s[0]) === 0 ? ' selected' : '' ?>><?= $esc($s[1]) ?></option><?php endforeach; ?>
       </select></div>
     <?php endif; ?>
     <?php if (!empty($c['show_category']) && $cats): ?>
