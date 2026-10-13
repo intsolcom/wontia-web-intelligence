@@ -1309,63 +1309,92 @@ W.uploadFiles=async function(files){
     W.refreshMedia();
 };
 
-W.renderBanners=async function(){
+W.renderBanners=function(id){if(id){return W.bnEdit(id)}return W.bnList()};
+W.bnList=async function(){
     var app=document.getElementById('wontia-app');
-    app.innerHTML='<div style="padding:40px;text-align:center;color:var(--w-muted)">Cargando métricas…</div>';
+    app.innerHTML='<div style="padding:40px;text-align:center;color:var(--w-muted)">Cargando banners…</div>';
+    var rb=await W.api('/api/v1/admin/banners');
+    var banners=(rb&&rb.data)||[];
+    var h='<div class="w-flex-between w-mb-lg" style="flex-wrap:wrap;gap:8px"><h3 style="margin:0">Banners</h3><button class="w-btn w-btn-primary" onclick="wontia.bnNew()">＋ Nuevo banner</button></div>';
+    h+='<div style="font-size:12px;color:var(--w-muted);margin-bottom:12px">Crea, activa/desactiva y elige cuál va en la <b>barra superior</b>. Configura cada uno en su propia página.</div>';
+    if(!banners.length){h+='<div class="w-empty-state"><p>Sin banners.</p></div>';}
+    else{
+        h+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;margin-bottom:8px">';
+        banners.forEach(function(b){
+            h+='<div class="w-card" style="padding:14px">'
+              +'<div class="w-flex-between" style="gap:8px;align-items:flex-start"><div><div style="font-weight:700">'+W.esc(b.name)+'</div><div style="font-size:11px;color:var(--w-muted)">'+W.esc(String(b.updated_at||''))+'</div></div>'
+              +(b.is_header?'<span class="w-badge" style="background:rgba(52,211,153,.15);color:#34d399">Barra superior</span>':'')+'</div>'
+              +'<div class="w-flex w-gap-sm" style="flex-wrap:wrap;margin-top:10px">'
+              +'<button class="w-btn '+(b.enabled?'w-btn-secondary':'w-btn-primary')+' w-btn-sm" onclick="wontia.bnToggle('+b.id+','+(b.enabled?0:1)+')">'+(b.enabled?'● Activo':'○ Inactivo')+'</button>'
+              +'<button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.bnGo('+b.id+')">Configurar</button>'
+              +'<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.bnDup('+b.id+')" title="Duplicar">⧉</button>'
+              +(b.is_header?'':'<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.bnHeader('+b.id+')" title="Usar en la barra superior">↥ Barra</button>')
+              +'<button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.bnDel('+b.id+')" title="Eliminar">🗑</button>'
+              +'</div></div>';
+        });
+        h+='</div>';
+    }
     var r=await W.api('/api/v1/admin/banners/stats');
     var d=r.data||{};var s=d.summary||{};var items=d.items||[];
-    var h='<div class="w-flex-between w-mb-lg"><h3>Banners — métricas (impresiones, clics, A/B)</h3><button class="w-btn w-btn-danger" onclick="wontia.bnClearStats()">Borrar métricas</button></div>';
-    h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px">'
+    h+='<div class="w-flex-between" style="margin:18px 0 10px"><h3 style="margin:0">Métricas (impresiones / clics / CTR)</h3><button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.bnClearStats()">Borrar métricas</button></div>';
+    h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:12px">'
       +'<div class="w-stat-card"><div class="w-stat-value">'+W.num(s.impressions||0)+'</div><div class="w-stat-label">Impresiones</div></div>'
       +'<div class="w-stat-card"><div class="w-stat-value">'+W.num(s.clicks||0)+'</div><div class="w-stat-label">Clics</div></div>'
       +'<div class="w-stat-card"><div class="w-stat-value">'+(s.ctr||0)+'%</div><div class="w-stat-label">CTR</div></div>'
       +'<div class="w-stat-card"><div class="w-stat-value">'+W.num(s.rows||0)+'</div><div class="w-stat-label">Avisos × variante</div></div></div>';
-    if(!items.length){h+='<div class="w-empty-state"><h3>Sin datos aún</h3><p>Los avisos con “Medir impresiones y clics” activado aparecerán aquí al recibir visitas.</p></div>';}
-    else{
-        h+='<table class="w-table"><thead><tr><th>Aviso (uid)</th><th>Variante</th><th>Impresiones</th><th>Clics</th><th>CTR</th><th>Última actividad</th></tr></thead><tbody>'
+    if(items.length){
+        h+='<table class="w-table"><thead><tr><th>Aviso (uid)</th><th>Variante</th><th>Impresiones</th><th>Clics</th><th>CTR</th><th>Última</th></tr></thead><tbody>'
           +items.map(function(x){var ctr=x.impressions?((x.clicks*100/x.impressions).toFixed(2)):0;return '<tr><td>'+W.esc(x.banner_uid)+'</td><td>'+W.esc(String(x.variant).toUpperCase())+'</td><td>'+W.num(x.impressions)+'</td><td>'+W.num(x.clicks)+'</td><td>'+ctr+'%</td><td>'+W.esc(String(x.updated_at||''))+'</td></tr>'}).join('')+'</tbody></table>';
-    }
+    } else { h+='<div style="color:var(--w-muted);font-size:12px">Sin métricas aún.</div>'; }
     var t=await W.api('/api/v1/admin/banners/templates');
     var tpls=(t&&t.data)||[];
     h+='<div class="w-card" style="margin-top:20px"><div class="w-flex-between" style="flex-wrap:wrap;gap:8px"><h3 style="margin:0">Plantillas de barra superior</h3><div class="w-flex w-gap-sm"><input class="w-input" id="bn-tpl-name" placeholder="Nombre de la plantilla" style="max-width:220px"/><button class="w-btn w-btn-primary" onclick="wontia.bnTplSave()">💾 Guardar la barra actual</button></div></div>';
-    h+='<div style="font-size:12px;color:var(--w-muted);margin:8px 0">Guarda el estado actual de la barra superior (mensajes, colores, animación, rotación…) y reúsalo cuando quieras.</div>';
+    h+='<div style="font-size:12px;color:var(--w-muted);margin:8px 0">Guarda el estado actual de la <b>barra superior</b> y reúsalo cuando quieras.</div>';
     if(tpls.length){h+='<table class="w-table"><thead><tr><th>Plantilla</th><th>Creada</th><th></th></tr></thead><tbody>'+tpls.map(function(x){return '<tr><td>'+W.esc(x.name)+'</td><td>'+W.esc(String(x.created_at||''))+'</td><td><button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.bnTplApply('+x.id+')">Aplicar</button> <button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.bnTplDel('+x.id+')">🗑</button></td></tr>'}).join('')+'</tbody></table>';}
     else{h+='<div style="color:var(--w-muted);font-size:12px">Sin plantillas guardadas aún.</div>';}
     h+='</div>';
-    var cc=await W.api('/api/v1/admin/banners/config');
-    W._bnSchema=(cc&&cc.schema)||[];
-    h+='<div class="w-card" style="margin-top:20px"><div class="w-flex-between" style="flex-wrap:wrap;gap:8px"><h3 style="margin:0">Editar la barra superior (brick Banner)</h3><button class="w-btn w-btn-primary" onclick="wontia.bnEditorSave()">💾 Guardar</button></div>';
-    h+='<div style="font-size:12px;color:var(--w-muted);margin:8px 0">Texto, mensajes, imagen o colores de fondo, modal, programación, segmentación… Es la <b>única</b> fuente de configuración del brick.</div>';
-    h+='<div id="bn-editor" class="schema-fields"></div>';
-    h+='<div class="sec-foot" style="position:sticky;bottom:0;background:var(--w-bg);padding:12px 0;border-top:1px solid var(--w-border);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><span id="bn-status" class="sec-status">Listo</span><button class="w-btn w-btn-primary" onclick="wontia.bnEditorSave()">💾 Guardar cambios</button></div>';
-    h+='</div>';
     app.innerHTML=h;
-    W.bnEditorRender(W._bnSchema,(cc&&cc.data)||{});
 };
+W.bnGo=function(id){window.location.hash='#banners/'+id};
+W.bnNew=async function(){var n=prompt('Nombre del banner:');if(!n)return;var r=await W.api('/api/v1/admin/banners',{method:'POST',body:{name:n}});if(r&&r.ok&&r.id){window.location.hash='#banners/'+r.id}else W.notify('Error al crear','error')};
+W.bnToggle=async function(id,v){var r=await W.api('/api/v1/admin/banners/'+id+'/toggle',{method:'POST',body:{enabled:v}});if(r.ok)W.bnList()};
+W.bnHeader=async function(id){var r=await W.api('/api/v1/admin/banners/'+id+'/header',{method:'POST',body:{}});if(r.ok){W.notify('Ahora está en la barra superior','success');W.bnList()}};
+W.bnDup=async function(id){var r=await W.api('/api/v1/admin/banners/'+id+'/duplicate',{method:'POST',body:{}});if(r.ok)W.bnList()};
+W.bnDel=async function(id){if(!confirm('¿Eliminar este banner?'))return;var r=await W.api('/api/v1/admin/banners/'+id,{method:'DELETE'});if(r.ok){W.notify('Eliminado','success');W.bnList()}};
 if(!window.__wwiBnUnload){window.__wwiBnUnload=1;window.addEventListener('beforeunload',function(e){if(W._bnDirty){e.preventDefault();e.returnValue=''}});}
-W.bnEditorRender=function(schema,cfg){
-    var el=document.getElementById('bn-editor');if(!el)return;
-    el.innerHTML=W.renderSchemaFields(schema||[],cfg||{});
-    if(W.repInit)W.repInit(schema||[]);
-    if(W.secLinkInit)W.secLinkInit();
+W.bnEdit=async function(id){
+    var app=document.getElementById('wontia-app');
+    app.innerHTML='<div style="padding:40px;text-align:center;color:var(--w-muted)">Cargando banner…</div>';
+    var r=await W.api('/api/v1/admin/banners/'+id);
+    if(!r||!r.ok){app.innerHTML='<div class="w-empty-state"><h3>Banner no encontrado</h3><button class="w-btn w-btn-secondary" style="margin-top:10px" onclick="window.location.hash=\'#banners\'">← Volver</button></div>';return}
+    var b=r.banner||{};W._bnSchema=r.schema||[];W._bnId=id;
+    var h='<div class="w-flex-between w-mb-lg" style="flex-wrap:wrap;gap:8px"><div><div style="font-size:11px;color:var(--w-muted)">Banners › configuración</div><h3 style="margin:0">'+W.esc(b.name||('Banner #'+id))+'</h3></div>'
+      +'<div class="w-flex w-gap-sm"><button class="w-btn w-btn-secondary" onclick="window.location.hash=\'#banners\'">← Volver</button><button class="w-btn w-btn-primary" onclick="wontia.bnSave()">💾 Guardar</button></div></div>';
+    h+='<div class="w-card"><div class="w-form-group"><label class="w-label">Nombre del banner</label><input class="w-input" id="bn-name" value="'+W.esc(b.name||'')+'" maxlength="150"/></div>';
+    h+='<div class="schema-fields" id="bn-editor">'+W.renderSchemaFields(W._bnSchema,b.config||{})+'</div>';
+    h+='<div class="sec-foot" style="position:sticky;bottom:0;background:var(--w-bg);padding:12px 0;border-top:1px solid var(--w-border);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><span id="bn-status" class="sec-status">Listo</span><span class="w-flex w-gap-sm"><button class="w-btn w-btn-secondary" onclick="window.location.hash=\'#banners\'">← Volver</button><button class="w-btn w-btn-primary" onclick="wontia.bnSave()">💾 Guardar cambios</button></span></div></div>';
+    app.innerHTML=h;
+    if(W.repInit)W.repInit(W._bnSchema);if(W.secLinkInit)W.secLinkInit();
     W._bnDirty=false;
+    var el=document.getElementById('bn-editor');
     var st=function(s,c){var e=document.getElementById('bn-status');if(e){e.textContent=s;e.className='sec-status'+(c?' '+c:'')}};
     st('Listo');
     var mark=function(){W._bnDirty=true;st('Sin guardar','dirty')};
     el.addEventListener('input',mark);el.addEventListener('change',mark);
-    el.addEventListener('click',function(ev){var b=ev.target;while(b&&b!==el){if(b.tagName==='BUTTON'){setTimeout(mark,60);break}b=b.parentElement}});
+    var nm=document.getElementById('bn-name');if(nm)nm.addEventListener('input',mark);
 };
-W.bnEditorSave=async function(){
+W.bnSave=async function(){
     var cfg=W.collectSchemaFields(W._bnSchema||[]);
-    var r=await W.api('/api/v1/admin/banners/config',{method:'POST',body:cfg});
+    var name=((document.getElementById('bn-name')||{}).value)||'';
+    var r=await W.api('/api/v1/admin/banners/'+W._bnId,{method:'PUT',body:{name:name,config:cfg}});
     var e=document.getElementById('bn-status');
-    if(r.ok){W._bnDirty=false;if(e){e.textContent='Guardado';e.className='sec-status saved'}W.notify('Barra guardada','success')}
+    if(r&&r.ok){W._bnDirty=false;if(e){e.textContent='Guardado';e.className='sec-status saved'}W.notify('Banner guardado','success')}
     else{if(e){e.textContent='Error';e.className='sec-status err'}W.notify('Error al guardar','error')}
 };
-W.bnTplSave=async function(){var n=(document.getElementById('bn-tpl-name')||{}).value;if(!n)return W.notify('Pon un nombre','error');var r=await W.api('/api/v1/admin/banners/templates',{method:'POST',body:{name:n}});if(r.ok){W.notify('Plantilla guardada','success');W.renderBanners()}else W.notify((r.data&&r.data.message)||'Error','error')};
-W.bnTplApply=async function(id){if(!confirm('¿Aplicar esta plantilla a la barra superior? Se sobrescribirá la config actual.'))return;var r=await W.api('/api/v1/admin/banners/templates/'+id+'/apply',{method:'POST',body:{}});if(r.ok)W.notify('Plantilla aplicada','success')};
-W.bnTplDel=async function(id){if(!confirm('¿Eliminar la plantilla?'))return;var r=await W.api('/api/v1/admin/banners/templates/'+id,{method:'DELETE'});if(r.ok)W.renderBanners()};
-W.bnClearStats=async function(){if(!confirm('¿Borrar todas las métricas de banners?'))return;var r=await W.api('/api/v1/admin/banners/stats',{method:'DELETE',body:{}});if(r.ok){W.notify('Métricas borradas','success');W.renderBanners()}};
+W.bnTplSave=async function(){var n=(document.getElementById('bn-tpl-name')||{}).value;if(!n)return W.notify('Pon un nombre','error');var r=await W.api('/api/v1/admin/banners/templates',{method:'POST',body:{name:n}});if(r.ok){W.notify('Plantilla guardada','success');W.bnList()}else W.notify((r.data&&r.data.message)||'Error','error')};
+W.bnTplApply=async function(id){if(!confirm('¿Aplicar esta plantilla a la barra superior? Se sobrescribirá la config actual.'))return;var r=await W.api('/api/v1/admin/banners/templates/'+id+'/apply',{method:'POST',body:{}});if(r.ok){W.notify('Plantilla aplicada','success');W.bnList()}};
+W.bnTplDel=async function(id){if(!confirm('¿Eliminar la plantilla?'))return;var r=await W.api('/api/v1/admin/banners/templates/'+id,{method:'DELETE'});if(r.ok)W.bnList()};
+W.bnClearStats=async function(){if(!confirm('¿Borrar todas las métricas de banners?'))return;var r=await W.api('/api/v1/admin/banners/stats',{method:'DELETE',body:{}});if(r.ok){W.notify('Métricas borradas','success');W.bnList()}};
 
 W.deleteMedia=function(id){W.mediaTrash(id)};
 
@@ -2183,7 +2212,7 @@ W.bmCard=function(it){
     if(window.__WWI_IS_CENTRAL)actions+='<button class="w-btn w-btn-secondary w-btn-sm" title="Showcase (capturas del brick) — solo WWI central" onclick="wontia.showBrickShowcase(\''+W.esc(it.slug)+'\')">⚙</button>';
     if(it.origin==='core'){
         if(it.functional!==false&&lc.state!=='incubator')actions+='<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.brickAddToPage(\''+W.esc(it.slug)+'\',\''+W.esc(it.name)+'\')">Añadir a página</button>';
-        actions+='<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.showBrickConfig(\''+W.esc(it.slug)+'\')">Esquema</button>';
+        actions+='<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.showBrickConfig(\''+W.esc(it.slug)+'\')">Configurar</button>';
     }else if(it.origin==='brickhub'){
         if(it.installed){
             if(it.update_available)actions+='<button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.bmUpdate('+it.installed_id+',\''+W.esc(it.slug)+'\')">🔄 Actualizar</button>';
@@ -2912,22 +2941,8 @@ W.confetti=function(){
     }
 };
 
-W.showBannerConfig=async function(){
-    var d=await W.api('/api/v1/admin/banners/config');
-    W._bnSchema=(d&&d.schema)||[];
-    var fields=W.renderSchemaFields(W._bnSchema,(d&&d.data)||{});
-    W.modal('Banner / Aviso <span style="font-size:10px;color:var(--w-muted)">configuración del brick</span>','<div class="schema-fields">'+fields+'</div><div style="margin-top:10px;font-size:11px;color:var(--w-muted)">Esta es la <b>barra superior</b> del sitio. Aquí configuras texto, mensajes, imagen o colores de fondo, modal, etc.</div>','<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cerrar</button><button class="w-btn w-btn-primary" onclick="wontia.bnModalSave()">💾 Guardar</button>');
-    if(W.repInit)W.repInit(W._bnSchema);
-    if(W.secLinkInit)W.secLinkInit();
-};
-W.bnModalSave=async function(){
-    var cfg=W.collectSchemaFields(W._bnSchema||[]);
-    var r=await W.api('/api/v1/admin/banners/config',{method:'POST',body:cfg});
-    if(r.ok){W.notify('Banner guardado','success');W.closeModal()}else W.notify('Error al guardar','error');
-};
-
 W.showBrickConfig=async function(type){
-    if(type==='banner'){ return W.showBannerConfig(); }
+    if(type==='banner'){ window.location.hash='#banners'; return; }
     var d=await W.api('/api/v1/admin/bricks/'+type);
     var b=d.data||{};
     var fields='';

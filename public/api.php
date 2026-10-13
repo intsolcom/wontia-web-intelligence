@@ -296,13 +296,19 @@ $r->put('/bricks/{type}/showcase/{id}', [\App\Controllers\Admin\BrickShowcaseCon
 $r->delete('/bricks/{type}/showcase/{id}', [\App\Controllers\Admin\BrickShowcaseController::class, 'delete']);
 $r->post('/bricks/{type}/showcase/{id}/cover', [\App\Controllers\Admin\BrickShowcaseController::class, 'cover']);
 $r->get('/banners/stats', [\App\Controllers\Admin\BannerAdminController::class, 'stats']);
-$r->get('/banners/config', [\App\Controllers\Admin\BannerAdminController::class, 'config']);
-$r->post('/banners/config', [\App\Controllers\Admin\BannerAdminController::class, 'configSave']);
+$r->get('/banners', [\App\Controllers\Admin\BannerAdminController::class, 'listBanners']);
+$r->post('/banners', [\App\Controllers\Admin\BannerAdminController::class, 'createBanner']);
 $r->delete('/banners/stats', [\App\Controllers\Admin\BannerAdminController::class, 'clear']);
 $r->get('/banners/templates', [\App\Controllers\Admin\BannerAdminController::class, 'templates']);
 $r->post('/banners/templates', [\App\Controllers\Admin\BannerAdminController::class, 'templateSave']);
 $r->post('/banners/templates/{id}/apply', [\App\Controllers\Admin\BannerAdminController::class, 'templateApply']);
 $r->delete('/banners/templates/{id}', [\App\Controllers\Admin\BannerAdminController::class, 'templateDelete']);
+$r->get('/banners/{id}', [\App\Controllers\Admin\BannerAdminController::class, 'showBanner']);
+$r->put('/banners/{id}', [\App\Controllers\Admin\BannerAdminController::class, 'saveBanner']);
+$r->delete('/banners/{id}', [\App\Controllers\Admin\BannerAdminController::class, 'deleteBanner']);
+$r->post('/banners/{id}/toggle', [\App\Controllers\Admin\BannerAdminController::class, 'toggleBanner']);
+$r->post('/banners/{id}/header', [\App\Controllers\Admin\BannerAdminController::class, 'headerBanner']);
+$r->post('/banners/{id}/duplicate', [\App\Controllers\Admin\BannerAdminController::class, 'duplicateBanner']);
 
     $r->get('/bricklifecycle', [\App\Controllers\Admin\BrickLifecycleController::class, 'index']);
     $r->post('/bricklifecycle/ensure-tables', [\App\Controllers\Admin\BrickLifecycleController::class, 'ensureTables']);

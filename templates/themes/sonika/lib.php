@@ -271,7 +271,7 @@ if (!function_exists('sonika_site_head')) {
 <body>
 <div class="topbar"<?php
       $__bnSvc = new \App\Services\BannerService();
-      $__bnCfg = $__bnSvc->getGlobal();
+      $__bnCfg = $__bnSvc->headerConfig();
       if (!$__bnCfg || empty($__bnCfg['items'])) $__bnCfg = $__bnSvc->defaults();
       $__ok = fn($c, $d) => preg_match('/^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i', (string)$c) ? (string)$c : $d;
       $__bg = $__ok($__bnCfg['bg_color'] ?? '', '#111111');
