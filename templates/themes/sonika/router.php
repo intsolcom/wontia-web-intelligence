@@ -240,6 +240,48 @@ switch ($segments[0] ?? '') {
         <?php
         sonika_site_footer();
         return true;
+
+    case 'cuenta':
+        sonika_site_head('Mi cuenta — SONIKA', 'Administra tu cuenta, pedidos, direcciones y favoritos.');
+        sonika_breadcrumb(['Mi cuenta' => null]);
+        ?>
+        <section class="wrap" style="padding:24px 0 48px;max-width:960px">
+          <h1 style="font-family:'Sora',sans-serif;margin-bottom:14px">Mi cuenta</h1>
+          <div id="acct">Cargando…</div>
+        </section>
+        <script>var SITE=<?= (int)\App\Core\Config::get('SITE_ID', '1') ?>;
+        (function(){
+          var box=document.getElementById('acct');
+          function esc(s){var d=document.createElement('div');d.textContent=(s==null?'':String(s));return d.innerHTML}
+          function money(n){return '$'+Math.round(n||0).toLocaleString('es-CO')}
+          function inp(id,ph,type,val){return '<input id="'+id+'" type="'+(type||'text')+'" placeholder="'+ph+'" value="'+(val||'')+'" style="width:100%;border:1px solid #E6E6E6;border-radius:9px;padding:10px;font:inherit;font-size:13px;margin-top:6px">'}
+          function btn(id,label){return '<button id="'+id+'" style="margin-top:10px;border:none;border-radius:10px;background:#F20D16;color:#fff;font-weight:700;font-size:13px;padding:11px 20px;cursor:pointer">'+label+'</button>'}
+          function link(id,label){return ' <a href="#" id="'+id+'" style="font-size:13px;color:#777;margin-left:10px">'+label+'</a>'}
+          function api(u,o){return fetch(u,Object.assign({headers:{'Content-Type':'application/json; charset=UTF-8'}},o||{})).then(function(r){return r.json()})}
+          function qs(){var o={};location.search.replace(/^\?/,'').split('&').forEach(function(p){if(!p)return;var kv=p.split('=');o[kv[0]]=decodeURIComponent(kv[1]||'')});return o}
+          function login(err){box.innerHTML='<div class="card" style="padding:22px;max-width:440px"><h3>Iniciar sesión</h3>'+(err?'<div style="color:#DC2626;font-size:13px;margin:6px 0">'+esc(err)+'</div>':'')+inp('ac-email','Email','email')+inp('ac-pass','Contraseña','password')+btn('ac-login','Entrar')+link('ac-toreg','Crear cuenta')+'</div>';
+            document.getElementById('ac-login').onclick=async function(){var r=await api('/api/v1/public/account/login',{method:'POST',body:JSON.stringify({email:document.getElementById('ac-email').value,password:document.getElementById('ac-pass').value})});if(r.ok){location.search=''}else{login(r.message||'Credenciales inválidas')}};
+            document.getElementById('ac-toreg').onclick=function(e){e.preventDefault();location.search='?tab=register'}}
+          function reg(){box.innerHTML='<div class="card" style="padding:22px;max-width:440px"><h3>Crear cuenta</h3>'+inp('rg-name','Nombre')+inp('rg-email','Email','email')+inp('rg-pass','Contraseña (mín 8)','password')+btn('rg-go','Crear cuenta')+link('rg-to','Ya tengo cuenta')+'</div>';
+            document.getElementById('rg-go').onclick=async function(){var r=await api('/api/v1/public/account/register',{method:'POST',body:JSON.stringify({name:document.getElementById('rg-name').value,email:document.getElementById('rg-email').value,password:document.getElementById('rg-pass').value})});if(r.ok){location.search=''}else{login(r.message||'No se pudo crear')}};
+            document.getElementById('rg-to').onclick=function(e){e.preventDefault();location.search=''}}
+          function account(d){var c=d.customer||{},tab=qs().tab||'summary';
+            function tb(id,l){return '<a href="?tab='+id+'" style="padding:8px 14px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;'+(tab===id?'background:#F20D16;color:#fff':'color:#555')+'">'+l+'</a>'}
+            box.innerHTML='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">'+tb('summary','Resumen')+tb('orders','Pedidos')+tb('favorites','Favoritos')+tb('addresses','Direcciones')+tb('profile','Perfil')+'</div><div id="ac-body"></div>';
+            var b=document.getElementById('ac-body');
+            if(tab==='orders'){$o(b)} else if(tab==='favorites'){$f(b)} else if(tab==='addresses'){$a(b,d.addresses||[])} else if(tab==='profile'){$p(b,c)} else {b.innerHTML='<div class="card" style="padding:20px"><p>Hola, <b>'+esc(c.name||c.email)+'</b>.</p><p style="color:#777;font-size:13px;margin-top:6px">Pedidos: '+(c.orders_count||0)+'</p></div>'}}
+          async function $o(b){var r=await api('/api/v1/public/account/orders');var rows=r.data||[];b.innerHTML='<div class="card" style="padding:18px">'+(rows.length?'<table style="width:100%;font-size:13px;border-collapse:collapse"><tr style="text-align:left;color:#777"><th>Pedido</th><th>Fecha</th><th>Total</th><th>Estado</th></tr>'+rows.map(function(o){return '<tr><td style="padding:6px 0">#'+esc(o.order_number||String(o.uuid||'').slice(0,8))+'</td><td>'+esc(o.created_at)+'</td><td>'+money((o.total_cents||0)/100)+'</td><td>'+esc((o.payment_status||'')+' / '+(o.fulfillment_status||''))+'</td></tr>'}).join('')+'</table>':'<div style="color:#777">Aún no tienes pedidos.</div>')+'</div>'}
+          async function $f(b){var r=await api('/api/v1/public/account/favorites');var rows=r.data||[];b.innerHTML='<div class="card" style="padding:18px">'+(rows.length?rows.map(function(x){return '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #EEE"><a href="'+esc(x.url||'#')+'" style="font-weight:600">'+esc(x.title||x.product_ref)+'</a><span>'+money((x.price_cents||0)/100)+' <a href="#" onclick="skaFavDel(\''+esc(x.product_ref)+'\');return false" style="color:#DC2626">✕</a></span></div>'}).join(''):'<div style="color:#777">Sin favoritos.</div>')+'</div>'}
+          window.skaFavDel=function(ref){api('/api/v1/public/account/favorites/'+encodeURIComponent(ref),{method:'DELETE'}).then(function(){$f(document.getElementById('ac-body'))})};
+          function $a(b,list){b.innerHTML='<div class="card" style="padding:18px"><h3>Direcciones</h3>'+(list.length?list.map(function(x){return '<div style="padding:8px 0;border-bottom:1px solid #EEE;font-size:13px"><b>'+esc(x.label||'')+'</b> · '+esc(x.line1||'')+' · '+esc(x.city||'')+'</div>'}).join(''):'<div style="color:#777">Sin direcciones.</div>')+'<h4 style="margin-top:14px">Añadir dirección</h4>'+inp('ad-label','Etiqueta (Casa)')+inp('ad-line1','Dirección')+inp('ad-city','Ciudad')+btn('ad-go','Guardar')+'</div>';document.getElementById('ad-go').onclick=async function(){var r=await api('/api/v1/public/account/addresses',{method:'POST',body:JSON.stringify({label:document.getElementById('ad-label').value,line1:document.getElementById('ad-line1').value,city:document.getElementById('ad-city').value,is_default:1})});if(r.ok)$f2()};
+            function $f2(){api('/api/v1/public/account/me').then(function(r){account(r.data)})}}
+          function $p(b,c){b.innerHTML='<div class="card" style="padding:18px"><h3>Perfil</h3>'+inp('pf-name','Nombre',null,c.name||'')+inp('pf-phone','Teléfono',null,c.phone||'')+inp('pf-pass','Nueva contraseña (opcional)','password')+btn('pf-go','Guardar')+'</div>';document.getElementById('pf-go').onclick=async function(){var body={name:document.getElementById('pf-name').value,phone:document.getElementById('pf-phone').value};var p=document.getElementById('pf-pass').value;if(p)body.password=p;var r=await api('/api/v1/public/account/profile',{method:'PUT',body:JSON.stringify(body)});if(r.ok)location.reload()}}
+          api('/api/v1/public/account/me').then(function(r){if(r&&r.data&&r.data.customer){account(r.data)}else if(qs().tab==='register'){reg()}else{login()}}).catch(function(){login()});
+        })();
+        </script>
+        <?php
+        sonika_site_footer();
+        return true;
 }
 
 return false;

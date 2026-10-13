@@ -139,6 +139,19 @@ $router->get('/api/v1/public/domain/check', function ($request) {
 });
 
 $router->post('/api/v1/public/search/ai', [\App\Controllers\SearchAiController::class, 'suggest']);
+
+$router->post('/api/v1/public/account/register', [\App\Controllers\CustomerAccountController::class, 'register']);
+$router->post('/api/v1/public/account/login', [\App\Controllers\CustomerAccountController::class, 'login']);
+$router->post('/api/v1/public/account/logout', [\App\Controllers\CustomerAccountController::class, 'logout']);
+$router->get('/api/v1/public/account/me', [\App\Controllers\CustomerAccountController::class, 'me']);
+$router->put('/api/v1/public/account/profile', [\App\Controllers\CustomerAccountController::class, 'profile']);
+$router->get('/api/v1/public/account/orders', [\App\Controllers\CustomerAccountController::class, 'orders']);
+$router->get('/api/v1/public/account/addresses', [\App\Controllers\CustomerAccountController::class, 'addresses']);
+$router->post('/api/v1/public/account/addresses', [\App\Controllers\CustomerAccountController::class, 'addressSave']);
+$router->delete('/api/v1/public/account/addresses/{id}', [\App\Controllers\CustomerAccountController::class, 'addressDelete']);
+$router->get('/api/v1/public/account/favorites', [\App\Controllers\CustomerAccountController::class, 'favorites']);
+$router->post('/api/v1/public/account/favorites', [\App\Controllers\CustomerAccountController::class, 'favoriteAdd']);
+$router->delete('/api/v1/public/account/favorites/{ref}', [\App\Controllers\CustomerAccountController::class, 'favoriteDelete']);
 $router->get('/api/v1/public/store/config', [\App\Controllers\StorePublicController::class, 'config']);
 $router->get('/api/v1/public/store/products', [\App\Controllers\StorePublicController::class, 'products']);
 $router->get('/api/v1/public/store/products/{slug}', [\App\Controllers\StorePublicController::class, 'product']);
