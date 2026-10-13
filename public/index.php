@@ -11,6 +11,7 @@ use App\Core\Database;
 use App\Core\Response;
 
 Config::load();
+\App\Core\Lang::init();
 
 set_exception_handler(function (\Throwable $e) {
     $debug = Config::get('APP_DEBUG', 'false') === 'true';

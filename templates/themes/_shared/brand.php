@@ -116,6 +116,18 @@ if (!function_exists('wwi_tc')) {
     }
 }
 
+if (!function_exists('t')) {
+    /** Traducción i18n. Uso: t('add_to_cart'). Locale en \App\Core\Lang. */
+    function t(string $key, ?string $default = null): string
+    {
+        try {
+            return \App\Core\Lang::get($key, $default);
+        } catch (\Throwable $e) {
+            return (string)($default ?? $key);
+        }
+    }
+}
+
 if (!function_exists('wwi_site_name')) {
     function wwi_site_name(string $fallback = 'Wontia'): string
     {

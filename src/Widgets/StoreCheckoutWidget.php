@@ -47,17 +47,17 @@ class StoreCheckoutWidget extends StoreWidgetBase
         $html .= '<div id="st-co-wrap" class="st-pd" style="grid-template-columns:1.2fr .8fr;align-items:start">';
 
         $html .= '<form id="st-co-form" onsubmit="return wwiStoreCheckout(event)">';
-        $html .= '<div class="st-row"><div class="st-field"><label>Nombre completo *</label><input name="name" required/></div>';
-        $html .= '<div class="st-field"><label>Documento / NIT</label><input name="document"/></div></div>';
-        $html .= '<div class="st-row"><div class="st-field"><label>Email *</label><input type="email" name="email" required/></div>';
-        $html .= '<div class="st-field"><label>Telefono / WhatsApp *</label><input name="phone" required/></div></div>';
-        $html .= '<div class="st-field"><label>Direccion de entrega *</label><input name="line1" required/></div>';
-        $html .= '<div class="st-row"><div class="st-field"><label>Ciudad *</label><input name="city" required/></div>';
-        $html .= '<div class="st-field"><label>Departamento</label><input name="region"/></div></div>';
+        $html .= '<div class="st-row"><div class="st-field"><label>' . $this->esc(\App\Core\Lang::get('full_name', 'Nombre completo')) . ' *</label><input name="name" required/></div>';
+        $html .= '<div class="st-field"><label>' . $this->esc(\App\Core\Lang::get('document', 'Documento / NIT')) . '</label><input name="document"/></div></div>';
+        $html .= '<div class="st-row"><div class="st-field"><label>' . $this->esc(\App\Core\Lang::get('email', 'Email')) . ' *</label><input type="email" name="email" required/></div>';
+        $html .= '<div class="st-field"><label>' . $this->esc(\App\Core\Lang::get('phone', 'Teléfono / WhatsApp')) . ' *</label><input name="phone" required/></div></div>';
+        $html .= '<div class="st-field"><label>' . $this->esc(\App\Core\Lang::get('address', 'Dirección de entrega')) . ' *</label><input name="line1" required/></div>';
+        $html .= '<div class="st-row"><div class="st-field"><label>' . $this->esc(\App\Core\Lang::get('city', 'Ciudad')) . ' *</label><input name="city" required/></div>';
+        $html .= '<div class="st-field"><label>' . $this->esc(\App\Core\Lang::get('region', 'Departamento')) . '</label><input name="region"/></div></div>';
 
         if ($zones) {
-            $html .= '<div class="st-field"><label>Zona de envio *</label><select name="zone_id" required onchange="wwiStoreZone(this)">';
-            $html .= '<option value="">Selecciona tu zona</option>';
+            $html .= '<div class="st-field"><label>' . $this->esc(\App\Core\Lang::get('shipping_zone', 'Zona de envío')) . ' *</label><select name="zone_id" required onchange="wwiStoreZone(this)">';
+            $html .= '<option value="">' . $this->esc(\App\Core\Lang::get('select_zone', 'Selecciona tu zona')) . '</option>';
             foreach ($zones as $z) {
                 $html .= '<option value="' . (int)$z['id'] . '" data-cost="' . (int)$z['cost_cents'] . '" data-free="' . (int)$z['free_over_cents'] . '">'
                     . $this->esc((string)$z['name']) . ' — ' . $this->esc($this->money((int)$z['cost_cents'], $currency))
@@ -66,7 +66,7 @@ class StoreCheckoutWidget extends StoreWidgetBase
             $html .= '</select></div>';
         }
 
-        $html .= '<div class="st-field"><label>Notas del pedido</label><textarea name="notes" rows="2"></textarea></div>';
+        $html .= '<div class="st-field"><label>' . $this->esc(\App\Core\Lang::get('order_notes', 'Notas del pedido')) . '</label><textarea name="notes" rows="2"></textarea></div>';
 
         $loy = ['enabled' => false, 'redeem_cents' => 0];
         $loyBalance = 0;
@@ -80,11 +80,11 @@ class StoreCheckoutWidget extends StoreWidgetBase
         } catch (\Throwable $e) {
         }
         if (!empty($loy['enabled']) && $loyBalance > 0) {
-            $html .= '<div class="st-field"><label>Usar puntos (' . (int)$loyBalance . ' disponibles · 1 punto = ' . $this->esc($this->money((int)$loy['redeem_cents'], $currency)) . ')</label>'
+            $html .= '<div class="st-field"><label>' . $this->esc(\App\Core\Lang::get('use_points', 'Usar puntos')) . ' (' . (int)$loyBalance . ' · 1 = ' . $this->esc($this->money((int)$loy['redeem_cents'], $currency)) . ')</label>'
                 . '<input type="number" name="points" min="0" max="' . (int)$loyBalance . '" value="0" style="width:140px"/></div>';
         }
 
-        $html .= '<div class="st-field"><label>Metodo de pago *</label><div class="st-pay">';
+        $html .= '<div class="st-field"><label>' . $this->esc(\App\Core\Lang::get('payment_method', 'Método de pago')) . ' *</label><div class="st-pay">';
         $defaultPm = '';
         try {
             $me = (new \App\Services\CustomerService())->current();
@@ -101,7 +101,7 @@ class StoreCheckoutWidget extends StoreWidgetBase
         $html .= '<button class="st-btn st-btn-primary" type="submit" id="st-co-btn" style="width:100%;padding:15px">' . $this->esc($c['submit_label']) . '</button>';
         $html .= '</form>';
 
-        $html .= '<div class="st-totals"><h3 style="font-size:15px;margin:0 0 12px">Resumen</h3><div id="st-co-summary"></div></div>';
+        $html .= '<div class="st-totals"><h3 style="font-size:15px;margin:0 0 12px">' . $this->esc(\App\Core\Lang::get('summary', 'Resumen')) . '</h3><div id="st-co-summary"></div></div>';
         $html .= '</div>';
 
         $html .= '<div id="st-co-success" style="display:none"></div>';
@@ -112,6 +112,14 @@ class StoreCheckoutWidget extends StoreWidgetBase
             'empty' => $c['empty_text'],
             'success' => $c['success_text'],
             'whatsapp' => $whatsapp,
+            'i18n' => [
+                'shipping' => \App\Core\Lang::get('shipping', 'Envío'),
+                'total' => \App\Core\Lang::get('total', 'Total'),
+                'processing' => \App\Core\Lang::get('processing', 'Procesando...'),
+                'received' => \App\Core\Lang::get('order_received', 'Pedido recibido.'),
+                'view' => \App\Core\Lang::get('view_status', 'Ver estado'),
+                'notify' => \App\Core\Lang::get('notify_whatsapp', 'Avisar por WhatsApp'),
+            ],
         ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
 
         $html .= '<script>(function(){var CFG=' . $cfg . ';var S=window.WWIStore;'
@@ -120,13 +128,13 @@ class StoreCheckoutWidget extends StoreWidgetBase
             . 'var h="";items.forEach(function(it){h+=\'<div class="r" style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0"><span>\'+(it.qty||1)+"x "+it.name+(it.variant?" ("+it.variant+")":"")+\'</span><span>\'+S.money((parseInt(it.price_cents)||0)*(parseInt(it.qty)||1))+\'</span></div>\'});'
             . 'var sel=document.querySelector(\'#st-co-form [name="zone_id"]\');var ship=0;'
             . 'if(sel&&sel.value){var o=sel.options[sel.selectedIndex];var cost=parseInt(o.dataset.cost)||0;var free=parseInt(o.dataset.free)||0;ship=(free>0&&S.subtotal()>=free)?0:cost}'
-            . 'h+=\'<div style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0"><span>Envio</span><span>\'+(ship?S.money(ship):"—")+\'</span></div>\';'
-            . 'h+=\'<div class="r big" style="display:flex;justify-content:space-between;font-size:18px;font-weight:800;border-top:1px solid rgba(120,120,140,.16);margin-top:8px;padding-top:12px"><span>Total</span><span>\'+S.money(S.subtotal()+ship)+\'</span></div>\';'
+            . 'h+=\'<div style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0"><span>\'+CFG.i18n.shipping+\'</span><span>\'+(ship?S.money(ship):"—")+\'</span></div>\';'
+            . 'h+=\'<div class="r big" style="display:flex;justify-content:space-between;font-size:18px;font-weight:800;border-top:1px solid rgba(120,120,140,.16);margin-top:8px;padding-top:12px"><span>\'+CFG.i18n.total+\'</span><span>\'+S.money(S.subtotal()+ship)+\'</span></div>\';'
             . 'el.innerHTML=h}'
             . 'window.wwiStoreZone=function(){summary()};'
             . 'window.wwiStoreCheckout=function(e){e.preventDefault();var f=e.target;var items=S.get();var msg=document.getElementById("st-co-msg");'
             . 'if(!items.length){msg.innerHTML=\'<div class="st-msg err">\'+CFG.empty+\'</div>\';return false}'
-            . 'var btn=document.getElementById("st-co-btn");btn.disabled=true;btn.textContent="Procesando...";'
+            . 'var btn=document.getElementById("st-co-btn");btn.disabled=true;btn.textContent=CFG.i18n.processing;'
             . 'var fd=new FormData(f);var payload={items:items.map(function(it){return{product_id:it.product_id,variant_id:it.variant_id,qty:parseInt(it.qty)||1}}),'
             . 'customer:{name:fd.get("name"),email:fd.get("email"),phone:fd.get("phone"),document:fd.get("document")||""},'
             . 'shipping:{zone_id:fd.get("zone_id")||null,address:{line1:fd.get("line1"),city:fd.get("city"),region:fd.get("region")||""}},'
@@ -138,7 +146,7 @@ class StoreCheckoutWidget extends StoreWidgetBase
             . 'var wa=CFG.whatsapp?(" https://wa.me/"+CFG.whatsapp+"?text="+encodeURIComponent("Hola, acabo de hacer el pedido "+order.order_number)):"";'
             . 'document.getElementById("st-co-wrap").style.display="none";'
             . 'var ok=document.getElementById("st-co-success");ok.style.display="block";'
-            . 'ok.innerHTML=\'<div class="st-msg ok"><strong>Pedido \'+order.order_number+\' recibido.</strong><br/>\'+CFG.success+(\' <a href="?order=\'+order.uuid+\'" style="color:inherit;text-decoration:underline">Ver estado</a>\')+(wa?\' <a href="\'+wa+\'" style="color:inherit;text-decoration:underline">Avisar por WhatsApp</a>\':\'\')+\'</div>\';'
+            . 'ok.innerHTML=\'<div class="st-msg ok"><strong>\'+CFG.i18n.received+\' \'+order.order_number+\'</strong><br/>\'+CFG.success+(\' <a href="?order=\'+order.uuid+\'" style="color:inherit;text-decoration:underline">\'+CFG.i18n.view+\'</a>\')+(wa?\' <a href="\'+wa+\'" style="color:inherit;text-decoration:underline">\'+CFG.i18n.notify+\'</a>\':\'\')+\'</div>\';'
             . 'window.scrollTo({top:document.getElementById("st-checkout").offsetTop-40,behavior:"smooth"})'
             . '}).catch(function(err){msg.innerHTML=\'<div class="st-msg err">\'+(err.message||"Error")+\'</div>\';btn.disabled=false;btn.textContent="' . $this->esc($c['submit_label']) . '"})'
             . ';return false};'

@@ -68,7 +68,7 @@ if (($segments[0] ?? '') === 'producto' && !empty($segments[1])) {
               <?php if ($cmp > $price && $price > 0): ?><span class="cmp"><?= sonika_cop($cmp) ?></span><?php endif; ?>
             </div>
             <div class="meta">
-              <span class="chip <?= $avail ? 'ok' : 'no' ?>"><?= $avail ? '● Disponible' : '● Agotado' ?></span>
+              <span class="chip <?= $avail ? 'ok' : 'no' ?>"><?= $avail ? '● ' . sonika_esc(\App\Core\Lang::get('available', 'Disponible')) : '● ' . sonika_esc(\App\Core\Lang::get('out_of_stock', 'Agotado')) ?></span>
               <?php if (!empty($product['product_type'])): ?><span class="chip"><?= sonika_esc($product['product_type']) ?></span><?php endif; ?>
               <span class="chip">SKU <?= sonika_esc(sonika_variant($product)['sku'] ?? '—') ?></span>
             </div>
@@ -78,18 +78,18 @@ if (($segments[0] ?? '') === 'producto' && !empty($segments[1])) {
                 <input id="qty" type="text" value="1" inputmode="numeric" />
                 <button type="button" onclick="var i=document.getElementById('qty');i.value=(+i.value)+1">+</button>
               </div>
-              <button class="btn-buy" type="button" data-add="<?= sonika_esc($product['handle']) ?>" data-qty-target="qty" data-title="<?= sonika_esc($product['title']) ?>" data-price="<?= (float)$price ?>" data-img="<?= sonika_esc(sonika_img($product)) ?>">Agregar al carrito</button>
-              <a class="cta sec" href="/carrito" style="margin:0">Ir al carrito</a>
+              <button class="btn-buy" type="button" data-add="<?= sonika_esc($product['handle']) ?>" data-qty-target="qty" data-title="<?= sonika_esc($product['title']) ?>" data-price="<?= (float)$price ?>" data-img="<?= sonika_esc(sonika_img($product)) ?>"><?= sonika_esc(\App\Core\Lang::get('add_to_cart', 'Agregar al carrito')) ?></button>
+              <a class="cta sec" href="/carrito" style="margin:0"><?= sonika_esc(\App\Core\Lang::get('go_to_cart', 'Ir al carrito')) ?></a>
             </div>
             <div class="trust" style="justify-content:flex-start;gap:16px;border:none;padding:0">
-              <span>🚚 <b>Envío nacional</b></span><span>🛡️ <b>Garantía</b></span><span>💳 <b>Pago seguro</b></span>
+              <span>🚚 <b><?= sonika_esc(\App\Core\Lang::get('shipping_national', 'Envío nacional')) ?></b></span><span>🛡️ <b><?= sonika_esc(\App\Core\Lang::get('warranty', 'Garantía')) ?></b></span><span>💳 <b><?= sonika_esc(\App\Core\Lang::get('secure_payment', 'Pago seguro')) ?></b></span>
             </div>
           </div>
         </section>
 
         <?php if (!empty($product['body_html'])): ?>
         <section class="wrap pdp-desc">
-          <h3>Descripción del producto</h3>
+          <h3><?= sonika_esc(\App\Core\Lang::get('product_description', 'Descripción del producto')) ?></h3>
           <div><?= sonika_safe_html((string)$product['body_html']) ?></div>
         </section>
         <?php endif; ?>
@@ -98,7 +98,7 @@ if (($segments[0] ?? '') === 'producto' && !empty($segments[1])) {
 
         <?php $rel = sonika_related($product, 4); if (!empty($rel)): ?>
         <section class="pad wrap">
-          <div class="head"><h2>Productos relacionados</h2></div>
+          <div class="head"><h2><?= sonika_esc(\App\Core\Lang::get('related_products', 'Productos relacionados')) ?></h2></div>
           <?php sonika_grid($rel); ?>
         </section>
         <?php endif; ?>
@@ -273,8 +273,19 @@ switch ($segments[0] ?? '') {
             document.getElementById('rg-go').onclick=async function(){var r=await api('/api/v1/public/account/register',{method:'POST',body:JSON.stringify({name:document.getElementById('rg-name').value,email:document.getElementById('rg-email').value,password:document.getElementById('rg-pass').value})});if(r.ok){location.search=''}else{login(r.message||'No se pudo crear')}};
             document.getElementById('rg-to').onclick=function(e){e.preventDefault();location.search=''}}
           function account(d){var c=d.customer||{},tab=qs().tab||'summary';
+            var L=<?= json_encode([
+                'summary' => \App\Core\Lang::get('tab_summary', 'Resumen'),
+                'orders' => \App\Core\Lang::get('tab_orders', 'Pedidos'),
+                'favorites' => \App\Core\Lang::get('tab_favorites', 'Favoritos'),
+                'addresses' => \App\Core\Lang::get('tab_addresses', 'Direcciones'),
+                'profile' => \App\Core\Lang::get('tab_profile', 'Perfil'),
+                'reviews' => \App\Core\Lang::get('tab_reviews', 'Reseñas'),
+                'points' => \App\Core\Lang::get('tab_points', 'Puntos'),
+                'payment' => \App\Core\Lang::get('tab_payment', 'Pago'),
+                'logout' => \App\Core\Lang::get('logout', 'Cerrar sesión'),
+            ], JSON_UNESCAPED_UNICODE) ?>;
             function tb(id,l){return '<a href="?tab='+id+'" style="padding:8px 14px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none;'+(tab===id?'background:#F20D16;color:#fff':'color:#555')+'">'+l+'</a>'}
-            box.innerHTML='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">'+tb('summary','Resumen')+tb('orders','Pedidos')+tb('favorites','Favoritos')+tb('addresses','Direcciones')+tb('profile','Perfil')+tb('reviews','Reseñas')+tb('points','Puntos')+tb('payment','Pago')+'</div><div id="ac-body"></div>';
+            box.innerHTML='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">'+tb('summary',L.summary)+tb('orders',L.orders)+tb('favorites',L.favorites)+tb('addresses',L.addresses)+tb('profile',L.profile)+tb('reviews',L.reviews)+tb('points',L.points)+tb('payment',L.payment)+'</div><div id="ac-body"></div>';
             var b=document.getElementById('ac-body');
             if(tab==='orders'){$o(b)} else if(tab==='favorites'){$f(b)} else if(tab==='addresses'){$a(b,d.addresses||[])} else if(tab==='profile'){$p(b,c)} else if(tab==='reviews'){$rv(b)} else if(tab==='points'){$pts(b)} else if(tab==='payment'){$pm(b)} else {b.innerHTML='<div class="card" style="padding:20px"><p>Hola, <b>'+esc(c.name||c.email)+'</b>.</p><p style="color:#777;font-size:13px;margin-top:6px">Pedidos: '+(c.orders_count||0)+'</p></div>'+(c.email_verified_at?'':'<div class="card" style="padding:16px;margin-top:12px;border-left:3px solid #F20D16"><b>Verifica tu email</b><p style="color:#777;font-size:13px;margin:6px 0">Enviamos un código a tu correo para activar tu cuenta y las alertas.</p>'+inp('ve-code','Código (6 dígitos)')+btn('ve-go','Verificar')+' <a href="#" id="ve-resend" style="font-size:13px">Reenviar código</a></div>');
               if(!c.email_verified_at){document.getElementById('ve-go').onclick=async function(){var r=await api('/api/v1/public/account/verify-email',{method:'POST',body:JSON.stringify({email:c.email,code:document.getElementById('ve-code').value})});if(r.ok)location.reload();else alert(r.message||'Código inválido')};document.getElementById('ve-resend').onclick=async function(e){e.preventDefault();await api('/api/v1/public/account/verify-email/resend',{method:'POST'});alert('Código reenviado a tu correo.')}}}}

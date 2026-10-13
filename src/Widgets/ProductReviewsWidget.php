@@ -88,28 +88,28 @@ class ProductReviewsWidget extends Widget
         $h .= '</div></div>';
 
         if (!$items) {
-            $h .= '<p style="color:#777;margin-top:14px">Aún no hay reseñas. ¡Sé el primero!</p>';
+            $h .= '<p style="color:#777;margin-top:14px">' . $this->esc(\App\Core\Lang::get('no_reviews', 'Aún no hay reseñas. ¡Sé el primero!')) . '</p>';
         } else {
             foreach ($items as $r) {
                 $h .= '<div class="prw-item"><div class="top"><div><b>' . $this->esc((string)($r['title'] ?: 'Reseña')) . '</b> ' . $this->stars((float)$r['rating'])
                     . ' ' . (!empty($r['verified_purchase']) ? '<span class="prw-ver">Compra verificada</span>' : '') . '</div>'
                     . '<small style="color:#999">' . $this->esc(substr((string)$r['created_at'], 0, 10)) . '</small></div>'
                     . '<div style="margin:6px 0;color:#444">' . nl2br($this->esc((string)$r['body'])) . '</div>'
-                    . '<small style="color:#777">— ' . $this->esc((string)$r['author_name']) . ' · <a href="#" class="prw-help" data-id="' . (int)$r['id'] . '" style="color:#777">Útil (' . (int)$r['helpful'] . ')</a></small></div>';
+                    . '<small style="color:#777">— ' . $this->esc((string)$r['author_name']) . ' · <a href="#" class="prw-help" data-id="' . (int)$r['id'] . '" style="color:#777">' . $this->esc(\App\Core\Lang::get('useful', 'Útil')) . ' (' . (int)$r['helpful'] . ')</a></small></div>';
             }
         }
 
         if ($canWrite) {
-            $h .= '<div class="prw-form"><h4 style="margin:0 0 6px">Escribe tu reseña</h4>'
+            $h .= '<div class="prw-form"><h4 style="margin:0 0 6px">' . $this->esc(\App\Core\Lang::get('write_review', 'Escribe tu reseña')) . '</h4>'
                 . '<div class="prw-stars" id="' . $uid . '-stars" data-v="5">' . $this->stars(5) . '</div>'
-                . '<input type="text" id="' . $uid . '-title" placeholder="Título (opcional)" maxlength="120" />'
-                . '<textarea id="' . $uid . '-body" rows="3" placeholder="¿Qué te pareció el producto?" maxlength="2000"></textarea>'
-                . '<button type="button" id="' . $uid . '-send">Publicar reseña</button>'
+                . '<input type="text" id="' . $uid . '-title" placeholder="' . $this->esc(\App\Core\Lang::get('review_title', 'Título (opcional)')) . '" maxlength="120" />'
+                . '<textarea id="' . $uid . '-body" rows="3" placeholder="' . $this->esc(\App\Core\Lang::get('review_placeholder', '¿Qué te pareció el producto?')) . '" maxlength="2000"></textarea>'
+                . '<button type="button" id="' . $uid . '-send">' . $this->esc(\App\Core\Lang::get('publish_review', 'Publicar reseña')) . '</button>'
                 . '<div class="prw-msg" id="' . $uid . '-msg"></div></div>';
         } elseif ($me && $showForm && $svc->alreadyReviewed((int)$me['id'], $ref)) {
             $h .= '<p style="color:#777;margin-top:14px">Gracias, ya enviaste tu reseña para este producto.</p>';
         } elseif ($showForm) {
-            $h .= '<p style="margin-top:14px"><a href="/cuenta?tab=reviews" style="font-weight:600">Inicia sesión para escribir una reseña →</a></p>';
+            $h .= '<p style="margin-top:14px"><a href="/cuenta?tab=reviews" style="font-weight:600">' . $this->esc(\App\Core\Lang::get('review_login', 'Inicia sesión para escribir una reseña')) . ' →</a></p>';
         }
 
         $h .= '</div>';
