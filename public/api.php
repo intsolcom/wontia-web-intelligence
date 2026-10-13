@@ -463,8 +463,19 @@ $r->post('/builder/comments', [\App\Controllers\Admin\BuilderController::class, 
 $r->patch('/builder/comments/{id}', [\App\Controllers\Admin\BuilderController::class, 'commentStatus']);
 $r->delete('/builder/comments/{id}', [\App\Controllers\Admin\BuilderController::class, 'commentDelete']);
 
-    $r->get('/media', [\App\Controllers\Admin\MediaController::class, 'index']);    $r->post('/media/upload', [\App\Controllers\Admin\MediaController::class, 'upload']);
-    $r->delete('/media/{id}', [\App\Controllers\Admin\MediaController::class, 'destroy']);
+$r->get('/media', [\App\Controllers\Admin\MediaController::class, 'index']);    $r->post('/media/upload', [\App\Controllers\Admin\MediaController::class, 'upload']);
+$r->get('/media/folders', [\App\Controllers\Admin\MediaController::class, 'folders']);
+$r->post('/media/folders', [\App\Controllers\Admin\MediaController::class, 'folderSave']);
+$r->put('/media/folders/{id}', [\App\Controllers\Admin\MediaController::class, 'folderSave']);
+$r->delete('/media/folders/{id}', [\App\Controllers\Admin\MediaController::class, 'folderDelete']);
+$r->get('/media/stats', [\App\Controllers\Admin\MediaController::class, 'stats']);
+$r->post('/media/sync-brand', [\App\Controllers\Admin\MediaController::class, 'syncBrand']);
+$r->get('/media/{id}/usage', [\App\Controllers\Admin\MediaController::class, 'usage']);
+$r->post('/media/{id}/restore', [\App\Controllers\Admin\MediaController::class, 'restore']);
+$r->post('/media/{id}/move', [\App\Controllers\Admin\MediaController::class, 'move']);
+$r->put('/media/{id}/alt', [\App\Controllers\Admin\MediaController::class, 'saveAlt']);
+$r->delete('/media/{id}', [\App\Controllers\Admin\MediaController::class, 'destroy']);
+$r->delete('/media/{id}/purge', [\App\Controllers\Admin\MediaController::class, 'purge']);
 
     $r->get('/blog/posts', [\App\Controllers\Admin\BlogController::class, 'index']);
     $r->get('/blog/posts/{id}', [\App\Controllers\Admin\BlogController::class, 'show']);

@@ -1216,50 +1216,99 @@ W.loadCategories=async function(){
     W.state.categories.forEach(function(c){sel.innerHTML+='<option value="'+c.id+'">'+W.esc(c.name)+'</option>'});
 };
 
+W.state=W.state||{};W.state.media={folder:'',kind:'',q:'',trash:0};
+W.mediaHuman=function(b){b=parseInt(b)||0;if(b<1024)return b+' B';if(b<1048576)return (b/1024).toFixed(1)+' KB';return (b/1048576).toFixed(2)+' MB'};
 W.renderMediaManager=function(){
     var app=document.getElementById('wontia-app');
-    app.innerHTML='<div class="w-flex-between w-mb-lg"><h3>Media Library</h3><button class="w-btn w-btn-primary" id="media-upload-btn">Upload</button></div><div class="w-drop-zone w-mb-lg" id="media-drop"><span>Drag & drop images here or click to upload</span></div><input type="file" id="media-file-input" accept="image/*" style="display:none" multiple/><div id="media-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px"></div>';
-    document.getElementById('media-drop').addEventListener('click',function(){document.getElementById('media-file-input').click()});
+    app.innerHTML='<div class="w-flex-between w-mb-lg"><h3>Media Library</h3><div class="w-flex w-gap-sm"><span id="media-stats" style="font-size:11px;color:var(--w-muted);align-self:center"></span><button class="w-btn w-btn-secondary" onclick="wontia.mediaSyncBrand()">↻ Marca</button><button class="w-btn w-btn-primary" id="media-upload-btn">Subir</button></div></div>'
+      +'<div class="w-drop-zone w-mb-lg" id="media-drop"><span>Arrastra y suelta aquí (imágenes, videos, iconos) o haz clic para subir</span></div>'
+      +'<input type="file" id="media-file-input" accept="image/*,video/*,.svg,.ico,.pdf" style="display:none" multiple/>'
+      +'<div style="display:grid;grid-template-columns:220px 1fr;gap:16px;align-items:start">'
+      +'<div id="media-folders"></div>'
+      +'<div><div class="w-flex w-gap-sm w-mb-lg" style="flex-wrap:wrap"><input class="w-input" id="media-search" placeholder="Buscar…" style="max-width:280px" onkeydown="if(event.key===\'Enter\')wontia.mediaSearch()"/><button class="w-btn w-btn-secondary" onclick="wontia.mediaSearch()">Buscar</button></div><div id="media-grid"></div></div>'
+      +'</div>';
+    var dp=document.getElementById('media-drop');
+    dp.addEventListener('click',function(){document.getElementById('media-file-input').click()});
     document.getElementById('media-upload-btn').addEventListener('click',function(){document.getElementById('media-file-input').click()});
     document.getElementById('media-file-input').addEventListener('change',W.handleMediaUpload);
-    document.getElementById('media-drop').addEventListener('dragover',function(e){e.preventDefault();this.classList.add('drag-over')});
-    document.getElementById('media-drop').addEventListener('dragleave',function(){this.classList.remove('drag-over')});
-    document.getElementById('media-drop').addEventListener('drop',function(e){e.preventDefault();this.classList.remove('drag-over');W.uploadFiles(e.dataTransfer.files)});
+    dp.addEventListener('dragover',function(e){e.preventDefault();this.classList.add('drag-over')});
+    dp.addEventListener('dragleave',function(){this.classList.remove('drag-over')});
+    dp.addEventListener('drop',function(e){e.preventDefault();this.classList.remove('drag-over');W.uploadFiles(e.dataTransfer.files)});
     W.refreshMedia();
 };
 
+W.mediaSearch=function(){W.state.media.q=(document.getElementById('media-search')||{}).value||'';W.refreshMedia()};
+W.mediaGo=function(folder,kind,trash){W.state.media.folder=folder||'';W.state.media.kind=kind||'';W.state.media.trash=trash?1:0;W.refreshMedia()};
+
 W.refreshMedia=async function(){
-    var d=await W.api('/api/v1/admin/media');
-    var items=d.data||[];
-    var grid=document.getElementById('media-grid');
-    if(!grid)return;
-    if(!items.length){grid.innerHTML='<div class="w-empty-state" style="grid-column:1/-1"><p>No media uploaded</p></div>';return;}
-    grid.innerHTML=items.map(function(m){
-        return '<div style="background:var(--w-bg);border-radius:6px;overflow:hidden;text-align:center;position:relative">'+
-            '<img src="'+W.esc(m.url)+'" alt="" style="width:100%;height:120px;object-fit:cover" onerror="this.src=\'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22150%22 height=%22120%22><rect fill=%22%23333%22 width=%22150%22 height=%22120%22/><text fill=%22%23888%22 x=%2275%22 y=%2265%22 text-anchor=%22middle%22 font-size=%2211%22>No img</text></svg>\'"/>'+
-            '<div style="padding:6px;font-size:10px;color:var(--w-muted)">'+W.esc(m.filename||'')+'</div>'+
-            '<button class="w-btn w-btn-danger w-btn-sm" style="position:absolute;top:4px;right:4px" onclick="wontia.deleteMedia('+m.id+')">X</button>'+
-            '<button class="w-btn w-btn-secondary w-btn-sm" style="position:absolute;bottom:30px;right:4px" onclick="navigator.clipboard.writeText(\''+m.url+'\');wontia.notify(\'Copied\',\'success\')">Copy URL</button>'+
-            '</div>';
-    }).join('');
+    var s=W.state.media;
+    var qs='?limit=120';if(s.folder)qs+='&folder_id='+encodeURIComponent(s.folder);if(s.kind)qs+='&kind='+encodeURIComponent(s.kind);if(s.q)qs+='&q='+encodeURIComponent(s.q);if(s.trash)qs+='&trash=1';
+    var d=await W.api('/api/v1/admin/media'+qs);
+    var st=await W.api('/api/v1/admin/media/stats');
+    var fo=await W.api('/api/v1/admin/media/folders');
+    var items=d.data||[];var folders=fo.data||[];var stat=st.data||{};
+    var stEl=document.getElementById('media-stats');
+    if(stEl)stEl.textContent=(stat.total||0)+' archivos · ahorro '+W.mediaHuman(stat.saved_bytes||0)+' con WebP';
+    var side=document.getElementById('media-folders');
+    if(side){
+        var btn=function(label,folder,kind,trash){var on=(String(s.folder)===(folder||'')&&s.kind===(kind||'')&&+s.trash===(trash?1:0));return '<button class="w-btn '+(on?'w-btn-primary':'w-btn-secondary')+'" style="width:100%;justify-content:space-between;margin-bottom:4px" onclick="wontia.mediaGo(\''+folder+'\',\''+kind+'\','+(trash?1:0)+')"><span>'+label+'</span></button>'};
+        var h='<div class="w-card" style="padding:10px">'+btn('📁 Todas','','',0)+btn('🖼 Imágenes','','image',0)+btn('🎬 Videos','','video',0)+btn('⭐ Iconos','','icon',0)
+          +'<div style="font-size:11px;color:var(--w-muted);margin:10px 0 4px">Carpetas</div>';
+        folders.forEach(function(f){h+='<button class="w-btn '+(String(s.folder)===String(f.id)?'w-btn-primary':'w-btn-secondary')+'" style="width:100%;justify-content:space-between;margin-bottom:4px" onclick="wontia.mediaGo(\''+f.id+'\',\'\',0)"><span>'+W.esc(f.name)+'</span><span style="opacity:.7">'+f.count+'</span></button>'});
+        h+='<button class="w-btn w-btn-secondary" style="width:100%;margin-top:6px" onclick="wontia.mediaNewFolder()">＋ Nueva carpeta</button>'+btn('🗑 Papelera','','',1)+'</div>';
+        side.innerHTML=h;
+    }
+    var grid=document.getElementById('media-grid');if(!grid)return;
+    if(!items.length){grid.innerHTML='<div class="w-empty-state"><p>Sin resultados.</p></div>';return}
+    grid.innerHTML='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px">'+items.map(W.mediaCard).join('')+'</div>';
 };
+
+W.mediaCard=function(m){
+    var vs={};try{vs=m.variants?(typeof m.variants==='string'?JSON.parse(m.variants):m.variants):{}}catch(e){vs={}};
+    var thumb=(vs.thumb&&vs.thumb.url)?vs.thumb.url:m.url;
+    var isVid=m.kind==='video';
+    var conv=m.converted_ext?(W.esc(String(m.converted_ext).toUpperCase())):'—';
+    var convSize=m.converted_size?W.mediaHuman(m.converted_size):'';
+    var saved=(m.original_size&&m.converted_size&&m.converted_size<m.original_size)?('−'+Math.round((1-m.converted_size/m.original_size)*100)+'%'):'';
+    var img=isVid?'<div style="height:120px;background:#0d1220;color:#9fb0c9;display:grid;place-items:center;font-size:12px">▶ video</div>':'<img src="'+W.esc(thumb)+'" alt="'+W.esc(m.alt_text||'')+'" style="width:100%;height:120px;object-fit:cover;display:block" loading="lazy"/>';
+    var actions=m.deleted_at
+      ?'<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.mediaRestore('+m.id+')">↩ Restaurar</button><button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.mediaPurge('+m.id+')">Borrar</button>'
+      :'<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.mediaCopy(\''+W.esc(m.url)+'\')">Copiar ruta</button><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.mediaMove('+m.id+')">Mover</button><button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.mediaTrash('+m.id+')">🗑</button>';
+    return '<div class="w-card" style="padding:0;overflow:hidden">'+img
+      +'<div style="padding:8px"><div style="font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+W.esc(m.original_name||m.filename)+'</div>'
+      +'<div style="font-size:10px;color:var(--w-muted);margin-top:3px">'+W.esc(m.kind||'')+(m.is_brand?' · marca':'')+' · '+(m.width||0)+'×'+(m.height||0)+'</div>'
+      +'<div style="font-size:10px;color:var(--w-muted);margin-top:3px;word-break:break-all">'+W.esc(m.url)+'</div>'
+      +'<div style="font-size:10px;margin-top:3px">Original: <b>'+W.mediaHuman(m.original_size||m.size)+'</b>'+(m.converted_ext?(' → <b>'+conv+'</b> '+convSize+' '+(saved?('<span style="color:#34d399">'+saved+'</span>'):'')):'')+'</div>'
+      +'<div class="w-flex w-gap-sm" style="flex-wrap:wrap;margin-top:6px">'+actions+'</div></div></div>';
+};
+
+W.mediaCopy=function(u){navigator.clipboard.writeText(u);W.notify('Ruta copiada','success')};
+W.mediaTrash=async function(id){var r=await W.api('/api/v1/admin/media/'+id,{method:'DELETE'});if(r.ok){W.notify('Movido a papelera','success');W.refreshMedia()}};
+W.mediaRestore=async function(id){var r=await W.api('/api/v1/admin/media/'+id+'/restore',{method:'POST',body:{}});if(r.ok)W.refreshMedia()};
+W.mediaPurge=async function(id){if(!confirm('¿Borrar definitivamente (archivo y variantes)?'))return;var r=await W.api('/api/v1/admin/media/'+id+'/purge',{method:'DELETE'});if(r.ok){W.notify('Borrado','success');W.refreshMedia()}};
+W.mediaMove=async function(id){var fo=await W.api('/api/v1/admin/media/folders');var folders=fo.data||[];var opts=folders.map(function(f){return '<option value="'+f.id+'">'+W.esc(f.name)+'</option>'}).join('');W.modal('Mover a carpeta','<select class="w-input" id="mv-folder" style="width:100%"><option value="0">— Sin carpeta —</option>'+opts+'</select>','<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cancelar</button><button class="w-btn w-btn-primary" onclick="wontia.mediaMoveDo('+id+')">Mover</button>')};
+W.mediaMoveDo=async function(id){var f=document.getElementById('mv-folder').value;var r=await W.api('/api/v1/admin/media/'+id+'/move',{method:'POST',body:{folder_id:f}});if(r.ok){W.closeModal();W.refreshMedia()}};
+W.mediaNewFolder=function(){var name=prompt('Nombre de la carpeta:');if(!name)return;W.api('/api/v1/admin/media/folders',{method:'POST',body:{name:name}}).then(function(r){if(r.ok)W.refreshMedia()})};
+W.mediaSyncBrand=async function(){var r=await W.api('/api/v1/admin/media/sync-brand',{method:'POST',body:{}});W.notify('Marca sincronizada'+(r.added?(' ('+r.added+')'):''),'success');W.refreshMedia()};
 
 W.handleMediaUpload=function(){W.uploadFiles(this.files)};
 
 W.uploadFiles=async function(files){
+    var folder=W.state.media&&W.state.media.folder?W.state.media.folder:0;
     for(var i=0;i<files.length;i++){
-        var fd=new FormData();
-        fd.append('file',files[i]);
-        W.notify('Uploading '+files[i].name+'...','info');
+        var fd=new FormData();fd.append('file',files[i]);if(folder)fd.append('folder_id',folder);
+        W.notify('Subiendo '+files[i].name+'…','info');
         var r=await W.api('/api/v1/admin/media/upload',{method:'POST',body:fd});
-        if(r.ok)W.notify('Uploaded '+files[i].name,'success');
+        if(r.ok){
+            var m=(r.data&&r.data.data)||{};
+            if(r.data&&r.data.duplicate)W.notify('Ya existía (duplicado): '+files[i].name,'info');
+            else W.notify('OK '+files[i].name+(m.converted_ext?(' → '+String(m.converted_ext).toUpperCase()+' '+W.mediaHuman(m.converted_size)):''),'success');
+        }else W.notify((r.data&&r.data.message)||('Error subiendo '+files[i].name),'error');
     }
     W.refreshMedia();
 };
 
-W.deleteMedia=function(id){
-    W.confirm('Delete this file?',async function(){await W.api('/api/v1/admin/media/'+id,{method:'DELETE'});W.refreshMedia();W.notify('Deleted','success')});
-};
+W.deleteMedia=function(id){W.mediaTrash(id)};
 
 W.renderAnalytics=async function(){
     var app=document.getElementById('wontia-app');

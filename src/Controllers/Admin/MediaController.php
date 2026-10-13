@@ -1,81 +1,96 @@
 <?php
 namespace App\Controllers\Admin;
 
-use App\Core\Database;
 use App\Core\Request;
 use App\Core\Response;
+use App\Services\MediaService;
 
 class MediaController
 {
+    private function svc(): MediaService
+    {
+        return new MediaService();
+    }
+
     public function index(Request $req): void
     {
-        $db = Database::instance();
-        $page = max(1, (int)($req->get('page', 1)));
-        $limit = 30;
-        $offset = ($page - 1) * $limit;
-        $type = $req->get('type');
-        $where = "WHERE site_id = @site_id";
-        $params = [];
-        if ($type) {
-            $where .= " AND mime LIKE :type";
-            $params['type'] = "$type%";
+        $svc = $this->svc();
+        try {
+            $svc->syncBrandAssets();
+        } catch (\Throwable $e) {
         }
-        $countStmt = $db->prepare("SELECT COUNT(*) FROM media $where");
-        $countStmt->execute($params);
-        $count = $countStmt->fetchColumn();
-        $mediaStmt = $db->prepare("SELECT * FROM media $where ORDER BY created_at DESC LIMIT $limit OFFSET $offset");
-        $mediaStmt->execute($params);
-        $media = $mediaStmt->fetchAll();
-        Response::json(['ok' => true, 'data' => $media, 'total' => (int)$count, 'page' => $page]);
+        $items = $svc->listMedia([
+            'folder_id' => $req->get('folder_id', ''),
+            'kind' => $req->get('kind', ''),
+            'q' => $req->get('q', ''),
+            'trash' => (int)$req->get('trash', 0),
+            'brand' => (int)$req->get('brand', 0),
+            'limit' => (int)$req->get('limit', 60),
+        ]);
+        Response::json(['ok' => true, 'data' => $items, 'total' => count($items)]);
     }
 
     public function upload(Request $req): void
     {
-        if (empty($_FILES['file'])) Response::error('No file uploaded', 400);
-        $file = $_FILES['file'];
-        $maxSize = 5 * 1024 * 1024;
-        $extMap = ['jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png', 'webp' => 'image/webp', 'gif' => 'image/gif', 'ico' => 'image/x-icon'];
-        $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-        if (!isset($extMap[$ext])) Response::error('File type not allowed', 400);
-        if ($file['size'] <= 0 || $file['size'] > $maxSize) Response::error('File too large (max 5MB)', 400);
-        if (!is_uploaded_file($file['tmp_name'])) Response::error('Invalid upload', 400);
-
-        $info = @getimagesize($file['tmp_name']);
-        if ($info === false) Response::error('Invalid image file', 400);
-        if ($info[2] !== IMAGETYPE_JPEG && $info[2] !== IMAGETYPE_PNG && $info[2] !== IMAGETYPE_WEBP && $info[2] !== IMAGETYPE_GIF && $info[2] !== IMAGETYPE_ICO) {
-            Response::error('Invalid image content', 400);
-        }
-
-        $name = uniqid('wontia_', true) . '.' . $ext;
-        $dir = ROOT_DIR . '/public/assets/uploads/';
-        if (!is_dir($dir)) mkdir($dir, 0775, true);
-        $path = $dir . $name;
-
-        if (!move_uploaded_file($file['tmp_name'], $path)) Response::error('Upload failed', 500);
-        @chmod($path, 0644);
-
-        [$w, $h] = $info;
-        $url = '/assets/uploads/' . $name;
-        $size = filesize($path);
-
-        $db = Database::instance();
-        $db->prepare("INSERT INTO media (site_id, filename, url, size, mime, alt_text, width, height) VALUES (@site_id, :name, :url, :size, :mime, :alt, :w, :h)")
-            ->execute(['name' => $name, 'url' => $url, 'size' => $size, 'mime' => $extMap[$ext], 'alt' => $req->input('alt_text', ''), 'w' => $w, 'h' => $h]);
-        $id = $db->lastInsertId();
-        Response::json(['ok' => true, 'data' => ['id' => $id, 'url' => $url, 'filename' => $name]], 201);
+        $r = $this->svc()->upload($_FILES['file'] ?? [], (string)$req->input('alt_text', ''), ((int)$req->input('folder_id', 0)) ?: null);
+        if (empty($r['ok'])) Response::error($r['message'] ?? 'Error', 400, $r);
+        Response::json($r, 201);
     }
 
     public function destroy(Request $req, string $id): void
     {
-        $db = Database::instance();
-        $media = $db->prepare("SELECT * FROM media WHERE id = :id AND site_id = @site_id");
-        $media->execute(['id' => $id]);
-        $m = $media->fetch();
-        if ($m) {
-            $path = ROOT_DIR . '/public' . $m['url'];
-            if (file_exists($path)) unlink($path);
-            $db->prepare("DELETE FROM media WHERE id = :id")->execute(['id' => $id]);
-        }
-        Response::json(['ok' => true]);
+        Response::json($this->svc()->trash((int)$id));
+    }
+
+    public function purge(Request $req, string $id): void
+    {
+        Response::json($this->svc()->purge((int)$id));
+    }
+
+    public function restore(Request $req, string $id): void
+    {
+        Response::json($this->svc()->restore((int)$id));
+    }
+
+    public function move(Request $req, string $id): void
+    {
+        Response::json($this->svc()->move((int)$id, ((int)$req->input('folder_id', 0)) ?: null));
+    }
+
+    public function saveAlt(Request $req, string $id): void
+    {
+        Response::json($this->svc()->saveAlt((int)$id, (string)$req->input('alt_text', '')));
+    }
+
+    public function folders(Request $req): void
+    {
+        Response::json(['ok' => true, 'data' => $this->svc()->folders()]);
+    }
+
+    public function folderSave(Request $req, ?string $id = null): void
+    {
+        $r = $this->svc()->folderSave($req->json(), $id ? (int)$id : null);
+        if (empty($r['ok'])) Response::error($r['message'] ?? 'Error', 422, $r);
+        Response::json($r);
+    }
+
+    public function folderDelete(Request $req, string $id): void
+    {
+        Response::json($this->svc()->folderDelete((int)$id));
+    }
+
+    public function stats(Request $req): void
+    {
+        Response::json(['ok' => true, 'data' => $this->svc()->stats()]);
+    }
+
+    public function usage(Request $req, string $id): void
+    {
+        Response::json($this->svc()->usage((int)$id));
+    }
+
+    public function syncBrand(Request $req): void
+    {
+        Response::json(['ok' => true, 'added' => $this->svc()->syncBrandAssets()]);
     }
 }
