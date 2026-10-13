@@ -373,6 +373,8 @@ class StoreService
         $settings = $this->settings();
         if ($settings['store_enabled'] !== '1' && $settings['store_enabled'] !== '') throw new \RuntimeException('La tienda esta deshabilitada');
         $this->assertRateLimit($settings, $input, $ip);
+        (new CustomerService())->ensureTables();
+        (new LoyaltyService())->ensureTables();
 
         $items = (array)($input['items'] ?? []);
         if (!$items) throw new \InvalidArgumentException('El pedido no tiene productos');
