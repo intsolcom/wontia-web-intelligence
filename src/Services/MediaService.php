@@ -342,7 +342,7 @@ class MediaService
     {
         $this->ensureTables();
         $db = Database::instance();
-        $st = $db->prepare("SELECT COUNT(*) c, COALESCE(SUM(original_size),0) orig, COALESCE(SUM(converted_size),0) conv, SUM(kind='video') v, SUM(kind='icon') ic FROM media WHERE site_id = @site_id AND deleted_at IS NULL");
+        $st = $db->prepare("SELECT COUNT(*) c, COALESCE(SUM(COALESCE(original_size, size)),0) orig, COALESCE(SUM(converted_size),0) conv, SUM(kind='video') v, SUM(kind='icon') ic FROM media WHERE site_id = @site_id AND deleted_at IS NULL");
         $st->execute();
         $r = $st->fetch() ?: [];
         $orig = (int)($r['orig'] ?? 0);
@@ -362,7 +362,7 @@ class MediaService
     {
         $this->ensureTables();
         $db = Database::instance();
-        $keys = ['logo', 'favicon', 'favicon_touch'];
+        $keys = ['logo', 'logo_image', 'favicon', 'favicon_touch'];
         $ph = implode(',', array_fill(0, count($keys), '?'));
         $st = $db->prepare("SELECT `key`, `value` FROM settings WHERE site_id = @site_id AND `key` IN ($ph)");
         $st->execute($keys);
