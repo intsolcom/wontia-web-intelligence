@@ -5,6 +5,7 @@ use App\Core\Database;
 use App\Core\Request;
 use App\Core\Response;
 use App\Services\StoreService;
+use App\Services\ReviewService;
 
 class StoreController
 {
@@ -185,5 +186,28 @@ class StoreController
         }
         $this->svc()->saveSettings($d);
         Response::json(['ok' => true, 'data' => $this->svc()->paymentMethods()]);
+    }
+
+    // ── Reseñas ──
+
+    public function reviews(Request $req): void
+    {
+        $svc = new ReviewService();
+        Response::json(['ok' => true, 'data' => [
+            'items' => $svc->listAll((string)$req->get('status', ''), (string)$req->get('ref', ''), 300),
+            'pending' => $svc->pendingCount(),
+        ]]);
+    }
+
+    public function reviewModerate(Request $req, string $id): void
+    {
+        $r = (new ReviewService())->moderate((int)$id, (string)$req->input('status', ''));
+        if (empty($r['ok'])) Response::error($r['message'] ?? 'Error', 422, $r);
+        Response::json($r);
+    }
+
+    public function reviewDelete(Request $req, string $id): void
+    {
+        Response::json((new ReviewService())->delete((int)$id));
     }
 }

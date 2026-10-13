@@ -4420,7 +4420,7 @@ W.renderStore=async function(tab){
     tab=tab||'productos';
     W.state.storeTab=tab;
     var app=document.getElementById('wontia-app');
-    var tabs=[['productos','Productos'],['categorias','Categorías'],['pedidos','Pedidos'],['envios','Envíos'],['config','Configuración']];
+    var tabs=[['productos','Productos'],['categorias','Categorías'],['pedidos','Pedidos'],['envios','Envíos'],['resenas','Reseñas'],['config','Configuración']];
     var bar='<div class="w-brick-tabs">';
     tabs.forEach(function(t){bar+='<button class="w-brick-tab'+(tab===t[0]?' active':'')+'" onclick="wontia.storeGo(\''+t[0]+'\')">'+t[1]+'</button>'});
     bar+='<div style="flex:1"></div><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.storeEnsure()">Setup Tables</button></div>';
@@ -4430,9 +4430,29 @@ W.renderStore=async function(tab){
         document.getElementById('store-content').innerHTML='<div class="w-empty-state"><h3>Tienda no inicializada</h3><p>Crea las tablas de la tienda para empezar a vender.</p><button class="w-btn w-btn-primary" style="margin-top:12px" onclick="wontia.storeEnsure()">Crear tablas de la tienda</button></div>';
         return;
     }
-    var fns={productos:W.storeProducts,categorias:W.storeCategories,pedidos:W.storeOrders,envios:W.storeZones,config:W.storeSettings};
+    var fns={productos:W.storeProducts,categorias:W.storeCategories,pedidos:W.storeOrders,envios:W.storeZones,resenas:W.storeReviews,config:W.storeSettings};
     (fns[tab]||W.storeProducts)();
 };
+
+W.storeReviews=async function(){
+    var el=document.getElementById('store-content');
+    el.innerHTML='<div style="color:var(--w-muted);padding:20px">Cargando reseñas...</div>';
+    var r=await W.api('/api/v1/admin/store/reviews');
+    if(!r.ok){el.innerHTML='<div class="w-empty-state"><h3>No se pudieron cargar las reseñas</h3></div>';return}
+    var items=(r.data&&r.data.items)||[];
+    var h='<div class="w-flex-between" style="margin-bottom:14px"><h3>Reseñas '+(r.data.pending?('<span class="w-badge">'+r.data.pending+' pendientes</span>'):'')+'</h3><select class="w-input" style="width:160px" onchange="wontia.storeReviews()"><option value="">Todas</option><option value="pending">Pendientes</option><option value="approved">Aprobadas</option><option value="rejected">Rechazadas</option></select></div>';
+    if(!items.length){el.innerHTML=h+'<div class="w-empty-state"><h3>Sin reseñas</h3><p>Aún no hay reseñas de productos.</p></div>';return}
+    h+='<table class="w-table" style="width:100%"><thead><tr><th>Producto</th><th>Autor</th><th>Nota</th><th>Reseña</th><th>Estado</th><th></th></tr></thead><tbody>';
+    items.forEach(function(x){var st=x.status;var color=st==='approved'?'#1E7A4B':(st==='rejected'?'#DC2626':'#B45309');var stars='';for(var i=1;i<=5;i++)stars+=(i<=(x.rating|0)?'★':'☆');
+        h+='<tr><td>'+W.esc(x.product_ref)+'</td><td>'+W.esc(x.author_name)+(x.verified_purchase?' ✓':'')+'</td><td>'+stars+'</td><td style="max-width:320px">'+W.esc(((x.title?x.title+' — ':'')+(x.body||'')).slice(0,180))+'</td><td style="color:'+color+'">'+st+'</td><td style="white-space:nowrap">'
+            +(st!=='approved'?'<button class="w-btn w-btn-sm" onclick="wontia.storeReviewMod(\''+x.id+'\',\'approved\')">Aprobar</button> ':'')
+            +(st!=='rejected'?'<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.storeReviewMod(\''+x.id+'\',\'rejected\')">Rechazar</button> ':'')
+            +'<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.storeReviewDel(\''+x.id+'\')">🗑</button></td></tr>';});
+    h+='</tbody></table>';
+    el.innerHTML=h;
+};
+W.storeReviewMod=async function(id,status){var r=await W.api('/api/v1/admin/store/reviews/'+id,{method:'PATCH',body:{status:status}});if(r.ok){W.notify('Reseña actualizada','success');W.storeReviews()}else W.notify((r.data&&r.data.message)||'Error','error')};
+W.storeReviewDel=async function(id){if(!confirm('¿Eliminar esta reseña?'))return;var r=await W.api('/api/v1/admin/store/reviews/'+id,{method:'DELETE'});if(r.ok){W.notify('Reseña eliminada','success');W.storeReviews()}};
 
 W.storeEnsure=async function(){
     var r=await W.api('/api/v1/admin/store/ensure-tables',{method:'POST'});
@@ -4772,6 +4792,13 @@ W.storeSettings=async function(){
         +'<div><label style="font-size:11px;color:var(--w-muted)">Integrity key '+(s.store_wompi_integrity_key_set?'(guardada)':'(sin configurar)')+'</label><input class="w-input" type="password" id="ss-wompi-int" value="" placeholder="••••" style="width:100%"/></div>'
         +'<div><label style="font-size:11px;color:var(--w-muted)">Events key '+(s.store_wompi_events_key_set?'(guardada)':'(sin configurar)')+'</label><input class="w-input" type="password" id="ss-wompi-evt" value="" placeholder="••••" style="width:100%"/></div>'
         +'</div></div>'
+        +'<div class="w-card" style="margin-top:14px"><h3 style="margin-top:0">Reseñas y fidelidad</h3><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Publicar reseñas automáticamente</label><select class="w-input" id="ss-rev-auto" style="width:100%"><option value="1"'+((s.store_reviews_auto_approve==='1'||s.store_reviews_auto_approve==='')?' selected':'')+'>Sí</option><option value="0"'+(s.store_reviews_auto_approve==='0'?' selected':'')+'>No (moderar)</option></select></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Exigir compra para reseñar</label><select class="w-input" id="ss-rev-buy" style="width:100%"><option value="0"'+(s.store_reviews_require_purchase==='1'?'':' selected')+'>No</option><option value="1"'+(s.store_reviews_require_purchase==='1'?' selected':'')+'>Sí</option></select></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Programa de puntos activo</label><select class="w-input" id="ss-loy-on" style="width:100%"><option value="0"'+(s.store_loyalty_enabled==='1'?'':' selected')+'>No</option><option value="1"'+(s.store_loyalty_enabled==='1'?' selected':'')+'>Sí</option></select></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Puntos por cada 1.000 (moneda)</label><input class="w-input" type="number" id="ss-loy-rate" value="'+(parseInt(s.store_loyalty_points_per_1000)||1)+'" style="width:100%"/></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Valor de 1 punto (centavos)</label><input class="w-input" type="number" id="ss-loy-val" value="'+(parseInt(s.store_loyalty_redeem_cents)||100)+'" style="width:100%"/></div>'
+        +'</div></div>'
         +'<div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap"><button class="w-btn w-btn-primary" onclick="wontia.storeSettingsSave()">Guardar configuración</button>'
         +'<button class="w-btn w-btn-secondary" onclick="wontia.storeMaintenance()">Liberar stock de pedidos vencidos</button></div>';
     el.innerHTML=body;
@@ -4783,6 +4810,8 @@ W.storeSettingsSave=async function(){
     var payload={store_enabled:v('#ss-enabled'),store_currency:v('#ss-currency'),store_whatsapp:v('#ss-whatsapp'),store_notify_email:v('#ss-notify'),
         store_min_order_cents:parseInt(v('#ss-min'))||0,store_terms_url:v('#ss-terms'),store_shipping_note:v('#ss-shipnote'),
         store_max_orders_hour_ip:parseInt(v('#ss-max-ip'))||8,store_max_orders_hour_email:parseInt(v('#ss-max-email'))||4,
+        store_reviews_auto_approve:v('#ss-rev-auto'),store_reviews_require_purchase:v('#ss-rev-buy'),
+        store_loyalty_enabled:v('#ss-loy-on'),store_loyalty_points_per_1000:parseInt(v('#ss-loy-rate'))||1,store_loyalty_redeem_cents:parseInt(v('#ss-loy-val'))||100,
         store_payment_methods:methods,store_wompi_public_key:v('#ss-wompi-pub'),store_wompi_integrity_key:v('#ss-wompi-int'),store_wompi_events_key:v('#ss-wompi-evt')};
     var r=await W.api('/api/v1/admin/store/settings',{method:'PUT',body:payload});
     if(r.ok){W.notify('Configuración guardada','success');W.storeSettings()}

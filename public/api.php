@@ -147,6 +147,9 @@ $router->post('/api/v1/public/account/reset', [\App\Controllers\CustomerAccountC
 $router->post('/api/v1/public/account/verify-email', [\App\Controllers\CustomerAccountController::class, 'verifyEmail']);
 $router->post('/api/v1/public/account/verify-email/resend', [\App\Controllers\CustomerAccountController::class, 'verifyEmailResend']);
 $router->post('/api/v1/public/account/favorites/{ref}/alert', [\App\Controllers\CustomerAccountController::class, 'favoriteAlert']);
+$router->get('/api/v1/public/account/reviews', [\App\Controllers\CustomerAccountController::class, 'reviews']);
+$router->post('/api/v1/public/account/reviews', [\App\Controllers\CustomerAccountController::class, 'reviewAdd']);
+$router->get('/api/v1/public/account/loyalty', [\App\Controllers\CustomerAccountController::class, 'loyalty']);
 $router->post('/api/v1/public/account/logout', [\App\Controllers\CustomerAccountController::class, 'logout']);
 $router->get('/api/v1/public/account/me', [\App\Controllers\CustomerAccountController::class, 'me']);
 $router->get('/api/v1/public/account/export', [\App\Controllers\CustomerAccountController::class, 'exportData']);
@@ -167,6 +170,8 @@ $router->get('/api/v1/public/store/zones', [\App\Controllers\StorePublicControll
 $router->post('/api/v1/public/store/orders', [\App\Controllers\StorePublicController::class, 'createOrder']);
 $router->get('/api/v1/public/store/orders/{uuid}', [\App\Controllers\StorePublicController::class, 'orderStatus']);
 $router->post('/api/v1/public/store/payments/wompi/webhook', [\App\Controllers\StorePublicController::class, 'wompiWebhook']);
+$router->get('/api/v1/public/store/reviews', [\App\Controllers\StorePublicController::class, 'reviews']);
+$router->post('/api/v1/public/store/reviews/{id}/helpful', [\App\Controllers\StorePublicController::class, 'reviewHelpful']);
 $router->post('/api/v1/public/variants/{id}/track', function ($request, $id) {
     $type = (string)$request->input('type', 'view');
     $ok = (new \App\Services\LiveEditorService())->variantTrack((int)$id, $type);
@@ -409,8 +414,11 @@ $r->delete('/trash/{id}', [\App\Controllers\Admin\SectionController::class, 'tra
     $r->post('/store/zones', [\App\Controllers\Admin\StoreController::class, 'zoneSave']);
     $r->put('/store/zones/{id}', [\App\Controllers\Admin\StoreController::class, 'zoneSave']);
     $r->delete('/store/zones/{id}', [\App\Controllers\Admin\StoreController::class, 'zoneDelete']);
-    $r->get('/store/settings', [\App\Controllers\Admin\StoreController::class, 'settings']);
-    $r->put('/store/settings', [\App\Controllers\Admin\StoreController::class, 'settingsSave']);
+$r->get('/store/settings', [\App\Controllers\Admin\StoreController::class, 'settings']);
+$r->put('/store/settings', [\App\Controllers\Admin\StoreController::class, 'settingsSave']);
+$r->get('/store/reviews', [\App\Controllers\Admin\StoreController::class, 'reviews']);
+$r->patch('/store/reviews/{id}', [\App\Controllers\Admin\StoreController::class, 'reviewModerate']);
+$r->delete('/store/reviews/{id}', [\App\Controllers\Admin\StoreController::class, 'reviewDelete']);
 
     $r->get('/builder/tree', [\App\Controllers\Admin\BuilderController::class, 'tree']);
     $r->get('/builder/palette', [\App\Controllers\Admin\BuilderController::class, 'palette']);

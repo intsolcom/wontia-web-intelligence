@@ -5,6 +5,7 @@ use App\Core\Request;
 use App\Core\Response;
 use App\Services\StoreRateLimitException;
 use App\Services\StoreService;
+use App\Services\ReviewService;
 
 class StorePublicController
 {
@@ -30,6 +31,23 @@ class StorePublicController
             'min_order_cents' => (int)$s['store_min_order_cents'],
             'terms_url' => $s['store_terms_url'],
         ]]);
+    }
+
+    public function reviews(Request $req): void
+    {
+        $ref = trim((string)$req->get('ref', ''));
+        $svc = new ReviewService();
+        if ($ref === '') {
+            Response::json(['ok' => true, 'data' => ['summary' => ['count' => 0, 'average' => 0, 'dist' => []], 'items' => []]]);
+            return;
+        }
+        $limit = (int)$req->get('limit', 20);
+        Response::json(['ok' => true, 'data' => ['summary' => $svc->summary($ref), 'items' => $svc->forProduct($ref, $limit)]]);
+    }
+
+    public function reviewHelpful(Request $req, string $id): void
+    {
+        Response::json((new ReviewService())->markHelpful((int)$id));
     }
 
     public function products(Request $req): void

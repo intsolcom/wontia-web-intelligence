@@ -4,6 +4,8 @@ namespace App\Controllers;
 use App\Core\Request;
 use App\Core\Response;
 use App\Services\CustomerService;
+use App\Services\LoyaltyService;
+use App\Services\ReviewService;
 
 class CustomerAccountController
 {
@@ -175,6 +177,38 @@ class CustomerAccountController
         $c = $this->requireLogin();
         if (!$c) return;
         Response::json($this->svc()->favoriteAlertToggle((int)$c['id'], urldecode($ref), $req->json()));
+    }
+
+    public function reviews(): void
+    {
+        $c = $this->requireLogin();
+        if (!$c) return;
+        Response::json(['ok' => true, 'data' => (new ReviewService())->mine((int)$c['id'])]);
+    }
+
+    public function reviewAdd(Request $req): void
+    {
+        $c = $this->requireLogin();
+        if (!$c) return;
+        $d = $req->json();
+        $d['email'] = (string)$c['email'];
+        $r = (new ReviewService())->add((int)$c['id'], (string)$c['name'], $d);
+        if (empty($r['ok'])) Response::error($r['message'] ?? 'Error', 422, $r);
+        Response::json($r);
+    }
+
+    public function loyalty(): void
+    {
+        $c = $this->requireLogin();
+        if (!$c) return;
+        $svc = new LoyaltyService();
+        $s = $svc->settings();
+        Response::json(['ok' => true, 'data' => [
+            'enabled' => $s['enabled'],
+            'balance' => $svc->balance((int)$c['id']),
+            'redeem_cents' => $s['redeem_cents'],
+            'history' => $svc->history((int)$c['id']),
+        ]]);
     }
 
     private function allow(Request $req, string $scope, int $max): bool

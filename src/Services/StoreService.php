@@ -12,6 +12,8 @@ class StoreService
         'store_wompi_integrity_key', 'store_wompi_events_key', 'store_notify_email',
         'store_shipping_note', 'store_min_order_cents', 'store_whatsapp', 'store_terms_url',
         'store_max_orders_hour_ip', 'store_max_orders_hour_email',
+        'store_reviews_auto_approve', 'store_reviews_require_purchase',
+        'store_loyalty_enabled', 'store_loyalty_points_per_1000', 'store_loyalty_redeem_cents',
     ];
 
     public const PAYMENT_METHODS = ['wompi', 'cod', 'manual'];
@@ -565,6 +567,10 @@ class StoreService
         $db->prepare("UPDATE store_customers c JOIN store_orders o ON o.customer_id = c.id AND o.site_id = c.site_id
             SET c.orders_count = c.orders_count + 1, c.total_spent_cents = c.total_spent_cents + o.total_cents
             WHERE o.uuid = :uuid AND o.site_id = @site_id")->execute(['uuid' => $uuid]);
+        try {
+            (new LoyaltyService())->awardForOrder($uuid);
+        } catch (\Throwable $e) {
+        }
         return true;
     }
 
