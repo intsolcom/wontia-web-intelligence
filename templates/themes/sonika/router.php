@@ -247,11 +247,114 @@ switch ($segments[0] ?? '') {
         sonika_site_head('Mi cuenta — SONIKA', 'Administra tu cuenta, pedidos, direcciones y favoritos.');
         sonika_breadcrumb(['Mi cuenta' => null]);
         ?>
-        <section class="wrap" style="padding:24px 0 48px;max-width:960px">
-          <h1 style="font-family:'Sora',sans-serif;margin-bottom:14px">Mi cuenta</h1>
+        <?php
+        $acctImg = trim((string)wwi_tc('sonika', 'account_visual_image', ''));
+        $acctAlt = (string)wwi_tc('sonika', 'account_visual_alt', '');
+        $acctEyebrow = (string)wwi_tc('sonika', 'account_visual_eyebrow', \App\Core\Lang::get('acct_eyebrow', 'SONIKA'));
+        $acctTitle = (string)wwi_tc('sonika', 'account_visual_title', \App\Core\Lang::get('acct_title', 'Todo tu *mundo musical* en un solo lugar.'));
+        $acctText = (string)wwi_tc('sonika', 'account_visual_text', \App\Core\Lang::get('acct_text', 'Accede a tus pedidos, guarda tus favoritos y descubre nuevos instrumentos y equipos para llevar tu pasión más lejos.'));
+        $acctBenefits = wwi_tc('sonika', 'account_benefits', null);
+        if (!is_array($acctBenefits) || !$acctBenefits) {
+            $acctBenefits = [
+                ['icon' => '♥', 'title' => \App\Core\Lang::get('acct_b1t', 'Tus favoritos siempre a mano'), 'text' => \App\Core\Lang::get('acct_b1d', 'Guarda los productos que más te gustan.')],
+                ['icon' => '📦', 'title' => \App\Core\Lang::get('acct_b2t', 'Consulta tus pedidos'), 'text' => \App\Core\Lang::get('acct_b2d', 'Revisa el estado de tus compras.')],
+                ['icon' => '👤', 'title' => \App\Core\Lang::get('acct_b3t', 'Gestiona tus datos'), 'text' => \App\Core\Lang::get('acct_b3d', 'Actualiza tu información y tus direcciones de entrega.')],
+            ];
+        }
+        $acctHl = function (string $s): string {
+            return preg_replace('/\*(.+?)\*/s', '<span class="sonika-account-login__visual-highlight">$1</span>', htmlspecialchars($s, ENT_QUOTES));
+        };
+        $acctImgSafe = ($acctImg !== '' && preg_match('~^(https?://|/)~i', $acctImg)) ? $acctImg : '';
+        $panelHtml = '<aside class="sonika-account-login__visual' . ($acctImgSafe ? ' has-background-image' : '') . '"'
+            . ($acctImgSafe ? ' style="--sonika-account-login-background-image:url(\'' . htmlspecialchars($acctImgSafe, ENT_QUOTES) . '\')"' : '')
+            . ' aria-hidden="true"><div class="sonika-account-login__visual-content">'
+            . '<p class="sonika-account-login__eyebrow">' . htmlspecialchars($acctEyebrow, ENT_QUOTES) . '</p>'
+            . '<h2 class="sonika-account-login__visual-title">' . $acctHl($acctTitle) . '</h2>'
+            . '<p class="sonika-account-login__visual-description">' . htmlspecialchars($acctText, ENT_QUOTES) . '</p>'
+            . '<div class="sonika-account-login__benefits">';
+        foreach ($acctBenefits as $b) {
+            if (!is_array($b)) continue;
+            $bi = (string)($b['icon'] ?? '');
+            $bt = (string)($b['title'] ?? '');
+            $bd = (string)($b['text'] ?? '');
+            if ($bt === '' && $bd === '') continue;
+            $panelHtml .= '<div class="sonika-account-login__benefit"><div class="sonika-account-login__benefit-icon" aria-hidden="true">' . htmlspecialchars($bi, ENT_QUOTES) . '</div><div><p class="sonika-account-login__benefit-title">' . htmlspecialchars($bt, ENT_QUOTES) . '</p><p class="sonika-account-login__benefit-description">' . htmlspecialchars($bd, ENT_QUOTES) . '</p></div></div>';
+        }
+        $panelHtml .= '</div></div></aside>';
+        $acctI18n = [
+            'eyebrow' => \App\Core\Lang::get('acct_eyebrow', 'MI CUENTA'),
+            'loginTitle' => \App\Core\Lang::get('acct_login_title', '¡Qué bueno tenerte de vuelta!'),
+            'loginDesc' => \App\Core\Lang::get('acct_login_desc', 'Inicia sesión para acceder a tu cuenta y seguir disfrutando de la música.'),
+            'email' => \App\Core\Lang::get('acct_email', 'Correo electrónico'),
+            'password' => \App\Core\Lang::get('password', 'Contraseña'),
+            'forgot' => \App\Core\Lang::get('acct_forgot', '¿Olvidaste tu contraseña?'),
+            'enter' => \App\Core\Lang::get('acct_enter', 'Entrar'),
+            'noAccount' => \App\Core\Lang::get('acct_no_account', '¿Todavía no tienes cuenta?'),
+            'create' => \App\Core\Lang::get('create_account', 'Crear cuenta'),
+            'badCred' => \App\Core\Lang::get('acct_bad_cred', 'Credenciales inválidas.'),
+            'regTitle' => \App\Core\Lang::get('acct_reg_title', 'Crea tu cuenta'),
+            'regDesc' => \App\Core\Lang::get('acct_reg_desc', 'Regístrate para comprar más rápido y seguir tus pedidos.'),
+            'name' => \App\Core\Lang::get('acct_name', 'Nombre'),
+            'passMin' => \App\Core\Lang::get('acct_pass_min', 'Contraseña (mín 8)'),
+            'haveAccount' => \App\Core\Lang::get('acct_have_account', '¿Ya tienes cuenta?'),
+            'signin' => \App\Core\Lang::get('login', 'Iniciar sesión'),
+            'recTitle' => \App\Core\Lang::get('acct_rec_title', 'Recupera tu contraseña'),
+            'recDesc' => \App\Core\Lang::get('acct_rec_desc', 'Te enviamos un código a tu correo registrado.'),
+            'sendCode' => \App\Core\Lang::get('acct_send_code', 'Enviar código'),
+            'code' => \App\Core\Lang::get('acct_code', 'Código (6 dígitos)'),
+            'newPass' => \App\Core\Lang::get('acct_new_pass', 'Nueva contraseña (mín 8)'),
+            'reset' => \App\Core\Lang::get('acct_reset', 'Restablecer'),
+            'back' => \App\Core\Lang::get('acct_back', 'Volver'),
+            'invalidCode' => \App\Core\Lang::get('acct_invalid_code', 'Código inválido'),
+            'failCreate' => \App\Core\Lang::get('acct_fail_create', 'No se pudo crear la cuenta'),
+        ];
+        ?>
+        <style>
+        .sonika-account-login{width:100%;color:var(--ink);box-sizing:border-box}
+        .sonika-account-login *,.sonika-account-login *::before,.sonika-account-login *::after{box-sizing:border-box}
+        .sonika-account-login__layout{display:grid;grid-template-columns:minmax(0,.92fr) minmax(0,1.08fr);gap:clamp(20px,2.6vw,44px);align-items:stretch}
+        .sonika-account-login__panel{min-width:0}
+        .sonika-account-login__form-card{width:100%;max-width:560px;margin-inline:auto;padding:clamp(22px,2.8vw,38px);background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:0 10px 34px rgba(0,0,0,.06)}
+        .sonika-account-login__eyebrow{display:flex;align-items:center;gap:10px;margin:0 0 14px;color:var(--brand);font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase}
+        .sonika-account-login__eyebrow::before{content:"";width:38px;height:2px;background:var(--brand)}
+        .sonika-account-login__title{margin:0 0 8px;color:var(--ink);font-family:'Sora',sans-serif;font-size:clamp(25px,2.3vw,34px);font-weight:800;line-height:1.12;letter-spacing:-.03em}
+        .sonika-account-login__description{margin:0 0 22px;color:var(--muted);font-size:15px;line-height:1.6}
+        .sonika-account-login__notice{margin:0 0 14px;padding:10px 12px;border-radius:9px;background:#FDECEC;border:1px solid #F5C2C2;color:#B42318;font-size:13px}
+        .sonika-account-login__field{margin-bottom:16px}
+        .sonika-account-login__label{display:block;margin-bottom:7px;color:var(--ink);font-size:13.5px;font-weight:650}
+        .sonika-account-login__input{display:block;width:100%;min-height:48px;padding:12px 14px;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:9px;font:inherit;font-size:15px;transition:border-color .14s ease,box-shadow .14s ease}
+        .sonika-account-login__input:hover{border-color:#BDBDBD}
+        .sonika-account-login__input:focus-visible{border-color:var(--brand);outline:none;box-shadow:0 0 0 3px rgba(242,13,22,.12)}
+        .sonika-account-login__row{display:flex;justify-content:flex-end;margin:-4px 0 16px}
+        .sonika-account-login__secondary-link{color:var(--brand);font-size:13px;font-weight:650;text-decoration:underline;text-decoration-color:transparent;text-underline-offset:3px;transition:text-decoration-color .14s ease}
+        .sonika-account-login__secondary-link:hover{text-decoration-color:currentColor}
+        .sonika-account-login__secondary-link:focus-visible{outline:2px solid var(--brand);outline-offset:3px;border-radius:4px}
+        .sonika-account-login__submit{display:inline-flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:48px;padding:12px 18px;border:0;border-radius:9px;background:var(--brand);color:#fff;font:inherit;font-size:15px;font-weight:700;cursor:pointer;transition:filter .14s ease,transform .14s ease,box-shadow .14s ease}
+        .sonika-account-login__submit:hover{filter:brightness(.95)}
+        .sonika-account-login__submit:focus-visible{outline:3px solid rgba(242,13,22,.3);outline-offset:3px}
+        .sonika-account-login__submit:active{transform:translateY(1px)}
+        .sonika-account-login__register{margin-top:18px;padding:16px;background:var(--soft);border-radius:11px;text-align:center;font-size:14px;color:var(--ink)}
+        .sonika-account-login__visual{position:relative;isolation:isolate;display:flex;flex-direction:column;justify-content:center;min-width:0;min-height:560px;overflow:hidden;padding:clamp(26px,3vw,46px);border-radius:16px;background:radial-gradient(circle at 85% 20%,rgba(242,13,22,.14),transparent 44%),linear-gradient(135deg,#fff 0%,var(--soft) 100%)}
+        .sonika-account-login__visual.has-background-image{background-image:linear-gradient(90deg,rgba(255,255,255,.97) 0%,rgba(255,255,255,.88) 44%,rgba(255,255,255,.22) 100%),var(--sonika-account-login-background-image);background-size:cover;background-position:center;background-repeat:no-repeat}
+        .sonika-account-login__visual-content{position:relative;z-index:1;width:100%;max-width:470px}
+        .sonika-account-login__visual-title{margin:16px 0;color:var(--ink);font-family:'Sora',sans-serif;font-size:clamp(28px,2.9vw,42px);font-weight:800;line-height:1.08;letter-spacing:-.04em}
+        .sonika-account-login__visual-highlight{color:var(--brand)}
+        .sonika-account-login__visual-description{max-width:430px;margin:0;color:var(--muted);font-size:15px;line-height:1.65}
+        .sonika-account-login__benefits{display:grid;gap:14px;margin-top:26px}
+        .sonika-account-login__benefit{display:grid;grid-template-columns:46px minmax(0,1fr);align-items:center;gap:14px}
+        .sonika-account-login__benefit-icon{display:grid;place-items:center;width:46px;height:46px;border-radius:11px;background:rgba(255,255,255,.9);border:1px solid rgba(0,0,0,.06);font-size:20px;color:var(--brand)}
+        .sonika-account-login__benefit-title{margin:0 0 3px;color:var(--ink);font-size:14px;font-weight:700}
+        .sonika-account-login__benefit-description{margin:0;color:var(--muted);font-size:12.5px;line-height:1.5}
+        @media(max-width:1024px){.sonika-account-login__layout{grid-template-columns:minmax(0,.95fr) minmax(0,1.05fr);gap:22px}.sonika-account-login__form-card{padding:26px}.sonika-account-login__visual{min-height:500px;padding:26px}}
+        @media(max-width:760px){.sonika-account-login__layout{grid-template-columns:minmax(0,1fr);gap:18px}.sonika-account-login__form-card{max-width:none;padding:22px 18px;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.05)}.sonika-account-login__visual{min-height:auto;padding:26px 20px;border-radius:12px}.sonika-account-login__benefits{margin-top:20px}}
+        @media(prefers-reduced-motion:reduce){.sonika-account-login *{transition-duration:.01ms!important;animation-duration:.01ms!important}}
+        </style>
+        <section class="wrap" style="padding:28px 0 56px">
           <div id="acct">Cargando…</div>
         </section>
         <script>var SITE=<?= (int)\App\Core\Config::get('SITE_ID', '1') ?>;
+        var E=<?= json_encode($acctI18n, JSON_UNESCAPED_UNICODE) ?>;
+        var VIS=<?= json_encode($panelHtml, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
         (function(){
           var box=document.getElementById('acct');
           function esc(s){var d=document.createElement('div');d.textContent=(s==null?'':String(s));return d.innerHTML}
@@ -261,16 +364,19 @@ switch ($segments[0] ?? '') {
           function link(id,label){return ' <a href="#" id="'+id+'" style="font-size:13px;color:#777;margin-left:10px">'+label+'</a>'}
           function api(u,o){return fetch(u,Object.assign({headers:{'Content-Type':'application/json; charset=UTF-8'}},o||{})).then(function(r){return r.json()})}
           function qs(){var o={};location.search.replace(/^\?/,'').split('&').forEach(function(p){if(!p)return;var kv=p.split('=');o[kv[0]]=decodeURIComponent(kv[1]||'')});return o}
-          function login(err){box.innerHTML='<div class="card" style="padding:22px;max-width:440px"><h3>Iniciar sesión</h3>'+(err?'<div style="color:#DC2626;font-size:13px;margin:6px 0">'+esc(err)+'</div>':'')+inp('ac-email','Email','email')+inp('ac-pass','Contraseña','password')+btn('ac-login','Entrar')+link('ac-toreg','Crear cuenta')+link('ac-forgot','¿Olvidaste tu contraseña?')+'</div>';
-            document.getElementById('ac-login').onclick=async function(){var r=await api('/api/v1/public/account/login',{method:'POST',body:JSON.stringify({email:document.getElementById('ac-email').value,password:document.getElementById('ac-pass').value})});if(r.ok){location.search=''}else{login(r.message||'Credenciales inválidas')}};
+          function acField(label,id,type,ac){return '<div class="sonika-account-login__field"><label class="sonika-account-login__label" for="'+id+'">'+label+'</label><input class="sonika-account-login__input" id="'+id+'" type="'+(type||'text')+'" autocomplete="'+(ac||'off')+'" /></div>'}
+          function acHead(eyebrow,title,desc){return '<p class="sonika-account-login__eyebrow">'+eyebrow+'</p><h2 class="sonika-account-login__title">'+title+'</h2>'+(desc?'<p class="sonika-account-login__description">'+desc+'</p>':'')}
+          function acShell(inner){return '<div class="sonika-account-login"><div class="sonika-account-login__layout"><div class="sonika-account-login__panel"><div class="sonika-account-login__form-card">'+inner+'</div></div>'+VIS+'</div></div>'}
+          function login(err){box.innerHTML=acShell(acHead(E.eyebrow,E.loginTitle,E.loginDesc)+(err?'<div class="sonika-account-login__notice">'+esc(err)+'</div>':'')+acField(E.email,'ac-email','email','email')+acField(E.password,'ac-pass','password','current-password')+'<div class="sonika-account-login__row"><a href="#" id="ac-forgot" class="sonika-account-login__secondary-link">'+E.forgot+'</a></div><button class="sonika-account-login__submit" id="ac-login">'+E.enter+'</button><div class="sonika-account-login__register">'+E.noAccount+' <a href="#" id="ac-toreg" class="sonika-account-login__secondary-link">'+E.create+'</a></div>');
+            document.getElementById('ac-login').onclick=async function(){var r=await api('/api/v1/public/account/login',{method:'POST',body:JSON.stringify({email:document.getElementById('ac-email').value,password:document.getElementById('ac-pass').value})});if(r.ok){location.search=''}else{login(r.message||E.badCred)}};
             document.getElementById('ac-toreg').onclick=function(e){e.preventDefault();location.search='?tab=register'};
             document.getElementById('ac-forgot').onclick=function(e){e.preventDefault();forgot()}}
-          function forgot(){box.innerHTML='<div class="card" style="padding:22px;max-width:440px"><h3>Recuperar contraseña</h3><p style="color:#777;font-size:13px;margin:6px 0">Te enviamos un código a tu correo registrado.</p>'+inp('fg-email','Email','email')+btn('fg-go','Enviar código')+'<div id="fg-step2" hidden style="margin-top:6px">'+inp('fg-code','Código (6 dígitos)')+inp('fg-pass','Nueva contraseña (mín 8)','password')+btn('fg-reset','Restablecer')+'</div>' + link('fg-back','Volver') + '</div>';
+          function forgot(){box.innerHTML=acShell(acHead(E.eyebrow,E.recTitle,E.recDesc)+acField(E.email,'fg-email','email','email')+'<button class="sonika-account-login__submit" id="fg-go">'+E.sendCode+'</button><div id="fg-step2" hidden style="margin-top:16px">'+acField(E.code,'fg-code','text')+acField(E.newPass,'fg-pass','password','new-password')+'<button class="sonika-account-login__submit" id="fg-reset">'+E.reset+'</button></div><div class="sonika-account-login__row" style="justify-content:flex-start;margin-top:14px"><a href="#" id="fg-back" class="sonika-account-login__secondary-link">'+E.back+'</a></div>');
             document.getElementById('fg-go').onclick=async function(){await api('/api/v1/public/account/forgot',{method:'POST',body:JSON.stringify({email:document.getElementById('fg-email').value})});document.getElementById('fg-step2').hidden=false};
-            document.getElementById('fg-reset').onclick=async function(){var r=await api('/api/v1/public/account/reset',{method:'POST',body:JSON.stringify({email:document.getElementById('fg-email').value,code:document.getElementById('fg-code').value,password:document.getElementById('fg-pass').value})});if(r.ok){location.search=''}else{alert(r.message||'Código inválido')}};
+            document.getElementById('fg-reset').onclick=async function(){var r=await api('/api/v1/public/account/reset',{method:'POST',body:JSON.stringify({email:document.getElementById('fg-email').value,code:document.getElementById('fg-code').value,password:document.getElementById('fg-pass').value})});if(r.ok){location.search=''}else{alert(r.message||E.invalidCode)}};
             document.getElementById('fg-back').onclick=function(e){e.preventDefault();location.search=''}}
-          function reg(){box.innerHTML='<div class="card" style="padding:22px;max-width:440px"><h3>Crear cuenta</h3>'+inp('rg-name','Nombre')+inp('rg-email','Email','email')+inp('rg-pass','Contraseña (mín 8)','password')+btn('rg-go','Crear cuenta')+link('rg-to','Ya tengo cuenta')+'</div>';
-            document.getElementById('rg-go').onclick=async function(){var r=await api('/api/v1/public/account/register',{method:'POST',body:JSON.stringify({name:document.getElementById('rg-name').value,email:document.getElementById('rg-email').value,password:document.getElementById('rg-pass').value})});if(r.ok){location.search=''}else{login(r.message||'No se pudo crear')}};
+          function reg(){box.innerHTML=acShell(acHead(E.eyebrow,E.regTitle,E.regDesc)+acField(E.name,'rg-name','text','name')+acField(E.email,'rg-email','email','email')+acField(E.passMin,'rg-pass','password','new-password')+'<button class="sonika-account-login__submit" id="rg-go">'+E.create+'</button><div class="sonika-account-login__register">'+E.haveAccount+' <a href="#" id="rg-to" class="sonika-account-login__secondary-link">'+E.signin+'</a></div>');
+            document.getElementById('rg-go').onclick=async function(){var r=await api('/api/v1/public/account/register',{method:'POST',body:JSON.stringify({name:document.getElementById('rg-name').value,email:document.getElementById('rg-email').value,password:document.getElementById('rg-pass').value})});if(r.ok){location.search=''}else{login(r.message||E.failCreate)}};
             document.getElementById('rg-to').onclick=function(e){e.preventDefault();location.search=''}}
           function account(d){var c=d.customer||{},tab=qs().tab||'summary';
             var L=<?= json_encode([

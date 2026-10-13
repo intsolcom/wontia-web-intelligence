@@ -58,7 +58,22 @@
         { "key": "contact_email", "label": "Correo", "type": "text", "default": "" },
         { "key": "social_instagram", "label": "Instagram (URL)", "type": "text", "default": "" },
         { "key": "social_facebook", "label": "Facebook (URL)", "type": "text", "default": "" },
-        { "key": "topbar_text", "label": "Barra superior (anuncio)", "type": "text", "default": "Envío a toda Colombia · 3 a 5 días hábiles · Pago seguro" }
+        { "key": "topbar_text", "label": "Barra superior (anuncio)", "type": "text", "default": "Envío a toda Colombia · 3 a 5 días hábiles · Pago seguro" },
+        { "key": "_h_account", "label": "Mi cuenta (pantalla de acceso)", "type": "heading" },
+        { "key": "account_visual_image", "label": "Imagen del panel de Mi cuenta", "type": "image", "default": "" },
+        { "key": "account_visual_alt", "label": "Texto alternativo de la imagen", "type": "text", "default": "" },
+        { "key": "account_visual_eyebrow", "label": "Etiqueta del panel", "type": "text", "default": "SONIKA" },
+        { "key": "account_visual_title", "label": "Titulo del panel (usa *palabra* para resaltar en rojo)", "type": "text", "default": "Todo tu *mundo musical* en un solo lugar." },
+        { "key": "account_visual_text", "label": "Descripcion del panel", "type": "textarea", "default": "Accede a tus pedidos, guarda tus favoritos y descubre nuevos instrumentos y equipos para llevar tu pasion mas lejos." },
+        { "key": "account_benefits", "label": "Beneficios del panel", "type": "repeater", "fields": [
+            { "key": "icon", "label": "Icono (emoji)", "type": "text" },
+            { "key": "title", "label": "Titulo", "type": "text" },
+            { "key": "text", "label": "Descripcion", "type": "text" }
+        ], "default": [
+            { "icon": "♥", "title": "Tus favoritos siempre a mano", "text": "Guarda los productos que mas te gustan." },
+            { "icon": "📦", "title": "Consulta tus pedidos", "text": "Revisa el estado de tus compras." },
+            { "icon": "👤", "title": "Gestiona tus datos", "text": "Actualiza tu informacion y tus direcciones de entrega." }
+        ] }
     ],
     "assets": {
         "logo": "/assets/themes/sonika/logo-transparent.png",
