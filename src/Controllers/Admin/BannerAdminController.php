@@ -18,6 +18,17 @@ class BannerAdminController
         Response::json((new BannerStatsService())->clear());
     }
 
+    public function config(Request $req): void
+    {
+        $svc = new \App\Services\BannerService();
+        Response::json(['ok' => true, 'data' => $svc->getGlobal(), 'defaults' => $svc->defaults(), 'schema' => \App\Widgets\BannerWidget::configSchema()]);
+    }
+
+    public function configSave(Request $req): void
+    {
+        Response::json((new \App\Services\BannerService())->saveGlobal($req->json()));
+    }
+
     public function templates(Request $req): void
     {
         Response::json(['ok' => true, 'data' => (new \App\Services\BannerTemplateService())->list()]);

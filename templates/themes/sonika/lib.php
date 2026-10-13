@@ -269,30 +269,30 @@ if (!function_exists('sonika_site_head')) {
     <style><?= sonika_css() ?></style>
 </head>
 <body>
-<div class="topbar"><span class="topbar__msg"><?php
-      $__bn = wwi_tc('sonika', 'topbar_items', null);
-      if (is_string($__bn)) { $__bn = json_decode($__bn, true); }
-      if (!is_array($__bn) || !$__bn) {
-          $__bn = [
-              ['icon' => '🚚', 'text' => 'Envíos a toda Colombia', 'link' => '', 'link_label' => ''],
-              ['icon' => '🛡️', 'text' => 'Compra 100% segura', 'link' => '', 'link_label' => ''],
-              ['icon' => '✅', 'text' => 'Garantía oficial', 'link' => '', 'link_label' => ''],
-          ];
+<div class="topbar"<?php
+      $__bnSvc = new \App\Services\BannerService();
+      $__bnCfg = $__bnSvc->getGlobal();
+      if (!$__bnCfg || empty($__bnCfg['items'])) $__bnCfg = $__bnSvc->defaults();
+      $__ok = fn($c, $d) => preg_match('/^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i', (string)$c) ? (string)$c : $d;
+      $__bg = $__ok($__bnCfg['bg_color'] ?? '', '#111111');
+      $__bg2 = $__ok($__bnCfg['bg_color2'] ?? '', '');
+      $__fg = $__ok($__bnCfg['text_color'] ?? '', '#ffffff');
+      $__img = (string)($__bnCfg['bg_image'] ?? '');
+      $__ov = max(0, min(100, (int)($__bnCfg['overlay'] ?? 55))) / 100;
+      $__st = 'color:' . $__fg . ';';
+      if ($__img !== '' && preg_match('~^(https?://|/)~i', $__img)) {
+          $__st .= 'background-image:linear-gradient(rgba(0,0,0,' . $__ov . '),rgba(0,0,0,' . $__ov . ')),url(\'' . htmlspecialchars($__img, ENT_QUOTES) . '\');background-size:cover;background-position:center;';
+      } elseif ($__bg2 !== '') {
+          $__st .= 'background:linear-gradient(135deg,' . $__bg . ' 0%,' . $__bg2 . ' 100%);';
+      } else {
+          $__st .= 'background:' . $__bg . ';';
       }
-      echo \App\Widgets\WidgetRegistry::render('banner', [
-          'bare' => true,
-          'mode' => 'bar',
-          'items' => $__bn,
-          'animation' => (string)wwi_tc('sonika', 'topbar_animation', 'fade'),
-          'rotation_ms' => (int)wwi_tc('sonika', 'topbar_rotation_ms', 5000),
-          'bg_color' => (string)wwi_tc('sonika', 'topbar_bg_color', '#111111'),
-          'text_color' => (string)wwi_tc('sonika', 'topbar_text_color', '#ffffff'),
-          'font_size' => (string)wwi_tc('sonika', 'topbar_font_size', '0.8'),
-          'bold' => (bool)wwi_tc('sonika', 'topbar_bold', true),
-          'dismissible' => false,
-          'frequency' => (string)wwi_tc('sonika', 'topbar_frequency', 'always'),
-          'align' => 'center',
-      ]);
+      echo ' style="' . $__st . '"';
+      ?>><span class="topbar__msg"><?php
+      $__bnCfg['bare'] = true;
+      $__bnCfg['dismissible'] = false;
+      $__bnCfg['mode'] = 'bar';
+      echo \App\Widgets\WidgetRegistry::render('banner', $__bnCfg);
       ?></span><?php
 $__cs = new \App\Services\CurrencyService();
 $__cur = $__cs->currencies();

@@ -1332,8 +1332,16 @@ W.renderBanners=async function(){
     if(tpls.length){h+='<table class="w-table"><thead><tr><th>Plantilla</th><th>Creada</th><th></th></tr></thead><tbody>'+tpls.map(function(x){return '<tr><td>'+W.esc(x.name)+'</td><td>'+W.esc(String(x.created_at||''))+'</td><td><button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.bnTplApply('+x.id+')">Aplicar</button> <button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.bnTplDel('+x.id+')">🗑</button></td></tr>'}).join('')+'</tbody></table>';}
     else{h+='<div style="color:var(--w-muted);font-size:12px">Sin plantillas guardadas aún.</div>';}
     h+='</div>';
+    var cc=await W.api('/api/v1/admin/banners/config');
+    W._bnSchema=(cc&&cc.schema)||[];
+    h+='<div class="w-card" style="margin-top:20px"><div class="w-flex-between" style="flex-wrap:wrap;gap:8px"><h3 style="margin:0">Editar la barra superior (brick Banner)</h3><button class="w-btn w-btn-primary" onclick="wontia.bnEditorSave()">Guardar</button></div>';
+    h+='<div style="font-size:12px;color:var(--w-muted);margin:8px 0">Texto, mensajes, imagen o colores de fondo, modal, programación, segmentación… Es la <b>única</b> fuente de configuración del brick.</div>';
+    h+='<div id="bn-editor" class="schema-fields"></div></div>';
     app.innerHTML=h;
+    W.bnEditorRender(W._bnSchema,(cc&&cc.data)||{});
 };
+W.bnEditorRender=function(schema,cfg){var el=document.getElementById('bn-editor');if(!el)return;el.innerHTML=W.renderSchemaFields(schema||[],cfg||{});if(W.repInit)W.repInit(schema||[]);if(W.secLinkInit)W.secLinkInit()};
+W.bnEditorSave=async function(){var cfg=W.collectSchemaFields(W._bnSchema||[]);var r=await W.api('/api/v1/admin/banners/config',{method:'POST',body:cfg});if(r.ok)W.notify('Barra guardada','success');else W.notify('Error','error')};
 W.bnTplSave=async function(){var n=(document.getElementById('bn-tpl-name')||{}).value;if(!n)return W.notify('Pon un nombre','error');var r=await W.api('/api/v1/admin/banners/templates',{method:'POST',body:{name:n}});if(r.ok){W.notify('Plantilla guardada','success');W.renderBanners()}else W.notify((r.data&&r.data.message)||'Error','error')};
 W.bnTplApply=async function(id){if(!confirm('¿Aplicar esta plantilla a la barra superior? Se sobrescribirá la config actual.'))return;var r=await W.api('/api/v1/admin/banners/templates/'+id+'/apply',{method:'POST',body:{}});if(r.ok)W.notify('Plantilla aplicada','success')};
 W.bnTplDel=async function(id){if(!confirm('¿Eliminar la plantilla?'))return;var r=await W.api('/api/v1/admin/banners/templates/'+id,{method:'DELETE'});if(r.ok)W.renderBanners()};

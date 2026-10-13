@@ -58,25 +58,6 @@
         { "key": "contact_email", "label": "Correo", "type": "text", "default": "" },
         { "key": "social_instagram", "label": "Instagram (URL)", "type": "text", "default": "" },
         { "key": "social_facebook", "label": "Facebook (URL)", "type": "text", "default": "" },
-        { "key": "topbar_text", "label": "Barra superior (anuncio, texto simple)", "type": "text", "default": "Envío a toda Colombia · 3 a 5 días hábiles · Pago seguro" },
-        { "key": "_h_topbar", "label": "Barra superior — Banner (rotación de mensajes)", "type": "heading" },
-        { "key": "topbar_items", "label": "Mensajes (icono + texto)", "type": "repeater", "fields": [
-            { "key": "icon", "label": "Icono (emoji)", "type": "text" },
-            { "key": "text", "label": "Texto", "type": "text" },
-            { "key": "link", "label": "Enlace (opcional)", "type": "url" },
-            { "key": "link_label", "label": "Texto del enlace", "type": "text" }
-        ], "default": [
-            { "icon": "🚚", "text": "Envíos a toda Colombia", "link": "", "link_label": "" },
-            { "icon": "🛡️", "text": "Compra 100% segura", "link": "", "link_label": "" },
-            { "icon": "✅", "text": "Garantía oficial", "link": "", "link_label": "" }
-        ] },
-        { "key": "topbar_animation", "label": "Animación", "type": "select", "options": { "fade": "Aparecer (fade)", "slide-down": "Deslizar", "zoom": "Zoom", "none": "Ninguna" }, "default": "fade" },
-        { "key": "topbar_rotation_ms", "label": "Rotación entre mensajes (ms · 0 = no rotar)", "type": "number", "default": "5000" },
-        { "key": "topbar_bg_color", "label": "Fondo de la barra", "type": "color", "default": "#111111" },
-        { "key": "topbar_text_color", "label": "Color de letra", "type": "color", "default": "#ffffff" },
-        { "key": "topbar_font_size", "label": "Tamaño de letra (rem)", "type": "number", "default": "0.8" },
-        { "key": "topbar_bold", "label": "Negrita", "type": "toggle", "default": true },
-        { "key": "topbar_frequency", "label": "Frecuencia", "type": "select", "options": { "always": "Siempre", "once": "Una vez", "three": "3 veces", "session": "Una por sesión" }, "default": "always" },
         { "key": "_h_account", "label": "Mi cuenta (pantalla de acceso)", "type": "heading" },
         { "key": "account_visual_image", "label": "Imagen del panel de Mi cuenta", "type": "image", "default": "" },
         { "key": "account_visual_alt", "label": "Texto alternativo de la imagen", "type": "text", "default": "" },

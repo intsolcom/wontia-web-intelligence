@@ -15,7 +15,7 @@ class BannerWidget extends Widget
 {
     private static bool $assetsPrinted = false;
 
-    public const MODES = ['bar', 'fixed-top', 'fixed-bottom', 'modal'];
+    public const MODES = ['bar', 'fixed-top', 'fixed-bottom', 'modal', 'toast'];
     public const ANIMS = ['none', 'slide-down', 'slide-up', 'slide-left', 'slide-right', 'fade', 'zoom', 'bounce'];
     public const FREQS = ['once', 'three', 'session', 'always'];
     public const LETTERS = ['none', 'highlight', 'gradient', 'typewriter'];
@@ -40,6 +40,7 @@ class BannerWidget extends Widget
                 ['key' => 'icon', 'label' => 'Icono (emoji)', 'type' => 'text'],
                 ['key' => 'text', 'label' => 'Texto', 'type' => 'text'],
                 ['key' => 'text_b', 'label' => 'Texto variante B (A/B, opcional)', 'type' => 'text'],
+                ['key' => 'image', 'label' => 'Imagen (opcional)', 'type' => 'image'],
                 ['key' => 'link', 'label' => 'Enlace (CTA, opcional)', 'type' => 'url'],
                 ['key' => 'link_label', 'label' => 'Texto del enlace', 'type' => 'text'],
             ], 'default' => [
@@ -58,6 +59,7 @@ class BannerWidget extends Widget
             ['key' => 'italic', 'label' => 'Itálica', 'type' => 'toggle', 'default' => false],
             ['key' => 'align', 'label' => 'Alineación', 'type' => 'select', 'options' => ['center' => 'Centro', 'left' => 'Izquierda', 'right' => 'Derecha'], 'default' => 'center'],
             ['key' => 'bg_image', 'label' => 'Imagen de fondo (opcional)', 'type' => 'image', 'default' => ''],
+            ['key' => 'overlay', 'label' => 'Velo sobre la imagen (0-100)', 'type' => 'number', 'default' => '55'],
             ['key' => 'bare', 'label' => 'Sin fondo propio (para incrustar en una barra existente)', 'type' => 'toggle', 'default' => false],
 
             ['key' => '_h_behavior', 'label' => 'Comportamiento', 'type' => 'heading'],
@@ -92,7 +94,7 @@ class BannerWidget extends Widget
                 ['icon' => '🚚', 'text' => 'Envíos a toda Colombia', 'link' => '', 'link_label' => ''],
             ],
             'bg_color' => '#111111', 'bg_color2' => '', 'text_color' => '#ffffff', 'font_size' => '0.8', 'preset' => 'none',
-            'bold' => true, 'italic' => false, 'align' => 'center', 'bg_image' => '', 'bare' => false,
+            'bold' => true, 'italic' => false, 'align' => 'center', 'bg_image' => '', 'overlay' => '55', 'bare' => false,
             'dismissible' => true, 'close_label' => 'Entendido', 'frequency' => 'always',
             'marquee' => false, 'critical' => false, 'countdown_to' => '', 'exit_intent' => false, 'track' => true, 'ab' => false,
             'device' => 'all', 'audience' => 'all', 'pages' => '', 'days' => '', 'from' => '', 'to' => '',
@@ -205,6 +207,7 @@ class BannerWidget extends Widget
                 'icon' => trim((string)($it['icon'] ?? '')),
                 'text' => $txt,
                 'text_b' => trim((string)($it['text_b'] ?? '')),
+                'image' => trim((string)($it['image'] ?? '')),
                 'link' => trim((string)($it['link'] ?? '')),
                 'link_label' => trim((string)($it['link_label'] ?? '')),
             ];
@@ -225,6 +228,7 @@ class BannerWidget extends Widget
         $exit = !empty($c['exit_intent']);
         $track = !empty($c['track']);
         $ab = !empty($c['ab']);
+        $overlay = max(0, min(100, (int)($c['overlay'] ?? 55)));
 
         $bg = $this->color($c['bg_color'] ?? '', '#111111');
         $bg2 = $this->color($c['bg_color2'] ?? '', '');
@@ -245,6 +249,7 @@ class BannerWidget extends Widget
 
         $style = '--wwi-bn-bg:' . $bg . ';--wwi-bn-fg:' . $fg . ';--wwi-bn-fs:' . $fs . 'rem;--wwi-bn-pad:' . $pad . ';--wwi-bn-align:' . $align . ';--wwi-bn-fw:' . ($bold ? '800' : '500') . ';--wwi-bn-fst:' . ($italic ? 'italic' : 'normal');
         if ($bg2 !== '') $style .= ';--wwi-bn-bg2:' . $bg2;
+        $style .= ';--wwi-bn-ov:' . ($overlay / 100);
         if ($bgImg !== '') $style .= ';--wwi-bn-img:url(\'' . $this->esc($bgImg) . '\')';
 
         $h = $this->assets();
@@ -258,6 +263,9 @@ class BannerWidget extends Widget
         foreach ($items as $i => $it) {
             $h .= '<span class="wwi-bn__item' . ($i === 0 ? ' is-on' : '') . '" data-i="' . $i . '">';
             if ($it['icon'] !== '') $h .= '<span class="wwi-bn__ic" aria-hidden="true">' . $this->esc($it['icon']) . '</span>';
+            if ((string)$it['image'] !== '' && preg_match('~^(https?://|/)~i', (string)$it['image'])) {
+                $h .= '<img class="wwi-bn__im" src="' . $this->esc($it['image']) . '" alt="" loading="lazy"/>';
+            }
             if ($ab && (string)$it['text_b'] !== '') {
                 $h .= '<span class="wwi-bn__tx wwi-bn__vA">' . $this->readText($it['text']) . '</span><span class="wwi-bn__tx wwi-bn__vB">' . $this->readText($it['text_b']) . '</span>';
             } else {
@@ -324,6 +332,10 @@ class BannerWidget extends Widget
 .wwi-bn--ab .wwi-bn__vB{display:none}
 .wwi-bn--ab.ab-b .wwi-bn__vA{display:none}
 .wwi-bn--ab.ab-b .wwi-bn__vB{display:inline}
+.wwi-bn.has-img::before{content:"";position:absolute;inset:0;background:var(--wwi-bn-bg);opacity:var(--wwi-bn-ov,.55);z-index:0}
+.wwi-bn.has-img .wwi-bn__track,.wwi-bn.has-img .wwi-bn__cd,.wwi-bn.has-img .wwi-bn__x,.wwi-bn.has-img .wwi-bn__dots{position:relative;z-index:1}
+.wwi-bn__im{width:26px;height:26px;object-fit:cover;border-radius:5px;vertical-align:middle}
+.wwi-bn--toast{position:fixed;right:20px;bottom:20px;left:auto;max-width:360px;border-radius:12px;box-shadow:0 18px 48px rgba(0,0,0,.35);padding:14px 2.6rem 14px 16px;text-align:left;z-index:210}
 .wwi-bn--anim-slide-down{animation:wwiBnDown .45s cubic-bezier(.2,.8,.3,1) both}
 .wwi-bn--anim-slide-up{animation:wwiBnUp .45s cubic-bezier(.2,.8,.3,1) both}
 .wwi-bn--anim-slide-left{animation:wwiBnLeft .45s cubic-bezier(.2,.8,.3,1) both}

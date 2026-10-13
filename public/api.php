@@ -296,6 +296,8 @@ $r->put('/bricks/{type}/showcase/{id}', [\App\Controllers\Admin\BrickShowcaseCon
 $r->delete('/bricks/{type}/showcase/{id}', [\App\Controllers\Admin\BrickShowcaseController::class, 'delete']);
 $r->post('/bricks/{type}/showcase/{id}/cover', [\App\Controllers\Admin\BrickShowcaseController::class, 'cover']);
 $r->get('/banners/stats', [\App\Controllers\Admin\BannerAdminController::class, 'stats']);
+$r->get('/banners/config', [\App\Controllers\Admin\BannerAdminController::class, 'config']);
+$r->post('/banners/config', [\App\Controllers\Admin\BannerAdminController::class, 'configSave']);
 $r->delete('/banners/stats', [\App\Controllers\Admin\BannerAdminController::class, 'clear']);
 $r->get('/banners/templates', [\App\Controllers\Admin\BannerAdminController::class, 'templates']);
 $r->post('/banners/templates', [\App\Controllers\Admin\BannerAdminController::class, 'templateSave']);
