@@ -379,7 +379,12 @@ class MediaService
             if ($url === '') continue;
             $chk = $db->prepare("SELECT id FROM media WHERE site_id = @site_id AND url = ? LIMIT 1");
             $chk->execute([$url]);
-            if ($chk->fetchColumn()) continue;
+            $existing = (int)$chk->fetchColumn();
+            if ($existing) {
+                $db->prepare("UPDATE media SET is_brand = 1, folder_id = COALESCE(folder_id, ?) WHERE id = ?")->execute([$folderId ?: null, $existing]);
+                $added++;
+                continue;
+            }
             $path = dirname(__DIR__, 2) . '/public' . (parse_url($url, PHP_URL_PATH) ?: '');
             $size = is_file($path) ? (int)filesize($path) : 0;
             $ext = strtolower(pathinfo((parse_url($url, PHP_URL_PATH) ?: ''), PATHINFO_EXTENSION));
