@@ -269,7 +269,31 @@ if (!function_exists('sonika_site_head')) {
     <style><?= sonika_css() ?></style>
 </head>
 <body>
-<div class="topbar"><span><?= sonika_esc((string)wwi_tc('sonika', 'topbar_text', 'Envío a toda Colombia · 3 a 5 días hábiles · Pago seguro')) ?></span><?php
+<div class="topbar"><span class="topbar__msg"><?php
+      $__bn = wwi_tc('sonika', 'topbar_items', null);
+      if (is_string($__bn)) { $__bn = json_decode($__bn, true); }
+      if (!is_array($__bn) || !$__bn) {
+          $__bn = [
+              ['icon' => '🚚', 'text' => 'Envíos a toda Colombia', 'link' => '', 'link_label' => ''],
+              ['icon' => '🛡️', 'text' => 'Compra 100% segura', 'link' => '', 'link_label' => ''],
+              ['icon' => '✅', 'text' => 'Garantía oficial', 'link' => '', 'link_label' => ''],
+          ];
+      }
+      echo \App\Widgets\WidgetRegistry::render('banner', [
+          'bare' => true,
+          'mode' => 'bar',
+          'items' => $__bn,
+          'animation' => (string)wwi_tc('sonika', 'topbar_animation', 'fade'),
+          'rotation_ms' => (int)wwi_tc('sonika', 'topbar_rotation_ms', 5000),
+          'bg_color' => (string)wwi_tc('sonika', 'topbar_bg_color', '#111111'),
+          'text_color' => (string)wwi_tc('sonika', 'topbar_text_color', '#ffffff'),
+          'font_size' => (string)wwi_tc('sonika', 'topbar_font_size', '0.8'),
+          'bold' => (bool)wwi_tc('sonika', 'topbar_bold', true),
+          'dismissible' => false,
+          'frequency' => (string)wwi_tc('sonika', 'topbar_frequency', 'always'),
+          'align' => 'center',
+      ]);
+      ?></span><?php
 $__cs = new \App\Services\CurrencyService();
 $__cur = $__cs->currencies();
 if (count($__cur) > 1):
