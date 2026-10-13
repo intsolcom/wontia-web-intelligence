@@ -2912,7 +2912,22 @@ W.confetti=function(){
     }
 };
 
+W.showBannerConfig=async function(){
+    var d=await W.api('/api/v1/admin/banners/config');
+    W._bnSchema=(d&&d.schema)||[];
+    var fields=W.renderSchemaFields(W._bnSchema,(d&&d.data)||{});
+    W.modal('Banner / Aviso <span style="font-size:10px;color:var(--w-muted)">configuración del brick</span>','<div class="schema-fields">'+fields+'</div><div style="margin-top:10px;font-size:11px;color:var(--w-muted)">Esta es la <b>barra superior</b> del sitio. Aquí configuras texto, mensajes, imagen o colores de fondo, modal, etc.</div>','<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cerrar</button><button class="w-btn w-btn-primary" onclick="wontia.bnModalSave()">💾 Guardar</button>');
+    if(W.repInit)W.repInit(W._bnSchema);
+    if(W.secLinkInit)W.secLinkInit();
+};
+W.bnModalSave=async function(){
+    var cfg=W.collectSchemaFields(W._bnSchema||[]);
+    var r=await W.api('/api/v1/admin/banners/config',{method:'POST',body:cfg});
+    if(r.ok){W.notify('Banner guardado','success');W.closeModal()}else W.notify('Error al guardar','error');
+};
+
 W.showBrickConfig=async function(type){
+    if(type==='banner'){ return W.showBannerConfig(); }
     var d=await W.api('/api/v1/admin/bricks/'+type);
     var b=d.data||{};
     var fields='';
