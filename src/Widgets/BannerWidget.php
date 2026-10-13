@@ -110,7 +110,11 @@ class BannerWidget extends Widget
         $hhmm = date('H:i', $now);
         $date = date('Y-m-d', $now);
 
-        $days = array_values(array_filter(array_map('intval', preg_split('/[^0-9]+/', (string)($c['days'] ?? ''))), fn($d) => $d >= 0 && $d <= 6));
+        $daysRaw = trim((string)($c['days'] ?? ''));
+        $days = [];
+        if ($daysRaw !== '') {
+            $days = array_values(array_filter(array_map('intval', preg_split('/[^0-9]+/', $daysRaw)), fn($d) => $d >= 0 && $d <= 6));
+        }
         if ($days && !in_array($day, $days, true)) return false;
 
         $start = trim((string)($c['start_at'] ?? ''));
