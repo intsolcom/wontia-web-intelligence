@@ -10,6 +10,10 @@ class BrickLifecycleController
 {
     private function requireAdmin(): void
     {
+        if (!is_dir('/app/deploy-queue')) {
+            Response::error('Solo el administrador de WWI (servidor central) puede modificar los bricks', 403);
+            return;
+        }
         if (!in_array((string)Session::userRole(), ['superadmin', 'admin'], true)) {
             Response::error('Solo administradores pueden gestionar el ciclo de vida de bricks', 403);
         }
@@ -39,6 +43,7 @@ class BrickLifecycleController
             'recent' => $svc->recentEvents(20),
             'config' => ['new_days' => BrickLifecycleService::NEW_DAYS, 'target_days' => BrickLifecycleService::TARGET_DAYS, 'maturities' => BrickLifecycleService::MATURITIES],
             'is_admin' => in_array((string)Session::userRole(), ['superadmin', 'admin'], true),
+            'is_central' => is_dir('/app/deploy-queue'),
         ]]);
     }
 

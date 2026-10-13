@@ -2075,7 +2075,7 @@ W.bmLoad=async function(force){
     var lcd=(res[4].data||{});
     W._bm.lifecycle=lcd.map||{};
     W._bm.lcRecent=lcd.recent||[];
-    W._bm.isAdmin=!!lcd.is_admin;
+    W._bm.isAdmin=!!lcd.is_admin;W._bm.isCentral=!!lcd.is_central;
     W._bm.lcConfig=lcd.config||{new_days:30,maturities:['alpha','beta','rc','stable']};
     var lcFor=function(slug){return W._bm.lifecycle[slug]||null};
     var items=[];
@@ -2147,7 +2147,7 @@ W.bmCard=function(it){
     var maturityChip=(lc.maturity&&lc.maturity!=='stable')?'<span class="w-bm-mat w-bm-mat-'+W.esc(lc.maturity)+'">'+W.esc(String(lc.maturity).toUpperCase())+'</span>':'';
     var interestChip=(lc.state==='incubator'&&lc.interest)?'<span class="w-bm-interest" title="Usuarios interesados">🔔 '+W.num(lc.interest)+'</span>':'';
     var hiddenChip=lc.hidden?'<span class="w-bm-hidden" title="Oculto del catálogo">🙈 Oculto</span>':'';
-    if(W._bm.isAdmin){
+    if(W._bm.isCentral){
         if(lc.state==='incubator'){
             actions+='<button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.blLaunch(\''+W.esc(it.slug)+'\',\''+W.esc(it.name)+'\')" title="Lanzar al Marketplace">🚀 Lanzar</button>';
             actions+='<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.blSchedule(\''+W.esc(it.slug)+'\',\''+W.esc(it.name)+'\')" title="Programar fecha">🗓</button>';
@@ -2194,7 +2194,7 @@ W.bmRender=function(){
     var coupled=items.filter(function(it){return it.installed});
     var decoupled=items.filter(function(it){return !it.installed});
     var html='';
-    if(W._bm.isAdmin)html+=W.blBatchBar();
+    if(W._bm.isCentral)html+=W.blBatchBar();
     if(coupled.length)html+='<div class="w-bm-section"><div class="w-bm-section-head"><span class="w-bm-section-title">✓ Acoplados</span><span class="w-bm-section-count">'+coupled.length+'</span></div><div class="w-bm-grid">'+coupled.map(W.bmCard).join('')+'</div></div>';
     if(decoupled.length)html+='<div class="w-bm-section'+(coupled.length?' w-bm-section-sep':'')+'"><div class="w-bm-section-head"><span class="w-bm-section-title off">◻ Lanzados para acoplar</span><span class="w-bm-section-count">'+decoupled.length+'</span></div><div class="w-bm-grid">'+decoupled.map(W.bmCard).join('')+'</div></div>';
     if(!items.length)html='<div class="w-empty-state"><h3>Sin resultados</h3><p>Prueba otra categoría u otra búsqueda.</p></div>';
@@ -2421,7 +2421,7 @@ W.bsMarketplace=async function(){
         +'<div class="w-toolbar" id="bs-cats"><button class="w-btn w-btn-primary w-btn-sm" data-cat="">Todas ('+items.length+')</button>';
     Object.keys(cats).sort().forEach(function(c){html+='<button class="w-btn w-btn-secondary w-btn-sm" data-cat="'+W.esc(c)+'">'+W.esc(c)+'</button>'});
     html+='</div>'
-        +(W._bm.isAdmin?'<label class="w-flex" style="gap:6px;font-size:11px;align-items:center;color:var(--w-muted);margin-right:10px"><input type="checkbox" id="bs-showhidden"'+(W._bm.showHidden?' checked':'')+' onchange="wontia.blShowHidden(this.checked)"/> Ver ocultos</label>':'')
+        +(W._bm.isCentral?'<label class="w-flex" style="gap:6px;font-size:11px;align-items:center;color:var(--w-muted);margin-right:10px"><input type="checkbox" id="bs-showhidden"'+(W._bm.showHidden?' checked':'')+' onchange="wontia.blShowHidden(this.checked)"/> Ver ocultos</label>':'')
         +'<select class="w-select" id="bs-sort" style="max-width:220px">'
         +'<option value="recientes">Más recientes</option>'
         +'<option value="instalados">Más instalados</option>'
@@ -2483,7 +2483,7 @@ W.bsIncubator=async function(){
     W._bm.view='incubator';
     var items=(W._bm.items||[]).filter(function(it){var lc=it.lifecycle||{};return lc.state==='incubator'&&(!lc.hidden||W._bm.showHidden)});
     items.sort(function(a,b){var ta=(a.lifecycle&&a.lifecycle.target_launch_at)||'',tb=(b.lifecycle&&b.lifecycle.target_launch_at)||'';return String(ta).localeCompare(String(tb))});
-    var admin=W._bm.isAdmin;
+    var admin=W._bm.isCentral;
     var html='<div class="w-card" style="padding:14px 18px;margin-bottom:14px"><div style="font-size:13px;font-weight:700">🧪 Incubadora de Bricks</div><div style="font-size:11px;color:var(--w-muted);margin-top:4px;line-height:1.7">Bricks en desarrollo (no terminados). Aquí NO aparecen en el Marketplace: solo pasan al lanzarlos. La <strong style="color:var(--w-primary)">cuenta regresiva</strong> indica cuándo se lanzará cada uno.'+(admin?' <strong>Solo admin</strong> ve el botón 🚀 Lanzar.':'')+'</div></div>';
     html+='<div class="w-bl-roadmap"><div class="w-bl-roadmap-title">🗺️ Roadmap de lanzamientos</div><div class="w-bl-roadmap-list">'
         +(items.length?items.map(function(it){var lc=it.lifecycle||{};return '<div class="w-bl-rl-item"><span class="w-bm-chip">'+W.esc(it.category||'general')+'</span><span class="w-bl-rl-name">'+W.esc(it.name)+'</span>'+(it.functional===false?'<span class="w-bm-dev">🔥</span>':'')+'<span class="w-bl-rl-date">'+(lc.target_launch_at?W.esc(String(lc.target_launch_at).slice(0,16)):'por definir')+'</span></div>'}).join(''):'<div style="font-size:11px;color:var(--w-muted)">Nada en la incubadora todavía.</div>')
