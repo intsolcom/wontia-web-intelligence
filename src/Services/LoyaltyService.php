@@ -85,4 +85,28 @@ class LoyaltyService
         $st->execute([$customerId]);
         return $st->fetchAll();
     }
+
+    /**
+     * Devuelve al cliente los puntos que había usado en un pedido (expiración/reembolso).
+     * Idempotente por (pedido, razón).
+     */
+    public function reverseOrderPoints(int $orderId, string $reason = 'release'): array
+    {
+        $this->ensureTables();
+        $db = Database::instance();
+        $st = $db->prepare("SELECT customer_id, SUM(points) AS pts FROM store_loyalty_ledger WHERE site_id = @site_id AND order_id = ? AND reason = 'redeem'");
+        $st->execute([$orderId]);
+        $row = $st->fetch();
+        $cid = (int)($row['customer_id'] ?? 0);
+        $pts = (int)($row['pts'] ?? 0);
+        if ($cid <= 0 || $pts >= 0) return ['ok' => true, 'skipped' => 'nothing'];
+        $chk = $db->prepare("SELECT id FROM store_loyalty_ledger WHERE site_id = @site_id AND order_id = ? AND reason = ? LIMIT 1");
+        $chk->execute([$orderId, $reason]);
+        if ($chk->fetchColumn()) return ['ok' => true, 'skipped' => 'already'];
+        $back = abs($pts);
+        $db->prepare("INSERT INTO store_loyalty_ledger (site_id, customer_id, points, reason, order_id, note) VALUES (@site_id, ?, ?, ?, ?, 'Puntos devueltos')")
+           ->execute([$cid, $back, $reason, $orderId]);
+        $db->prepare("UPDATE store_customers SET points_balance = points_balance + ? WHERE id = ? AND site_id = @site_id")->execute([$back, $cid]);
+        return ['ok' => true, 'points' => $back];
+    }
 }

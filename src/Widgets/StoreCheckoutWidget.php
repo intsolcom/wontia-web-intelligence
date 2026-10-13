@@ -68,6 +68,22 @@ class StoreCheckoutWidget extends StoreWidgetBase
 
         $html .= '<div class="st-field"><label>Notas del pedido</label><textarea name="notes" rows="2"></textarea></div>';
 
+        $loy = ['enabled' => false, 'redeem_cents' => 0];
+        $loyBalance = 0;
+        try {
+            $lsvc = new \App\Services\LoyaltyService();
+            $loy = $lsvc->settings();
+            if (!empty($loy['enabled'])) {
+                $me = (new \App\Services\CustomerService())->current();
+                if ($me) $loyBalance = $lsvc->balance((int)$me['id']);
+            }
+        } catch (\Throwable $e) {
+        }
+        if (!empty($loy['enabled']) && $loyBalance > 0) {
+            $html .= '<div class="st-field"><label>Usar puntos (' . (int)$loyBalance . ' disponibles · 1 punto = ' . $this->esc($this->money((int)$loy['redeem_cents'], $currency)) . ')</label>'
+                . '<input type="number" name="points" min="0" max="' . (int)$loyBalance . '" value="0" style="width:140px"/></div>';
+        }
+
         $html .= '<div class="st-field"><label>Metodo de pago *</label><div class="st-pay">';
         foreach ($methods as $i => $m) {
             $html .= '<label><input type="radio" name="payment_method" value="' . $this->esc($m) . '"' . ($i === 0 ? ' checked' : '') . '/>'
@@ -107,7 +123,7 @@ class StoreCheckoutWidget extends StoreWidgetBase
             . 'var fd=new FormData(f);var payload={items:items.map(function(it){return{product_id:it.product_id,variant_id:it.variant_id,qty:parseInt(it.qty)||1}}),'
             . 'customer:{name:fd.get("name"),email:fd.get("email"),phone:fd.get("phone"),document:fd.get("document")||""},'
             . 'shipping:{zone_id:fd.get("zone_id")||null,address:{line1:fd.get("line1"),city:fd.get("city"),region:fd.get("region")||""}},'
-            . 'payment_method:fd.get("payment_method"),notes:fd.get("notes")||""};'
+            . 'points:parseInt(fd.get("points"))||0,payment_method:fd.get("payment_method"),notes:fd.get("notes")||""};'
             . 'fetch("/api/v1/public/store/orders",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)}).then(function(r){return r.json()}).then(function(d){'
             . 'if(!d.ok){throw new Error(d.message||"No se pudo crear el pedido")}'
             . 'S.clear();var order=d.data.order;var pay=d.data.payment;'

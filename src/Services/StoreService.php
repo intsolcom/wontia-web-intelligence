@@ -445,7 +445,25 @@ class StoreService
                 if ((int)$zone['free_over_cents'] > 0 && $subtotal >= (int)$zone['free_over_cents']) $shippingCents = 0;
             }
 
-            $total = $subtotal + $shippingCents;
+            $discountCents = 0;
+            $pointsUsed = 0;
+            $redeemCustomerId = 0;
+            $pointsReq = (int)($input['points'] ?? 0);
+            if ($pointsReq > 0) {
+                $loy = (new LoyaltyService())->settings();
+                if (!empty($loy['enabled']) && (int)$loy['redeem_cents'] > 0) {
+                    $me = (new CustomerService())->current();
+                    if ($me && strcasecmp((string)$me['email'], $email) === 0) {
+                        $redeemCustomerId = (int)$me['id'];
+                        $bal = (new LoyaltyService())->balance($redeemCustomerId);
+                        $maxByTotal = (int)floor(($subtotal + $shippingCents) / (int)$loy['redeem_cents']);
+                        $pointsUsed = max(0, min($pointsReq, $bal, $maxByTotal));
+                        $discountCents = $pointsUsed * (int)$loy['redeem_cents'];
+                    }
+                }
+            }
+            $total = $subtotal + $shippingCents - $discountCents;
+            if ($total < 0) $total = 0;
             $uuid = $this->uuid4();
             $orderNumber = 'PED-' . date('ymd') . '-' . strtoupper(substr(bin2hex(random_bytes(3)), 0, 5));
 
@@ -463,12 +481,12 @@ class StoreService
 
             $db->prepare("INSERT INTO store_orders (site_id, uuid, order_number, customer_id, customer_name, customer_email, customer_phone, customer_document,
                 shipping_address, shipping_zone_id, subtotal_cents, shipping_cents, discount_cents, total_cents, currency, payment_method, payment_status,
-                fulfillment_status, notes, ip_hash) VALUES (@site_id, :uuid, :num, :cid, :name, :email, :phone, :doc, :addr, :zone, :sub, :ship, 0, :total, :cur, :pm,
+                fulfillment_status, notes, ip_hash) VALUES (@site_id, :uuid, :num, :cid, :name, :email, :phone, :doc, :addr, :zone, :sub, :ship, :disc, :total, :cur, :pm,
                 'pending', 'new', :notes, :iph)")
                 ->execute([
                     'uuid' => $uuid, 'num' => $orderNumber, 'cid' => $cust, 'name' => $name, 'email' => $email, 'phone' => $phone,
                     'doc' => (string)($customer['document'] ?? ''), 'addr' => $addressJson, 'zone' => $zoneId,
-                    'sub' => $subtotal, 'ship' => $shippingCents, 'total' => $total, 'cur' => $settings['store_currency'],
+                    'sub' => $subtotal, 'ship' => $shippingCents, 'disc' => $discountCents, 'total' => $total, 'cur' => $settings['store_currency'],
                     'pm' => $method, 'notes' => (string)($input['notes'] ?? ''), 'iph' => $ipHash,
                 ]);
             $orderId = (int)$db->lastInsertId();
@@ -480,6 +498,13 @@ class StoreService
                     'oid' => $orderId, 'pid' => $l['product_id'], 'vid' => $l['variant_id'], 'name' => $l['name'],
                     'vname' => $l['variant_name'], 'price' => $l['price_cents'], 'qty' => $l['qty'], 'sub' => $l['subtotal_cents'], 'img' => $l['image'],
                 ]);
+            }
+
+            if ($pointsUsed > 0 && $redeemCustomerId > 0) {
+                $db->prepare("INSERT INTO store_loyalty_ledger (site_id, customer_id, points, reason, order_id, note) VALUES (@site_id, ?, ?, 'redeem', ?, 'Puntos usados en el pedido')")
+                   ->execute([$redeemCustomerId, -$pointsUsed, $orderId]);
+                $db->prepare("UPDATE store_customers SET points_balance = points_balance - ? WHERE id = ? AND site_id = @site_id")
+                   ->execute([$pointsUsed, $redeemCustomerId]);
             }
 
             $db->commit();
@@ -652,6 +677,10 @@ class StoreService
             $db->prepare("UPDATE store_orders SET payment_status = 'failed', fulfillment_status = 'cancelled', stock_released = 1,
                 admin_notes = CONCAT(COALESCE(admin_notes, ''), '\n[auto] Stock liberado por pago no completado') WHERE id = :id AND site_id = :sid")
                 ->execute(['id' => (int)$o['id'], 'sid' => (int)$o['site_id']]);
+            try {
+                (new LoyaltyService())->reverseOrderPoints((int)$o['id'], 'release');
+            } catch (\Throwable $e) {
+            }
             $released[] = $o['order_number'] ?: $o['uuid'];
         }
         return ['released' => count($released), 'orders' => $released];

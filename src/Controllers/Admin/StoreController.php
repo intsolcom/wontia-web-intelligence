@@ -6,6 +6,7 @@ use App\Core\Request;
 use App\Core\Response;
 use App\Services\StoreService;
 use App\Services\ReviewService;
+use App\Services\ReturnService;
 
 class StoreController
 {
@@ -209,5 +210,23 @@ class StoreController
     public function reviewDelete(Request $req, string $id): void
     {
         Response::json((new ReviewService())->delete((int)$id));
+    }
+
+    // ── Devoluciones ──
+
+    public function returns(Request $req): void
+    {
+        $svc = new ReturnService();
+        Response::json(['ok' => true, 'data' => [
+            'items' => $svc->listAll((string)$req->get('status', '')),
+            'requested' => $svc->requestedCount(),
+        ]]);
+    }
+
+    public function returnModerate(Request $req, string $id): void
+    {
+        $r = (new ReturnService())->setStatus((int)$id, (string)$req->input('status', ''), (bool)$req->input('restock', false), (string)$req->input('note', ''));
+        if (empty($r['ok'])) Response::error($r['message'] ?? 'Error', 422, $r);
+        Response::json($r);
     }
 }

@@ -150,6 +150,8 @@ $router->post('/api/v1/public/account/favorites/{ref}/alert', [\App\Controllers\
 $router->get('/api/v1/public/account/reviews', [\App\Controllers\CustomerAccountController::class, 'reviews']);
 $router->post('/api/v1/public/account/reviews', [\App\Controllers\CustomerAccountController::class, 'reviewAdd']);
 $router->get('/api/v1/public/account/loyalty', [\App\Controllers\CustomerAccountController::class, 'loyalty']);
+$router->post('/api/v1/public/account/orders/{uuid}/return', [\App\Controllers\CustomerAccountController::class, 'orderReturn']);
+$router->get('/api/v1/public/account/returns', [\App\Controllers\CustomerAccountController::class, 'returns']);
 $router->post('/api/v1/public/account/logout', [\App\Controllers\CustomerAccountController::class, 'logout']);
 $router->get('/api/v1/public/account/me', [\App\Controllers\CustomerAccountController::class, 'me']);
 $router->get('/api/v1/public/account/export', [\App\Controllers\CustomerAccountController::class, 'exportData']);
@@ -419,6 +421,8 @@ $r->put('/store/settings', [\App\Controllers\Admin\StoreController::class, 'sett
 $r->get('/store/reviews', [\App\Controllers\Admin\StoreController::class, 'reviews']);
 $r->patch('/store/reviews/{id}', [\App\Controllers\Admin\StoreController::class, 'reviewModerate']);
 $r->delete('/store/reviews/{id}', [\App\Controllers\Admin\StoreController::class, 'reviewDelete']);
+$r->get('/store/returns', [\App\Controllers\Admin\StoreController::class, 'returns']);
+$r->patch('/store/returns/{id}', [\App\Controllers\Admin\StoreController::class, 'returnModerate']);
 
     $r->get('/builder/tree', [\App\Controllers\Admin\BuilderController::class, 'tree']);
     $r->get('/builder/palette', [\App\Controllers\Admin\BuilderController::class, 'palette']);

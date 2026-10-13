@@ -5,6 +5,7 @@ use App\Core\Request;
 use App\Core\Response;
 use App\Services\CustomerService;
 use App\Services\LoyaltyService;
+use App\Services\ReturnService;
 use App\Services\ReviewService;
 
 class CustomerAccountController
@@ -209,6 +210,22 @@ class CustomerAccountController
             'redeem_cents' => $s['redeem_cents'],
             'history' => $svc->history((int)$c['id']),
         ]]);
+    }
+
+    public function orderReturn(Request $req, string $uuid): void
+    {
+        $c = $this->requireLogin();
+        if (!$c) return;
+        $r = (new ReturnService())->request($uuid, (int)$c['id'], (string)$c['email'], (string)$req->input('reason', ''));
+        if (empty($r['ok'])) Response::error($r['message'] ?? 'Error', 422, $r);
+        Response::json($r);
+    }
+
+    public function returns(): void
+    {
+        $c = $this->requireLogin();
+        if (!$c) return;
+        Response::json(['ok' => true, 'data' => (new ReturnService())->mine((int)$c['id'])]);
     }
 
     private function allow(Request $req, string $scope, int $max): bool

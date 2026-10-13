@@ -4420,7 +4420,7 @@ W.renderStore=async function(tab){
     tab=tab||'productos';
     W.state.storeTab=tab;
     var app=document.getElementById('wontia-app');
-    var tabs=[['productos','Productos'],['categorias','Categorías'],['pedidos','Pedidos'],['envios','Envíos'],['resenas','Reseñas'],['config','Configuración']];
+    var tabs=[['productos','Productos'],['categorias','Categorías'],['pedidos','Pedidos'],['envios','Envíos'],['resenas','Reseñas'],['devoluciones','Devoluciones'],['config','Configuración']];
     var bar='<div class="w-brick-tabs">';
     tabs.forEach(function(t){bar+='<button class="w-brick-tab'+(tab===t[0]?' active':'')+'" onclick="wontia.storeGo(\''+t[0]+'\')">'+t[1]+'</button>'});
     bar+='<div style="flex:1"></div><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.storeEnsure()">Setup Tables</button></div>';
@@ -4430,7 +4430,7 @@ W.renderStore=async function(tab){
         document.getElementById('store-content').innerHTML='<div class="w-empty-state"><h3>Tienda no inicializada</h3><p>Crea las tablas de la tienda para empezar a vender.</p><button class="w-btn w-btn-primary" style="margin-top:12px" onclick="wontia.storeEnsure()">Crear tablas de la tienda</button></div>';
         return;
     }
-    var fns={productos:W.storeProducts,categorias:W.storeCategories,pedidos:W.storeOrders,envios:W.storeZones,resenas:W.storeReviews,config:W.storeSettings};
+    var fns={productos:W.storeProducts,categorias:W.storeCategories,pedidos:W.storeOrders,envios:W.storeZones,resenas:W.storeReviews,devoluciones:W.storeReturns,config:W.storeSettings};
     (fns[tab]||W.storeProducts)();
 };
 
@@ -4453,6 +4453,26 @@ W.storeReviews=async function(){
 };
 W.storeReviewMod=async function(id,status){var r=await W.api('/api/v1/admin/store/reviews/'+id,{method:'PATCH',body:{status:status}});if(r.ok){W.notify('Reseña actualizada','success');W.storeReviews()}else W.notify((r.data&&r.data.message)||'Error','error')};
 W.storeReviewDel=async function(id){if(!confirm('¿Eliminar esta reseña?'))return;var r=await W.api('/api/v1/admin/store/reviews/'+id,{method:'DELETE'});if(r.ok){W.notify('Reseña eliminada','success');W.storeReviews()}};
+
+W.storeReturns=async function(){
+    var el=document.getElementById('store-content');
+    el.innerHTML='<div style="color:var(--w-muted);padding:20px">Cargando devoluciones...</div>';
+    var r=await W.api('/api/v1/admin/store/returns');
+    if(!r.ok){el.innerHTML='<div class="w-empty-state"><h3>No se pudieron cargar las devoluciones</h3></div>';return}
+    var items=(r.data&&r.data.items)||[];
+    var h='<div class="w-flex-between" style="margin-bottom:14px"><h3>Devoluciones '+(r.data.requested?('<span class="w-badge">'+r.data.requested+' por revisar</span>'):'')+'</h3></div>';
+    if(!items.length){el.innerHTML=h+'<div class="w-empty-state"><h3>Sin devoluciones</h3><p>No hay solicitudes de devolución.</p></div>';return}
+    h+='<table class="w-table" style="width:100%"><thead><tr><th>Pedido</th><th>Cliente</th><th>Motivo</th><th>Estado</th><th>Reembolso</th><th></th></tr></thead><tbody>';
+    items.forEach(function(x){var st=x.status;var color={requested:'#B45309',approved:'#2563EB',rejected:'#DC2626',refunded:'#1E7A4B'}[st]||'#555';
+        h+='<tr><td>'+W.esc(x.order_number||x.uuid||('#'+x.order_id))+'</td><td>'+W.esc(x.customer_email||'—')+'</td><td style="max-width:260px">'+W.esc((x.reason||'').slice(0,140))+'</td><td style="color:'+color+'">'+st+'</td><td>'+W.esc(x.refund_cents?('$'+(x.refund_cents/100).toLocaleString('es-CO')):'—')+'</td><td style="white-space:nowrap">'
+            +(st!=='refunded'?'<button class="w-btn w-btn-sm" onclick="wontia.storeReturnSet(\''+x.id+'\',\'refunded\')">Reembolsar</button> ':'')
+            +(st==='requested'?'<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.storeReturnSet(\''+x.id+'\',\'approved\')">Aprobar</button> ':'')
+            +(st==='requested'?'<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.storeReturnSet(\''+x.id+'\',\'rejected\')">Rechazar</button>':'')
+            +'</td></tr>';});
+    h+='</tbody></table>';
+    el.innerHTML=h;
+};
+W.storeReturnSet=async function(id,status){var restock=(status==='refunded')?confirm('¿Devolver el stock al inventario?'):false;var r=await W.api('/api/v1/admin/store/returns/'+id,{method:'PATCH',body:{status:status,restock:restock}});if(r.ok){W.notify('Devolución actualizada','success');W.storeReturns()}else W.notify((r.data&&r.data.message)||'Error','error')};
 
 W.storeEnsure=async function(){
     var r=await W.api('/api/v1/admin/store/ensure-tables',{method:'POST'});
