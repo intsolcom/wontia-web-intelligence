@@ -281,7 +281,7 @@ if (!function_exists('sonika_site_head')) {
       ]);
       ?>
       <div class="nav-actions">
-        <a class="icon-btn" href="/cuenta"><span class="ic" aria-hidden="true">&#128100;</span><span class="lbl">Mi cuenta</span></a>
+        <?= \App\Widgets\WidgetRegistry::render('account', ['label' => 'Mi cuenta', 'url' => '/cuenta']) ?>
         <a class="icon-btn" href="/carrito" aria-label="Carrito"><span class="ic" aria-hidden="true">&#128722;</span><span class="lbl">Carrito</span><span class="cart-badge" id="cartCount">0</span></a>
       </div>
     </div>
