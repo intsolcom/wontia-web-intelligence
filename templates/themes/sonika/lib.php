@@ -296,7 +296,7 @@ if (!function_exists('sonika_site_head')) {
       ?></span><?php
 $__cs = new \App\Services\CurrencyService();
 $__cur = $__cs->currencies();
-if (count($__cur) > 1):
+if (count($__cur) > 1 && (string)wwi_setting('store_currency_switcher', '') === '1'):
     $__act = $__cs->active();
 ?><select aria-label="Moneda" onchange="document.cookie='wwi_currency='+this.value+';path=/;max-age=31536000';location.reload()" style="margin-left:12px;background:transparent;color:inherit;border:1px solid rgba(255,255,255,.4);border-radius:6px;padding:2px 6px;font:inherit"><?php foreach ($__cur as $__c): ?><option value="<?= sonika_esc($__c['code']) ?>"<?= $__c['code'] === $__act ? ' selected' : '' ?>><?= sonika_esc($__c['label']) ?></option><?php endforeach; ?></select><?php endif; ?></div>
 <header class="site">
