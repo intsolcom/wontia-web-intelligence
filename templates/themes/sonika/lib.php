@@ -10,7 +10,7 @@ if (!function_exists('sonika_esc')) {
     function sonika_esc($s): string { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
 }
 if (!function_exists('sonika_cop')) {
-    function sonika_cop($value): string { return '$' . number_format((float)$value, 0, ',', '.'); }
+    function sonika_cop($value): string { return (new \App\Services\CurrencyService())->format((float)$value); }
 }
 if (!function_exists('sonika_safe_html')) {
     function sonika_safe_html(string $html): string {
@@ -269,7 +269,12 @@ if (!function_exists('sonika_site_head')) {
     <style><?= sonika_css() ?></style>
 </head>
 <body>
-<div class="topbar"><?= sonika_esc((string)wwi_tc('sonika', 'topbar_text', 'Envío a toda Colombia · 3 a 5 días hábiles · Pago seguro')) ?></div>
+<div class="topbar"><span><?= sonika_esc((string)wwi_tc('sonika', 'topbar_text', 'Envío a toda Colombia · 3 a 5 días hábiles · Pago seguro')) ?></span><?php
+$__cs = new \App\Services\CurrencyService();
+$__cur = $__cs->currencies();
+if (count($__cur) > 1):
+    $__act = $__cs->active();
+?><select aria-label="Moneda" onchange="document.cookie='wwi_currency='+this.value+';path=/;max-age=31536000';location.reload()" style="margin-left:12px;background:transparent;color:inherit;border:1px solid rgba(255,255,255,.4);border-radius:6px;padding:2px 6px;font:inherit"><?php foreach ($__cur as $__c): ?><option value="<?= sonika_esc($__c['code']) ?>"<?= $__c['code'] === $__act ? ' selected' : '' ?>><?= sonika_esc($__c['label']) ?></option><?php endforeach; ?></select><?php endif; ?></div>
 <header class="site">
   <div class="wrap">
     <div class="nav">

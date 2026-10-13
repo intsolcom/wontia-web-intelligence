@@ -152,6 +152,10 @@ $router->post('/api/v1/public/account/reviews', [\App\Controllers\CustomerAccoun
 $router->get('/api/v1/public/account/loyalty', [\App\Controllers\CustomerAccountController::class, 'loyalty']);
 $router->post('/api/v1/public/account/orders/{uuid}/return', [\App\Controllers\CustomerAccountController::class, 'orderReturn']);
 $router->get('/api/v1/public/account/returns', [\App\Controllers\CustomerAccountController::class, 'returns']);
+$router->get('/api/v1/public/account/payment-methods', [\App\Controllers\CustomerAccountController::class, 'paymentMethods']);
+$router->post('/api/v1/public/account/payment-methods', [\App\Controllers\CustomerAccountController::class, 'paymentMethodSave']);
+$router->post('/api/v1/public/account/payment-methods/{id}/default', [\App\Controllers\CustomerAccountController::class, 'paymentMethodDefault']);
+$router->delete('/api/v1/public/account/payment-methods/{id}', [\App\Controllers\CustomerAccountController::class, 'paymentMethodDelete']);
 $router->post('/api/v1/public/account/logout', [\App\Controllers\CustomerAccountController::class, 'logout']);
 $router->get('/api/v1/public/account/me', [\App\Controllers\CustomerAccountController::class, 'me']);
 $router->get('/api/v1/public/account/export', [\App\Controllers\CustomerAccountController::class, 'exportData']);

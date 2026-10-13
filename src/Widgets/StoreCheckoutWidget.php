@@ -85,8 +85,15 @@ class StoreCheckoutWidget extends StoreWidgetBase
         }
 
         $html .= '<div class="st-field"><label>Metodo de pago *</label><div class="st-pay">';
+        $defaultPm = '';
+        try {
+            $me = (new \App\Services\CustomerService())->current();
+            if ($me) $defaultPm = (new \App\Services\PaymentMethodService())->defaultProvider((int)$me['id']);
+        } catch (\Throwable $e) {
+        }
         foreach ($methods as $i => $m) {
-            $html .= '<label><input type="radio" name="payment_method" value="' . $this->esc($m) . '"' . ($i === 0 ? ' checked' : '') . '/>'
+            $checked = ($defaultPm === $m) || ($defaultPm === '' && $i === 0) ? ' checked' : '';
+            $html .= '<label><input type="radio" name="payment_method" value="' . $this->esc($m) . '"' . $checked . '/>'
                 . '<span><strong>' . $this->esc($labels[$m] ?? $m) . '</strong><br/><span style="color:var(--muted,#6b7280);font-size:12px">' . $this->esc($hints[$m] ?? '') . '</span></span></label>';
         }
         $html .= '</div></div>';

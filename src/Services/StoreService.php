@@ -14,6 +14,7 @@ class StoreService
         'store_max_orders_hour_ip', 'store_max_orders_hour_email',
         'store_reviews_auto_approve', 'store_reviews_require_purchase',
         'store_loyalty_enabled', 'store_loyalty_points_per_1000', 'store_loyalty_redeem_cents',
+        'store_currencies',
     ];
 
     public const PAYMENT_METHODS = ['wompi', 'cod', 'manual'];

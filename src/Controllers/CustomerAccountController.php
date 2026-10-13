@@ -5,6 +5,7 @@ use App\Core\Request;
 use App\Core\Response;
 use App\Services\CustomerService;
 use App\Services\LoyaltyService;
+use App\Services\PaymentMethodService;
 use App\Services\ReturnService;
 use App\Services\ReviewService;
 
@@ -226,6 +227,36 @@ class CustomerAccountController
         $c = $this->requireLogin();
         if (!$c) return;
         Response::json(['ok' => true, 'data' => (new ReturnService())->mine((int)$c['id'])]);
+    }
+
+    public function paymentMethods(): void
+    {
+        $c = $this->requireLogin();
+        if (!$c) return;
+        Response::json(['ok' => true, 'data' => (new PaymentMethodService())->list((int)$c['id'])]);
+    }
+
+    public function paymentMethodSave(Request $req): void
+    {
+        $c = $this->requireLogin();
+        if (!$c) return;
+        $r = (new PaymentMethodService())->save((int)$c['id'], $req->json());
+        if (empty($r['ok'])) Response::error($r['message'] ?? 'Error', 422, $r);
+        Response::json($r);
+    }
+
+    public function paymentMethodDefault(Request $req, string $id): void
+    {
+        $c = $this->requireLogin();
+        if (!$c) return;
+        Response::json((new PaymentMethodService())->setDefault((int)$c['id'], (int)$id));
+    }
+
+    public function paymentMethodDelete(Request $req, string $id): void
+    {
+        $c = $this->requireLogin();
+        if (!$c) return;
+        Response::json((new PaymentMethodService())->delete((int)$c['id'], (int)$id));
     }
 
     private function allow(Request $req, string $scope, int $max): bool

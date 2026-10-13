@@ -4819,6 +4819,7 @@ W.storeSettings=async function(){
         +'<div><label style="font-size:11px;color:var(--w-muted)">Puntos por cada 1.000 (moneda)</label><input class="w-input" type="number" id="ss-loy-rate" value="'+(parseInt(s.store_loyalty_points_per_1000)||1)+'" style="width:100%"/></div>'
         +'<div><label style="font-size:11px;color:var(--w-muted)">Valor de 1 punto (centavos)</label><input class="w-input" type="number" id="ss-loy-val" value="'+(parseInt(s.store_loyalty_redeem_cents)||100)+'" style="width:100%"/></div>'
         +'</div></div>'
+        +'<div class="w-card" style="margin-top:14px"><h3 style="margin-top:0">Monedas</h3><div style="font-size:12px;color:var(--w-muted);margin-bottom:8px">La moneda base se cobra; las demás son referenciales (conversión por tasa). JSON: [{"code":"USD","label":"USD","symbol":"US$","rate":0.00025}]</div><textarea class="w-input" id="ss-currencies" rows="3" style="width:100%;font-family:monospace">'+W.esc(s.store_currencies||'')+'</textarea></div>'
         +'<div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap"><button class="w-btn w-btn-primary" onclick="wontia.storeSettingsSave()">Guardar configuración</button>'
         +'<button class="w-btn w-btn-secondary" onclick="wontia.storeMaintenance()">Liberar stock de pedidos vencidos</button></div>';
     el.innerHTML=body;
@@ -4832,6 +4833,7 @@ W.storeSettingsSave=async function(){
         store_max_orders_hour_ip:parseInt(v('#ss-max-ip'))||8,store_max_orders_hour_email:parseInt(v('#ss-max-email'))||4,
         store_reviews_auto_approve:v('#ss-rev-auto'),store_reviews_require_purchase:v('#ss-rev-buy'),
         store_loyalty_enabled:v('#ss-loy-on'),store_loyalty_points_per_1000:parseInt(v('#ss-loy-rate'))||1,store_loyalty_redeem_cents:parseInt(v('#ss-loy-val'))||100,
+        store_currencies:v('#ss-currencies'),
         store_payment_methods:methods,store_wompi_public_key:v('#ss-wompi-pub'),store_wompi_integrity_key:v('#ss-wompi-int'),store_wompi_events_key:v('#ss-wompi-evt')};
     var r=await W.api('/api/v1/admin/store/settings',{method:'PUT',body:payload});
     if(r.ok){W.notify('Configuración guardada','success');W.storeSettings()}
