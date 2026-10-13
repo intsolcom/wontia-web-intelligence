@@ -2121,8 +2121,8 @@ W.bmCard=function(it){
     var metrics='<span title="Instalaciones">⬇ '+W.num(mm.installs)+'</span>';
     if(it.origin==='core')metrics+='<span title="Usos en páginas">📄 '+W.num(it.usage_count||0)+'</span>';
     metrics+='<span title="Previews">👁 '+W.num(mm.previews)+'</span>';
-    var actions='<button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.bmPreview(\''+W.esc(it.slug)+'\')">Preview</button>'
-        +'<button class="w-btn w-btn-secondary w-btn-sm" title="Showcase (capturas del brick)" onclick="wontia.showBrickShowcase(\''+W.esc(it.slug)+'\')">⚙</button>';
+    var actions='<button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.bmPreview(\''+W.esc(it.slug)+'\')">Preview</button>';
+    if(window.__WWI_IS_CENTRAL)actions+='<button class="w-btn w-btn-secondary w-btn-sm" title="Showcase (capturas del brick) — solo WWI central" onclick="wontia.showBrickShowcase(\''+W.esc(it.slug)+'\')">⚙</button>';
     if(it.origin==='core'){
         if(it.functional!==false&&lc.state!=='incubator')actions+='<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.brickAddToPage(\''+W.esc(it.slug)+'\',\''+W.esc(it.name)+'\')">Añadir a página</button>';
         actions+='<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.showBrickConfig(\''+W.esc(it.slug)+'\')">Esquema</button>';
@@ -2712,6 +2712,7 @@ W.pvDevice=function(w){
 };
 
 W.showBrickShowcase=async function(slug){
+    if(!window.__WWI_IS_CENTRAL){W.notify('El showcase de bricks solo lo gestiona el administrador de WWI.','error');return}
     var r=await W.api('/api/v1/admin/bricks/'+encodeURIComponent(slug)+'/showcase');
     W._sh={slug:slug,items:(r.data||[])};
     W.shModal();
