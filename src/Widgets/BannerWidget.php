@@ -39,6 +39,7 @@ class BannerWidget extends Widget
             ['key' => 'items', 'label' => 'Mensajes (usa **negrita**)', 'type' => 'repeater', 'fields' => [
                 ['key' => 'icon', 'label' => 'Icono (emoji)', 'type' => 'text'],
                 ['key' => 'text', 'label' => 'Texto', 'type' => 'text'],
+                ['key' => 'text_b', 'label' => 'Texto variante B (A/B, opcional)', 'type' => 'text'],
                 ['key' => 'link', 'label' => 'Enlace (CTA, opcional)', 'type' => 'url'],
                 ['key' => 'link_label', 'label' => 'Texto del enlace', 'type' => 'text'],
             ], 'default' => [
@@ -67,6 +68,8 @@ class BannerWidget extends Widget
             ['key' => 'critical', 'label' => 'Crítico (no descartable, prioridad alta)', 'type' => 'toggle', 'default' => false],
             ['key' => 'countdown_to', 'label' => 'Cuenta atrás hasta (YYYY-MM-DDTHH:MM, opcional)', 'type' => 'text', 'default' => ''],
             ['key' => 'exit_intent', 'label' => 'Mostrar al intentar salir (solo modal)', 'type' => 'toggle', 'default' => false],
+            ['key' => 'track', 'label' => 'Medir impresiones y clics', 'type' => 'toggle', 'default' => true],
+            ['key' => 'ab', 'label' => 'Probar A/B (usa la variante B del texto)', 'type' => 'toggle', 'default' => false],
 
             ['key' => '_h_target', 'label' => 'Segmentación y programación', 'type' => 'heading'],
             ['key' => 'device', 'label' => 'Dispositivo', 'type' => 'select', 'options' => ['all' => 'Todos', 'desktop' => 'Solo escritorio', 'mobile' => 'Solo móvil'], 'default' => 'all'],
@@ -91,7 +94,7 @@ class BannerWidget extends Widget
             'bg_color' => '#111111', 'bg_color2' => '', 'text_color' => '#ffffff', 'font_size' => '0.8', 'preset' => 'none',
             'bold' => true, 'italic' => false, 'align' => 'center', 'bg_image' => '', 'bare' => false,
             'dismissible' => true, 'close_label' => 'Entendido', 'frequency' => 'always',
-            'marquee' => false, 'critical' => false, 'countdown_to' => '', 'exit_intent' => false,
+            'marquee' => false, 'critical' => false, 'countdown_to' => '', 'exit_intent' => false, 'track' => true, 'ab' => false,
             'device' => 'all', 'audience' => 'all', 'pages' => '', 'days' => '', 'from' => '', 'to' => '',
             'start_at' => '', 'end_at' => '', 'tz_offset' => '-5',
         ];
@@ -201,6 +204,7 @@ class BannerWidget extends Widget
             $items[] = [
                 'icon' => trim((string)($it['icon'] ?? '')),
                 'text' => $txt,
+                'text_b' => trim((string)($it['text_b'] ?? '')),
                 'link' => trim((string)($it['link'] ?? '')),
                 'link_label' => trim((string)($it['link_label'] ?? '')),
             ];
@@ -219,6 +223,8 @@ class BannerWidget extends Widget
         $countdown = trim((string)($c['countdown_to'] ?? ''));
         if ($countdown !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2})?$/', $countdown)) $countdown = '';
         $exit = !empty($c['exit_intent']);
+        $track = !empty($c['track']);
+        $ab = !empty($c['ab']);
 
         $bg = $this->color($c['bg_color'] ?? '', '#111111');
         $bg2 = $this->color($c['bg_color2'] ?? '', '');
@@ -242,8 +248,8 @@ class BannerWidget extends Widget
         if ($bgImg !== '') $style .= ';--wwi-bn-img:url(\'' . $this->esc($bgImg) . '\')';
 
         $h = $this->assets();
-        $h .= '<div class="wwi-bn wwi-bn--' . $mode . ' wwi-bn--anim-' . $anim . ($bare ? ' wwi-bn--bare' : '') . ($bgImg !== '' ? ' has-img' : '') . ($bg2 !== '' ? ' has-grad' : '') . ($marquee ? ' wwi-bn--marquee' : '') . ($critical ? ' wwi-bn--critical' : '') . (($mode === 'modal' && $exit) ? ' wwi-bn--exit' : '') . '" id="' . $uid . '" style="' . $style . '"'
-            . ' data-rot="' . $rot . '" data-freq="' . $freq . '" data-letters="' . $letters . '" data-session="1"' . ($countdown !== '' ? ' data-cd="' . $this->esc($countdown) . '"' : '')
+        $h .= '<div class="wwi-bn wwi-bn--' . $mode . ' wwi-bn--anim-' . $anim . ($bare ? ' wwi-bn--bare' : '') . ($bgImg !== '' ? ' has-img' : '') . ($bg2 !== '' ? ' has-grad' : '') . ($marquee ? ' wwi-bn--marquee' : '') . ($critical ? ' wwi-bn--critical' : '') . (($mode === 'modal' && $exit) ? ' wwi-bn--exit' : '') . ($ab ? ' wwi-bn--ab' : '') . '" id="' . $uid . '" style="' . $style . '"'
+            . ' data-rot="' . $rot . '" data-freq="' . $freq . '" data-letters="' . $letters . '" data-session="1"' . ($countdown !== '' ? ' data-cd="' . $this->esc($countdown) . '"' : '') . ($track ? ' data-uid="' . $uid . '" data-track="1"' : '')
             . ' role="' . ($critical ? 'alert' : 'status') . '" aria-live="' . ($critical ? 'assertive' : 'polite') . '">';
         if ($mode === 'modal') {
             $h .= '<div class="wwi-bn__overlay" data-bn-close></div><div class="wwi-bn__box" role="dialog" aria-modal="true">';
@@ -252,7 +258,11 @@ class BannerWidget extends Widget
         foreach ($items as $i => $it) {
             $h .= '<span class="wwi-bn__item' . ($i === 0 ? ' is-on' : '') . '" data-i="' . $i . '">';
             if ($it['icon'] !== '') $h .= '<span class="wwi-bn__ic" aria-hidden="true">' . $this->esc($it['icon']) . '</span>';
-            $h .= '<span class="wwi-bn__tx">' . $this->readText($it['text']) . '</span>';
+            if ($ab && (string)$it['text_b'] !== '') {
+                $h .= '<span class="wwi-bn__tx wwi-bn__vA">' . $this->readText($it['text']) . '</span><span class="wwi-bn__tx wwi-bn__vB">' . $this->readText($it['text_b']) . '</span>';
+            } else {
+                $h .= '<span class="wwi-bn__tx">' . $this->readText($it['text']) . '</span>';
+            }
             if ($it['link'] !== '') {
                 $lbl = $it['link_label'] !== '' ? $it['link_label'] : $it['link'];
                 $h .= ' <a class="wwi-bn__cta" href="' . $this->esc($it['link']) . '" rel="noopener">' . $this->esc($lbl) . '</a>';
@@ -311,6 +321,9 @@ class BannerWidget extends Widget
 @keyframes wwiBnPulse{0%,100%{opacity:1}50%{opacity:.45}}
 .wwi-bn--exit{display:none}
 .wwi-bn--exit.is-open{display:block}
+.wwi-bn--ab .wwi-bn__vB{display:none}
+.wwi-bn--ab.ab-b .wwi-bn__vA{display:none}
+.wwi-bn--ab.ab-b .wwi-bn__vB{display:inline}
 .wwi-bn--anim-slide-down{animation:wwiBnDown .45s cubic-bezier(.2,.8,.3,1) both}
 .wwi-bn--anim-slide-up{animation:wwiBnUp .45s cubic-bezier(.2,.8,.3,1) both}
 .wwi-bn--anim-slide-left{animation:wwiBnLeft .45s cubic-bezier(.2,.8,.3,1) both}
@@ -351,6 +364,9 @@ function init(el){var id=el.id;var freq=el.getAttribute('data-freq')||'always';v
  el.querySelectorAll('[data-bn-close]').forEach(function(b){b.addEventListener('click',function(){try{sessionStorage.setItem(sk+'-closed','1')}catch(e){}el.remove()})});
  var cdv=el.getAttribute('data-cd');var cds=el.querySelector('.wwi-bn__cd');if(cdv&&cds){var to=new Date(cdv.length<=10?cdv+'T00:00':cdv).getTime();var tick=function(){var d=to-Date.now();if(d<0)d=0;var s=Math.floor(d/1000);var dd=Math.floor(s/86400),hh=Math.floor((s%86400)/3600),mm=Math.floor((s%3600)/60),ss=s%60;function p(n){return (n<10?'0':'')+n}cds.textContent='⏳ '+(dd>0?dd+'d ':'')+p(hh)+':'+p(mm)+':'+p(ss)};tick();setInterval(tick,1000)}
  if(el.classList.contains('wwi-bn--exit')){(function(){var shown=false;function open(){if(shown)return;shown=true;el.classList.add('is-open')}var t=setTimeout(open,20000);document.addEventListener('mouseout',function(e){if(!e.relatedTarget&&e.clientY<=0){clearTimeout(t);open()}})})()}
+ var ab=el.classList.contains('wwi-bn--ab');var variant='a';
+ if(ab){try{variant=localStorage.getItem('wwi-bn-ab-'+id)||''}catch(e){}if(variant!=='a'&&variant!=='b'){variant=Math.random()<0.5?'a':'b';try{localStorage.setItem('wwi-bn-ab-'+id,variant)}catch(e){}}el.classList.add('ab-'+variant)}
+ var tuid=el.getAttribute('data-uid');if(el.getAttribute('data-track')==='1'&&tuid){var evt=function(t){try{fetch('/api/v1/public/banner/event',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({uid:tuid,variant:variant,type:t}),keepalive:true})}catch(e){}};evt('impression');el.querySelectorAll('.wwi-bn__cta').forEach(function(a){a.addEventListener('click',function(){evt('click')})});}
  if(el.classList.contains('wwi-bn--modal')){document.addEventListener('keydown',function(e){if(e.key==='Escape'&&document.body.contains(el)){el.remove()}})}
 }
 document.addEventListener('DOMContentLoaded',function(){document.querySelectorAll('.wwi-bn:not([data-ready])').forEach(function(el){el.setAttribute('data-ready','1');init(el)})});

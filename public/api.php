@@ -178,6 +178,7 @@ $router->get('/api/v1/public/store/orders/{uuid}', [\App\Controllers\StorePublic
 $router->post('/api/v1/public/store/payments/wompi/webhook', [\App\Controllers\StorePublicController::class, 'wompiWebhook']);
 $router->get('/api/v1/public/store/reviews', [\App\Controllers\StorePublicController::class, 'reviews']);
 $router->post('/api/v1/public/store/reviews/{id}/helpful', [\App\Controllers\StorePublicController::class, 'reviewHelpful']);
+$router->post('/api/v1/public/banner/event', [\App\Controllers\BannerEventController::class, 'event']);
 $router->post('/api/v1/public/variants/{id}/track', function ($request, $id) {
     $type = (string)$request->input('type', 'view');
     $ok = (new \App\Services\LiveEditorService())->variantTrack((int)$id, $type);
@@ -294,6 +295,8 @@ $r->put('/bricks/{type}/showcase/reorder', [\App\Controllers\Admin\BrickShowcase
 $r->put('/bricks/{type}/showcase/{id}', [\App\Controllers\Admin\BrickShowcaseController::class, 'update']);
 $r->delete('/bricks/{type}/showcase/{id}', [\App\Controllers\Admin\BrickShowcaseController::class, 'delete']);
 $r->post('/bricks/{type}/showcase/{id}/cover', [\App\Controllers\Admin\BrickShowcaseController::class, 'cover']);
+$r->get('/banners/stats', [\App\Controllers\Admin\BannerAdminController::class, 'stats']);
+$r->delete('/banners/stats', [\App\Controllers\Admin\BannerAdminController::class, 'clear']);
 
     $r->get('/bricklifecycle', [\App\Controllers\Admin\BrickLifecycleController::class, 'index']);
     $r->post('/bricklifecycle/ensure-tables', [\App\Controllers\Admin\BrickLifecycleController::class, 'ensureTables']);

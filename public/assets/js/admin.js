@@ -51,7 +51,7 @@ W.router=function(){
     if(panel!=='bricks'){W.state.brickHost=null;W.state.bhHost=null}
     document.querySelectorAll('.w-nav-item').forEach(function(a){a.classList.toggle('active',a.dataset.panel===panel)});
     var title=document.getElementById('panel-title');
-    var titles={dashboard:'Dashboard',wwi:'WWI — Sistema',store:'Tienda',pages:'Pages',sections:'Sections',bricks:'Bricks',brickhub:'BrickHub',brick:'AI BRICK',factory:'Factory',portal:'Mi Portal',blog:'Blog',media:'Media',seo:'SEO','seo-global-launch':'SEO Global Launch',analytics:'Analytics',settings:'Settings',users:'Users'};
+    var titles={dashboard:'Dashboard',wwi:'WWI — Sistema',store:'Tienda',pages:'Pages',sections:'Sections',bricks:'Bricks',brickhub:'BrickHub',brick:'AI BRICK',factory:'Factory',portal:'Mi Portal',blog:'Blog',media:'Media',banners:'Banners',seo:'SEO','seo-global-launch':'SEO Global Launch',analytics:'Analytics',settings:'Settings',users:'Users'};
     if(title)title.textContent=titles[panel]||panel;
     var app=document.getElementById('wontia-app');
     if(!app)return;
@@ -1308,6 +1308,26 @@ W.uploadFiles=async function(files){
     }
     W.refreshMedia();
 };
+
+W.renderBanners=async function(){
+    var app=document.getElementById('wontia-app');
+    app.innerHTML='<div style="padding:40px;text-align:center;color:var(--w-muted)">Cargando métricas…</div>';
+    var r=await W.api('/api/v1/admin/banners/stats');
+    var d=r.data||{};var s=d.summary||{};var items=d.items||[];
+    var h='<div class="w-flex-between w-mb-lg"><h3>Banners — métricas (impresiones, clics, A/B)</h3><button class="w-btn w-btn-danger" onclick="wontia.bnClearStats()">Borrar métricas</button></div>';
+    h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px">'
+      +'<div class="w-stat-card"><div class="w-stat-value">'+W.num(s.impressions||0)+'</div><div class="w-stat-label">Impresiones</div></div>'
+      +'<div class="w-stat-card"><div class="w-stat-value">'+W.num(s.clicks||0)+'</div><div class="w-stat-label">Clics</div></div>'
+      +'<div class="w-stat-card"><div class="w-stat-value">'+(s.ctr||0)+'%</div><div class="w-stat-label">CTR</div></div>'
+      +'<div class="w-stat-card"><div class="w-stat-value">'+W.num(s.rows||0)+'</div><div class="w-stat-label">Avisos × variante</div></div></div>';
+    if(!items.length){h+='<div class="w-empty-state"><h3>Sin datos aún</h3><p>Los avisos con “Medir impresiones y clics” activado aparecerán aquí al recibir visitas.</p></div>';}
+    else{
+        h+='<table class="w-table"><thead><tr><th>Aviso (uid)</th><th>Variante</th><th>Impresiones</th><th>Clics</th><th>CTR</th><th>Última actividad</th></tr></thead><tbody>'
+          +items.map(function(x){var ctr=x.impressions?((x.clicks*100/x.impressions).toFixed(2)):0;return '<tr><td>'+W.esc(x.banner_uid)+'</td><td>'+W.esc(String(x.variant).toUpperCase())+'</td><td>'+W.num(x.impressions)+'</td><td>'+W.num(x.clicks)+'</td><td>'+ctr+'%</td><td>'+W.esc(String(x.updated_at||''))+'</td></tr>'}).join('')+'</tbody></table>';
+    }
+    app.innerHTML=h;
+};
+W.bnClearStats=async function(){if(!confirm('¿Borrar todas las métricas de banners?'))return;var r=await W.api('/api/v1/admin/banners/stats',{method:'DELETE',body:{}});if(r.ok){W.notify('Métricas borradas','success');W.renderBanners()}};
 
 W.deleteMedia=function(id){W.mediaTrash(id)};
 
@@ -5013,6 +5033,7 @@ W.panels={
     blog:W.renderBlogList,
     blogEditor:W.renderBlogEditor,
     media:W.renderMediaManager,
+    banners:W.renderBanners,
     seo:W.renderSeo,
     'seo-global-launch':W.renderSeoGlobalLaunch,
     analytics:W.renderAnalytics,
