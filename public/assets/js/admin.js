@@ -2739,7 +2739,7 @@ W.shModal=function(){
     } else { html+='<div style="padding:14px;color:var(--w-muted);border:1px dashed var(--w-border);border-radius:10px">Sin capturas. Añade la primera.</div>'; }
     html+='<div style="margin-top:16px;border-top:1px solid var(--w-border);padding-top:12px"><b style="font-size:12px">Añadir captura</b>'
       +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center">'
-      +'<button class="w-btn w-btn-secondary" onclick="wontia.shPick()">📁 Media</button>'
+      +'<button class="w-btn w-btn-secondary" onclick="wontia.shUpload()">⬆ Subir</button><button class="w-btn w-btn-secondary" onclick="wontia.shPick()">📁 Media</button><input type="file" id="sh-file" accept="image/*,video/*" style="display:none" onchange="wontia.shDoUpload(this.files)"/>'
       +'<input class="w-input" id="sh-media" placeholder="URL de la imagen/video" style="flex:1;min-width:200px"/>'
       +'<select class="w-input" id="sh-device" style="width:120px"><option value="all">Todo</option><option value="desktop">Desktop</option><option value="tablet">Tablet</option><option value="mobile">Mobile</option></select>'
       +'<select class="w-input" id="sh-type" style="width:110px"><option value="image">Imagen</option><option value="video">Video</option></select>'
@@ -2777,7 +2777,22 @@ W.shEdit=function(id){var it=null;W._sh.items.forEach(function(x){if(Number(x.id
     W.modal('Editar captura',html,'<button class="w-btn w-btn-secondary" onclick="wontia.shModal()">Volver</button><button class="w-btn w-btn-primary" onclick="wontia.shSave('+it.id+')">Guardar</button>');
 };
 W.shSave=async function(id){var body={caption:document.getElementById('she-caption').value,alt:document.getElementById('she-alt').value,demo_url:document.getElementById('she-demo').value,device:document.getElementById('she-device').value,media_type:document.getElementById('she-type').value,availability:document.getElementById('she-avail').value,version:document.getElementById('she-version').value};var r=await W.api('/api/v1/admin/bricks/'+encodeURIComponent(W._sh.slug)+'/showcase/'+id,{method:'PUT',body:body});if(r.ok){W.notify('Guardado','success');W.shRefresh()}else W.notify('Error','error')};
-W.shPick=async function(){var g=document.getElementById('sh-media-grid');if(!g)return;g.innerHTML='<div style="color:var(--w-muted);font-size:12px">Cargando…</div>';try{var d=await W.api('/api/v1/admin/media?type=image');var items=(d&&d.data)||[];if(!items.length){g.innerHTML='<div style="color:var(--w-muted);font-size:12px">No hay imágenes en la Biblioteca.</div>';return}g.innerHTML='<div class="w-lib-grid">'+items.map(function(m){return '<button type="button" class="w-lib-item" title="'+W.esc(m.filename||'')+'" onclick="document.getElementById(\'sh-media\').value=\''+W.esc(m.url)+'\';document.getElementById(\'sh-media-grid\').innerHTML=\'\'"><img src="'+W.esc(m.url)+'" alt=""/></button>'}).join('')+'</div>'}catch(e){g.innerHTML='<div style="color:#ef4444;font-size:12px">Error cargando la biblioteca.</div>'}};
+W.shSetMedia=function(u){var i=document.getElementById('sh-media');if(i)i.value=u;var g=document.getElementById('sh-media-grid');if(g)g.innerHTML=u?('<img src="'+W.esc(u)+'" style="max-width:160px;border-radius:8px;border:1px solid var(--w-border)"/>'):''};
+W.shPick=async function(){var g=document.getElementById('sh-media-grid');if(!g)return;g.innerHTML='<div style="color:var(--w-muted);font-size:12px">Cargando…</div>';try{var d=await W.api('/api/v1/admin/media?type=image');var items=(d&&d.data)||[];if(!items.length){g.innerHTML='<div style="color:var(--w-muted);font-size:12px">No hay imágenes en la Biblioteca.</div>';return}g.innerHTML='<div class="w-lib-grid">'+items.map(function(m){return '<button type="button" class="w-lib-item" title="'+W.esc(m.filename||'')+'" onclick="wontia.shSetMedia(\''+W.esc(m.url)+'\')"><img src="'+W.esc(m.url)+'" alt=""/></button>'}).join('')+'</div>'}catch(e){g.innerHTML='<div style="color:#ef4444;font-size:12px">Error cargando la biblioteca.</div>'}};
+W.shUpload=function(){var f=document.getElementById('sh-file');if(f)f.click()};
+W.shDoUpload=async function(files){
+    for(var i=0;i<files.length;i++){
+        if(files[i].size>12*1024*1024){W.notify('“'+files[i].name+'” supera 12MB.','error');continue}
+        var fd=new FormData();fd.append('file',files[i]);
+        W.notify('Subiendo '+files[i].name+'…','info');
+        var r=await W.api('/api/v1/admin/media/upload',{method:'POST',body:fd});
+        if(r&&r.ok){
+            var u=(r.data&&(r.data.url||(r.data.data&&r.data.data.url)))||'';
+            W.shSetMedia(u);
+            W.notify('Subida lista: '+files[i].name,'success');
+        }else W.notify((r&&r.data&&r.data.message)||'Error subiendo','error');
+    }
+};
 
 W.brickAddToPage=async function(type,name){
     var d=await W.api('/api/v1/admin/pages');
