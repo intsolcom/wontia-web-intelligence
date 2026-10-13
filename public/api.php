@@ -288,6 +288,12 @@ $r->delete('/trash/{id}', [\App\Controllers\Admin\SectionController::class, 'tra
     $r->get('/bricks/{type}/ratings', [\App\Controllers\Admin\BrickController::class, 'ratings']);
     $r->post('/bricks/{type}/rate', [\App\Controllers\Admin\BrickController::class, 'rate']);
     $r->post('/bricks/{type}/event', [\App\Controllers\Admin\BrickController::class, 'event']);
+$r->get('/bricks/{type}/showcase', [\App\Controllers\Admin\BrickShowcaseController::class, 'index']);
+$r->post('/bricks/{type}/showcase', [\App\Controllers\Admin\BrickShowcaseController::class, 'save']);
+$r->put('/bricks/{type}/showcase/reorder', [\App\Controllers\Admin\BrickShowcaseController::class, 'reorder']);
+$r->put('/bricks/{type}/showcase/{id}', [\App\Controllers\Admin\BrickShowcaseController::class, 'update']);
+$r->delete('/bricks/{type}/showcase/{id}', [\App\Controllers\Admin\BrickShowcaseController::class, 'delete']);
+$r->post('/bricks/{type}/showcase/{id}/cover', [\App\Controllers\Admin\BrickShowcaseController::class, 'cover']);
 
     $r->get('/bricklifecycle', [\App\Controllers\Admin\BrickLifecycleController::class, 'index']);
     $r->post('/bricklifecycle/ensure-tables', [\App\Controllers\Admin\BrickLifecycleController::class, 'ensureTables']);

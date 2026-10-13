@@ -6,6 +6,7 @@ use App\Core\Request;
 use App\Core\Response;
 use App\Core\Session;
 use App\Services\BrickMarketService;
+use App\Services\BrickShowcaseService;
 use App\Widgets\WidgetRegistry;
 
 class BrickController
@@ -89,6 +90,12 @@ class BrickController
     {
         $class = WidgetRegistry::get($type);
         if (!$class) Response::error('BRICK not found', 404);
+        $showcase = new BrickShowcaseService();
+        if ($showcase->count($type) > 0) {
+            header('Content-Type: text/html; charset=utf-8');
+            echo $showcase->renderCarousel($type, (string)($class::meta()['name'] ?? $type));
+            return;
+        }
         $config = $class::defaultConfig();
         $html = (new $class())->render(is_array($config) ? $config : []);
         $theme = 'default';

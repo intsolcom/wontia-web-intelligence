@@ -2071,7 +2071,8 @@ W.bmCard=function(it){
     var metrics='<span title="Instalaciones">⬇ '+W.num(mm.installs)+'</span>';
     if(it.origin==='core')metrics+='<span title="Usos en páginas">📄 '+W.num(it.usage_count||0)+'</span>';
     metrics+='<span title="Previews">👁 '+W.num(mm.previews)+'</span>';
-    var actions='<button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.bmPreview(\''+W.esc(it.slug)+'\')">Preview</button>';
+    var actions='<button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.bmPreview(\''+W.esc(it.slug)+'\')">Preview</button>'
+        +'<button class="w-btn w-btn-secondary w-btn-sm" title="Showcase (capturas del brick)" onclick="wontia.showBrickShowcase(\''+W.esc(it.slug)+'\')">⚙</button>';
     if(it.origin==='core'){
         if(it.functional!==false&&lc.state!=='incubator')actions+='<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.brickAddToPage(\''+W.esc(it.slug)+'\',\''+W.esc(it.name)+'\')">Añadir a página</button>';
         actions+='<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.showBrickConfig(\''+W.esc(it.slug)+'\')">Esquema</button>';
@@ -2659,6 +2660,74 @@ W.pvDevice=function(w){
     var b=document.getElementById('w-pv-box');
     if(b)b.style.maxWidth=w+'px';
 };
+
+W.showBrickShowcase=async function(slug){
+    var r=await W.api('/api/v1/admin/bricks/'+encodeURIComponent(slug)+'/showcase');
+    W._sh={slug:slug,items:(r.data||[])};
+    W.shModal();
+};
+W.shModal=function(){
+    var s=W._sh;var html='';
+    html+='<div style="font-size:12px;color:var(--w-muted);margin-bottom:10px">Capturas del brick en funcionamiento. La ⭐ es la portada. Solo administradores.</div>';
+    if(s.items.length){
+        html+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px">';
+        s.items.forEach(function(it,i){
+            var thumb=it.media_type==='video'?'<div style="display:grid;place-items:center;height:88px;background:#0d1220;color:#9fb0c9;font-size:11px">▶ video</div>':'<img src="'+W.esc(it.media)+'" style="width:100%;height:88px;object-fit:cover;display:block"/>';
+            html+='<div style="border:1px solid var(--w-border);border-radius:10px;overflow:hidden">'+thumb
+              +'<div style="padding:6px">'
+              +'<div style="font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+W.esc(it.caption||('#'+(i+1)))+(Number(it.is_cover)?' ⭐':'')+'</div>'
+              +'<div style="font-size:10px;color:var(--w-muted)">'+W.esc(it.device)+(it.availability?(' · '+W.esc(it.availability)):'')+(it.version?(' · v'+W.esc(it.version)):'')+'</div>'
+              +'<div style="display:flex;gap:4px;margin-top:5px;flex-wrap:wrap">'
+              +'<button class="w-btn w-btn-secondary w-btn-sm" title="Subir" onclick="wontia.shMove('+it.id+',-1)">↑</button>'
+              +'<button class="w-btn w-btn-secondary w-btn-sm" title="Bajar" onclick="wontia.shMove('+it.id+',1)">↓</button>'
+              +(Number(it.is_cover)?'':'<button class="w-btn w-btn-secondary w-btn-sm" title="Portada" onclick="wontia.shCover('+it.id+')">⭐</button>')
+              +'<button class="w-btn w-btn-secondary w-btn-sm" title="Editar" onclick="wontia.shEdit('+it.id+')">✎</button>'
+              +'<button class="w-btn w-btn-danger w-btn-sm" title="Eliminar" onclick="wontia.shDel('+it.id+')">🗑</button>'
+              +'</div></div></div>';
+        });
+        html+='</div>';
+    } else { html+='<div style="padding:14px;color:var(--w-muted);border:1px dashed var(--w-border);border-radius:10px">Sin capturas. Añade la primera.</div>'; }
+    html+='<div style="margin-top:16px;border-top:1px solid var(--w-border);padding-top:12px"><b style="font-size:12px">Añadir captura</b>'
+      +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center">'
+      +'<button class="w-btn w-btn-secondary" onclick="wontia.shPick()">📁 Media</button>'
+      +'<input class="w-input" id="sh-media" placeholder="URL de la imagen/video" style="flex:1;min-width:200px"/>'
+      +'<select class="w-input" id="sh-device" style="width:120px"><option value="all">Todo</option><option value="desktop">Desktop</option><option value="tablet">Tablet</option><option value="mobile">Mobile</option></select>'
+      +'<select class="w-input" id="sh-type" style="width:110px"><option value="image">Imagen</option><option value="video">Video</option></select>'
+      +'</div><div id="sh-media-grid" style="margin-top:8px"></div>'
+      +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">'
+      +'<input class="w-input" id="sh-caption" placeholder="Leyenda" style="flex:1;min-width:150px"/>'
+      +'<input class="w-input" id="sh-alt" placeholder="Texto alternativo" style="flex:1;min-width:150px"/>'
+      +'<input class="w-input" id="sh-demo" placeholder="URL demo (opcional)" style="flex:1;min-width:150px"/>'
+      +'<select class="w-input" id="sh-avail" style="width:160px"><option value="">— Disponibilidad —</option><option value="available">Disponible</option><option value="in-development">En desarrollo</option><option value="future">Futuro</option><option value="concept">Concepto</option><option value="prototype">Prototipo</option></select>'
+      +'<input class="w-input" id="sh-version" placeholder="Versión" style="width:100px"/>'
+      +'<button class="w-btn w-btn-primary" onclick="wontia.shAdd()">Añadir</button>'
+      +'</div></div>';
+    W.modal('⚙ Showcase — '+W.esc(s.slug),html,'<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cerrar</button>');
+};
+W.shRefresh=async function(){var r=await W.api('/api/v1/admin/bricks/'+encodeURIComponent(W._sh.slug)+'/showcase');W._sh.items=(r.data||[]);W.shModal();};
+W.shAdd=async function(){
+    var body={media:document.getElementById('sh-media').value,device:document.getElementById('sh-device').value,media_type:document.getElementById('sh-type').value,caption:document.getElementById('sh-caption').value,alt:document.getElementById('sh-alt').value,demo_url:document.getElementById('sh-demo').value,availability:document.getElementById('sh-avail').value,version:document.getElementById('sh-version').value};
+    var r=await W.api('/api/v1/admin/bricks/'+encodeURIComponent(W._sh.slug)+'/showcase',{method:'POST',body:body});
+    if(r.ok){W.notify('Captura añadida','success');W.shRefresh()}else W.notify((r.data&&r.data.message)||'Error','error');
+};
+W.shDel=async function(id){if(!confirm('¿Eliminar esta captura?'))return;var r=await W.api('/api/v1/admin/bricks/'+encodeURIComponent(W._sh.slug)+'/showcase/'+id,{method:'DELETE'});if(r.ok){W.notify('Eliminada','success');W.shRefresh()}};
+W.shCover=async function(id){var r=await W.api('/api/v1/admin/bricks/'+encodeURIComponent(W._sh.slug)+'/showcase/'+id+'/cover',{method:'POST',body:{}});if(r.ok)W.shRefresh()};
+W.shMove=async function(id,dir){var ids=W._sh.items.map(function(x){return x.id});var i=ids.indexOf(id);var j=i+dir;if(i<0||j<0||j>=ids.length)return;var t=ids[i];ids[i]=ids[j];ids[j]=t;var r=await W.api('/api/v1/admin/bricks/'+encodeURIComponent(W._sh.slug)+'/showcase/reorder',{method:'PUT',body:{ids:ids}});if(r.ok)W.shRefresh()};
+W.shEdit=function(id){var it=null;W._sh.items.forEach(function(x){if(Number(x.id)===Number(id))it=x});if(!it)return;
+    var html='<div style="display:flex;gap:8px;flex-wrap:wrap">'
+      +'<input class="w-input" id="she-caption" value="'+W.esc(it.caption||'')+'" placeholder="Leyenda" style="flex:1;min-width:180px"/>'
+      +'<input class="w-input" id="she-alt" value="'+W.esc(it.alt||'')+'" placeholder="Alt" style="flex:1;min-width:180px"/></div>'
+      +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">'
+      +'<input class="w-input" id="she-demo" value="'+W.esc(it.demo_url||'')+'" placeholder="URL demo" style="flex:1;min-width:180px"/>'
+      +'<select class="w-input" id="she-device" style="width:130px">'+['all','desktop','tablet','mobile'].map(function(d){return '<option value="'+d+'"'+(it.device===d?' selected':'')+'>'+d+'</option>'}).join('')+'</select>'
+      +'<select class="w-input" id="she-type" style="width:110px"><option value="image"'+(it.media_type==='image'?' selected':'')+'>Imagen</option><option value="video"'+(it.media_type==='video'?' selected':'')+'>Video</option></select>'
+      +'<select class="w-input" id="she-avail" style="width:170px"><option value="">— Disponibilidad —</option>'+['available','in-development','future','concept','prototype'].map(function(a){return '<option value="'+a+'"'+(it.availability===a?' selected':'')+'>'+a+'</option>'}).join('')+'</select>'
+      +'<input class="w-input" id="she-version" value="'+W.esc(it.version||'')+'" placeholder="Versión" style="width:110px"/>'
+      +'</div>';
+    W.modal('Editar captura',html,'<button class="w-btn w-btn-secondary" onclick="wontia.shModal()">Volver</button><button class="w-btn w-btn-primary" onclick="wontia.shSave('+it.id+')">Guardar</button>');
+};
+W.shSave=async function(id){var body={caption:document.getElementById('she-caption').value,alt:document.getElementById('she-alt').value,demo_url:document.getElementById('she-demo').value,device:document.getElementById('she-device').value,media_type:document.getElementById('she-type').value,availability:document.getElementById('she-avail').value,version:document.getElementById('she-version').value};var r=await W.api('/api/v1/admin/bricks/'+encodeURIComponent(W._sh.slug)+'/showcase/'+id,{method:'PUT',body:body});if(r.ok){W.notify('Guardado','success');W.shRefresh()}else W.notify('Error','error')};
+W.shPick=async function(){var g=document.getElementById('sh-media-grid');if(!g)return;g.innerHTML='<div style="color:var(--w-muted);font-size:12px">Cargando…</div>';try{var d=await W.api('/api/v1/admin/media?type=image');var items=(d&&d.data)||[];if(!items.length){g.innerHTML='<div style="color:var(--w-muted);font-size:12px">No hay imágenes en la Biblioteca.</div>';return}g.innerHTML='<div class="w-lib-grid">'+items.map(function(m){return '<button type="button" class="w-lib-item" title="'+W.esc(m.filename||'')+'" onclick="document.getElementById(\'sh-media\').value=\''+W.esc(m.url)+'\';document.getElementById(\'sh-media-grid\').innerHTML=\'\'"><img src="'+W.esc(m.url)+'" alt=""/></button>'}).join('')+'</div>'}catch(e){g.innerHTML='<div style="color:#ef4444;font-size:12px">Error cargando la biblioteca.</div>'}};
 
 W.brickAddToPage=async function(type,name){
     var d=await W.api('/api/v1/admin/pages');
