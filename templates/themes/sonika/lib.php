@@ -302,9 +302,9 @@ if (count($__cur) > 1):
       ]);
       ?>
       <div class="nav-actions">
-        <?php $__langs = \App\Core\Lang::available(); if (count($__langs) > 1): $__lcur = \App\Core\Lang::current(); ?><select aria-label="Idioma" onchange="document.cookie='wwi_lang='+this.value+';path=/;max-age=31536000';location.reload()" style="background:transparent;color:inherit;border:1px solid var(--line);border-radius:8px;padding:6px 8px;font:inherit;font-size:12px"><?php foreach ($__langs as $__l): ?><option value="<?= sonika_esc($__l) ?>"<?= $__l === $__lcur ? ' selected' : '' ?>><?= sonika_esc(\App\Core\Lang::label($__l)) ?></option><?php endforeach; ?></select><?php endif; ?>
         <?= \App\Widgets\WidgetRegistry::render('account', ['label' => \App\Core\Lang::get('my_account', 'Mi cuenta'), 'url' => '/cuenta']) ?>
         <a class="icon-btn" href="/carrito" aria-label="<?= sonika_esc(\App\Core\Lang::get('cart', 'Carrito')) ?>"><span class="ic" aria-hidden="true">&#128722;</span><span class="lbl"><?= sonika_esc(\App\Core\Lang::get('cart', 'Carrito')) ?></span><span class="cart-badge" id="cartCount">0</span></a>
+        <?= \App\Widgets\WidgetRegistry::render('language-switcher') ?>
       </div>
     </div>
   </div>
