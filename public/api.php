@@ -297,6 +297,10 @@ $r->delete('/bricks/{type}/showcase/{id}', [\App\Controllers\Admin\BrickShowcase
 $r->post('/bricks/{type}/showcase/{id}/cover', [\App\Controllers\Admin\BrickShowcaseController::class, 'cover']);
 $r->get('/banners/stats', [\App\Controllers\Admin\BannerAdminController::class, 'stats']);
 $r->delete('/banners/stats', [\App\Controllers\Admin\BannerAdminController::class, 'clear']);
+$r->get('/banners/templates', [\App\Controllers\Admin\BannerAdminController::class, 'templates']);
+$r->post('/banners/templates', [\App\Controllers\Admin\BannerAdminController::class, 'templateSave']);
+$r->post('/banners/templates/{id}/apply', [\App\Controllers\Admin\BannerAdminController::class, 'templateApply']);
+$r->delete('/banners/templates/{id}', [\App\Controllers\Admin\BannerAdminController::class, 'templateDelete']);
 
     $r->get('/bricklifecycle', [\App\Controllers\Admin\BrickLifecycleController::class, 'index']);
     $r->post('/bricklifecycle/ensure-tables', [\App\Controllers\Admin\BrickLifecycleController::class, 'ensureTables']);

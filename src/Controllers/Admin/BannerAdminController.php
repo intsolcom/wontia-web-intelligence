@@ -17,4 +17,26 @@ class BannerAdminController
     {
         Response::json((new BannerStatsService())->clear());
     }
+
+    public function templates(Request $req): void
+    {
+        Response::json(['ok' => true, 'data' => (new \App\Services\BannerTemplateService())->list()]);
+    }
+
+    public function templateSave(Request $req): void
+    {
+        $r = (new \App\Services\BannerTemplateService())->save((string)$req->input('name', ''));
+        if (empty($r['ok'])) Response::error($r['message'] ?? 'Error', 422, $r);
+        Response::json($r);
+    }
+
+    public function templateApply(Request $req, string $id = ''): void
+    {
+        Response::json((new \App\Services\BannerTemplateService())->apply((int)$id));
+    }
+
+    public function templateDelete(Request $req, string $id = ''): void
+    {
+        Response::json((new \App\Services\BannerTemplateService())->delete((int)$id));
+    }
 }

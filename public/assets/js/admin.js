@@ -1325,8 +1325,18 @@ W.renderBanners=async function(){
         h+='<table class="w-table"><thead><tr><th>Aviso (uid)</th><th>Variante</th><th>Impresiones</th><th>Clics</th><th>CTR</th><th>Última actividad</th></tr></thead><tbody>'
           +items.map(function(x){var ctr=x.impressions?((x.clicks*100/x.impressions).toFixed(2)):0;return '<tr><td>'+W.esc(x.banner_uid)+'</td><td>'+W.esc(String(x.variant).toUpperCase())+'</td><td>'+W.num(x.impressions)+'</td><td>'+W.num(x.clicks)+'</td><td>'+ctr+'%</td><td>'+W.esc(String(x.updated_at||''))+'</td></tr>'}).join('')+'</tbody></table>';
     }
+    var t=await W.api('/api/v1/admin/banners/templates');
+    var tpls=(t&&t.data)||[];
+    h+='<div class="w-card" style="margin-top:20px"><div class="w-flex-between" style="flex-wrap:wrap;gap:8px"><h3 style="margin:0">Plantillas de barra superior</h3><div class="w-flex w-gap-sm"><input class="w-input" id="bn-tpl-name" placeholder="Nombre de la plantilla" style="max-width:220px"/><button class="w-btn w-btn-primary" onclick="wontia.bnTplSave()">💾 Guardar la barra actual</button></div></div>';
+    h+='<div style="font-size:12px;color:var(--w-muted);margin:8px 0">Guarda el estado actual de la barra superior (mensajes, colores, animación, rotación…) y reúsalo cuando quieras.</div>';
+    if(tpls.length){h+='<table class="w-table"><thead><tr><th>Plantilla</th><th>Creada</th><th></th></tr></thead><tbody>'+tpls.map(function(x){return '<tr><td>'+W.esc(x.name)+'</td><td>'+W.esc(String(x.created_at||''))+'</td><td><button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.bnTplApply('+x.id+')">Aplicar</button> <button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.bnTplDel('+x.id+')">🗑</button></td></tr>'}).join('')+'</tbody></table>';}
+    else{h+='<div style="color:var(--w-muted);font-size:12px">Sin plantillas guardadas aún.</div>';}
+    h+='</div>';
     app.innerHTML=h;
 };
+W.bnTplSave=async function(){var n=(document.getElementById('bn-tpl-name')||{}).value;if(!n)return W.notify('Pon un nombre','error');var r=await W.api('/api/v1/admin/banners/templates',{method:'POST',body:{name:n}});if(r.ok){W.notify('Plantilla guardada','success');W.renderBanners()}else W.notify((r.data&&r.data.message)||'Error','error')};
+W.bnTplApply=async function(id){if(!confirm('¿Aplicar esta plantilla a la barra superior? Se sobrescribirá la config actual.'))return;var r=await W.api('/api/v1/admin/banners/templates/'+id+'/apply',{method:'POST',body:{}});if(r.ok)W.notify('Plantilla aplicada','success')};
+W.bnTplDel=async function(id){if(!confirm('¿Eliminar la plantilla?'))return;var r=await W.api('/api/v1/admin/banners/templates/'+id,{method:'DELETE'});if(r.ok)W.renderBanners()};
 W.bnClearStats=async function(){if(!confirm('¿Borrar todas las métricas de banners?'))return;var r=await W.api('/api/v1/admin/banners/stats',{method:'DELETE',body:{}});if(r.ok){W.notify('Métricas borradas','success');W.renderBanners()}};
 
 W.deleteMedia=function(id){W.mediaTrash(id)};
