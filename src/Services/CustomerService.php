@@ -201,4 +201,73 @@ class CustomerService
         Database::instance()->prepare('DELETE FROM store_customer_favorites WHERE customer_id = ? AND product_ref = ? AND site_id = @site_id')->execute([$customerId, $ref]);
         return ['ok' => true];
     }
+
+    // ── GDPR: portabilidad y borrado ──
+
+    public function exportData(int $id): array
+    {
+        $c = $this->current();
+        return [
+            'customer' => $c,
+            'addresses' => $this->addresses($id),
+            'favorites' => $this->favorites($id),
+            'orders' => ($c && !empty($c['email'])) ? $this->orders($id, (string)$c['email']) : [],
+            'generated_at' => date('c'),
+            'format' => 'Wontia Web Intelligence — exportación de datos personales',
+        ];
+    }
+
+    public function deleteAccount(int $id, string $email): array
+    {
+        $this->ensureTables();
+        $db = Database::instance();
+        $db->prepare('UPDATE store_orders SET customer_id = NULL, customer_name = ?, customer_email = ?, customer_phone = NULL, customer_document = NULL, shipping_address = NULL WHERE site_id = @site_id AND (customer_id = ? OR customer_email = ?)')
+           ->execute(['Cliente eliminado', 'eliminado+' . $id . '@anon.invalid', $id, $email]);
+        $db->prepare('DELETE FROM store_customer_addresses WHERE customer_id = ? AND site_id = @site_id')->execute([$id]);
+        $db->prepare('DELETE FROM store_customer_favorites WHERE customer_id = ? AND site_id = @site_id')->execute([$id]);
+        $db->prepare('DELETE FROM store_customers WHERE id = ? AND site_id = @site_id')->execute([$id]);
+        $this->logout();
+        return ['ok' => true];
+    }
+
+    // ── Recuperación de contraseña (OTP por email) ──
+
+    public function forgotPassword(string $email): array
+    {
+        $this->ensureTables();
+        $email = trim(strtolower($email));
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) return ['ok' => true];
+        $st = Database::instance()->prepare('SELECT id FROM store_customers WHERE site_id = @site_id AND email = ? LIMIT 1');
+        $st->execute([$email]);
+        if (!$st->fetchColumn()) return ['ok' => true]; // respuesta genérica (no revelar)
+        $sec = new AuthSecurityService();
+        $code = $sec->createOtp(0, $email, 'customer_reset', 10);
+        $sec->sendOtpEmail($email, $code, $this->siteName(), 10);
+        return ['ok' => true];
+    }
+
+    public function resetPassword(string $email, string $code, string $password): array
+    {
+        $this->ensureTables();
+        $email = trim(strtolower($email));
+        if (strlen($password) < 8) return ['ok' => false, 'message' => 'La contraseña debe tener al menos 8 caracteres.'];
+        $sec = new AuthSecurityService();
+        $r = $sec->verifyOtp($email, $code, 'customer_reset');
+        if (empty($r['ok'])) return ['ok' => false, 'message' => 'Código inválido o expirado.'];
+        Database::instance()->prepare('UPDATE store_customers SET password_hash = ? WHERE site_id = @site_id AND email = ?')
+           ->execute([password_hash($password, PASSWORD_BCRYPT, ['cost' => 11]), $email]);
+        return ['ok' => true, 'message' => 'Contraseña actualizada. Ya puedes iniciar sesión.'];
+    }
+
+    private function siteName(): string
+    {
+        try {
+            $st = Database::instance()->prepare('SELECT `value` FROM settings WHERE site_id = @site_id AND `key` = ? LIMIT 1');
+            $st->execute(['site_name']);
+            $v = $st->fetchColumn();
+            if ($v) return (string)$v;
+        } catch (\Throwable $e) {
+        }
+        return 'SONIKA';
+    }
 }

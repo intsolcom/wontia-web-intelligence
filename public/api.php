@@ -142,8 +142,12 @@ $router->post('/api/v1/public/search/ai', [\App\Controllers\SearchAiController::
 
 $router->post('/api/v1/public/account/register', [\App\Controllers\CustomerAccountController::class, 'register']);
 $router->post('/api/v1/public/account/login', [\App\Controllers\CustomerAccountController::class, 'login']);
+$router->post('/api/v1/public/account/forgot', [\App\Controllers\CustomerAccountController::class, 'forgot']);
+$router->post('/api/v1/public/account/reset', [\App\Controllers\CustomerAccountController::class, 'reset']);
 $router->post('/api/v1/public/account/logout', [\App\Controllers\CustomerAccountController::class, 'logout']);
 $router->get('/api/v1/public/account/me', [\App\Controllers\CustomerAccountController::class, 'me']);
+$router->get('/api/v1/public/account/export', [\App\Controllers\CustomerAccountController::class, 'exportData']);
+$router->delete('/api/v1/public/account', [\App\Controllers\CustomerAccountController::class, 'deleteAccount']);
 $router->put('/api/v1/public/account/profile', [\App\Controllers\CustomerAccountController::class, 'profile']);
 $router->get('/api/v1/public/account/orders', [\App\Controllers\CustomerAccountController::class, 'orders']);
 $router->get('/api/v1/public/account/addresses', [\App\Controllers\CustomerAccountController::class, 'addresses']);

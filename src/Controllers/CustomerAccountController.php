@@ -126,6 +126,35 @@ class CustomerAccountController
         Response::json($this->svc()->favoriteDelete((int)$c['id'], urldecode($ref)));
     }
 
+    public function forgot(Request $req): void
+    {
+        if (!$this->allow($req, 'forgot', 8)) return;
+        $this->svc()->forgotPassword((string)$req->input('email', ''));
+        Response::json(['ok' => true, 'message' => 'Si la cuenta existe, enviamos un código de recuperación a tu correo.']);
+    }
+
+    public function reset(Request $req): void
+    {
+        if (!$this->allow($req, 'reset', 12)) return;
+        $r = $this->svc()->resetPassword((string)$req->input('email', ''), (string)$req->input('code', ''), (string)$req->input('password', ''));
+        if (empty($r['ok'])) Response::error($r['message'] ?? 'Error', 422, $r);
+        Response::json($r);
+    }
+
+    public function exportData(): void
+    {
+        $c = $this->requireLogin();
+        if (!$c) return;
+        Response::json(['ok' => true, 'data' => $this->svc()->exportData((int)$c['id'])]);
+    }
+
+    public function deleteAccount(): void
+    {
+        $c = $this->requireLogin();
+        if (!$c) return;
+        Response::json($this->svc()->deleteAccount((int)$c['id'], (string)$c['email']));
+    }
+
     private function allow(Request $req, string $scope, int $max): bool
     {
         $dir = ROOT_DIR . '/cache/security';
