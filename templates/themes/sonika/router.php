@@ -264,9 +264,16 @@ switch ($segments[0] ?? '') {
         $acctHl = function (string $s): string {
             return preg_replace('/\*(.+?)\*/s', '<span class="sonika-account-login__visual-highlight">$1</span>', htmlspecialchars($s, ENT_QUOTES));
         };
+        $acctLayout = (string)wwi_tc('sonika', 'account_layout', 'split');
+        if (!in_array($acctLayout, ['split', 'minimal'], true)) $acctLayout = 'split';
+        $acctSide = ((string)wwi_tc('sonika', 'account_visual_side', 'right') === 'left') ? 'left' : 'right';
+        $acctPos = (string)wwi_tc('sonika', 'account_visual_image_position', 'center');
+        if (!in_array($acctPos, ['center', 'top', 'bottom', 'left', 'right'], true)) $acctPos = 'center';
+        $acctOverlay = max(0, min(100, (int)wwi_tc('sonika', 'account_visual_overlay', 88)));
         $acctImgSafe = ($acctImg !== '' && preg_match('~^(https?://|/)~i', $acctImg)) ? $acctImg : '';
-        $panelHtml = '<aside class="sonika-account-login__visual' . ($acctImgSafe ? ' has-background-image' : '') . '"'
-            . ($acctImgSafe ? ' style="--sonika-account-login-background-image:url(\'' . htmlspecialchars($acctImgSafe, ENT_QUOTES) . '\')"' : '')
+        $acctStyle = '--sonika-acct-pos:' . $acctPos . ';--sonika-acct-overlay:' . ($acctOverlay / 100);
+        if ($acctImgSafe) $acctStyle .= ';--sonika-account-login-background-image:url(\'' . htmlspecialchars($acctImgSafe, ENT_QUOTES) . '\')';
+        $panelHtml = '<aside class="sonika-account-login__visual' . ($acctImgSafe ? ' has-background-image' : '') . '" style="' . $acctStyle . '"'
             . ' aria-hidden="true"><div class="sonika-account-login__visual-content">'
             . '<p class="sonika-account-login__eyebrow">' . htmlspecialchars($acctEyebrow, ENT_QUOTES) . '</p>'
             . '<h2 class="sonika-account-login__visual-title">' . $acctHl($acctTitle) . '</h2>'
@@ -347,6 +354,11 @@ switch ($segments[0] ?? '') {
         .sonika-account-login__benefit-description{margin:0;color:var(--muted);font-size:12.5px;line-height:1.5}
         @media(max-width:1024px){.sonika-account-login__layout{grid-template-columns:minmax(0,.95fr) minmax(0,1.05fr);gap:22px}.sonika-account-login__form-card{padding:26px}.sonika-account-login__visual{min-height:500px;padding:26px}}
         @media(max-width:760px){.sonika-account-login__layout{grid-template-columns:minmax(0,1fr);gap:18px}.sonika-account-login__form-card{max-width:none;padding:22px 18px;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.05)}.sonika-account-login__visual{min-height:auto;padding:26px 20px;border-radius:12px}.sonika-account-login__benefits{margin-top:20px}}
+        .sonika-account-login__visual.has-background-image{background-image:var(--sonika-account-login-background-image);background-size:cover;background-position:var(--sonika-acct-pos,center);background-repeat:no-repeat}
+        .sonika-account-login__visual.has-background-image::before{content:"";position:absolute;inset:0;z-index:0;background:linear-gradient(90deg,#fff 0%,rgba(255,255,255,.9) 42%,rgba(255,255,255,.15) 100%);opacity:var(--sonika-acct-overlay,.88);pointer-events:none}
+        .sonika-account-login--left .sonika-account-login__visual{order:-1}
+        .sonika-account-login--minimal{display:flex;align-items:center;justify-content:center;min-height:min(78vh,760px)}
+        .sonika-account-login--minimal .sonika-account-login__panel{width:100%;max-width:520px}
         @media(prefers-reduced-motion:reduce){.sonika-account-login *{transition-duration:.01ms!important;animation-duration:.01ms!important}}
         </style>
         <section class="wrap" style="padding:28px 0 56px">
@@ -355,6 +367,7 @@ switch ($segments[0] ?? '') {
         <script>var SITE=<?= (int)\App\Core\Config::get('SITE_ID', '1') ?>;
         var E=<?= json_encode($acctI18n, JSON_UNESCAPED_UNICODE) ?>;
         var VIS=<?= json_encode($panelHtml, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+        var LAYOUT=<?= json_encode($acctLayout) ?>;var SIDE=<?= json_encode($acctSide) ?>;
         (function(){
           var box=document.getElementById('acct');
           function esc(s){var d=document.createElement('div');d.textContent=(s==null?'':String(s));return d.innerHTML}
@@ -366,7 +379,7 @@ switch ($segments[0] ?? '') {
           function qs(){var o={};location.search.replace(/^\?/,'').split('&').forEach(function(p){if(!p)return;var kv=p.split('=');o[kv[0]]=decodeURIComponent(kv[1]||'')});return o}
           function acField(label,id,type,ac){return '<div class="sonika-account-login__field"><label class="sonika-account-login__label" for="'+id+'">'+label+'</label><input class="sonika-account-login__input" id="'+id+'" type="'+(type||'text')+'" autocomplete="'+(ac||'off')+'" /></div>'}
           function acHead(eyebrow,title,desc){return '<p class="sonika-account-login__eyebrow">'+eyebrow+'</p><h2 class="sonika-account-login__title">'+title+'</h2>'+(desc?'<p class="sonika-account-login__description">'+desc+'</p>':'')}
-          function acShell(inner){return '<div class="sonika-account-login"><div class="sonika-account-login__layout"><div class="sonika-account-login__panel"><div class="sonika-account-login__form-card">'+inner+'</div></div>'+VIS+'</div></div>'}
+          function acShell(inner){var card='<div class="sonika-account-login__panel"><div class="sonika-account-login__form-card">'+inner+'</div></div>';if(LAYOUT==='minimal'){return '<div class="sonika-account-login sonika-account-login--minimal">'+card+'</div>'}return '<div class="sonika-account-login sonika-account-login--split sonika-account-login--'+SIDE+'"><div class="sonika-account-login__layout">'+card+VIS+'</div></div>'}
           function login(err){box.innerHTML=acShell(acHead(E.eyebrow,E.loginTitle,E.loginDesc)+(err?'<div class="sonika-account-login__notice">'+esc(err)+'</div>':'')+acField(E.email,'ac-email','email','email')+acField(E.password,'ac-pass','password','current-password')+'<div class="sonika-account-login__row"><a href="#" id="ac-forgot" class="sonika-account-login__secondary-link">'+E.forgot+'</a></div><button class="sonika-account-login__submit" id="ac-login">'+E.enter+'</button><div class="sonika-account-login__register">'+E.noAccount+' <a href="#" id="ac-toreg" class="sonika-account-login__secondary-link">'+E.create+'</a></div>');
             document.getElementById('ac-login').onclick=async function(){var r=await api('/api/v1/public/account/login',{method:'POST',body:JSON.stringify({email:document.getElementById('ac-email').value,password:document.getElementById('ac-pass').value})});if(r.ok){location.search=''}else{login(r.message||E.badCred)}};
             document.getElementById('ac-toreg').onclick=function(e){e.preventDefault();location.search='?tab=register'};
