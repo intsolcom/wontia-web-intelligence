@@ -16,7 +16,7 @@ class FavoritesAlertService
 {
     public function runIfDue(int $minutes = 360): array
     {
-        $dir = ROOT_DIR . '/cache/state';
+        $dir = dirname(__DIR__, 2) . '/cache/state';
         if (!is_dir($dir)) @mkdir($dir, 0770, true);
         $f = $dir . '/fav_alerts_' . (int)Config::get('SITE_ID', '1') . '.json';
         $now = time();
@@ -90,7 +90,7 @@ class FavoritesAlertService
     {
         $theme = $this->activeTheme();
         if ($theme === '') return [];
-        $file = ROOT_DIR . '/templates/themes/' . $theme . '/catalog.json';
+        $file = dirname(__DIR__, 2) . '/templates/themes/' . $theme . '/catalog.json';
         if (!is_file($file)) return [];
         $c = json_decode((string)@file_get_contents($file), true) ?: [];
         $idx = [];
