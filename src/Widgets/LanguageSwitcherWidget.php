@@ -20,6 +20,7 @@ class LanguageSwitcherWidget extends Widget
     public static function configSchema(): array
     {
         return [
+            ['key' => 'enabled', 'label' => 'Mostrar el selector de idioma', 'type' => 'toggle', 'default' => false],
             ['key' => 'label_left', 'label' => 'Etiqueta izquierda (idioma base)', 'type' => 'text', 'default' => 'ESP'],
             ['key' => 'label_right', 'label' => 'Etiqueta derecha', 'type' => 'text', 'default' => 'ENG'],
             ['key' => 'label_left_short', 'label' => 'Etiqueta corta izquierda (móvil)', 'type' => 'text', 'default' => 'ES'],
@@ -29,7 +30,7 @@ class LanguageSwitcherWidget extends Widget
 
     public static function defaultConfig(): array
     {
-        return ['label_left' => 'ESP', 'label_right' => 'ENG', 'label_left_short' => 'ES', 'label_right_short' => 'EN'];
+        return ['enabled' => false, 'label_left' => 'ESP', 'label_right' => 'ENG', 'label_left_short' => 'ES', 'label_right_short' => 'EN'];
     }
 
     public static function adminPreview(): string
@@ -40,6 +41,7 @@ class LanguageSwitcherWidget extends Widget
     public function render(array $config = []): string
     {
         $c = $this->mergeConfig($config);
+        if (empty($c['enabled'])) return '';
         $langs = Lang::available();
         if (count($langs) < 2) return '';
         $base = (string)$langs[0];
