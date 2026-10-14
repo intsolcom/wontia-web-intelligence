@@ -290,8 +290,9 @@ $r->delete('/trash/{id}', [\App\Controllers\Admin\SectionController::class, 'tra
     $r->get('/bricks/usage', [\App\Controllers\Admin\BrickController::class, 'usage']);
     $r->get('/bricks/metrics', [\App\Controllers\Admin\BrickController::class, 'metrics']);
     $r->get('/bricks/{type}', [\App\Controllers\Admin\BrickController::class, 'show']);
-$r->get('/bricks/{type}/config', [\App\Controllers\Admin\BrickController::class, 'config']);
-$r->post('/bricks/{type}/config', [\App\Controllers\Admin\BrickController::class, 'saveConfig']);
+    $r->get('/bricks/{type}/config', [\App\Controllers\Admin\BrickController::class, 'config']);
+    $r->post('/bricks/{type}/config', [\App\Controllers\Admin\BrickController::class, 'saveConfig']);
+    $r->get('/bricks/{type}/tree', [\App\Controllers\Admin\BrickController::class, 'tree']);
 
     // Central de pedidos (Fase 1: lectura)
     $r->get('/orders-center/overview', [\App\Controllers\Admin\OrderCenterController::class, 'overview']);

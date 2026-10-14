@@ -2985,7 +2985,9 @@ W.renderMegaMenu=async function(){
     h+='<div class="w-card"><div class="schema-fields" id="mm-editor">'+W.renderSchemaFields(W._mmSchema,cfg)+'</div>';
     h+='<div class="sec-foot" style="position:sticky;bottom:0;background:var(--w-bg);padding:12px 0;border-top:1px solid var(--w-border);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><span id="mm-status" class="sec-status">Listo</span><span class="w-flex w-gap-sm"><button class="w-btn w-btn-secondary" onclick="window.location.hash=\'#bricks\'">← Volver</button><button class="w-btn w-btn-primary" onclick="wontia.mmSave()">💾 Guardar cambios</button></span></div></div>';
     app.innerHTML=h;
+    app.insertAdjacentHTML('beforeend','<div class="w-card" style="margin-top:14px"><div class="w-flex-between" style="flex-wrap:wrap;gap:8px"><h3 style="margin:0">🌳 Estructura del menú</h3><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.mmTreeLoad()">↻ Recargar</button></div><div style="font-size:12px;color:var(--w-muted);margin:6px 0 10px">Cada elemento con su <b>texto</b> y su <b>enlace</b>. Origen: <b>Categoría</b> = definida en el tema; <b>Tipo</b> = <code>product_type</code>, <b>Marca</b> = <code>vendor</code>, <b>Modelo</b> = tags del catálogo. Los enlaces usan los filtros reales de <code>/buscar</code>.</div><div id="mm-tree"></div></div>');
     if(W.repInit)W.repInit(W._mmSchema); if(W.secLinkInit)W.secLinkInit();
+    W.mmTreeLoad();
     W._mmDirty=false;
     var el=document.getElementById('mm-editor');
     var st=function(s,c){var e=document.getElementById('mm-status');if(e){e.textContent=s;e.className='sec-status'+(c?' '+c:'')}};
@@ -2996,8 +2998,40 @@ W.mmSave=async function(){
     var cfg=W.collectSchemaFields(W._mmSchema||[]);
     var r=await W.api('/api/v1/admin/bricks/mega-menu/config',{method:'POST',body:{config:cfg}});
     var e=document.getElementById('mm-status');
-    if(r&&r.ok){W._mmDirty=false;if(e){e.textContent='Guardado';e.className='sec-status saved'}W.notify('Mega Menú guardado','success')}
+    if(r&&r.ok){W._mmDirty=false;if(e){e.textContent='Guardado';e.className='sec-status saved'}W.notify('Mega Menú guardado','success');W.mmTreeLoad()}
     else{if(e){e.textContent='Error';e.className='sec-status err'}W.notify('No se pudo guardar','error')}
+};
+W.mmTreeLoad=async function(){
+    var box=document.getElementById('mm-tree'); if(!box)return;
+    box.innerHTML='<div style="padding:16px;color:var(--w-muted);font-size:12px">Cargando estructura…</div>';
+    var r=await W.api('/api/v1/admin/bricks/mega-menu/tree');
+    var cats=(r&&r.data&&r.data.categories)||[];
+    if(!cats.length){box.innerHTML='<div class="w-empty-state"><p>Sin categorías (revisa el catálogo).</p></div>';return}
+    var h='';
+    cats.forEach(function(c){
+        var ints=W.num(c.count)+' producto(s)';
+        h+='<details class="w-acc" data-acc="mmt_'+W.esc(c.slug)+'"><summary class="w-acc__sum">'
+          +'<span class="w-acc__ic">'+(c.icon||'📁')+'</span>'
+          +'<span class="w-acc__t" style="text-transform:none;color:var(--w-text)">'+W.esc(c.name)+'</span>'
+          +'<span class="w-acc__c">'+ints+'</span>'
+          +'<a class="w-acc__c" href="'+W.esc(c.url)+'" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="text-decoration:none" title="Abrir enlace">'+W.esc(c.url)+' ↗</a>'
+          +'<span class="w-acc__chev">&#9662;</span></summary>'
+          +'<div class="w-acc__wrap"><div class="w-acc__body"><div class="w-acc__inner">'
+          +W.mmTreeLevel('Tipos','product_type',c.types)
+          +W.mmTreeLevel('Marcas','vendor',c.brands)
+          +W.mmTreeLevel('Modelos','tags',c.models)
+          +W.mmTreeLevel('Precio','rango &min/&max',c.prices)
+          +'</div></div></div></details>';
+    });
+    box.innerHTML=h;
+    if(W.accInit)W.accInit(box);
+};
+W.mmTreeLevel=function(title,src,items){
+    if(!items||!items.length)return '<div style="font-size:11px;color:var(--w-muted);margin-bottom:8px">'+W.esc(title)+': <i>sin elementos</i></div>';
+    var h='<div style="margin-bottom:12px"><div style="font-size:11px;font-weight:800;color:var(--w-primary);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">'+W.esc(title)+' <span style="color:var(--w-muted);font-weight:600;text-transform:none">· origen: '+W.esc(src)+'</span></div>';
+    h+='<div style="display:flex;flex-direction:column;gap:2px">';
+    items.forEach(function(x){h+='<div style="display:flex;justify-content:space-between;gap:10px;font-size:12px;padding:3px 0;border-bottom:1px dashed var(--w-border)"><span>'+W.esc(x.name)+(x.count!=null?' <span style="color:var(--w-muted)">('+W.num(x.count)+')</span>':'')+'</span><a href="'+W.esc(x.url)+'" target="_blank" rel="noopener" style="color:var(--w-muted);text-decoration:none;font-family:var(--w-font-mono);font-size:11px">'+W.esc(x.url)+' ↗</a></div>'});
+    return h+'</div></div>';
 };
 if(!window.__wwiMmUnload){window.__wwiMmUnload=1;window.addEventListener('beforeunload',function(e){if(W._mmDirty){e.preventDefault();e.returnValue=''}});}
 
