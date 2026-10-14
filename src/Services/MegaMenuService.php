@@ -43,10 +43,10 @@ class MegaMenuService
      * @param array $categories Cada una: ['slug','name','icon','tags','kw'] (opcional 'url')
      * @param array|null $products
      */
-    public function tree(array $categories, ?array $products = null, int $newDays = 90): array
+    public function tree(array $categories, ?array $products = null, int $newDays = 90, string $sort = 'alpha'): array
     {
         $products = $products ?? $this->catalog();
-        if (!$categories) return $this->tagTree($products, $newDays);
+        if (!$categories) return $this->tagTree($products, $newDays, $sort);
 
         $sig = md5(json_encode(array_map(fn($c) => (string)($c['slug'] ?? ''), $categories)) . '|' . count($products) . '|' . $newDays);
         $cache = rtrim(sys_get_temp_dir(), '/\\') . DIRECTORY_SEPARATOR . 'wwi_mega_' . $sig . '.json';
@@ -199,10 +199,10 @@ class MegaMenuService
      * categorías/tipos/marcas/modelos aparecen automáticamente en el menú.
      * Enlaces con el filtro genérico `/buscar?tax=N:Valor,...` (exacto).
      */
-    private function tagTree(array $products, int $newDays): array
+    private function tagTree(array $products, int $newDays, string $sort = 'alpha'): array
     {
         $file = $this->catalogFile();
-        $sig = md5(($file ? (int)@filemtime($file) : 0) . '|' . count($products) . '|' . $newDays);
+        $sig = md5(($file ? (int)@filemtime($file) : 0) . '|' . count($products) . '|' . $newDays . '|' . $sort);
         $cache = rtrim(sys_get_temp_dir(), '/\\') . DIRECTORY_SEPARATOR . 'wwi_megatag_' . $sig . '.json';
         if (is_file($cache) && (time() - filemtime($cache)) < 3600) {
             $c = json_decode((string)@file_get_contents($cache), true);
@@ -252,8 +252,9 @@ class MegaMenuService
                 if ($this->hasOffer($pp['p'])) $offers++;
             }
             $l1url = '/buscar?tax=1:' . rawurlencode((string)$c['name']);
-            $mk = function (int $lv, array $vals) use ($c) {
-                arsort($vals);
+            $mk = function (int $lv, array $vals) use ($c, $sort) {
+                if ($sort === 'alpha') { uksort($vals, fn($a, $b) => strcmp($this->sortKey((string)$a), $this->sortKey((string)$b))); }
+                else { arsort($vals); }
                 $arr = [];
                 foreach (array_slice($vals, 0, 24, true) as $v => $cnt) {
                     $arr[] = ['name' => (string)$v, 'count' => (int)$cnt, 'url' => '/buscar?tax=1:' . rawurlencode((string)$c['name']) . ',' . $lv . ':' . rawurlencode((string)$v)];
@@ -276,10 +277,17 @@ class MegaMenuService
             foreach ($node['brands'] as $x) $index[] = ['l' => 3, 'c' => (string)$c['name'], 'n' => $x['name'], 'u' => $x['url']];
             foreach ($node['models'] as $x) $index[] = ['l' => 4, 'c' => (string)$c['name'], 'n' => $x['name'], 'u' => $x['url']];
         }
-        usort($out, fn($a, $b) => $b['count'] <=> $a['count']);
+        if ($sort === 'alpha') { usort($out, fn($a, $b) => strcmp($this->sortKey((string)$a['name']), $this->sortKey((string)$b['name']))); }
+        else { usort($out, fn($a, $b) => $b['count'] <=> $a['count']); }
         $result = ['categories' => $out, 'index' => $index, 'stats' => ['products' => count($products), 'categories' => count($out)]];
         @file_put_contents($cache, json_encode($result, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
         return $result;
+    }
+
+    private function sortKey(string $s): string
+    {
+        $t = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $s);
+        return strtolower(($t !== false && $t !== '') ? $t : $s);
     }
 
     private function slugify(string $s): string

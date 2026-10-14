@@ -82,7 +82,15 @@ class BrickController
             require_once $lib;
             if (function_exists('sonika_products')) $products = sonika_products();
         }
-        $tree = (new \App\Services\MegaMenuService())->tree([], $products);
+        $sort = 'alpha';
+        try {
+            $st = Database::instance()->prepare("SELECT `value` FROM settings WHERE site_id = @site_id AND `key` = 'brick_config_mega-menu' LIMIT 1");
+            $st->execute();
+            $cfg = json_decode((string)$st->fetchColumn(), true) ?: [];
+            if (($cfg['sort'] ?? '') === 'count') $sort = 'count';
+        } catch (\Throwable $e) {
+        }
+        $tree = (new \App\Services\MegaMenuService())->tree([], $products, 90, $sort);
         Response::json(['ok' => true, 'data' => $tree]);
     }
 
