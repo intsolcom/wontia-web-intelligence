@@ -2606,18 +2606,18 @@ W.bsIncubator=async function(){
     items.sort(function(a,b){var ta=(a.lifecycle&&a.lifecycle.target_launch_at)||'',tb=(b.lifecycle&&b.lifecycle.target_launch_at)||'';return String(ta).localeCompare(String(tb))});
     var admin=W._bm.isCentral;
     var html='<div class="w-card" style="padding:14px 18px;margin-bottom:14px"><div style="font-size:13px;font-weight:700">🧪 Incubadora de Bricks</div><div style="font-size:11px;color:var(--w-muted);margin-top:4px;line-height:1.7">Bricks en desarrollo (no terminados). Aquí NO aparecen en el Marketplace: solo pasan al lanzarlos. La <strong style="color:var(--w-primary)">cuenta regresiva</strong> indica cuándo se lanzará cada uno.'+(admin?' <strong>Solo admin</strong> ve el botón 🚀 Lanzar.':'')+'</div></div>';
-    html+='<div class="w-bl-roadmap"><div class="w-bl-roadmap-title">🗺️ Roadmap de lanzamientos</div><div class="w-bl-roadmap-list">'
-        +(items.length?items.map(function(it){var lc=it.lifecycle||{};return '<div class="w-bl-rl-item"><span class="w-bm-chip">'+W.esc(it.category||'general')+'</span><span class="w-bl-rl-name">'+W.esc(it.name)+'</span>'+(it.functional===false?'<span class="w-bm-dev">🔥</span>':'')+'<span class="w-bl-rl-date">'+(lc.target_launch_at?W.esc(String(lc.target_launch_at).slice(0,16)):'por definir')+'</span></div>'}).join(''):'<div style="font-size:11px;color:var(--w-muted)">Nada en la incubadora todavía.</div>')
-        +'</div></div>';
-    var recent=(W._bm.lcRecent||[]).slice(0,8);
-    if(recent.length){
-        html+='<div class="w-bl-roadmap"><div class="w-bl-roadmap-title">📜 Actividad reciente</div><div class="w-bl-roadmap-list">'
-            +recent.map(function(e){return '<div class="w-bl-rl-item"><span class="w-bm-chip">'+W.esc(e.event||'')+'</span><span class="w-bl-rl-name">'+W.esc(e.slug||'')+'</span><span class="w-bl-rl-date">'+W.esc(String(e.created_at||'').slice(0,16))+' · '+W.esc(e.actor||'')+'</span></div>'}).join('')
-            +'</div></div>';
-    }
     if(admin)html+=W.blBatchBar();
     html+='<div id="bs-grid"></div>';
+    var roadmapInner=(items.length?items.map(function(it){var lc=it.lifecycle||{};return '<div class="w-bl-rl-item"><span class="w-bm-chip">'+W.esc(it.category||'general')+'</span><span class="w-bl-rl-name">'+W.esc(it.name)+'</span>'+(it.functional===false?'<span class="w-bm-dev">🔥</span>':'')+'<span class="w-bl-rl-date">'+(lc.target_launch_at?W.esc(String(lc.target_launch_at).slice(0,16)):'por definir')+'</span></div>'}).join(''):'<div style="font-size:11px;color:var(--w-muted)">Nada en la incubadora todavía.</div>');
+    var recent=(W._bm.lcRecent||[]).slice(0,8);
+    html+='<div class="w-cascade">';
+    html+=W.accBlock('roadmap','🗺️','Roadmap de lanzamientos',items.length,roadmapInner);
+    if(recent.length){
+        html+=W.accBlock('activity','📜','Actividad reciente',recent.length,recent.map(function(e){return '<div class="w-bl-rl-item"><span class="w-bm-chip">'+W.esc(e.event||'')+'</span><span class="w-bl-rl-name">'+W.esc(e.slug||'')+'</span><span class="w-bl-rl-date">'+W.esc(String(e.created_at||'').slice(0,16))+' · '+W.esc(e.actor||'')+'</span></div>'}).join(''));
+    }
+    html+='</div>';
     el.innerHTML=html;
+    W.accInit(el);
     var grid=document.getElementById('bs-grid');
     if(!items.length){grid.innerHTML='<div class="w-empty-state"><h3>Incubadora vacía</h3><p>No hay bricks en desarrollo. Todo lo terminado está en el Brick Marketplace.</p></div>';return}
     var groups={};
@@ -2628,6 +2628,23 @@ W.bsIncubator=async function(){
     });
     grid.innerHTML=out;
     W.startCdTick();
+};
+
+W.accBlock=function(key,icon,title,count,innerHtml){
+    return '<details class="w-acc" data-acc="'+W.esc(key)+'"><summary class="w-acc__sum">'
+        +'<span class="w-acc__ic" aria-hidden="true">'+icon+'</span>'
+        +'<span class="w-acc__t">'+W.esc(title)+'</span>'
+        +(count!=null?'<span class="w-acc__c">'+W.num(count)+'</span>':'')
+        +'<span class="w-acc__chev" aria-hidden="true">&#9662;</span></summary>'
+        +'<div class="w-acc__wrap"><div class="w-acc__body"><div class="w-acc__inner">'+innerHtml+'</div></div></div></details>';
+};
+
+W.accInit=function(scope){
+    (scope||document).querySelectorAll('details.w-acc[data-acc]').forEach(function(d){
+        var k='wwi_acc_'+d.getAttribute('data-acc');
+        try{ if(localStorage.getItem(k)==='1')d.open=true; }catch(e){}
+        if(!d.__accBound){d.__accBound=1; d.addEventListener('toggle',function(){try{localStorage.setItem(k,d.open?'1':'0')}catch(e){}});}
+    });
 };
 
 W.blCatHead=function(cat,items,admin){

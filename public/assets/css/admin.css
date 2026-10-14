@@ -235,6 +235,23 @@ body.w-compact .w-btn{padding:6px 12px}
 .w-bl-rl-name{font-weight:600;flex:1}
 .w-bl-rl-date{font-family:var(--w-font-mono);font-size:10px;color:var(--w-muted)}
 .w-bl-batch{border-style:dashed}
+/* Cascade accordion (Incubadora) */
+.w-cascade{display:flex;flex-direction:column;gap:10px;margin-top:14px}
+.w-acc{background:var(--w-surface);border:1px solid var(--w-border);border-radius:12px;overflow:hidden}
+.w-acc[open]{border-color:var(--w-border2)}
+.w-acc__sum{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;list-style:none;user-select:none}
+.w-acc__sum::-webkit-details-marker{display:none}
+.w-acc__sum:hover{background:rgba(255,255,255,.02)}
+.w-acc__ic{font-size:15px;line-height:1}
+.w-acc__t{font-size:12px;font-weight:800;color:var(--w-primary);letter-spacing:.05em;text-transform:uppercase;flex:1}
+.w-acc__c{font-size:10px;color:var(--w-muted);background:var(--w-border);border-radius:999px;padding:1px 8px;font-family:var(--w-font-mono)}
+.w-acc__chev{color:var(--w-muted);font-size:12px;transition:transform .2s ease}
+.w-acc[open] .w-acc__chev{transform:rotate(180deg)}
+.w-acc__wrap{display:grid;grid-template-rows:0fr;transition:grid-template-rows .22s ease}
+.w-acc[open] .w-acc__wrap{grid-template-rows:1fr}
+.w-acc__body{overflow:hidden;min-height:0}
+.w-acc__inner{padding:2px 14px 14px}
+@media(prefers-reduced-motion:reduce){.w-acc__wrap,.w-acc__chev{transition:none}}
 @media(prefers-reduced-motion:reduce){
     .w-panel-enter,.w-jobs-badge::before,.w-modal,.w-pv-box,.w-bm-live,.w-bm-update,.w-bm-flash,.w-bm-new{animation:none}
     .w-confetti{display:none}
