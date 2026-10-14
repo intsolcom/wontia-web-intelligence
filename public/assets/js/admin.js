@@ -51,7 +51,7 @@ W.router=function(){
     if(panel!=='bricks'){W.state.brickHost=null;W.state.bhHost=null}
     document.querySelectorAll('.w-nav-item').forEach(function(a){a.classList.toggle('active',a.dataset.panel===panel)});
     var title=document.getElementById('panel-title');
-    var titles={dashboard:'Dashboard',wwi:'WWI — Sistema',store:'Tienda','order-center':'Central de pedidos',pages:'Pages',sections:'Sections',bricks:'Bricks',brickhub:'BrickHub',brick:'AI BRICK',factory:'Factory',portal:'Mi Portal',blog:'Blog',media:'Media',banners:'Banners',seo:'SEO','seo-global-launch':'SEO Global Launch',analytics:'Analytics',settings:'Settings',users:'Users'};
+    var titles={dashboard:'Dashboard',wwi:'WWI — Sistema',store:'Tienda','order-center':'Central de pedidos','mega-menu':'Mega Menú',pages:'Pages',sections:'Sections',bricks:'Bricks',brickhub:'BrickHub',brick:'AI BRICK',factory:'Factory',portal:'Mi Portal',blog:'Blog',media:'Media',banners:'Banners',seo:'SEO','seo-global-launch':'SEO Global Launch',analytics:'Analytics',settings:'Settings',users:'Users'};
     if(title)title.textContent=titles[panel]||panel;
     var app=document.getElementById('wontia-app');
     if(!app)return;
@@ -2971,8 +2971,39 @@ W.confetti=function(){
     }
 };
 
+W.renderMegaMenu=async function(){
+    var app=document.getElementById('wontia-app');
+    app.innerHTML='<div style="padding:40px;text-align:center;color:var(--w-muted)">Cargando Mega Menú…</div>';
+    var d=await W.api('/api/v1/admin/bricks/mega-menu');
+    var b=(d&&d.data)||{};
+    W._mmSchema=b.configSchema||[];
+    var cfg={};
+    try{var c=await W.api('/api/v1/admin/bricks/mega-menu/config');cfg=(c.data&&c.data.config)||{};}catch(e){}
+    var h='<div class="w-flex-between w-mb-lg" style="flex-wrap:wrap;gap:8px"><div><div style="font-size:11px;color:var(--w-muted)">Bricks › Mega Menú</div><h3 style="margin:0">🧭 Mega Menú</h3></div>'
+      +'<div class="w-flex w-gap-sm"><button class="w-btn w-btn-secondary" onclick="window.location.hash=\'#bricks\'">← Volver a Bricks</button><button class="w-btn w-btn-primary" onclick="wontia.mmSave()">💾 Guardar</button></div></div>';
+    h+='<div style="font-size:12px;color:var(--w-muted);margin-bottom:12px">Panel lateral + megamenú del <b>header</b> del sitio (categorías hasta 5 niveles). Los datos salen del catálogo real. Actívalo con el interruptor de abajo.</div>';
+    h+='<div class="w-card"><div class="schema-fields" id="mm-editor">'+W.renderSchemaFields(W._mmSchema,cfg)+'</div>';
+    h+='<div class="sec-foot" style="position:sticky;bottom:0;background:var(--w-bg);padding:12px 0;border-top:1px solid var(--w-border);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><span id="mm-status" class="sec-status">Listo</span><span class="w-flex w-gap-sm"><button class="w-btn w-btn-secondary" onclick="window.location.hash=\'#bricks\'">← Volver</button><button class="w-btn w-btn-primary" onclick="wontia.mmSave()">💾 Guardar cambios</button></span></div></div>';
+    app.innerHTML=h;
+    if(W.repInit)W.repInit(W._mmSchema); if(W.secLinkInit)W.secLinkInit();
+    W._mmDirty=false;
+    var el=document.getElementById('mm-editor');
+    var st=function(s,c){var e=document.getElementById('mm-status');if(e){e.textContent=s;e.className='sec-status'+(c?' '+c:'')}};
+    st('Listo');
+    ['input','change'].forEach(function(ev){el.addEventListener(ev,function(){W._mmDirty=true;st('Sin guardar','dirty')})});
+};
+W.mmSave=async function(){
+    var cfg=W.collectSchemaFields(W._mmSchema||[]);
+    var r=await W.api('/api/v1/admin/bricks/mega-menu/config',{method:'POST',body:{config:cfg}});
+    var e=document.getElementById('mm-status');
+    if(r&&r.ok){W._mmDirty=false;if(e){e.textContent='Guardado';e.className='sec-status saved'}W.notify('Mega Menú guardado','success')}
+    else{if(e){e.textContent='Error';e.className='sec-status err'}W.notify('No se pudo guardar','error')}
+};
+if(!window.__wwiMmUnload){window.__wwiMmUnload=1;window.addEventListener('beforeunload',function(e){if(W._mmDirty){e.preventDefault();e.returnValue=''}});}
+
 W.showBrickConfig=async function(type){
     if(type==='banner'){ window.location.hash='#banners'; return; }
+    if(type==='mega-menu'){ window.location.hash='#mega-menu'; return; }
     var d=await W.api('/api/v1/admin/bricks/'+type);
     var b=d.data||{};
     var schema=b.configSchema||[];
@@ -5262,6 +5293,7 @@ W.panels={
     blogEditor:W.renderBlogEditor,
     media:W.renderMediaManager,
     banners:W.renderBanners,
+    'mega-menu':W.renderMegaMenu,
     seo:W.renderSeo,
     'seo-global-launch':W.renderSeoGlobalLaunch,
     analytics:W.renderAnalytics,
