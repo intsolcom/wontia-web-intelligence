@@ -1,0 +1,53 @@
+{
+    "name": "Wontia Medical",
+    "slug": "wontia-medical",
+    "version": "1.0.0",
+    "author": "Wontia",
+    "description": "Plantilla de salud digital Wontia Medical: bienestar con TIA, agenda y citas, teleconsulta, expediente autorizado, tienda de bienestar, suscripciones y notificaciones. Todos los modulos viven como bricks dentro de esta plantilla (no en el core de WWI).",
+    "tier": "free",
+    "category": "health",
+    "requires": { "wwi": ">=3.4.0", "php": ">=8.1" },
+    "features": [
+        "Identidad Wontia Medical (blanco, verdes suaves, lila/violeta para TIA, grises neutros)",
+        "Modulos como bricks confinados a la plantilla (tia, agenda, teleconsulta, expediente, tienda, suscripciones, perfil)",
+        "TIA consume la capa BRICK de IA (nunca un LLM propio)",
+        "Consumo de la app Wontia Medical (Node API) por servidor y por cliente",
+        "Bilinguismo ES/EN y respeto a prefers-reduced-motion y prefers-color-scheme"
+    ],
+    "tokens": {
+        "primary": "#2F9E6F",
+        "primaryStrong": "#247F57",
+        "primarySoft": "#E7F5EE",
+        "tia": "#7C5CFF",
+        "tiaSoft": "#EFEAFF",
+        "ink": "#17212B",
+        "muted": "#64748B",
+        "surface": "#FFFFFF",
+        "surfaceAlt": "#F6F9F7",
+        "border": "#E3E8E5",
+        "radius": "14px",
+        "font": "Inter"
+    },
+    "config": [
+        { "key": "_h_hero", "label": "Portada (hero)", "type": "heading" },
+        { "key": "hero_eyebrow", "label": "Texto superior", "type": "text", "default": "Salud digital · impulsada por TIA" },
+        { "key": "hero_title", "label": "Titulo", "type": "text", "default": "Tu salud, acompanada por TIA." },
+        { "key": "hero_subtitle", "label": "Descripcion", "type": "textarea", "default": "Bienestar personalizado, consultas en linea, agenda medica y expediente autorizado." },
+        { "key": "hero_cta_label", "label": "Boton principal", "type": "text", "default": "Hablar con TIA" },
+        { "key": "hero_cta_url", "label": "Enlace del boton", "type": "text", "default": "/tia" },
+        { "key": "_h_api", "label": "App Wontia Medical", "type": "heading" },
+        { "key": "medical_api_url", "label": "URL base de la app (Node API)", "type": "url", "default": "https://medical.wontia.com" },
+        { "key": "_h_modules", "label": "Modulos visibles", "type": "heading" },
+        { "key": "module_tia", "label": "TIA", "type": "toggle", "default": true },
+        { "key": "module_agenda", "label": "Agenda y citas", "type": "toggle", "default": true },
+        { "key": "module_teleconsulta", "label": "Teleconsulta", "type": "toggle", "default": true },
+        { "key": "module_expediente", "label": "Expediente", "type": "toggle", "default": true },
+        { "key": "module_tienda", "label": "Tienda", "type": "toggle", "default": true },
+        { "key": "module_suscripciones", "label": "Suscripciones", "type": "toggle", "default": true },
+        { "key": "_h_footer", "label": "Footer / contacto", "type": "heading" },
+        { "key": "footer_about", "label": "Texto del footer", "type": "textarea", "default": "Wontia Medical no diagnostica, no prescribe ni modifica tratamientos. Las decisiones clinicas corresponden a profesionales habilitados." },
+        { "key": "contact_phone", "label": "Telefono", "type": "text", "default": "" },
+        { "key": "contact_email", "label": "Correo", "type": "text", "default": "" },
+        { "key": "contact_whatsapp", "label": "WhatsApp (URL)", "type": "text", "default": "" }
+    ]
+}
