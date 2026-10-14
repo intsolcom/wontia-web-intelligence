@@ -2958,23 +2958,26 @@ W.showBrickConfig=async function(type){
     if(type==='banner'){ window.location.hash='#banners'; return; }
     var d=await W.api('/api/v1/admin/bricks/'+type);
     var b=d.data||{};
-    var fields='';
-    (b.configSchema||[]).forEach(function(f){
-        if(f.type==='text')fields+='<div class="w-form-group"><label class="w-label">'+W.esc(f.label)+'</label><input class="w-input" id="bc-'+W.esc(f.key)+'" value="'+W.esc(f.default||'')+'"/></div>';
-        else if(f.type==='textarea')fields+='<div class="w-form-group"><label class="w-label">'+W.esc(f.label)+'</label><textarea class="w-textarea" id="bc-'+W.esc(f.key)+'">'+W.esc(f.default||'')+'</textarea></div>';
-        else if(f.type==='html')fields+='<div class="w-form-group"><label class="w-label">'+W.esc(f.label)+' <span style="font-size:9px;color:var(--w-muted)">HTML</span></label><textarea class="w-textarea" id="bc-'+W.esc(f.key)+'" style="min-height:80px">'+W.esc(f.default||'')+'</textarea></div>';
-        else if(f.type==='code')fields+=W.codeEditorField(f);
-        else if(f.type==='select'){
-            fields+='<div class="w-form-group"><label class="w-label">'+W.esc(f.label)+'</label><select class="w-select" id="bc-'+W.esc(f.key)+'">';
-            var opts=f.options||{};
-            for(var ok in opts)fields+='<option value="'+W.esc(ok)+'">'+W.esc(opts[ok])+'</option>';
-            fields+='</select></div>';
-        }
-        else if(f.type==='toggle'){
-            fields+='<div class="w-form-group"><label class="w-label" style="display:flex;align-items:center;gap:10px;cursor:pointer"><input type="checkbox" id="bc-'+W.esc(f.key)+'" style="width:auto"/> <span>'+W.esc(f.label)+'</span></label></div>';
-        }
-    });
-    W.modal(b.meta.name+' <span style="font-size:10px;color:var(--w-muted)">BRICK Configuration Schema</span>',fields,'<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Close</button>');
+    var schema=b.configSchema||[];
+    W._bcType=type; W._bcSchema=schema;
+    var cfg={};
+    try{var c=await W.api('/api/v1/admin/bricks/'+encodeURIComponent(type)+'/config'); cfg=(c.data&&c.data.config)||{};}catch(e){}
+    var body=schema.length
+        ?'<div class="schema-fields" id="bc-fields">'+W.renderSchemaFields(schema,cfg)+'</div>'
+        :'<div style="font-size:12px;color:var(--w-muted)">Este brick no tiene opciones configurables.</div>';
+    var footer='<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cerrar</button>';
+    if(schema.length)footer+='<button class="w-btn w-btn-primary" onclick="wontia.saveBrickConfig()">Guardar</button>';
+    W.modal(((b.meta&&b.meta.name)||type)+' <span style="font-size:10px;color:var(--w-muted)">Configuración del brick</span>',body,footer);
+    if(W.repInit)W.repInit(schema);
+    if(W.secLinkInit)W.secLinkInit();
+};
+W.saveBrickConfig=async function(){
+    var type=W._bcType, schema=W._bcSchema||[];
+    if(!type)return;
+    var cfg=W.collectSchemaFields(schema);
+    var r=await W.api('/api/v1/admin/bricks/'+encodeURIComponent(type)+'/config',{method:'POST',body:{config:cfg}});
+    if(r&&r.ok){W.notify('Configuración guardada','success');W.closeModal();}
+    else{W.notify((r&&r.message)||'No se pudo guardar la configuración','error');}
 };
 
 W.codeEditorField=function(f){

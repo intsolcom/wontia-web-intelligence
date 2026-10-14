@@ -39,7 +39,7 @@ class CartWidget extends Widget
 
     public static function defaultConfig(): array
     {
-        return ['icon' => '🛒', 'label' => 'Carrito', 'display' => 'icon_label', 'storage_key' => '', 'drawer' => true, 'position' => 'right', 'accent' => '', 'cart_url' => '/carrito', 'checkout_url' => '/carrito', 'title' => 'Tu carrito', 'empty_text' => 'Tu carrito está vacío.', 'free_shipping' => '0', 'validate' => true];
+        return ['icon' => '🛒', 'label' => \App\Core\Lang::get('cart', 'Carrito'), 'display' => 'icon_label', 'storage_key' => '', 'drawer' => true, 'position' => 'right', 'accent' => '', 'cart_url' => '/carrito', 'checkout_url' => '/carrito', 'title' => 'Tu carrito', 'empty_text' => 'Tu carrito está vacío.', 'free_shipping' => '0', 'validate' => true];
     }
 
     public static function adminPreview(): string

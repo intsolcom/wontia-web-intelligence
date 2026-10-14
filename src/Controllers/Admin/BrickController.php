@@ -48,6 +48,59 @@ class BrickController
         Response::json(['ok' => true, 'data' => $this->usageCounts()]);
     }
 
+    public function config(Request $request, string $type = ''): void
+    {
+        $class = WidgetRegistry::get($type);
+        if (!$class) Response::error('BRICK not found', 404);
+        Response::json(['ok' => true, 'data' => ['config' => $this->savedConfig($class, $type)]]);
+    }
+
+    public function saveConfig(Request $request, string $type = ''): void
+    {
+        $class = WidgetRegistry::get($type);
+        if (!$class) Response::error('BRICK not found', 404);
+        $in = (array)(((array)$request->json())['config'] ?? []);
+        $clean = $this->sanitizeConfig($class::configSchema(), $in);
+        $key = 'brick_config_' . $type;
+        $db = Database::instance();
+        $db->prepare("DELETE FROM settings WHERE site_id = @site_id AND `key` = ?")->execute([$key]);
+        $db->prepare("INSERT INTO settings (site_id, `key`, `value`) VALUES (@site_id, ?, ?)")
+            ->execute([$key, json_encode($clean, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)]);
+        Response::json(['ok' => true, 'data' => ['config' => $clean]]);
+    }
+
+    private function savedConfig(string $class, string $type): array
+    {
+        $out = $class::defaultConfig();
+        try {
+            $st = Database::instance()->prepare("SELECT `value` FROM settings WHERE site_id = @site_id AND `key` = ? LIMIT 1");
+            $st->execute(['brick_config_' . $type]);
+            $row = $st->fetch();
+            if ($row && $row['value'] !== null && $row['value'] !== '') {
+                $saved = json_decode((string)$row['value'], true);
+                if (is_array($saved)) $out = array_merge($out, $saved);
+            }
+        } catch (\Throwable $e) {
+        }
+        return $out;
+    }
+
+    private function sanitizeConfig(array $schema, array $in): array
+    {
+        $out = [];
+        foreach ($schema as $f) {
+            $k = (string)($f['key'] ?? '');
+            $t = (string)($f['type'] ?? 'text');
+            if ($k === '' || $t === 'heading' || !array_key_exists($k, $in)) continue;
+            $v = $in[$k];
+            if ($t === 'toggle') $out[$k] = !empty($v) ? 1 : 0;
+            elseif ($t === 'number' || $t === 'range') $out[$k] = ($v === '' || $v === null) ? '' : ($v + 0);
+            elseif ($t === 'repeater') $out[$k] = is_array($v) ? $v : [];
+            else $out[$k] = is_scalar($v) ? (string)$v : '';
+        }
+        return $out;
+    }
+
     public function metrics(): void
     {
         $user = Session::user();
