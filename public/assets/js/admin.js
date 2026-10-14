@@ -51,7 +51,7 @@ W.router=function(){
     if(panel!=='bricks'){W.state.brickHost=null;W.state.bhHost=null}
     document.querySelectorAll('.w-nav-item').forEach(function(a){a.classList.toggle('active',a.dataset.panel===panel)});
     var title=document.getElementById('panel-title');
-    var titles={dashboard:'Dashboard',wwi:'WWI — Sistema',store:'Tienda',pages:'Pages',sections:'Sections',bricks:'Bricks',brickhub:'BrickHub',brick:'AI BRICK',factory:'Factory',portal:'Mi Portal',blog:'Blog',media:'Media',banners:'Banners',seo:'SEO','seo-global-launch':'SEO Global Launch',analytics:'Analytics',settings:'Settings',users:'Users'};
+    var titles={dashboard:'Dashboard',wwi:'WWI — Sistema',store:'Tienda','order-center':'Central de pedidos',pages:'Pages',sections:'Sections',bricks:'Bricks',brickhub:'BrickHub',brick:'AI BRICK',factory:'Factory',portal:'Mi Portal',blog:'Blog',media:'Media',banners:'Banners',seo:'SEO','seo-global-launch':'SEO Global Launch',analytics:'Analytics',settings:'Settings',users:'Users'};
     if(title)title.textContent=titles[panel]||panel;
     var app=document.getElementById('wontia-app');
     if(!app)return;
@@ -5143,8 +5143,96 @@ W.storeMaintenance=async function(){
     if(r.ok)W.notify('Pedidos vencidos liberados: '+((r.data&&r.data.released)||0),'success');
 };
 
+W.ocMoney=function(cents,cur){var n=(Number(cents||0)/100);return '$'+n.toLocaleString('es-CO')+(cur&&cur!=='COP'?' '+cur:'')};
+W.ocFulfillLabel=function(s){return ({new:'Recibido',confirmed:'Confirmado',preparing:'En preparación',shipped:'Despachado',delivered:'Entregado',cancelled:'Cancelado'})[s]||s||''};
+W.ocPayLabel=function(s){return ({pending:'Pago pendiente',paid:'Pagado',failed:'Pago rechazado',refunded:'Reembolsado'})[s]||s||''};
+W.ocKpi=function(label,val,color){
+    return '<div class="w-card" style="flex:1;min-width:150px;text-align:center;margin:0">'
+      +'<div style="font-size:26px;font-weight:800;'+(color?'color:'+color:'')+'">'+W.num(val)+'</div>'
+      +'<div style="font-size:11px;color:var(--w-muted);margin-top:4px">'+label+'</div></div>';
+};
+W.ocTable=function(rows){
+    if(!rows||!rows.length)return '<div style="padding:18px;color:var(--w-muted);font-size:13px">Sin pedidos.</div>';
+    var h='<div style="overflow:auto"><table class="w-table"><thead><tr>'
+      +'<th>Pedido</th><th>Cliente</th><th>Total</th><th>Pago</th><th>Estado</th><th>Fecha</th><th></th></tr></thead><tbody>';
+    rows.forEach(function(o){
+        h+='<tr><td><b>'+W.esc(o.order_number||('#'+o.id))+'</b></td>'
+          +'<td>'+W.esc(o.customer_name||'')+'</td>'
+          +'<td>'+W.esc(W.ocMoney(o.total_cents,o.currency))+'</td>'
+          +'<td>'+W.esc(W.ocPayLabel(o.payment_status))+'</td>'
+          +'<td>'+W.esc(W.ocFulfillLabel(o.fulfillment_status))+'</td>'
+          +'<td style="white-space:nowrap">'+W.esc(o.created_at||'')+'</td>'
+          +'<td><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.ocVerPedido('+o.id+')">Ver</button></td></tr>';
+    });
+    return h+'</tbody></table></div>';
+};
+W.renderOrderCenter=async function(tab){
+    tab=(tab||'resumen');
+    var app=document.getElementById('wontia-app');
+    app.innerHTML='<div class="w-card">'
+      +'<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px">'
+      +'<button class="w-btn '+(tab!=='pedidos'?'w-btn-primary':'w-btn-secondary')+'" onclick="location.hash=\'#order-center\'">Resumen</button>'
+      +'<button class="w-btn '+(tab==='pedidos'?'w-btn-primary':'w-btn-secondary')+'" onclick="location.hash=\'#order-center/pedidos\'">Todos los pedidos</button>'
+      +'<span style="margin-left:auto;font-size:11px;color:var(--w-muted)">Central de pedidos</span>'
+      +'</div><div id="oc-body"><div style="text-align:center;padding:40px;color:var(--w-muted)">Cargando...</div></div></div>';
+    if(tab==='pedidos')return W.ocPedidos();
+    return W.ocResumen();
+};
+W.ocResumen=async function(){
+    var d=await W.api('/api/v1/admin/orders-center/overview');
+    var b=document.getElementById('oc-body'); if(!b)return;
+    if(!d||!d.ok){b.innerHTML='<div class="w-empty-state"><h3>No disponible</h3><p>'+W.esc((d&&d.message)||'No se pudo cargar la Central de pedidos.')+'</p></div>';return}
+    var s=d.data||{};
+    var h='<div style="display:flex;gap:12px;flex-wrap:wrap">'
+      +W.ocKpi('Pedidos activos',s.active)
+      +W.ocKpi('Pendientes de acción',s.pending,'#b45309')
+      +W.ocKpi('Despachados',s.shipped,'#0369a1')
+      +W.ocKpi('Entregados',s.delivered,'#15803d')
+      +W.ocKpi('Total de pedidos',s.total)
+      +'</div>'
+      +'<div class="w-card" style="margin-top:14px"><h3>Pedidos recientes</h3>'+W.ocTable(s.recent||[])+'</div>'
+      +'<div style="margin-top:14px;font-size:12px;color:var(--w-muted)">Secciones <b>Mis tareas</b>, <b>Operación Miche</b>, <b>Evidencias</b>, <b>Incidencias</b> y <b>SLA</b> se habilitarán en las siguientes fases con funcionalidad verificada.</div>';
+    b.innerHTML=h;
+};
+W.ocPedidos=async function(q,status){
+    var params=new URLSearchParams();
+    if(q)params.set('search',q);
+    if(status)params.set('status',status);
+    var d=await W.api('/api/v1/admin/orders-center/orders?'+params.toString());
+    var b=document.getElementById('oc-body'); if(!b)return;
+    var sts=(d&&d.ok&&d.data&&d.data.statuses)||['new','confirmed','preparing','shipped','delivered','cancelled'];
+    var opts='<option value="">Todos los estados</option>';
+    sts.forEach(function(s){opts+='<option value="'+W.esc(s)+'"'+(s===status?' selected':'')+'>'+W.esc(W.ocFulfillLabel(s))+'</option>'});
+    b.innerHTML='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">'
+      +'<input id="oc-q" class="w-input" placeholder="Buscar por cliente, número o UUID..." style="max-width:340px" value="'+W.esc(q||'')+'"/>'
+      +'<select id="oc-st" class="w-select" style="max-width:190px">'+opts+'</select>'
+      +'<button class="w-btn w-btn-primary" onclick="wontia.ocPedidos(document.getElementById(\'oc-q\').value,document.getElementById(\'oc-st\').value)">Buscar</button></div>'
+      +'<div id="oc-list"></div>';
+    var list=document.getElementById('oc-list');
+    var items=(d&&d.ok&&d.data&&d.data.items)||[];
+    list.innerHTML=W.ocTable(items)+'<div style="font-size:11px;color:var(--w-muted);margin-top:8px">'+W.num((d&&d.data&&d.data.total)||0)+' pedido(s)</div>';
+    var inp=document.getElementById('oc-q');
+    if(inp)inp.addEventListener('keydown',function(e){if(e.key==='Enter')W.ocPedidos(inp.value,(document.getElementById('oc-st')||{}).value)});
+};
+W.ocVerPedido=async function(id){
+    var d=await W.api('/api/v1/admin/orders-center/orders/'+id);
+    if(!d||!d.ok){W.notify((d&&d.message)||'No disponible','error');return}
+    var o=d.data||{};
+    var h='<div style="font-size:13px;line-height:1.7;max-height:65vh;overflow:auto">'
+      +'<div><b>Pedido:</b> '+W.esc(o.order_number||('#'+o.id))+'</div>'
+      +'<div><b>Cliente:</b> '+W.esc(o.customer_name||'')+' — '+W.esc(o.customer_email||'')+' '+W.esc(o.customer_phone||'')+'</div>'
+      +'<div><b>Estado:</b> '+W.esc(W.ocFulfillLabel(o.fulfillment_status))+' · '+W.esc(W.ocPayLabel(o.payment_status))+'</div>'
+      +'<div style="margin:10px 0 6px"><b>Productos</b></div>';
+    (o.items||[]).forEach(function(it){
+        h+='<div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--w-border);padding:4px 0"><span>'+W.esc(it.name||'')+(it.variant_name?(' ('+W.esc(it.variant_name)+')'):'')+' x'+(it.qty||1)+'</span><span>'+W.ocMoney(it.subtotal_cents||0,o.currency)+'</span></div>';
+    });
+    h+='<div style="display:flex;justify-content:space-between;margin-top:8px;font-weight:800"><span>Total</span><span>'+W.ocMoney(o.total_cents||0,o.currency)+'</span></div></div>';
+    W.modal('Pedido '+(o.order_number||('#'+o.id)),h,'<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cerrar</button>');
+};
+
 W.panels={
     dashboard:W.renderDashboard,
+    'order-center':W.renderOrderCenter,
     wwi:W.renderWWI,
     store:W.renderStore,
     pages:W.renderPages,
