@@ -179,6 +179,7 @@ $router->post('/api/v1/public/store/payments/wompi/webhook', [\App\Controllers\S
 $router->get('/api/v1/public/store/reviews', [\App\Controllers\StorePublicController::class, 'reviews']);
 $router->post('/api/v1/public/store/reviews/{id}/helpful', [\App\Controllers\StorePublicController::class, 'reviewHelpful']);
 $router->post('/api/v1/public/banner/event', [\App\Controllers\BannerEventController::class, 'event']);
+$router->post('/api/v1/public/cart/validate', [\App\Controllers\CartController::class, 'validate']);
 $router->post('/api/v1/public/variants/{id}/track', function ($request, $id) {
     $type = (string)$request->input('type', 'view');
     $ok = (new \App\Services\LiveEditorService())->variantTrack((int)$id, $type);

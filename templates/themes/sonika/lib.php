@@ -327,7 +327,7 @@ if (count($__cur) > 1 && (string)wwi_setting('store_currency_switcher', '') === 
       ?>
       <div class="nav-actions">
         <?= \App\Widgets\WidgetRegistry::render('account', ['label' => \App\Core\Lang::get('my_account', 'Mi cuenta'), 'url' => '/cuenta']) ?>
-        <a class="icon-btn" href="/carrito" aria-label="<?= sonika_esc(\App\Core\Lang::get('cart', 'Carrito')) ?>"><span class="ic" aria-hidden="true">&#128722;</span><span class="lbl"><?= sonika_esc(\App\Core\Lang::get('cart', 'Carrito')) ?></span><span class="cart-badge" id="cartCount">0</span></a>
+        <?= \App\Widgets\WidgetRegistry::render('cart', ['label' => \App\Core\Lang::get('cart', 'Carrito'), 'show_label' => true, 'drawer' => true, 'cart_url' => '/carrito', 'checkout_url' => '/carrito']) ?>
         <?= \App\Widgets\WidgetRegistry::render('language-switcher') ?>
       </div>
     </div>
