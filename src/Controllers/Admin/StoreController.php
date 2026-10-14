@@ -229,4 +229,23 @@ class StoreController
         if (empty($r['ok'])) Response::error($r['message'] ?? 'Error', 422, $r);
         Response::json($r);
     }
+
+    // ── Cupones ──
+
+    public function coupons(Request $req): void
+    {
+        Response::json(['ok' => true, 'data' => (new \App\Services\StoreCouponService())->list()]);
+    }
+
+    public function couponSave(Request $req, ?string $id = null): void
+    {
+        $r = (new \App\Services\StoreCouponService())->save($req->json(), $id ? (int)$id : null);
+        if (empty($r['ok'])) Response::error($r['message'] ?? 'Error', 422, $r);
+        Response::json($r);
+    }
+
+    public function couponDelete(Request $req, string $id): void
+    {
+        Response::json((new \App\Services\StoreCouponService())->delete((int)$id));
+    }
 }

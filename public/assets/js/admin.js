@@ -4677,7 +4677,7 @@ W.renderStore=async function(tab){
     tab=tab||'productos';
     W.state.storeTab=tab;
     var app=document.getElementById('wontia-app');
-    var tabs=[['productos','Productos'],['categorias','Categorías'],['pedidos','Pedidos'],['envios','Envíos'],['resenas','Reseñas'],['devoluciones','Devoluciones'],['config','Configuración']];
+    var tabs=[['productos','Productos'],['categorias','Categorías'],['pedidos','Pedidos'],['envios','Envíos'],['resenas','Reseñas'],['devoluciones','Devoluciones'],['cupones','Cupones'],['config','Configuración']];
     var bar='<div class="w-brick-tabs">';
     tabs.forEach(function(t){bar+='<button class="w-brick-tab'+(tab===t[0]?' active':'')+'" onclick="wontia.storeGo(\''+t[0]+'\')">'+t[1]+'</button>'});
     bar+='<div style="flex:1"></div><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.storeEnsure()">Setup Tables</button></div>';
@@ -4687,7 +4687,7 @@ W.renderStore=async function(tab){
         document.getElementById('store-content').innerHTML='<div class="w-empty-state"><h3>Tienda no inicializada</h3><p>Crea las tablas de la tienda para empezar a vender.</p><button class="w-btn w-btn-primary" style="margin-top:12px" onclick="wontia.storeEnsure()">Crear tablas de la tienda</button></div>';
         return;
     }
-    var fns={productos:W.storeProducts,categorias:W.storeCategories,pedidos:W.storeOrders,envios:W.storeZones,resenas:W.storeReviews,devoluciones:W.storeReturns,config:W.storeSettings};
+    var fns={productos:W.storeProducts,categorias:W.storeCategories,pedidos:W.storeOrders,envios:W.storeZones,resenas:W.storeReviews,devoluciones:W.storeReturns,cupones:W.storeCoupons,config:W.storeSettings};
     (fns[tab]||W.storeProducts)();
 };
 
@@ -4730,6 +4730,39 @@ W.storeReturns=async function(){
     el.innerHTML=h;
 };
 W.storeReturnSet=async function(id,status){var restock=(status==='refunded')?confirm('¿Devolver el stock al inventario?'):false;var r=await W.api('/api/v1/admin/store/returns/'+id,{method:'PATCH',body:{status:status,restock:restock}});if(r.ok){W.notify('Devolución actualizada','success');W.storeReturns()}else W.notify((r.data&&r.data.message)||'Error','error')};
+
+W.storeCoupons=async function(){
+    var el=document.getElementById('store-content');
+    el.innerHTML='<div style="color:var(--w-muted);padding:20px">Cargando cupones…</div>';
+    var r=await W.api('/api/v1/admin/store/coupons');
+    var items=(r&&r.data)||[];
+    var h='<div class="w-flex-between" style="margin-bottom:14px"><h3 style="margin:0">Cupones</h3><button class="w-btn w-btn-primary" onclick="wontia.storeCouponNew()">＋ Nuevo cupón</button></div>';
+    if(!items.length){h+='<div class="w-empty-state"><h3>Sin cupones</h3><p>Crea tu primer cupón (porcentaje o monto fijo).</p></div>';el.innerHTML=h;return}
+    h+='<table class="w-table"><thead><tr><th>Código</th><th>Tipo</th><th>Valor</th><th>Mín.</th><th>Usos</th><th>Vence</th><th>Activo</th><th></th></tr></thead><tbody>';
+    items.forEach(function(c){h+='<tr><td><b>'+W.esc(c.code)+'</b></td><td>'+W.esc(c.type)+'</td><td>'+(c.type==='percent'?(c.value+'%'):('$'+(c.value/100).toLocaleString('es-CO')))+'</td><td>'+(+c.min_order_cents?('$'+(c.min_order_cents/100).toLocaleString('es-CO')):'—')+'</td><td>'+c.used+'/'+(+c.max_uses||'∞')+'</td><td>'+W.esc(c.expires_at?String(c.expires_at).slice(0,10):'—')+'</td><td>'+(+c.active?'Sí':'No')+'</td><td><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.storeCouponEdit('+c.id+')">✎</button> <button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.storeCouponDel('+c.id+')">🗑</button></td></tr>'});
+    h+='</tbody></table>';
+    el.innerHTML=h;
+};
+W.storeCouponNew=function(){W.storeCouponEditor({})};
+W.storeCouponEdit=async function(id){var r=await W.api('/api/v1/admin/store/coupons');var c=((r&&r.data)||[]).find(function(x){return +x.id===+id})||{};W.storeCouponEditor(c)};
+W.storeCouponEditor=function(c){
+    var html='<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'
+      +'<div><label style="font-size:11px;color:var(--w-muted)">Código</label><input class="w-input" id="cp-code" value="'+W.esc(c.code||'')+'" placeholder="VERANO10"/></div>'
+      +'<div><label style="font-size:11px;color:var(--w-muted)">Tipo</label><select class="w-input" id="cp-type"><option value="percent"'+(c.type==='percent'?' selected':'')+'>Porcentaje (%)</option><option value="fixed"'+(c.type==='fixed'?' selected':'')+'>Fijo (centavos)</option></select></div>'
+      +'<div><label style="font-size:11px;color:var(--w-muted)">Valor</label><input class="w-input" type="number" id="cp-val" value="'+(c.value||'')+'"/></div>'
+      +'<div><label style="font-size:11px;color:var(--w-muted)">Mínimo (centavos)</label><input class="w-input" type="number" id="cp-min" value="'+(c.min_order_cents||0)+'"/></div>'
+      +'<div><label style="font-size:11px;color:var(--w-muted)">Máx. usos (0 = ∞)</label><input class="w-input" type="number" id="cp-uses" value="'+(c.max_uses||0)+'"/></div>'
+      +'<div><label style="font-size:11px;color:var(--w-muted)">Vence (YYYY-MM-DD)</label><input class="w-input" id="cp-exp" value="'+W.esc(c.expires_at?String(c.expires_at).slice(0,10):'')+'"/></div>'
+      +'<div><label style="font-size:11px;color:var(--w-muted)">Activo</label><select class="w-input" id="cp-active"><option value="1"'+((c.active===undefined||+c.active)?' selected':'')+'>Sí</option><option value="0"'+((c.active!==undefined&&!+c.active)?' selected':'')+'>No</option></select></div>'
+      +'</div>';
+    W.modal((c.id?'Editar':'Nuevo')+' cupón',html,'<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cancelar</button><button class="w-btn w-btn-primary" onclick="wontia.storeCouponSave('+(c.id||0)+')">Guardar</button>');
+};
+W.storeCouponSave=async function(id){
+    var body={code:document.getElementById('cp-code').value,type:document.getElementById('cp-type').value,value:parseInt(document.getElementById('cp-val').value)||0,min_order_cents:parseInt(document.getElementById('cp-min').value)||0,max_uses:parseInt(document.getElementById('cp-uses').value)||0,expires_at:document.getElementById('cp-exp').value,active:document.getElementById('cp-active').value==='1'};
+    var r=id?await W.api('/api/v1/admin/store/coupons/'+id,{method:'PUT',body:body}):await W.api('/api/v1/admin/store/coupons',{method:'POST',body:body});
+    if(r.ok){W.closeModal();W.notify('Cupón guardado','success');W.storeCoupons()}else W.notify((r.data&&r.data.message)||'Error','error');
+};
+W.storeCouponDel=async function(id){if(!confirm('¿Eliminar el cupón?'))return;var r=await W.api('/api/v1/admin/store/coupons/'+id,{method:'DELETE'});if(r.ok)W.storeCoupons()};
 
 W.storeEnsure=async function(){
     var r=await W.api('/api/v1/admin/store/ensure-tables',{method:'POST'});

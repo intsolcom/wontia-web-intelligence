@@ -180,6 +180,8 @@ $router->get('/api/v1/public/store/reviews', [\App\Controllers\StorePublicContro
 $router->post('/api/v1/public/store/reviews/{id}/helpful', [\App\Controllers\StorePublicController::class, 'reviewHelpful']);
 $router->post('/api/v1/public/banner/event', [\App\Controllers\BannerEventController::class, 'event']);
 $router->post('/api/v1/public/cart/validate', [\App\Controllers\CartController::class, 'validate']);
+$router->post('/api/v1/public/cart/coupon', [\App\Controllers\CartController::class, 'coupon']);
+$router->post('/api/v1/public/cart/sync', [\App\Controllers\CartController::class, 'sync']);
 $router->post('/api/v1/public/variants/{id}/track', function ($request, $id) {
     $type = (string)$request->input('type', 'view');
     $ok = (new \App\Services\LiveEditorService())->variantTrack((int)$id, $type);
@@ -449,6 +451,10 @@ $r->patch('/store/reviews/{id}', [\App\Controllers\Admin\StoreController::class,
 $r->delete('/store/reviews/{id}', [\App\Controllers\Admin\StoreController::class, 'reviewDelete']);
 $r->get('/store/returns', [\App\Controllers\Admin\StoreController::class, 'returns']);
 $r->patch('/store/returns/{id}', [\App\Controllers\Admin\StoreController::class, 'returnModerate']);
+$r->get('/store/coupons', [\App\Controllers\Admin\StoreController::class, 'coupons']);
+$r->post('/store/coupons', [\App\Controllers\Admin\StoreController::class, 'couponSave']);
+$r->put('/store/coupons/{id}', [\App\Controllers\Admin\StoreController::class, 'couponSave']);
+$r->delete('/store/coupons/{id}', [\App\Controllers\Admin\StoreController::class, 'couponDelete']);
 
     $r->get('/builder/tree', [\App\Controllers\Admin\BuilderController::class, 'tree']);
     $r->get('/builder/palette', [\App\Controllers\Admin\BuilderController::class, 'palette']);

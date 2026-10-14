@@ -376,6 +376,7 @@ class StoreService
         $this->assertRateLimit($settings, $input, $ip);
         (new CustomerService())->ensureTables();
         (new LoyaltyService())->ensureTables();
+        (new StoreCouponService())->ensureTables();
 
         $items = (array)($input['items'] ?? []);
         if (!$items) throw new \InvalidArgumentException('El pedido no tiene productos');
@@ -465,6 +466,15 @@ class StoreService
                     }
                 }
             }
+            $couponId = 0;
+            $couponIn = strtoupper(trim((string)($input['coupon'] ?? '')));
+            if ($couponIn !== '') {
+                $cv = (new StoreCouponService())->validate($couponIn, $subtotal);
+                if (!empty($cv['ok'])) {
+                    $discountCents += (int)$cv['discount_cents'];
+                    $couponId = (int)($cv['id'] ?? 0);
+                }
+            }
             $total = $subtotal + $shippingCents - $discountCents;
             if ($total < 0) $total = 0;
             $uuid = $this->uuid4();
@@ -512,6 +522,12 @@ class StoreService
 
             $db->commit();
 
+            if ($couponId > 0) {
+                try {
+                    (new StoreCouponService())->redeem($couponId);
+                } catch (\Throwable $e) {
+                }
+            }
             $order = $this->orderById($orderId);
             $payment = ['method' => $method, 'reference' => $uuid, 'amount_in_cents' => $total, 'currency' => $settings['store_currency']];
             if ($method === 'wompi') {

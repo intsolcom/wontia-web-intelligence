@@ -122,11 +122,12 @@ class CartWidget extends Widget
  var root=e.target.closest?e.target.closest('.wwi-cart'):null;var any=document.querySelector('.wwi-cart.open');
  if(root){if(e.target.closest('[data-close]')){root.classList.remove('open');return}
    var isBtn=e.target.closest('.wwi-cart__btn');
-   if(isBtn){e.preventDefault();if(root.getAttribute('data-drawer')==='1'){root.classList.toggle('open');if(root.classList.contains('open'))window.wwiCartRender&&window.wwiCartRender(root)}else{location.href=root.getAttribute('data-cart')}return}
+   if(isBtn){e.preventDefault();if(root.getAttribute('data-drawer')==='1'){root.classList.toggle('open');if(root.classList.contains('open')){window.wwiCartRender&&window.wwiCartRender(root);try{window.dataLayer=window.dataLayer||[];window.dataLayer.push({event:'view_cart'})}catch(er){}}}else{location.href=root.getAttribute('data-cart')}return}
    return}
  if(any)any.classList.remove('open');
 },true);}
 window.wwiCartRender=function(root){
+ window.__wwiCartCpn=window.__wwiCartCpn||{};
  if(!root)return;var site=root.getAttribute('data-site');var KEY='wwi_cart_'+site;
  var read=function(){try{return JSON.parse(localStorage.getItem(KEY))||[]}catch(e){return []}};
  var write=function(c){try{localStorage.setItem(KEY,JSON.stringify(c))}catch(e){}};
@@ -147,7 +148,14 @@ window.wwiCartRender=function(root){
  var free=parseInt(root.getAttribute('data-free')||'0',10);var fh='';
  if(free>0){var pct=Math.min(100,Math.round(sub*100/free));var left=free-sub;
   fh='<div class="wwi-cart__free">'+(left>0?('Te faltan '+money(left)+' para el <b>envío gratis</b>'):'¡Tienes <b>envío gratis</b>!' )+'<div class="wwi-cart__freebar"><i style="width:'+pct+'%"></i></div></div>'}
- foot.innerHTML=fh+'<div class="wwi-cart__sub"><span>Subtotal</span><span>'+money(sub)+'</span></div><div class="wwi-cart__cta"><a class="p2" href="'+root.getAttribute('data-cart')+'">Ver carrito</a><a class="p1" href="'+root.getAttribute('data-checkout')+'">Pagar</a></div>';
+ var cp=window.__wwiCartCpn[site];
+ var cpLine=cp?('<div style="display:flex;justify-content:space-between;font-size:13px;color:#1E7A4B"><span>Cupón '+cp.code+'</span><span>−'+money(cp.disc)+'</span></div>'):'';
+ var tot=sub-(cp?cp.disc:0);if(tot<0)tot=0;
+ var cpnVal='';try{cpnVal=localStorage.getItem('wwi_coupon_'+site)||''}catch(e){}
+ foot.innerHTML=fh+cpLine+'<div style="display:flex;gap:6px;margin:8px 0"><input id="wc-cpn-'+site+'" value="'+cpnVal+'" placeholder="Cupón" style="flex:1;padding:8px;border:1px solid #E6E6E6;border-radius:8px;font:inherit"/><button type="button" class="wwi-cart__cpnbtn" style="padding:8px 12px;border:0;border-radius:8px;background:#111;color:#fff;font-weight:700;cursor:pointer">Aplicar</button></div><div class="wwi-cart__cmsg" style="font-size:12px;margin-bottom:8px"></div><div class="wwi-cart__sub"><span>Total</span><span>'+money(tot)+'</span></div><div class="wwi-cart__cta"><a class="p2" href="'+root.getAttribute('data-cart')+'">Ver carrito</a><a class="p1" href="'+root.getAttribute('data-checkout')+'">Pagar</a></div>';
+ var cpbtn=foot.querySelector('.wwi-cart__cpnbtn');var cpmsg=foot.querySelector('.wwi-cart__cmsg');
+ if(cpbtn)cpbtn.onclick=function(){var inp=document.getElementById('wc-cpn-'+site);var code=((inp&&inp.value)||'').trim();if(!code){window.__wwiCartCpn[site]=null;try{localStorage.removeItem('wwi_coupon_'+site)}catch(e){}window.wwiCartRender(root);return}
+  fetch('/api/v1/public/cart/coupon',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:code,subtotal_cents:Math.round(sub*100)})}).then(function(r){return r.json()}).then(function(d){if(d&&d.ok&&d.data&&d.data.ok){window.__wwiCartCpn[site]={code:d.data.code,disc:d.data.discount_cents/100};try{localStorage.setItem('wwi_coupon_'+site,d.data.code)}catch(e){}window.wwiCartRender(root)}else{cpmsg.style.color='#DC2626';cpmsg.textContent=(d&&d.data&&d.data.message)||'Cupón no válido';}}).catch(function(){});};
  body.querySelectorAll('[data-q]').forEach(function(b){b.onclick=function(){var i=parseInt(b.getAttribute('data-q'),10);var d=parseInt(b.getAttribute('data-d'),10);items[i].qty=Math.max(1,(parseInt(items[i].qty)||1)+d);write(items);window.wwiCartRender(root);if(window.WWIStore&&WWIStore.paint)try{WWIStore.paint()}catch(e){}}});
  body.querySelectorAll('[data-rm]').forEach(function(b){b.onclick=function(){var i=parseInt(b.getAttribute('data-rm'),10);var it=items[i];if(!confirm('¿Quitar "'+(it.title||'')+'" del carrito?'))return;items.splice(i,1);write(items);window.wwiCartRender(root);if(window.WWIStore&&WWIStore.paint)try{WWIStore.paint()}catch(e){}}});
  if(root.getAttribute('data-validate')==='1'){
