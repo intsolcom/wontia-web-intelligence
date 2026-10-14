@@ -23,7 +23,8 @@ class CartWidget extends Widget
         return [
             ['key' => 'icon', 'label' => 'Icono (emoji)', 'type' => 'text', 'default' => '🛒'],
             ['key' => 'label', 'label' => 'Etiqueta', 'type' => 'text', 'default' => 'Carrito'],
-            ['key' => 'show_label', 'label' => 'Mostrar etiqueta', 'type' => 'toggle', 'default' => true],
+            ['key' => 'display', 'label' => 'Cómo se muestra', 'type' => 'select', 'options' => ['icon_label' => 'Icono + palabra "Carrito"', 'icon' => 'Solo el icono'], 'default' => 'icon_label'],
+            ['key' => 'storage_key', 'label' => 'Clave de almacenamiento (avanzado)', 'type' => 'text', 'default' => ''],
             ['key' => 'drawer', 'label' => 'Mini-carrito desplegable', 'type' => 'toggle', 'default' => true],
             ['key' => 'position', 'label' => 'Posición del panel', 'type' => 'select', 'options' => ['right' => 'Derecha', 'left' => 'Izquierda'], 'default' => 'right'],
             ['key' => 'accent', 'label' => 'Color de acento', 'type' => 'color', 'default' => ''],
@@ -38,7 +39,7 @@ class CartWidget extends Widget
 
     public static function defaultConfig(): array
     {
-        return ['icon' => '🛒', 'label' => 'Carrito', 'show_label' => true, 'drawer' => true, 'position' => 'right', 'accent' => '', 'cart_url' => '/carrito', 'checkout_url' => '/carrito', 'title' => 'Tu carrito', 'empty_text' => 'Tu carrito está vacío.', 'free_shipping' => '0', 'validate' => true];
+        return ['icon' => '🛒', 'label' => 'Carrito', 'display' => 'icon_label', 'storage_key' => '', 'drawer' => true, 'position' => 'right', 'accent' => '', 'cart_url' => '/carrito', 'checkout_url' => '/carrito', 'title' => 'Tu carrito', 'empty_text' => 'Tu carrito está vacío.', 'free_shipping' => '0', 'validate' => true];
     }
 
     public static function adminPreview(): string
@@ -51,7 +52,7 @@ class CartWidget extends Widget
         $c = $this->mergeConfig($config);
         $icon = trim((string)($c['icon'] ?? '🛒')) ?: '🛒';
         $label = (string)($c['label'] ?? 'Carrito');
-        $showLabel = !empty($c['show_label']);
+        $showLabel = ((string)($c['display'] ?? 'icon_label') !== 'icon');
         $drawer = !empty($c['drawer']);
         $pos = ((string)($c['position'] ?? 'right') === 'left') ? 'left' : 'right';
         $accent = strtolower(trim((string)($c['accent'] ?? '')));
@@ -63,10 +64,12 @@ class CartWidget extends Widget
         $free = max(0, (int)($c['free_shipping'] ?? 0));
         $doValidate = !empty($c['validate']);
         $site = (int)Config::get('SITE_ID', '1');
+        $storeKey = trim((string)($c['storage_key'] ?? ''));
+        if ($storeKey === '') $storeKey = 'wwi_cart_' . $site;
 
         $uid = 'wc' . substr(md5($accent . $pos . $site), 0, 5);
         $h = $this->assets();
-        $h .= '<div class="wwi-cart" id="' . $uid . '" data-site="' . $site . '" data-drawer="' . ($drawer ? '1' : '0') . '" data-pos="' . $pos . '"'
+        $h .= '<div class="wwi-cart" id="' . $uid . '" data-site="' . $site . '" data-key="' . $this->esc($storeKey) . '" data-drawer="' . ($drawer ? '1' : '0') . '" data-pos="' . $pos . '"'
             . ' data-cart="' . $this->esc($cartUrl) . '" data-checkout="' . $this->esc($checkoutUrl) . '" data-empty="' . $this->esc($empty) . '" data-title="' . $this->esc($title) . '"'
             . ' data-free="' . $free . '" data-validate="' . ($doValidate ? '1' : '0') . '"'
             . ($accent !== '' ? ' style="--wwi-cart-accent:' . $accent . '"' : '') . '>';
@@ -116,7 +119,9 @@ class CartWidget extends Widget
 .wwi-cart__cta a.p2{background:#F5F5F5;color:var(--ink,#111)}
 .wwi-cart__warn{margin:6px 0;font-size:12px;color:#B45309}
 .wwi-cart__empty{padding:22px 6px;color:var(--muted,#777);text-align:center;font-size:13px}
-@media(prefers-reduced-motion:reduce){.wwi-cart__panel{transition:none}}
+.wwi-cart__badge--pop{animation:wwiCartPop .45s ease}
+@keyframes wwiCartPop{0%{transform:scale(.55)}60%{transform:scale(1.28)}100%{transform:scale(1)}}
+@media(prefers-reduced-motion:reduce){.wwi-cart__panel{transition:none}.wwi-cart__badge--pop{animation:none}}
 </style>
 <script>if(!window.__wwiCartInit){window.__wwiCartInit=1;document.addEventListener('click',function(e){
  var root=e.target.closest?e.target.closest('.wwi-cart'):null;var any=document.querySelector('.wwi-cart.open');
@@ -126,20 +131,21 @@ class CartWidget extends Widget
    return}
  if(any)any.classList.remove('open');
 },true);}
+window.wwiCartBadgeWatch=function(b){if(!b||b.__w)return;b.__w=1;new MutationObserver(function(){var t=(b.textContent||'').trim();var n=parseInt(t,10)||0;b.style.display=n>0?'flex':'none';var p=parseInt(b.getAttribute('data-n')||'0',10)||0;if(n>p){b.setAttribute('data-n',n);b.classList.remove('wwi-cart__badge--pop');void b.offsetWidth;b.classList.add('wwi-cart__badge--pop')}else{b.setAttribute('data-n',n)}}).observe(b,{childList:true,characterData:true,subtree:true})};
 window.wwiCartRender=function(root){
  window.__wwiCartCpn=window.__wwiCartCpn||{};
- if(!root)return;var site=root.getAttribute('data-site');var KEY='wwi_cart_'+site;
+ if(!root)return;var site=root.getAttribute('data-site');var KEY=root.getAttribute('data-key')||('wwi_cart_'+site);
  var read=function(){try{return JSON.parse(localStorage.getItem(KEY))||[]}catch(e){return []}};
  var write=function(c){try{localStorage.setItem(KEY,JSON.stringify(c))}catch(e){}};
  var money=function(n){return '$'+Math.round(n||0).toLocaleString('es-CO')};
  var items=read();var badge=document.getElementById('cartCount');var count=items.reduce(function(a,i){return a+(parseInt(i.qty)||0)},0);
- if(badge){badge.textContent=count;badge.style.display=count>0?'flex':'none'}
+ if(badge){window.wwiCartBadgeWatch(badge);badge.textContent=count>99?'99+':String(count);badge.style.display=count>0?'flex':'none'}
  if(root.getAttribute('data-drawer')!=='1')return;
  var body=root.querySelector('.wwi-cart__body');var foot=root.querySelector('.wwi-cart__foot');
  if(!items.length){body.innerHTML='<div class="wwi-cart__empty">'+root.getAttribute('data-empty')+'</div>';foot.innerHTML='';return}
  var sub=0;var h='';
  items.forEach(function(it,i){var p=parseFloat(it.price)||0;var q=parseInt(it.qty)||1;sub+=p*q;
-  h+='<div class="wwi-cart__item">'+(it.image?'<img src="'+it.image+'" alt=""/>':'<img src="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22/%3E" alt=""/>')
+  h+='<div class="wwi-cart__item">'+((it.image||it.img)?'<img src="'+(it.image||it.img)+'" alt=""/>':'<img src="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22/%3E" alt=""/>')
    +'<div style="flex:1;min-width:0"><div class="wwi-cart__nm">'+(it.title||it.handle||'')+'</div>'
    +'<div class="wwi-cart__qty"><button type="button" data-q="'+i+'" data-d="-1">−</button><span>'+q+'</span><button type="button" data-q="'+i+'" data-d="1">+</button>'
    +'<button type="button" class="wwi-cart__rm" data-rm="'+i+'">Quitar</button></div></div>'
@@ -166,8 +172,8 @@ window.wwiCartRender=function(root){
   }).catch(function(){});
  }
 };
-document.addEventListener('DOMContentLoaded',function(){document.querySelectorAll('.wwi-cart').forEach(function(r){window.wwiCartRender(r)})});
-if(document.readyState!=='loading')document.querySelectorAll('.wwi-cart').forEach(function(r){window.wwiCartRender(r)});
+document.addEventListener('DOMContentLoaded',function(){document.querySelectorAll('.wwi-cart').forEach(function(r){window.wwiCartRender(r)});document.querySelectorAll('.wwi-cart__badge').forEach(function(b){window.wwiCartBadgeWatch(b)})});
+if(document.readyState!=='loading'){document.querySelectorAll('.wwi-cart').forEach(function(r){window.wwiCartRender(r)});document.querySelectorAll('.wwi-cart__badge').forEach(function(b){window.wwiCartBadgeWatch(b)})}
 </script>
 HTML;
     }

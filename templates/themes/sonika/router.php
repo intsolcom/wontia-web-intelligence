@@ -220,6 +220,65 @@ switch ($segments[0] ?? '') {
         sonika_site_footer();
         return true;
 
+    case 'checkout':
+        sonika_site_head('Finalizar compra - SONIKA', 'Completa tus datos para finalizar la compra.');
+        sonika_breadcrumb(['Carrito' => '/carrito', 'Finalizar compra' => null]);
+        ?>
+        <section class="wrap" id="checkoutPage" style="padding:24px 0 64px">
+          <h1 style="font-family:'Sora',sans-serif;margin-bottom:18px">Finalizar compra</h1>
+          <div class="cart-wrap">
+            <form id="ckForm" autocomplete="on" style="display:grid;gap:12px;align-content:start">
+              <div id="ckItems" style="display:grid;gap:10px"></div>
+              <input name="name" placeholder="Nombre completo *" required style="padding:12px;border:1px solid var(--line,#E6E6E6);border-radius:10px;font:inherit">
+              <input name="email" type="email" placeholder="Correo electrónico *" required style="padding:12px;border:1px solid var(--line,#E6E6E6);border-radius:10px;font:inherit">
+              <input name="phone" placeholder="Teléfono / WhatsApp *" required style="padding:12px;border:1px solid var(--line,#E6E6E6);border-radius:10px;font:inherit">
+              <input name="line1" placeholder="Dirección (opcional)" style="padding:12px;border:1px solid var(--line,#E6E6E6);border-radius:10px;font:inherit">
+              <input name="city" placeholder="Ciudad (opcional)" style="padding:12px;border:1px solid var(--line,#E6E6E6);border-radius:10px;font:inherit">
+              <textarea name="notes" rows="3" placeholder="Notas para el pedido (opcional)" style="padding:12px;border:1px solid var(--line,#E6E6E6);border-radius:10px;font:inherit"></textarea>
+              <button type="submit" class="btn-buy" style="padding:14px;font-size:16px">Confirmar pedido</button>
+              <p id="ckErr" style="color:#DC2626;font-size:14px;margin:0"></p>
+              <p style="color:var(--muted,#777);font-size:13px;margin:0">Al confirmar, registramos tu pedido y te contactamos por WhatsApp para coordinar el pago y el envío.</p>
+            </form>
+            <aside class="summary" id="ckSummary"></aside>
+          </div>
+        </section>
+        <script>
+        (function(){
+          var KEY='sonika_cart';
+          function read(){try{return JSON.parse(localStorage.getItem(KEY))||[]}catch(e){return[]}}
+          function money(n){return '$'+Math.round(n||0).toLocaleString('es-CO')}
+          function esc(s){var d=document.createElement('div');d.textContent=(s==null?'':String(s));return d.innerHTML}
+          var items=read();
+          var page=document.getElementById('checkoutPage');if(!page)return;
+          var it=document.getElementById('ckItems');var sum=document.getElementById('ckSummary');
+          var btn=page.querySelector('button[type=submit]');
+          if(!items.length){it.innerHTML='<div class="empty" style="padding:20px;border:1px dashed var(--line,#E6E6E6);border-radius:12px">Tu carrito está vacío. <a href="/tienda" style="color:var(--brand);font-weight:600">Explorar tienda →</a></div>';if(sum)sum.innerHTML='';if(btn)btn.disabled=true;return}
+          var st=0;it.innerHTML=items.map(function(i){var l=(parseFloat(i.price)||0)*(parseInt(i.qty)||1);st+=l;var im=i.img||i.image;
+            return '<div class="cart-item" style="display:flex;gap:12px;align-items:center;border:1px solid var(--line,#E6E6E6);border-radius:12px;padding:10px">'+(im?'<img src="'+esc(im)+'" alt="" style="width:54px;height:54px;object-fit:cover;border-radius:8px;background:#F5F5F5">':'')+'<div style="flex:1"><div style="font-weight:600;font-size:14px">'+esc(i.title||i.handle||'')+'</div><div style="color:var(--muted,#777);font-size:13px">x'+(parseInt(i.qty)||1)+'</div></div><div style="font-weight:700">'+money(l)+'</div></div>'}).join('');
+          if(sum)sum.innerHTML='<h3 style="font-family:Sora,sans-serif;margin-bottom:10px">Resumen</h3><div class="row"><span>Subtotal</span><span>'+money(st)+'</span></div><div class="row"><span>Envío</span><span>Se coordina al pagar</span></div><div class="row total"><span>Total</span><span>'+money(st)+'</span></div>';
+          page.querySelector('#ckForm').addEventListener('submit',function(e){e.preventDefault();
+            var f=e.target;
+            var payload={items:items.map(function(i){return{ref:i.handle,qty:parseInt(i.qty)||1}}),
+              customer:{name:f.elements['name'].value,email:f.elements['email'].value,phone:f.elements['phone'].value},
+              shipping:{address:{line1:f.elements['line1'].value,city:f.elements['city'].value}},
+              notes:f.elements['notes'].value};
+            if(btn){btn.disabled=true;btn.textContent='Enviando…'}
+            fetch('/api/v1/public/store/catalog-order',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
+              .then(function(r){return r.json()}).then(function(d){
+                if(d&&d.ok){try{localStorage.removeItem(KEY)}catch(e){}
+                  var o=(d.data&&d.data.order_number)||'';
+                  page.innerHTML='<div style="max-width:560px;margin:40px auto;text-align:center"><div style="font-size:52px">✅</div><h2 style="font-family:Sora,sans-serif;margin:8px 0">¡Pedido recibido!</h2><p style="color:var(--muted,#777)">Número de pedido: <b>'+esc(o)+'</b></p><p>Te contactaremos por WhatsApp para coordinar el pago y el envío.</p><a class="btn-buy" href="/tienda" style="display:inline-block;margin-top:14px;padding:12px 22px">Seguir comprando</a></div>';
+                  document.querySelectorAll('.wwi-cart').forEach(function(r){window.wwiCartRender&&window.wwiCartRender(r)});
+                  document.querySelectorAll('#cartCount').forEach(function(el){el.textContent='0';el.style.display='none'});
+                }else{var msg=(d&&d.message)||'No se pudo enviar el pedido.';var er=document.getElementById('ckErr');if(er)er.textContent=msg;if(btn){btn.disabled=false;btn.textContent='Confirmar pedido'}}
+              }).catch(function(){var er=document.getElementById('ckErr');if(er)er.textContent='Error de conexión. Intenta de nuevo.';if(btn){btn.disabled=false;btn.textContent='Confirmar pedido'}});
+          });
+        })();
+        </script>
+        <?php
+        sonika_site_footer();
+        return true;
+
     case 'marcas':
         $brands = [];
         foreach (sonika_products() as $p) {

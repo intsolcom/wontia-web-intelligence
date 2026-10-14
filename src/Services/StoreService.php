@@ -545,6 +545,86 @@ class StoreService
         }
     }
 
+    /**
+     * Pedido para tiendas basadas en CATALOGO (catalog.json del tema), no en
+     * store_products. Re-cotiza server-side (CartService) y registra el pedido
+     * como solicitud (payment_method=request) avisando al comercio por email.
+     */
+    public function createCatalogOrder(array $input, string $ip = ''): array
+    {
+        $this->ensureTables();
+        (new CustomerService())->ensureTables();
+
+        $itemsIn = (array)($input['items'] ?? []);
+        if (!$itemsIn) throw new \InvalidArgumentException('El pedido no tiene productos');
+        if (count($itemsIn) > 50) throw new \InvalidArgumentException('Demasiados productos en el pedido');
+
+        $customer = (array)($input['customer'] ?? []);
+        $name = trim((string)($customer['name'] ?? ''));
+        $email = trim((string)($customer['email'] ?? ''));
+        $phone = trim((string)($customer['phone'] ?? ''));
+        if ($name === '') throw new \InvalidArgumentException('Nombre requerido');
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) throw new \InvalidArgumentException('Email invalido');
+        if ($phone === '') throw new \InvalidArgumentException('Telefono requerido');
+
+        $settings = $this->settings();
+        if (($settings['store_enabled'] ?? '') === '0') throw new \RuntimeException('La tienda esta deshabilitada');
+        $this->assertRateLimit($settings, $input, $ip);
+
+        $val = (new CartService())->validate($itemsIn);
+        $lines = array_values(array_filter((array)$val['items'], fn($l) => !empty($l['available'])));
+        if (!$lines) throw new \RuntimeException('Ningun producto esta disponible');
+        $subtotal = 0;
+        foreach ($lines as $l) $subtotal += (int)$l['line_total_cents'];
+
+        $currency = ($settings['store_currency'] ?? '') !== '' ? (string)$settings['store_currency'] : 'COP';
+        $uuid = $this->uuid4();
+        $orderNumber = 'PED-' . date('ymd') . '-' . strtoupper(substr(bin2hex(random_bytes(3)), 0, 5));
+        $addr = (array)((array)($input['shipping'] ?? []))['address'] ?? [];
+        $addressJson = json_encode(array_filter([
+            'line1' => (string)($addr['line1'] ?? ''),
+            'city' => (string)($addr['city'] ?? ''),
+            'region' => (string)($addr['region'] ?? ''),
+        ], fn($v) => $v !== ''));
+
+        $db = Database::instance();
+        $db->beginTransaction();
+        try {
+            $cust = $this->upsertCustomer($name, $email, $phone, (string)($customer['document'] ?? ''), $addressJson);
+            $db->prepare("INSERT INTO store_orders (site_id, uuid, order_number, customer_id, customer_name, customer_email, customer_phone, customer_document,
+                shipping_address, subtotal_cents, shipping_cents, discount_cents, total_cents, currency, payment_method, payment_status,
+                fulfillment_status, notes, ip_hash) VALUES (@site_id, :uuid, :num, :cid, :name, :email, :phone, :doc, :addr, :sub, 0, 0, :total, :cur, 'request',
+                'pending', 'new', :notes, :iph)")
+                ->execute([
+                    'uuid' => $uuid, 'num' => $orderNumber, 'cid' => $cust, 'name' => $name, 'email' => $email, 'phone' => $phone,
+                    'doc' => (string)($customer['document'] ?? ''), 'addr' => $addressJson,
+                    'sub' => $subtotal, 'total' => $subtotal, 'cur' => $currency,
+                    'notes' => (string)($input['notes'] ?? ''), 'iph' => $ip !== '' ? hash('sha256', $ip) : '',
+                ]);
+            $orderId = (int)$db->lastInsertId();
+
+            $istmt = $db->prepare("INSERT INTO store_order_items (site_id, order_id, product_id, variant_id, name, variant_name, price_cents, qty, subtotal_cents, image)
+                VALUES (@site_id, :oid, 0, NULL, :name, '', :price, :qty, :sub, :img)");
+            foreach ($lines as $l) {
+                $istmt->execute([
+                    'oid' => $orderId, 'name' => (string)($l['title'] ?? $l['ref']), 'price' => (int)$l['price_cents'],
+                    'qty' => (int)$l['qty'], 'sub' => (int)$l['line_total_cents'], 'img' => (string)($l['image'] ?? ''),
+                ]);
+            }
+            $db->commit();
+        } catch (\Throwable $e) {
+            if ($db->inTransaction()) $db->rollBack();
+            throw $e;
+        }
+
+        $order = $this->orderById($orderId);
+        try {
+            $this->notifyOrder($order);
+        } catch (\Throwable $e) {
+        }
+        return ['order' => $order];
+    }
+
     public function orderById(int $id): ?array
     {
         $db = Database::instance();

@@ -174,6 +174,7 @@ $router->get('/api/v1/public/store/products/{slug}', [\App\Controllers\StorePubl
 $router->get('/api/v1/public/store/categories', [\App\Controllers\StorePublicController::class, 'categories']);
 $router->get('/api/v1/public/store/zones', [\App\Controllers\StorePublicController::class, 'zones']);
 $router->post('/api/v1/public/store/orders', [\App\Controllers\StorePublicController::class, 'createOrder']);
+$router->post('/api/v1/public/store/catalog-order', [\App\Controllers\StorePublicController::class, 'catalogOrder']);
 $router->get('/api/v1/public/store/orders/{uuid}', [\App\Controllers\StorePublicController::class, 'orderStatus']);
 $router->post('/api/v1/public/store/payments/wompi/webhook', [\App\Controllers\StorePublicController::class, 'wompiWebhook']);
 $router->get('/api/v1/public/store/reviews', [\App\Controllers\StorePublicController::class, 'reviews']);

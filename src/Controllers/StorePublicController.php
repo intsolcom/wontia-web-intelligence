@@ -113,6 +113,23 @@ class StorePublicController
         }
     }
 
+    public function catalogOrder(Request $req): void
+    {
+        try {
+            $result = $this->svc()->createCatalogOrder($req->json(), $req->ip());
+            Response::json(['ok' => true, 'data' => [
+                'order_number' => $result['order']['order_number'] ?? '',
+                'uuid' => $result['order']['uuid'] ?? '',
+            ]], 201);
+        } catch (StoreRateLimitException $e) {
+            Response::error($e->getMessage(), 429);
+        } catch (\InvalidArgumentException | \RuntimeException $e) {
+            Response::error($e->getMessage(), 400);
+        } catch (\Throwable $e) {
+            Response::error('No se pudo crear el pedido', 500);
+        }
+    }
+
     public function orderStatus(Request $req, string $uuid): void
     {
         $svc = $this->svc();

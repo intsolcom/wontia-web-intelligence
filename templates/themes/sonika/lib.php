@@ -327,7 +327,7 @@ if (count($__cur) > 1 && (string)wwi_setting('store_currency_switcher', '') === 
       ?>
       <div class="nav-actions">
         <?= \App\Widgets\WidgetRegistry::render('account', ['label' => \App\Core\Lang::get('my_account', 'Mi cuenta'), 'url' => '/cuenta']) ?>
-        <?= \App\Widgets\WidgetRegistry::render('cart', ['label' => \App\Core\Lang::get('cart', 'Carrito'), 'show_label' => true, 'drawer' => true, 'cart_url' => '/carrito', 'checkout_url' => '/carrito']) ?>
+        <?= \App\Widgets\WidgetRegistry::render('cart', ['label' => \App\Core\Lang::get('cart', 'Carrito'), 'display' => 'icon_label', 'storage_key' => 'sonika_cart', 'drawer' => true, 'cart_url' => '/carrito', 'checkout_url' => '/checkout']) ?>
         <?= \App\Widgets\WidgetRegistry::render('language-switcher') ?>
       </div>
     </div>
@@ -621,7 +621,7 @@ if (!function_exists('sonika_js')) {
     wrap.innerHTML=items.map(function(i){subtotal+=(i.price||0)*(i.qty||0);var q=i.qty||1;
       return '<div class="cart-item"><img src="'+esc(i.img||'')+'" alt=""><div><a href="/producto/'+esc(i.handle)+'" style="font-weight:600">'+esc(i.title||'')+'</a><div style="color:var(--muted);font-size:14px;margin-top:4px">'+money(i.price)+'</div></div><div style="text-align:right"><div class="qty"><button type="button" onclick="SonikaCart.set(\''+esc(i.handle)+'\','+(q-1)+')">−</button><input value="'+q+'" readonly><button type="button" onclick="SonikaCart.set(\''+esc(i.handle)+'\','+(q+1)+')">+</button></div><a href="#" onclick="event.preventDefault();SonikaCart.remove(\''+esc(i.handle)+'\')" style="display:block;margin-top:8px;color:#DC2626;font-size:13px">Eliminar</a></div></div>';
     }).join('');
-    if(sum) sum.innerHTML='<h3 style="font-family:Sora,sans-serif;margin-bottom:10px">Resumen</h3><div class="row"><span>Subtotal</span><span>'+money(subtotal)+'</span></div><div class="row"><span>Envío</span><span>Calculado al pagar</span></div><div class="row total"><span>Total</span><span>'+money(subtotal)+'</span></div><button class="btn-buy" style="width:100%;margin-top:16px" onclick="alert(\'Checkout en construcción (Milestone 3).\')">Finalizar compra</button><a class="cta sec" href="/tienda" style="width:100%;margin:10px 0 0;justify-content:center">Seguir comprando</a>';
+    if(sum) sum.innerHTML='<h3 style="font-family:Sora,sans-serif;margin-bottom:10px">Resumen</h3><div class="row"><span>Subtotal</span><span>'+money(subtotal)+'</span></div><div class="row"><span>Envío</span><span>Calculado al pagar</span></div><div class="row total"><span>Total</span><span>'+money(subtotal)+'</span></div><a class="btn-buy" style="width:100%;margin-top:16px;display:block;text-align:center" href="/checkout">Finalizar compra</a><a class="cta sec" href="/tienda" style="width:100%;margin:10px 0 0;justify-content:center">Seguir comprando</a>';
   }
   paint();
   document.querySelectorAll('[data-add]').forEach(function(b){
