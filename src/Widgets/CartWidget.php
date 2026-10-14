@@ -105,7 +105,8 @@ class CartWidget extends Widget
 .wwi-cart__item img{width:44px;height:44px;object-fit:cover;border-radius:8px;background:#F5F5F5}
 .wwi-cart__nm{font-size:13px;font-weight:600;line-height:1.25}
 .wwi-cart__qty{display:inline-flex;align-items:center;gap:6px;margin-top:4px}
-.wwi-cart__qty button{width:22px;height:22px;border:1px solid var(--line,#E6E6E6);background:#fff;border-radius:6px;cursor:pointer;line-height:1}
+.wwi-cart__qty button{width:22px;height:22px;border:1px solid var(--line,#E6E6E6);background:#fff;border-radius:6px;cursor:pointer;line-height:1;flex:0 0 auto}
+.wwi-cart__qty .wwi-cart__rm{width:auto;height:auto;min-height:22px;padding:3px 10px;border:1px solid #F3C9C9;background:#FFF5F5;color:#DC2626;font-size:12px;font-weight:600;line-height:1.3;white-space:nowrap;border-radius:6px;margin-left:2px}
 .wwi-cart__pr{font-size:13px;font-weight:700;white-space:nowrap}
 .wwi-cart__rm{border:0;background:transparent;color:#DC2626;cursor:pointer;font-size:12px}
 .wwi-cart__free{margin:8px 0;font-size:12px;color:var(--muted,#777)}
