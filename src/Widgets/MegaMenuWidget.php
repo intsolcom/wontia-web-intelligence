@@ -47,7 +47,7 @@ class MegaMenuWidget extends Widget
             ['key' => 'popular', 'label' => 'Mostrar “Populares ahora”', 'type' => 'toggle', 'default' => true],
             ['key' => 'popular_title', 'label' => 'Título de populares', 'type' => 'text', 'default' => 'Populares ahora'],
             ['key' => 'popular_limit', 'label' => 'Nº de populares', 'type' => 'number', 'default' => 8],
-            ['key' => 'show_info', 'label' => 'Incluir nodo “Información” (páginas publicadas)', 'type' => 'toggle', 'default' => true],
+            ['key' => 'show_info', 'label' => 'Incluir nodo “Información” (páginas publicadas)', 'type' => 'toggle', 'default' => false],
             ['key' => 'info_label', 'label' => 'Etiqueta del nodo Información', 'type' => 'text', 'default' => 'Información'],
             ['key' => 'info_icon', 'label' => 'Ícono del nodo Información', 'type' => 'text', 'default' => '📄'],
             ['key' => 'category_overrides', 'label' => 'Renombrar categorías (override: slug o nombre → nuevo nombre/ícono)', 'type' => 'repeater', 'default' => [], 'fields' => [
@@ -76,7 +76,7 @@ class MegaMenuWidget extends Widget
             'show_view_all' => true, 'show_badges' => true, 'show_images' => true, 'hide_empty' => true, 'mobile_drill' => true,
             'transition_ms' => 200, 'promo_enabled' => false, 'promo_image' => '', 'promo_alt' => '', 'promo_href' => '',
             'popular' => true, 'popular_title' => 'Populares ahora', 'popular_limit' => 8, 'category_promos' => [],
-            'show_info' => true, 'info_label' => 'Información', 'info_icon' => '📄', 'category_overrides' => [],
+            'show_info' => false, 'info_label' => 'Información', 'info_icon' => '📄', 'category_overrides' => [],
             'footer_links' => [],
         ];
     }
