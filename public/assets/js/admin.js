@@ -1449,18 +1449,53 @@ W.runSeoAudit=async function(){
     el.innerHTML='<div class="w-card"><h3>Audit Results ('+d.total_issues+' issues)</h3>'+(d.issues||[]).map(function(i){return '<div style="font-size:12px;padding:6px 0;border-bottom:1px solid var(--w-border)">['+i.type+'] '+(i.page||i.post)+' ('+i.slug+')</div>'}).join('')+'</div>';
 };
 
+W.renderCatalogReconciliation=async function(){
+    var panel=document.getElementById('settings-panel'); if(!panel)return;
+    panel.innerHTML='<div style="padding:20px;color:var(--w-muted)">Cargando informe de conciliación…</div>';
+    var r=await W.api('/api/v1/admin/catalog/reconciliation');
+    W._crRender(r&&r.data);
+};
+W.crScan=async function(){
+    var panel=document.getElementById('settings-panel'); if(!panel)return;
+    panel.innerHTML='<div style="padding:20px;color:var(--w-muted)">🤖 Escaneando el catálogo completo… (puede tardar)</div>';
+    var r=await W.api('/api/v1/admin/catalog/reconciliation/scan',{method:'POST',body:{}});
+    if(r&&r.ok)W.notify('Escaneo completado','success');
+    W._crRender(r&&r.data);
+};
+W.crList=function(items,rowFn){
+    if(!items.length)return '<div style="font-size:12px;color:var(--w-muted);padding:6px 0">Sin hallazgos.</div>';
+    return '<div style="display:flex;flex-direction:column;gap:4px;max-height:340px;overflow:auto">'+items.map(function(x){return '<div style="font-size:12px;padding:4px 0;border-bottom:1px dashed var(--w-border)">'+rowFn(x)+'</div>'}).join('')+'</div>';
+};
+W._crRender=function(d){
+    var panel=document.getElementById('settings-panel'); if(!panel)return;
+    if(!d){panel.innerHTML='<div class="w-empty-state"><p>No hay informe aún. Pulsa “Escanear ahora”.</p></div>';return}
+    var s=d.stats||{}, sev=d.severity||{}, iss=d.issues||{};
+    var kpi=function(l,v,c){return '<div class="w-card" style="flex:1;min-width:130px;text-align:center;margin:0"><div style="font-size:24px;font-weight:800;'+(c?'color:'+c:'')+'">'+W.num(v||0)+'</div><div style="font-size:11px;color:var(--w-muted);margin-top:4px">'+l+'</div></div>'};
+    var h='<div class="w-flex-between" style="flex-wrap:wrap;gap:8px;margin-bottom:10px"><div><div style="font-size:11px;color:var(--w-muted)">Settings › Conciliación de catálogo</div><h3 style="margin:0">🤖 Robot de coherencia del catálogo</h3></div><button class="w-btn w-btn-primary" onclick="wontia.crScan()">↻ Escanear ahora</button></div>';
+    h+='<div style="font-size:12px;color:var(--w-muted);margin-bottom:10px">Compara la clasificación del tema (keywords) con la taxonomía real (tags) y detecta incoherencias. Último escaneo: '+W.esc(d.generated_at||'—')+'</div>';
+    h+='<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px">'
+      +kpi('Productos',s.products)+kpi('Con categoría (tag)',s.with_tag)+kpi('Sin categoría',s.without_tag,'#b45309')
+      +kpi('Incoherencias',sev.critical,'#DC2626')+kpi('Solapamientos',(iss.overlap||{}).count,'#b45309')+kpi('Duplicados',(iss.duplicates||{}).count)
+      +'</div>';
+    h+='<div class="w-card"><h3>⚠️ Clasificación incoherente (categoría real ≠ categoría del tema)</h3>'+W.crList((iss.mismatch||{}).samples||[],function(x){return '<b>'+W.esc(x.title)+'</b> <span style="color:var(--w-muted)">real=«'+W.esc(x.tag)+'» · esperado='+W.esc(x.expected||'?')+' · tema=['+((x.legacy||[]).map(W.esc).join(', '))+']</span>'})+'</div>';
+    h+='<div class="w-card" style="margin-top:14px"><h3>🔁 Productos en 2+ categorías del tema (solapamiento)</h3>'+W.crList((iss.overlap||{}).samples||[],function(x){return '<b>'+W.esc(x.title)+'</b> <span style="color:var(--w-muted)">'+((x.cats||[]).map(W.esc).join(', '))+'</span>'})+'</div>';
+    h+='<div class="w-card" style="margin-top:14px"><h3>📝 Duplicados por escritura (mayúsculas/acentos/plural)</h3>'+W.crList((iss.duplicates||{}).samples||[],function(x){return 'nivel '+x.level+': '+((x.variants||[]).map(W.esc).join(' · '))})+'</div>';
+    h+='<div class="w-card" style="margin-top:14px"><h3>❓ Sin categoría (tag) — no aparecen en el árbol por categoría</h3>'+W.crList((iss.no_tag||{}).samples||[],function(t){return W.esc(t)})+'</div>';
+    panel.innerHTML=h;
+};
 W.renderSettings=function(tab){
     var app=document.getElementById('wontia-app');
     W.state.settingsTab=tab||'general';
     var t=W.state.settingsTab;
     var tabBtn=function(id,label){return '<button class="w-btn '+(t===id?'w-btn-primary':'w-btn-secondary')+'" onclick="wontia.renderSettings(\''+id+'\')">'+label+'</button>';};
-    app.innerHTML='<div class="w-flex w-gap-sm" style="margin-bottom:16px;flex-wrap:wrap">'+tabBtn('general','Ajustes')+tabBtn('themes','Themes')+tabBtn('nav','Menús')+tabBtn('logo','Logo & Favicon')+tabBtn('security','Seguridad')+tabBtn('cache','Administración de caché')+tabBtn('update','Update')+'</div><div id="settings-panel"></div>';
+    app.innerHTML='<div class="w-flex w-gap-sm" style="margin-bottom:16px;flex-wrap:wrap">'+tabBtn('general','Ajustes')+tabBtn('themes','Themes')+tabBtn('nav','Menús')+tabBtn('logo','Logo & Favicon')+tabBtn('security','Seguridad')+tabBtn('cache','Administración de caché')+tabBtn('update','Update')+tabBtn('reconciliation','Conciliación de catálogo')+'</div><div id="settings-panel"></div>';
     if(t==='themes')W.renderThemesPanel();
     else if(t==='nav')W.renderNavPanel();
     else if(t==='logo')W.renderLogoPanel();
     else if(t==='security')W.renderSecurityPanel();
     else if(t==='cache')W.renderCachePanel();
     else if(t==='update')W.renderUpdatePanel();
+    else if(t==='reconciliation')W.renderCatalogReconciliation();
     else W.renderSettingsGeneral();
 };
 
