@@ -1475,9 +1475,9 @@ W._crRender=function(d){
     h+='<div style="font-size:12px;color:var(--w-muted);margin-bottom:10px">Compara la clasificación del tema (keywords) con la taxonomía real (tags) y detecta incoherencias. Último escaneo: '+W.esc(d.generated_at||'—')+'</div>';
     h+='<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px">'
       +kpi('Productos',s.products)+kpi('Con categoría (tag)',s.with_tag)+kpi('Sin categoría',s.without_tag,'#b45309')
-      +kpi('Incoherencias',sev.critical,'#DC2626')+kpi('Solapamientos',(iss.overlap||{}).count,'#b45309')+kpi('Duplicados',(iss.duplicates||{}).count)
+      +kpi('Categorías sin mapear',(s.unmapped_categories||0),'#DC2626')+kpi('Solapamientos',(iss.overlap||{}).count,'#b45309')+kpi('Duplicados',(iss.duplicates||{}).count)
       +'</div>';
-    h+='<div class="w-card"><h3>⚠️ Clasificación incoherente (categoría real ≠ categoría del tema)</h3>'+W.crList((iss.mismatch||{}).samples||[],function(x){return '<b>'+W.esc(x.title)+'</b> <span style="color:var(--w-muted)">real=«'+W.esc(x.tag)+'» · esperado='+W.esc(x.expected||'?')+' · tema=['+((x.legacy||[]).map(W.esc).join(', '))+']</span>'})+'</div>';
+    h+='<div class="w-card"><h3>🧭 Categorías del catálogo SIN mapear (requieren clasificación)</h3>'+W.crList((iss.mismatch||{}).samples||[],function(x){return '<b>«'+W.esc(x.tag)+'»</b> <span style="color:var(--w-muted)">'+W.num(x.count||0)+' productos · ej: '+W.esc(x.title)+'</span>'})+'</div>';
     h+='<div class="w-card" style="margin-top:14px"><h3>🔁 Productos en 2+ categorías del tema (solapamiento)</h3>'+W.crList((iss.overlap||{}).samples||[],function(x){return '<b>'+W.esc(x.title)+'</b> <span style="color:var(--w-muted)">'+((x.cats||[]).map(W.esc).join(', '))+'</span>'})+'</div>';
     h+='<div class="w-card" style="margin-top:14px"><h3>📝 Duplicados por escritura (mayúsculas/acentos/plural)</h3>'+W.crList((iss.duplicates||{}).samples||[],function(x){return 'nivel '+x.level+': '+((x.variants||[]).map(W.esc).join(' · '))})+'</div>';
     h+='<div class="w-card" style="margin-top:14px"><h3>❓ Sin categoría (tag) — no aparecen en el árbol por categoría</h3>'+W.crList((iss.no_tag||{}).samples||[],function(t){return W.esc(t)})+'</div>';

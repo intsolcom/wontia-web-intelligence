@@ -158,12 +158,26 @@ if (!function_exists('sonika_match')) {
         return false;
     }
 }
+if (!function_exists('sonika_legacy_slug')) {
+    function sonika_legacy_slug(string $tagCat): string {
+        if ($tagCat === '' || !class_exists('\\App\\Services\\CatalogReconciliationService')) return '';
+        return \App\Services\CatalogReconciliationService::legacySlug($tagCat);
+    }
+}
 if (!function_exists('sonika_category_products')) {
     function sonika_category_products(string $slug): array {
         $cat = sonika_category($slug);
         if (!$cat) return [];
         $out = [];
-        foreach (sonika_products() as $p) { if (sonika_match($p, $cat['kw'])) $out[] = $p; }
+        foreach (sonika_products() as $p) {
+            $tags = sonika_product_tags($p);
+            $tagCat = (string)($tags[1] ?? '');
+            if ($tagCat !== '') {
+                if (sonika_legacy_slug($tagCat) === $slug) $out[] = $p;
+            } elseif (sonika_match($p, $cat['kw'])) {
+                $out[] = $p; // respaldo: producto sin tag de categoría
+            }
+        }
         return $out;
     }
 }
