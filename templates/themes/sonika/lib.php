@@ -164,18 +164,50 @@ if (!function_exists('sonika_legacy_slug')) {
         return \App\Services\CatalogReconciliationService::legacySlug($tagCat);
     }
 }
+if (!function_exists('sonika_effective_category')) {
+    /** Categoría efectiva: tag del catálogo o, si falta, el override aprobado (auto-clasificador IA). */
+    function sonika_effective_category(array $p): string {
+        $tags = sonika_product_tags($p);
+        $tag = (string)($tags[1] ?? '');
+        if ($tag !== '') return $tag;
+        $h = (string)($p['handle'] ?? '');
+        if ($h !== '' && class_exists('\\App\\Services\\CatalogClassifierService')) {
+            $ov = (new \App\Services\CatalogClassifierService())->overrides();
+            if (isset($ov[$h])) return (string)$ov[$h];
+        }
+        return '';
+    }
+}
+if (!function_exists('sonika_products_effective')) {
+    /** Productos con el override inyectado como tag de categoría (para el Mega Menú). */
+    function sonika_products_effective(): array {
+        $ps = sonika_products();
+        if (!class_exists('\\App\\Services\\CatalogClassifierService')) return $ps;
+        static $ov = null;
+        if ($ov === null) $ov = (new \App\Services\CatalogClassifierService())->overrides();
+        if (!$ov) return $ps;
+        foreach ($ps as &$p) {
+            $h = (string)($p['handle'] ?? '');
+            if ($h === '' || !isset($ov[$h])) continue;
+            $has = false;
+            foreach ((array)($p['tags'] ?? []) as $t) { if (preg_match('/^1\)\s*[^_]+_/u', trim((string)$t))) { $has = true; break; } }
+            if (!$has) $p['tags'] = array_merge((array)($p['tags'] ?? []), ['1) Categoría_' . $ov[$h]]);
+        }
+        unset($p);
+        return $ps;
+    }
+}
 if (!function_exists('sonika_category_products')) {
     function sonika_category_products(string $slug): array {
         $cat = sonika_category($slug);
         if (!$cat) return [];
         $out = [];
         foreach (sonika_products() as $p) {
-            $tags = sonika_product_tags($p);
-            $tagCat = (string)($tags[1] ?? '');
+            $tagCat = sonika_effective_category($p);
             if ($tagCat !== '') {
                 if (sonika_legacy_slug($tagCat) === $slug) $out[] = $p;
             } elseif (sonika_match($p, $cat['kw'])) {
-                $out[] = $p; // respaldo: producto sin tag de categoría
+                $out[] = $p; // respaldo: sin tag ni override
             }
         }
         return $out;

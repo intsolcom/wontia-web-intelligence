@@ -88,7 +88,7 @@ class MegaMenuWidget extends Widget
         $cfg = $this->mergeConfig($config);
         if (empty($cfg['enabled'])) return '';
 
-        $products = function_exists('sonika_products') ? sonika_products() : null;
+        $products = function_exists('sonika_products_effective') ? sonika_products_effective() : (function_exists('sonika_products') ? sonika_products() : null);
         $sort = ((string)($cfg['sort'] ?? 'alpha') === 'count') ? 'count' : 'alpha';
         $tree = (new MegaMenuService())->tree([], $products, 90, $sort);
         $nodes = $tree['categories'] ?? [];

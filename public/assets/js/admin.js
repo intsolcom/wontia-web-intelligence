@@ -1453,7 +1453,8 @@ W.renderCatalogReconciliation=async function(){
     var panel=document.getElementById('settings-panel'); if(!panel)return;
     panel.innerHTML='<div style="padding:20px;color:var(--w-muted)">Cargando informe de conciliación…</div>';
     var r=await W.api('/api/v1/admin/catalog/reconciliation');
-    W._crRender(r&&r.data);
+    var s=await W.api('/api/v1/admin/catalog/suggestions');
+    W._crRender(r&&r.data, s&&s.data);
 };
 W.crScan=async function(){
     var panel=document.getElementById('settings-panel'); if(!panel)return;
@@ -1466,7 +1467,7 @@ W.crList=function(items,rowFn){
     if(!items.length)return '<div style="font-size:12px;color:var(--w-muted);padding:6px 0">Sin hallazgos.</div>';
     return '<div style="display:flex;flex-direction:column;gap:4px;max-height:340px;overflow:auto">'+items.map(function(x){return '<div style="font-size:12px;padding:4px 0;border-bottom:1px dashed var(--w-border)">'+rowFn(x)+'</div>'}).join('')+'</div>';
 };
-W._crRender=function(d){
+W._crRender=function(d,sug){
     var panel=document.getElementById('settings-panel'); if(!panel)return;
     if(!d){panel.innerHTML='<div class="w-empty-state"><p>No hay informe aún. Pulsa “Escanear ahora”.</p></div>';return}
     var s=d.stats||{}, sev=d.severity||{}, iss=d.issues||{};
@@ -1481,8 +1482,31 @@ W._crRender=function(d){
     h+='<div class="w-card" style="margin-top:14px"><h3>🔁 Productos en 2+ categorías del tema (solapamiento)</h3>'+W.crList((iss.overlap||{}).samples||[],function(x){return '<b>'+W.esc(x.title)+'</b> <span style="color:var(--w-muted)">'+((x.cats||[]).map(W.esc).join(', '))+'</span>'})+'</div>';
     h+='<div class="w-card" style="margin-top:14px"><h3>📝 Duplicados por escritura (mayúsculas/acentos/plural)</h3>'+W.crList((iss.duplicates||{}).samples||[],function(x){return 'nivel '+x.level+': '+((x.variants||[]).map(W.esc).join(' · '))})+'</div>';
     h+='<div class="w-card" style="margin-top:14px"><h3>❓ Sin categoría (tag) — no aparecen en el árbol por categoría</h3>'+W.crList((iss.no_tag||{}).samples||[],function(t){return W.esc(t)})+'</div>';
+    sug=sug||{suggestions:{},untagged:0,overrides:0};
+    var pend=Object.keys(sug.suggestions||{});
+    h+='<div class="w-card" style="margin-top:14px"><div class="w-flex-between" style="flex-wrap:wrap;gap:8px"><h3 style="margin:0">🤖 Auto-clasificador IA (TIA)</h3><div class="w-flex w-gap-sm"><button class="w-btn w-btn-secondary" onclick="wontia.crClassify()">🤖 Clasificar lote (20)</button>'+(pend.length?'<button class="w-btn w-btn-primary" onclick="wontia.crApply()">✓ Aplicar seleccionadas ('+pend.length+')</button>':'')+'</div></div>';
+    h+='<div style="font-size:12px;color:var(--w-muted);margin:6px 0 10px">Productos <b>sin categoría</b>: '+W.num(sug.untagged||0)+' · overrides aplicados: '+W.num(sug.overrides||0)+'. TIA propone la categoría desde el título/marca/tipo; revisa y aplica.</div>';
+    if(pend.length){
+        h+='<div style="display:flex;flex-direction:column;gap:4px;max-height:340px;overflow:auto">'+pend.map(function(hl){var x=sug.suggestions[hl]||{};return '<div style="display:flex;align-items:center;gap:8px;font-size:12px;padding:4px 0;border-bottom:1px dashed var(--w-border)"><input type="checkbox" class="cr-sug" value="'+W.esc(hl)+'" checked style="width:auto"/><b style="flex:1">'+W.esc(x.title||hl)+'</b><span class="w-badge" style="background:rgba(139,92,246,.18);color:#c4b5fd">'+W.esc(x.cat||'')+'</span><button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.crReject(\''+W.esc(hl)+'\')">✕</button></div>'}).join('')+'</div>';
+    } else { h+='<div style="font-size:12px;color:var(--w-muted)">Sin sugerencias pendientes. Pulsa “Clasificar lote”.</div>'; }
+    h+='</div>';
     panel.innerHTML=h;
 };
+W.crClassify=async function(){
+    W.notify('Consultando a TIA…','info');
+    var r=await W.api('/api/v1/admin/catalog/classify',{method:'POST',body:{limit:20}});
+    var res=(r&&r.data&&r.data.result)||{};
+    if(r&&r.ok)W.notify(res.ai?('TIA: '+res.suggested+'/'+res.batch+' clasificados'):'IA no disponible (revisa BRICK/DEEPSEEK)', res.ai?'success':'error');
+    W.renderCatalogReconciliation();
+};
+W.crApply=async function(){
+    var hs=[]; document.querySelectorAll('.cr-sug:checked').forEach(function(c){hs.push(c.value)});
+    if(!hs.length){W.notify('Nada seleccionado','error');return}
+    var r=await W.api('/api/v1/admin/catalog/suggestions/apply',{method:'POST',body:{handles:hs}});
+    if(r&&r.ok)W.notify('Aplicadas '+((r.data||{}).applied||0),'success');
+    W.renderCatalogReconciliation();
+};
+W.crReject=async function(h){ await W.api('/api/v1/admin/catalog/suggestions/reject',{method:'POST',body:{handles:[h]}}); W.renderCatalogReconciliation(); };
 W.renderSettings=function(tab){
     var app=document.getElementById('wontia-app');
     W.state.settingsTab=tab||'general';
