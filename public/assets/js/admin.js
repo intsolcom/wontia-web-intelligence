@@ -5114,8 +5114,7 @@ W.storeSettings=async function(){
         +'<div><label style="font-size:11px;color:var(--w-muted)">Horas sin comprar antes de recordar</label><input class="w-input" type="number" id="ss-rec-h" value="'+(parseInt(s.store_recovery_hours)||24)+'" style="width:100%"/></div>'
         +'<div><label style="font-size:11px;color:var(--w-muted)">Reserva de inventario (minutos)</label><input class="w-input" type="number" id="ss-res-min" value="'+(parseInt(s.store_reservation_minutes)||20)+'" style="width:100%"/></div>'
         +'</div></div>'
-        +'<div class="w-card" style="margin-top:14px"><h3 style="margin-top:0">Monedas</h3>'
-<div style="font-size:12px;color:var(--w-muted);margin-bottom:8px">La moneda base se cobra; las demás son referenciales (conversión por tasa). JSON: [{"code":"USD","label":"USD","symbol":"US$","rate":0.00025}]</div><textarea class="w-input" id="ss-currencies" rows="3" style="width:100%;font-family:monospace">'+W.esc(s.store_currencies||'')+'</textarea></div>'
+        +'<div class="w-card" style="margin-top:14px"><h3 style="margin-top:0">Monedas</h3><div style="font-size:12px;color:var(--w-muted);margin-bottom:8px">La moneda base se cobra; las demás son referenciales (conversión por tasa). JSON: [{"code":"USD","label":"USD","symbol":"US$","rate":0.00025}]</div><textarea class="w-input" id="ss-currencies" rows="3" style="width:100%;font-family:monospace">'+W.esc(s.store_currencies||'')+'</textarea></div>'
         +'<div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap"><button class="w-btn w-btn-primary" onclick="wontia.storeSettingsSave()">Guardar configuración</button>'
         +'<button class="w-btn w-btn-secondary" onclick="wontia.storeMaintenance()">Liberar stock de pedidos vencidos</button></div>';
     el.innerHTML=body;
