@@ -14,7 +14,7 @@ class AccountWidget extends Widget
 
     public static function meta(): array
     {
-        return ['id' => 'account', 'name' => 'Mi Cuenta', 'icon' => 'user', 'category' => 'header', 'version' => '1.2.0'];
+        return ['id' => 'account', 'name' => 'Mi Cuenta', 'icon' => 'user', 'category' => 'header', 'version' => '1.2.1'];
     }
 
     public static function configSchema(): array
@@ -104,10 +104,12 @@ class AccountWidget extends Widget
 .ska-acc-btn-text:hover{border-color:var(--brand,#F20D16);color:var(--brand,#F20D16)}
 .ska-acc-txt{overflow:hidden;text-overflow:ellipsis}
 .ska-acc-caret{flex:0 0 auto;opacity:.65}
-.ska-acc-btn-avatar{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:50%;overflow:hidden;text-decoration:none;background:var(--brand,#F20D16);color:#fff;font-weight:800;font-size:15px;line-height:1;box-shadow:0 2px 8px rgba(0,0,0,.12)}
-.ska-acc-btn-avatar .ska-acc-ava-svg{width:22px;height:22px;fill:none;stroke:#fff;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.ska-acc-btn-avatar{display:inline-flex;align-items:center;justify-content:center;width:42px;height:42px;border-radius:11px;overflow:hidden;text-decoration:none;background:#fff;border:1px solid #D9DCE3;color:#5B6270;line-height:1;transition:border-color .15s,color .15s}
+.ska-acc-btn-avatar:hover{border-color:#8A94A6;color:#232A36}
+.ska-acc-btn-avatar .ska-acc-ava-svg{width:22px;height:22px;fill:none;stroke:#5B6270;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.ska-acc-btn-avatar:hover .ska-acc-ava-svg{stroke:#232A36}
 .ska-acc-ava-img{width:100%;height:100%;object-fit:cover;display:block}
-.ska-acc-ava-ini{display:inline-flex;align-items:center;justify-content:center;width:100%;height:100%}
+.ska-acc-ava-ini{display:inline-flex;align-items:center;justify-content:center;width:100%;height:100%;font-weight:800;font-size:16px;color:#3A4150}
 .ska-acc-menu{position:absolute;right:0;top:calc(100% + 8px);min-width:180px;background:#fff;border:1px solid #E6E6E6;border-radius:12px;box-shadow:0 18px 44px rgba(0,0,0,.14);padding:6px;opacity:0;visibility:hidden;transform:translateY(6px);transition:.16s;z-index:150}
 .ska-acc[data-align="left"] .ska-acc-menu{right:auto;left:0}
 .ska-acc:hover .ska-acc-menu,.ska-acc:focus-within .ska-acc-menu{opacity:1;visibility:visible;transform:none}
