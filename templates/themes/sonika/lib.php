@@ -12,6 +12,15 @@ if (!function_exists('sonika_esc')) {
 if (!function_exists('sonika_cop')) {
     function sonika_cop($value): string { return (new \App\Services\CurrencyService())->format((float)$value); }
 }
+if (!function_exists('sonika_whatsapp')) {
+    function sonika_whatsapp(): string {
+        $n = trim((string)wwi_setting('store_whatsapp', ''));
+        if ($n === '') $n = trim((string)wwi_tc('sonika', 'contact_phone'));
+        $d = preg_replace('/\D+/', '', $n);
+        if ($d !== '' && strlen($d) === 10 && substr($d, 0, 2) !== '57') $d = '57' . $d;
+        return $d;
+    }
+}
 if (!function_exists('sonika_safe_html')) {
     function sonika_safe_html(string $html): string {
         $html = preg_replace('#<\s*script\b[^>]*>.*?<\s*/\s*script\s*>#is', '', $html);
@@ -564,7 +573,7 @@ CSS;
 }
 if (!function_exists('sonika_js')) {
     function sonika_js(): string {
-        return <<<'JS'
+        return 'window.SONIKA_WA=' . json_encode(sonika_whatsapp()) . ';window.SONIKA_CARTKEY="sonika_cart";window.SONIKA_STORE="SONIKA";' . <<<'JS'
 (function(){
   var SEARCH=document.getElementById('skSearch'), SUG=document.getElementById('skSug'), sTimer=null, sIdx=-1, sData=[];
   function sClose(){if(SUG){SUG.hidden=true;SUG.innerHTML='';}sIdx=-1;sData=[]}
@@ -612,6 +621,16 @@ if (!function_exists('sonika_js')) {
     clear:function(){write([])},
     items:read, count:count
   };
+  window.sonikaWhatsapp=function(extra){
+    if(!window.SONIKA_WA){alert('WhatsApp no configurado.');return}
+    var items=read();if(!items.length){alert('Tu carrito está vacío.');return}
+    var t='Hola '+(window.SONIKA_STORE||'')+', quiero hacer este pedido:';var st=0;
+    items.forEach(function(i){var l=(parseFloat(i.price)||0)*(parseInt(i.qty)||1);st+=l;t+='\n• '+(i.title||i.handle)+' x'+(parseInt(i.qty)||1)+' — '+money(l)});
+    t+='\n\nTotal: '+money(st);
+    if(extra)t+='\n'+extra;
+    window.open('https://wa.me/'+window.SONIKA_WA+'?text='+encodeURIComponent(t),'_blank');
+  };
+  window.sonikaWhatsappFromCart=function(){window.sonikaWhatsapp('')};
   function renderCart(){
     var wrap=document.getElementById('cartItems'); if(!wrap) return;
     var sum=document.getElementById('cartSummary');
@@ -621,7 +640,7 @@ if (!function_exists('sonika_js')) {
     wrap.innerHTML=items.map(function(i){subtotal+=(i.price||0)*(i.qty||0);var q=i.qty||1;
       return '<div class="cart-item"><img src="'+esc(i.img||'')+'" alt=""><div><a href="/producto/'+esc(i.handle)+'" style="font-weight:600">'+esc(i.title||'')+'</a><div style="color:var(--muted);font-size:14px;margin-top:4px">'+money(i.price)+'</div></div><div style="text-align:right"><div class="qty"><button type="button" onclick="SonikaCart.set(\''+esc(i.handle)+'\','+(q-1)+')">−</button><input value="'+q+'" readonly><button type="button" onclick="SonikaCart.set(\''+esc(i.handle)+'\','+(q+1)+')">+</button></div><a href="#" onclick="event.preventDefault();SonikaCart.remove(\''+esc(i.handle)+'\')" style="display:block;margin-top:8px;color:#DC2626;font-size:13px">Eliminar</a></div></div>';
     }).join('');
-    if(sum) sum.innerHTML='<h3 style="font-family:Sora,sans-serif;margin-bottom:10px">Resumen</h3><div class="row"><span>Subtotal</span><span>'+money(subtotal)+'</span></div><div class="row"><span>Envío</span><span>Calculado al pagar</span></div><div class="row total"><span>Total</span><span>'+money(subtotal)+'</span></div><a class="btn-buy" style="width:100%;margin-top:16px;display:block;text-align:center" href="/checkout">Finalizar compra</a><a class="cta sec" href="/tienda" style="width:100%;margin:10px 0 0;justify-content:center">Seguir comprando</a>';
+    if(sum) sum.innerHTML='<h3 style="font-family:Sora,sans-serif;margin-bottom:10px">Resumen</h3><div class="row"><span>Subtotal</span><span>'+money(subtotal)+'</span></div><div class="row"><span>Envío</span><span>Calculado al pagar</span></div><div class="row total"><span>Total</span><span>'+money(subtotal)+'</span></div><a class="btn-buy" style="width:100%;margin-top:16px;display:block;text-align:center" href="/checkout">Finalizar compra</a>'+(window.SONIKA_WA?'<a class="cta" style="width:100%;margin:10px 0 0;justify-content:center;background:#25D366;color:#fff;border:0" href="#" onclick="event.preventDefault();window.sonikaWhatsappFromCart&&window.sonikaWhatsappFromCart()">Pedir por WhatsApp</a>':'')+'<a class="cta sec" href="/tienda" style="width:100%;margin:10px 0 0;justify-content:center">Seguir comprando</a>';
   }
   paint();
   document.querySelectorAll('[data-add]').forEach(function(b){

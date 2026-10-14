@@ -236,6 +236,9 @@ switch ($segments[0] ?? '') {
               <input name="city" placeholder="Ciudad (opcional)" style="padding:12px;border:1px solid var(--line,#E6E6E6);border-radius:10px;font:inherit">
               <textarea name="notes" rows="3" placeholder="Notas para el pedido (opcional)" style="padding:12px;border:1px solid var(--line,#E6E6E6);border-radius:10px;font:inherit"></textarea>
               <button type="submit" class="btn-buy" style="padding:14px;font-size:16px">Confirmar pedido</button>
+              <?php if (sonika_whatsapp() !== ''): ?>
+              <a href="#" id="ckWa" class="btn-buy" style="padding:14px;font-size:16px;background:#25D366;color:#fff;text-align:center;text-decoration:none">Pedir por WhatsApp</a>
+              <?php endif; ?>
               <p id="ckErr" style="color:#DC2626;font-size:14px;margin:0"></p>
               <p style="color:var(--muted,#777);font-size:13px;margin:0">Al confirmar, registramos tu pedido y te contactamos por WhatsApp para coordinar el pago y el envío.</p>
             </form>
@@ -252,6 +255,10 @@ switch ($segments[0] ?? '') {
           var page=document.getElementById('checkoutPage');if(!page)return;
           var it=document.getElementById('ckItems');var sum=document.getElementById('ckSummary');
           var btn=page.querySelector('button[type=submit]');
+          var wa=document.getElementById('ckWa');
+          if(wa)wa.addEventListener('click',function(e){e.preventDefault();var f=document.getElementById('ckForm');var extra=[];
+            if(f){['name','email','phone','line1','city'].forEach(function(k){var el=f.elements[k];if(el&&el.value)extra.push(k+': '+el.value)})}
+            if(window.sonikaWhatsapp)window.sonikaWhatsapp(extra.join(' | '))});
           if(!items.length){it.innerHTML='<div class="empty" style="padding:20px;border:1px dashed var(--line,#E6E6E6);border-radius:12px">Tu carrito está vacío. <a href="/tienda" style="color:var(--brand);font-weight:600">Explorar tienda →</a></div>';if(sum)sum.innerHTML='';if(btn)btn.disabled=true;return}
           var st=0;it.innerHTML=items.map(function(i){var l=(parseFloat(i.price)||0)*(parseInt(i.qty)||1);st+=l;var im=i.img||i.image;
             return '<div class="cart-item" style="display:flex;gap:12px;align-items:center;border:1px solid var(--line,#E6E6E6);border-radius:12px;padding:10px">'+(im?'<img src="'+esc(im)+'" alt="" style="width:54px;height:54px;object-fit:cover;border-radius:8px;background:#F5F5F5">':'')+'<div style="flex:1"><div style="font-weight:600;font-size:14px">'+esc(i.title||i.handle||'')+'</div><div style="color:var(--muted,#777);font-size:13px">x'+(parseInt(i.qty)||1)+'</div></div><div style="font-weight:700">'+money(l)+'</div></div>'}).join('');
