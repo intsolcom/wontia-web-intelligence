@@ -57,6 +57,13 @@ if (!function_exists('sonika_catalog')) {
     function sonika_catalog(): array {
         static $c = null;
         if ($c !== null) return $c;
+        // 1) Catálogo SINCRONIZADO (persistente, refrescado por cron) — tiene prioridad
+        $synced = dirname(__DIR__, 3) . '/public/assets/uploads/_catalog/catalog.json';
+        if (is_file($synced)) {
+            $d = json_decode((string)@file_get_contents($synced), true);
+            if (is_array($d) && !empty($d['products'])) { $c = $d; return $c; }
+        }
+        // 2) Snapshot empaquetado del tema
         $f = __DIR__ . '/catalog.json';
         if (is_file($f)) {
             $c = json_decode((string)@file_get_contents($f), true) ?: [];
