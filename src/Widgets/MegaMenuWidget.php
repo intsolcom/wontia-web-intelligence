@@ -6,12 +6,14 @@ use App\Services\MegaMenuService;
 /**
  * MegaMenuWidget — brick "Mega Menú" (categoría header).
  * Panel lateral izquierdo (off-canvas) + megamenú contextual SSR con categorías
- * hasta 5 niveles, marcas, rangos de precio y filtro instantáneo.
+ * hasta 5 niveles, marcas, rangos de precio, populares y filtro instantáneo.
  *
  * Rendimiento: TODO el árbol se pre-renderiza en servidor y se inyecta como HTML
- * (abrir = toggle de clase, sin peticiones). Datos desde el catálogo real.
- * Seguridad: escape total; nada de innerHTML con datos del catálogo (salvo el
- * índice JSON, escapado). Aislado bajo la clase raíz `.mn-*`. Estado: INCUBADORA.
+ * (abrir = toggle de clase, sin peticiones).
+ * Apilamiento: el drawer y el overlay se "portan" a <body> (JS) para NO quedar
+ * atrapados en el contexto de apilamiento del header sticky, y se muestran por
+ * ENCIMA de todo (z-index alto).
+ * Seguridad: escape total. Aislado bajo la clase raíz `.mn-*`. Estado: INCUBADORA.
  */
 class MegaMenuWidget extends Widget
 {
@@ -19,7 +21,7 @@ class MegaMenuWidget extends Widget
 
     public static function meta(): array
     {
-        return ['id' => 'mega-menu', 'name' => 'Mega Menú', 'icon' => 'menu', 'category' => 'header', 'version' => '1.0.0'];
+        return ['id' => 'mega-menu', 'name' => 'Mega Menú', 'icon' => 'menu', 'category' => 'header', 'version' => '1.2.0'];
     }
 
     public static function configSchema(): array
@@ -35,6 +37,7 @@ class MegaMenuWidget extends Widget
             ['key' => 'show_view_all', 'label' => 'Mostrar “Ver todo”', 'type' => 'toggle', 'default' => true],
             ['key' => 'show_badges', 'label' => 'Mostrar etiquetas (NUEVO/OFERTA)', 'type' => 'toggle', 'default' => true],
             ['key' => 'show_images', 'label' => 'Mostrar imagen promocional', 'type' => 'toggle', 'default' => true],
+            ['key' => 'hide_empty', 'label' => 'Ocultar categorías sin productos', 'type' => 'toggle', 'default' => true],
             ['key' => 'mobile_drill', 'label' => 'Móvil: navegación por dentro del panel', 'type' => 'toggle', 'default' => true],
             ['key' => 'transition_ms', 'label' => 'Duración de la transición (ms)', 'type' => 'number', 'default' => 200],
             ['key' => 'promo_enabled', 'label' => 'Promoción (imagen global)', 'type' => 'toggle', 'default' => false],
@@ -62,7 +65,7 @@ class MegaMenuWidget extends Widget
         return [
             'enabled' => false, 'button_text' => 'Menú', 'greeting' => '¡Hola!', 'width' => 300,
             'header_color' => '#C6F24E', 'header_text_color' => '#111111', 'max_columns' => 4,
-            'show_view_all' => true, 'show_badges' => true, 'show_images' => true, 'mobile_drill' => true,
+            'show_view_all' => true, 'show_badges' => true, 'show_images' => true, 'hide_empty' => true, 'mobile_drill' => true,
             'transition_ms' => 200, 'promo_enabled' => false, 'promo_image' => '', 'promo_alt' => '', 'promo_href' => '',
             'popular' => true, 'popular_title' => 'Populares ahora', 'popular_limit' => 8, 'category_promos' => [],
             'footer_links' => [],
@@ -89,6 +92,7 @@ class MegaMenuWidget extends Widget
         $showAll = !empty($cfg['show_view_all']);
         $showBadges = !empty($cfg['show_badges']);
         $showImages = !empty($cfg['show_images']);
+        $hideEmpty = !empty($cfg['hide_empty']);
         $greeting = (string)($cfg['greeting'] ?? '¡Hola!');
         $btnText = (string)($cfg['button_text'] ?? 'Menú');
         $drill = !empty($cfg['mobile_drill']);
@@ -96,21 +100,25 @@ class MegaMenuWidget extends Widget
         $popular = !empty($cfg['popular']) ? $this->popularSearches(max(1, min(20, (int)($cfg['popular_limit'] ?? 8)))) : [];
         $promoMap = $this->promoMap((array)($cfg['category_promos'] ?? []));
 
+        $vars = '--mn-w:' . $width . 'px;--mn-head:' . $headColor . ';--mn-head-txt:' . $headText . ';--mn-maxcol:' . $maxCols . ';--mn-ms:' . $trans . 'ms';
+
         $h = $this->assets();
-        $h .= '<div class="mn' . ($drill ? ' drill' : '') . '" data-mn data-trans="' . $trans . '" style="--mn-w:' . $width . 'px;--mn-head:' . $headColor . ';--mn-head-txt:' . $headText . ';--mn-maxcol:' . $maxCols . '">';
+
+        $h .= '<div class="mn" data-mn>';
         $h .= '<button type="button" class="mn-toggle" aria-expanded="false" aria-controls="mn-drawer" aria-haspopup="true">'
             . '<span class="mn-toggle__ic" aria-hidden="true">&#9776;</span><span class="mn-toggle__txt">' . $this->esc($btnText) . '</span></button>';
+        $h .= '</div>';
 
         $h .= '<div class="mn-overlay" data-mn-close hidden></div>';
-        $h .= '<div class="mn-scrim"></div>';
 
-        $h .= '<div class="mn-drawer" id="mn-drawer" role="dialog" aria-modal="true" aria-label="Menú de categorías" hidden>';
+        $h .= '<div class="mn-drawer' . ($drill ? ' drill' : '') . '" id="mn-drawer" role="dialog" aria-modal="true" aria-label="Menú de categorías" style="' . $vars . '" hidden>';
         $h .= '<aside class="mn-side">';
         $h .= '<div class="mn-side__head"><span class="mn-side__hello">' . $this->esc($greeting) . '</span>'
             . '<button type="button" class="mn-close" data-mn-close aria-label="Cerrar menú">&#10005;</button></div>';
         $h .= '<div class="mn-filter"><input type="search" class="mn-filter__in" placeholder="Filtrar categorías…" aria-label="Filtrar categorías"/></div>';
         $h .= '<nav class="mn-cats" aria-label="Categorías"><ul class="mn-cats__list">';
         foreach ($nodes as $n) {
+            if ($hideEmpty && (int)$n['count'] === 0) continue;
             $has = (!empty($n['types']) || !empty($n['brands']) || !empty($n['models']));
             $h .= '<li class="mn-cat' . ($has ? ' has-panel' : '') . '" data-mn-cat="' . $this->esc($n['slug']) . '">'
                 . '<a class="mn-cat__link" href="' . $this->esc($n['url']) . '">'
@@ -149,10 +157,10 @@ class MegaMenuWidget extends Widget
                 . ($showAll ? '<a class="mn-mega__all" href="' . $this->esc($n['url']) . '">Ver todo &#8250;</a>' : '')
                 . '</header>';
             $h .= '<div class="mn-cols">';
-            if (!empty($n['types']))    { $h .= $this->column('Tipos', $n['types'], $n['url'], $showAll); }
-            if (!empty($n['brands']))   { $h .= $this->column('Marcas', $n['brands'], null, $showAll); }
-            if (!empty($n['models']))   { $h .= $this->column('Modelos', $n['models'], null, $showAll); }
-            if (!empty($n['prices']))   { $h .= $this->column('Precio', $n['prices'], null, false); }
+            if (!empty($n['types']))  { $h .= $this->column('Tipos', $n['types'], $n['url'], $showAll); }
+            if (!empty($n['brands'])) { $h .= $this->column('Marcas', $n['brands'], null, $showAll); }
+            if (!empty($n['models'])) { $h .= $this->column('Modelos', $n['models'], null, $showAll); }
+            if (!empty($n['prices'])) { $h .= $this->column('Precio', $n['prices'], null, false); }
             $promo = $this->resolvePromo($n, $promoMap, $cfg, $showImages);
             if ($promo) {
                 $imgTag = '<img class="mn-promo__img" src="' . $this->esc($promo['image']) . '" alt="' . $this->esc($promo['alt']) . '" loading="lazy"/>';
@@ -164,7 +172,6 @@ class MegaMenuWidget extends Widget
         $h .= '</div>';
 
         $h .= '<script type="application/json" class="mn-index">' . json_encode($tree['index'] ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) . '</script>';
-        $h .= '</div>';
         return $h;
     }
 
@@ -274,10 +281,9 @@ class MegaMenuWidget extends Widget
 .mn-toggle{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line,#E6E6E6);background:#fff;color:var(--ink,#111);border-radius:11px;padding:9px 13px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;line-height:1}
 .mn-toggle:hover{border-color:var(--brand,#F20D16);color:var(--brand,#F20D16)}
 .mn-toggle__ic{font-size:17px;line-height:1}
-.mn-overlay{position:fixed;inset:0;background:rgba(8,10,16,.5);opacity:0;transition:opacity .18s ease;z-index:8000;border:0}
+.mn-overlay{position:fixed;inset:0;background:rgba(8,10,16,.5);opacity:0;transition:opacity .18s ease;z-index:9000;border:0}
 .mn-overlay.is-open{opacity:1}
-.mn-scrim{display:none}
-.mn-drawer{position:fixed;top:0;left:0;bottom:0;display:flex;transform:translateX(-100%);transition:transform var(--mn-ms,200ms) cubic-bezier(.22,.61,.36,1);z-index:8100;max-width:100vw}
+.mn-drawer{position:fixed;top:0;left:0;bottom:0;display:flex;transform:translateX(-100%);transition:transform var(--mn-ms,200ms) cubic-bezier(.22,.61,.36,1);z-index:9010;max-width:100vw}
 .mn-drawer.is-open{transform:translateX(0)}
 .mn-side{width:var(--mn-w,300px);max-width:86vw;background:#fff;border-right:1px solid var(--line,#E6E6E6);display:flex;flex-direction:column;min-height:0}
 .mn-side__head{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid var(--line,#EEE)}
@@ -331,39 +337,42 @@ html.mn-locked,html.mn-locked body{overflow:hidden}
   .mn-drawer{max-width:100vw}
   .mn-side{width:100%;max-width:none}
   .mn-mega{max-width:100vw}
-  .mn.drill[data-view="panel"] .mn-side{display:none}
-  .mn.drill:not([data-view="panel"]) .mn-mega{display:none}
-  .mn.drill .mn-back{display:inline-block}
+  .mn-drawer.drill[data-view="panel"] .mn-side{display:none}
+  .mn-drawer.drill:not([data-view="panel"]) .mn-mega{display:none}
+  .mn-drawer.drill .mn-back{display:inline-block}
   .mn-cols{grid-template-columns:repeat(2,minmax(0,1fr));padding:0 16px}
 }
 @media(max-width:520px){.mn-cols{grid-template-columns:1fr}}
 @media(prefers-reduced-motion:reduce){.mn-drawer,.mn-overlay{transition:none}}
 </style>
 <script>if(!window.__mnInit){window.__mnInit=1;(function(){
-  var D=document, root=null, state={open:false,active:null}, lastFocus=null, hoverT=null;
+  var D=document, state={open:false}, lastFocus=null, hoverT=null;
   function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]});}
-  function getRoot(){return D.querySelector('[data-mn]');}
+  function drawer(){return D.querySelector('.mn-drawer');}
+  function overlay(){return D.querySelector('.mn-overlay');}
+  function portal(){
+    var b=D.body, d=drawer(), o=overlay();
+    if(o&&o.parentNode!==b)b.appendChild(o);
+    if(d&&d.parentNode!==b)b.appendChild(d);
+  }
   function openDrawer(open){
-    root=root||getRoot(); if(!root)return; var dr=root.querySelector('.mn-drawer'), ov=root.querySelector('.mn-overlay'), tg=root.querySelector('.mn-toggle');
-    if(!dr)return; state.open=open;
+    var dr=drawer(); if(!dr)return; var ov=overlay(); var tg=D.querySelector('.mn-toggle'); state.open=open;
     if(open){lastFocus=D.activeElement; dr.hidden=false; if(ov)ov.hidden=false; D.documentElement.classList.add('mn-locked');
       requestAnimationFrame(function(){dr.classList.add('is-open'); if(ov)ov.classList.add('is-open');});
       if(tg)tg.setAttribute('aria-expanded','true'); var f=dr.querySelector('.mn-close'); if(f)f.focus();
     } else {dr.classList.remove('is-open'); if(ov)ov.classList.remove('is-open'); if(tg)tg.setAttribute('aria-expanded','false'); D.documentElement.classList.remove('mn-locked');
-      setTimeout(function(){dr.hidden=true; if(ov)ov.hidden=true;}, 240); setActive(null); if(lastFocus&&lastFocus.focus)lastFocus.focus();}
+      setTimeout(function(){dr.hidden=true; if(ov)ov.hidden=true;},240); setActive(null); if(lastFocus&&lastFocus.focus)lastFocus.focus();}
   }
   function setActive(slug){
-    root=root||getRoot(); if(!root)return; state.active=slug;
-    var arr=root.querySelectorAll('.mn-cat');
-    for(var i=0;i<arr.length;i++){arr[i].classList.toggle('is-active', arr[i].getAttribute('data-mn-cat')===slug);}
-    var ps=root.querySelectorAll('[data-mn-panel]');
-    for(var j=0;j<ps.length;j++){ps[j].hidden=(ps[j].getAttribute('data-mn-panel')!==slug);}
-    if(slug)root.setAttribute('data-view','panel'); else root.removeAttribute('data-view');
+    var dr=drawer(); if(!dr)return; var cats=dr.querySelectorAll('.mn-cat');
+    for(var i=0;i<cats.length;i++)cats[i].classList.toggle('is-active',cats[i].getAttribute('data-mn-cat')===slug);
+    var ps=dr.querySelectorAll('[data-mn-panel]');
+    for(var j=0;j<ps.length;j++)ps[j].hidden=(ps[j].getAttribute('data-mn-panel')!==slug);
+    if(slug)dr.setAttribute('data-view','panel'); else dr.removeAttribute('data-view');
   }
   D.addEventListener('click',function(e){
-    var r=e.target.closest&&e.target.closest('[data-mn]'); if(!r)return; root=r;
-    if(e.target.closest('[data-mn-close]')){e.preventDefault();openDrawer(false);return;}
     if(e.target.closest('.mn-toggle')){e.preventDefault();openDrawer(!state.open);return;}
+    if(e.target.closest('[data-mn-close]')){e.preventDefault();openDrawer(false);return;}
     if(e.target.closest('[data-mn-back]')){e.preventDefault();setActive(null);return;}
     var link=e.target.closest('.mn-cat__link');
     if(link&&state.open){var li=link.closest('.mn-cat'); if(li&&li.classList.contains('has-panel')){e.preventDefault();setActive(li.getAttribute('data-mn-cat'));}}
@@ -374,15 +383,16 @@ html.mn-locked,html.mn-locked body{overflow:hidden}
   },false);
   D.addEventListener('keydown',function(e){ if(e.key==='Escape'&&state.open){e.preventDefault();openDrawer(false);} });
   D.addEventListener('input',function(e){
-    var inp=e.target.closest&&e.target.closest('.mn-filter__in'); if(!inp)return; var r=inp.closest('[data-mn]'); var q=inp.value.trim().toLowerCase();
-    var cats=r.querySelectorAll('.mn-cat');
+    var inp=e.target.closest&&e.target.closest('.mn-filter__in'); if(!inp)return; var dr=drawer(); var q=inp.value.trim().toLowerCase();
+    var cats=dr.querySelectorAll('.mn-cat');
     for(var i=0;i<cats.length;i++){var nm=(cats[i].querySelector('.mn-cat__nm')||{}).textContent||''; cats[i].style.display=(!q||nm.toLowerCase().indexOf(q)>=0)?'':'none';}
-    var res=r.querySelector('.mn-filter__results'); var idx=r.querySelector('.mn-index');
+    var res=dr.querySelector('.mn-filter__results'); var idx=D.querySelector('.mn-index');
     if(!q){if(res){res.hidden=true;res.innerHTML='';}return;}
     var data=[]; try{data=JSON.parse((idx&&idx.textContent)||'[]');}catch(x){}
     var hits=[]; for(var k=0;k<data.length&&hits.length<20;k++){var n=data[k]; if(((n.n||'').toLowerCase().indexOf(q)>=0)||((n.c||'').toLowerCase().indexOf(q)>=0))hits.push(n);}
     if(res){res.hidden=false; res.innerHTML=hits.map(function(n){return '<li><a href="'+esc(n.u)+'"><span>'+esc(n.n)+'</span><small>'+esc(n.c)+'</small></a></li>';}).join('');}
   },false);
+  if(D.readyState!=='loading')portal(); else D.addEventListener('DOMContentLoaded',portal);
 })();}</script>
 HTML;
     }
