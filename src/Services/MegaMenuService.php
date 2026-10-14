@@ -221,9 +221,9 @@ class MegaMenuService
                 $l1 = (string)$tags[1];
                 $kind1 = (string)($kinds[1] ?? 'Categoría');
             }
-            $k = mb_strtolower($l1, 'UTF-8');
+            $k = $this->foldKey($l1);
             if (!isset($cats[$k])) {
-                $cats[$k] = ['name' => $l1, 'kind' => $kind1, 'slug' => $this->slugify($l1), 'products' => [], 'kinds' => []];
+                $cats[$k] = ['name' => $this->displayLabel($l1), 'kind' => $kind1, 'slug' => $this->slugify($l1), 'products' => [], 'kinds' => []];
             }
             $cats[$k]['products'][] = ['p' => $p, 'tags' => $tags, 'kinds' => $kinds];
             foreach ([2, 3, 4, 5] as $lv) {
@@ -241,8 +241,9 @@ class MegaMenuService
             foreach ($c['products'] as $pp) {
                 foreach ([2, 3, 4, 5] as $lv) {
                     if (!empty($pp['tags'][$lv])) {
-                        $v = (string)$pp['tags'][$lv];
-                        $levels[$lv][$v] = ($levels[$lv][$v] ?? 0) + 1;
+                        $fk = $this->foldKey((string)$pp['tags'][$lv]);
+                        if (!isset($levels[$lv][$fk])) $levels[$lv][$fk] = ['name' => $this->displayLabel((string)$pp['tags'][$lv]), 'count' => 0];
+                        $levels[$lv][$fk]['count']++;
                     }
                 }
                 $price = $this->price($pp['p']);
@@ -253,11 +254,11 @@ class MegaMenuService
             }
             $l1url = '/buscar?tax=1:' . rawurlencode((string)$c['name']);
             $mk = function (int $lv, array $vals) use ($c, $sort) {
-                if ($sort === 'alpha') { uksort($vals, fn($a, $b) => strcmp($this->sortKey((string)$a), $this->sortKey((string)$b))); }
-                else { arsort($vals); }
+                if ($sort === 'alpha') { uasort($vals, fn($a, $b) => strcmp($this->sortKey((string)$a['name']), $this->sortKey((string)$b['name']))); }
+                else { uasort($vals, fn($a, $b) => $b['count'] <=> $a['count']); }
                 $arr = [];
-                foreach (array_slice($vals, 0, 24, true) as $v => $cnt) {
-                    $arr[] = ['name' => (string)$v, 'count' => (int)$cnt, 'url' => '/buscar?tax=1:' . rawurlencode((string)$c['name']) . ',' . $lv . ':' . rawurlencode((string)$v)];
+                foreach (array_slice($vals, 0, 24, true) as $fk => $row) {
+                    $arr[] = ['name' => (string)$row['name'], 'count' => (int)$row['count'], 'url' => '/buscar?tax=1:' . rawurlencode((string)$c['name']) . ',' . $lv . ':' . rawurlencode((string)$row['name'])];
                 }
                 return $arr;
             };
@@ -284,10 +285,51 @@ class MegaMenuService
         return $result;
     }
 
+    /** Mapa de plegado de acentos (iconv//TRANSLIT no es fiable en musl/Alpine). */
+    private const FOLD = [
+        'á' => 'a', 'à' => 'a', 'ä' => 'a', 'â' => 'a', 'ã' => 'a', 'é' => 'e', 'è' => 'e', 'ë' => 'e', 'ê' => 'e',
+        'í' => 'i', 'ì' => 'i', 'ï' => 'i', 'î' => 'i', 'ó' => 'o', 'ò' => 'o', 'ö' => 'o', 'ô' => 'o', 'õ' => 'o',
+        'ú' => 'u', 'ù' => 'u', 'ü' => 'u', 'û' => 'u', 'ñ' => 'n', 'ç' => 'c',
+    ];
+
+    /** Correcciones de ortografía (tildes) por palabra — español. */
+    private const ACCENT = [
+        'acordeon' => 'acordeón', 'armonica' => 'armónica', 'audifono' => 'audífono', 'audifonos' => 'audífonos',
+        'microfono' => 'micrófono', 'microfonos' => 'micrófonos', 'bateria' => 'batería', 'baterias' => 'baterías',
+        'percusion' => 'percusión', 'iluminacion' => 'iluminación', 'amplificacion' => 'amplificación',
+        'camara' => 'cámara', 'camaras' => 'cámaras', 'clasica' => 'clásica', 'clasico' => 'clásico',
+        'generico' => 'genérico', 'electronico' => 'electrónico', 'electronica' => 'electrónica',
+        'inalambrico' => 'inalámbrico', 'mecanico' => 'mecánico', 'metalico' => 'metálico', 'plastico' => 'plástico',
+        'automatico' => 'automático', 'corazon' => 'corazón', 'violin' => 'violín', 'saxofon' => 'saxofón',
+        'modulo' => 'módulo', 'adaptador' => 'adaptador', 'amplificador' => 'amplificador', 'afinador' => 'afinador',
+        'guitarra' => 'guitarra', 'piano' => 'piano', 'trompeta' => 'trompeta', 'flauta' => 'flauta',
+        'grabacion' => 'grabación', 'reproduccion' => 'reproducción', 'conexion' => 'conexión', 'seccion' => 'sección',
+    ];
+
+    /** Clave de agrupación: minúsculas + sin tildes + espacios colapsados (para fusionar duplicados). */
+    public function foldKey(string $s): string
+    {
+        $s = mb_strtolower(trim($s), 'UTF-8');
+        $s = strtr($s, self::FOLD);
+        return trim(preg_replace('/\s+/u', ' ', $s) ?: '');
+    }
+
+    /** Presentación unificada: "Primera letra mayúscula, resto minúsculas" + tildes (español). */
+    private function displayLabel(string $s): string
+    {
+        $s = trim(preg_replace('/\s+/u', ' ', $s) ?: '');
+        if ($s === '') return '';
+        $low = mb_strtolower($s, 'UTF-8');
+        $words = explode(' ', $low);
+        foreach ($words as &$w) { if (isset(self::ACCENT[$w])) $w = self::ACCENT[$w]; }
+        unset($w);
+        $low = implode(' ', $words);
+        return mb_strtoupper(mb_substr($low, 0, 1, 'UTF-8'), 'UTF-8') . mb_substr($low, 1, null, 'UTF-8');
+    }
+
     private function sortKey(string $s): string
     {
-        $t = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $s);
-        return strtolower(($t !== false && $t !== '') ? $t : $s);
+        return $this->foldKey($s);
     }
 
     private function slugify(string $s): string

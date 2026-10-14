@@ -134,6 +134,13 @@ if (!function_exists('sonika_subcategories')) {
         return $out;
     }
 }
+if (!function_exists('sonika_fold')) {
+    function sonika_fold(string $s): string {
+        $s = mb_strtolower(trim($s), 'UTF-8');
+        $s = strtr($s, ['á' => 'a', 'à' => 'a', 'ä' => 'a', 'â' => 'a', 'ã' => 'a', 'é' => 'e', 'è' => 'e', 'ë' => 'e', 'ê' => 'e', 'í' => 'i', 'ì' => 'i', 'ï' => 'i', 'î' => 'i', 'ó' => 'o', 'ò' => 'o', 'ö' => 'o', 'ô' => 'o', 'õ' => 'o', 'ú' => 'u', 'ù' => 'u', 'ü' => 'u', 'û' => 'u', 'ñ' => 'n', 'ç' => 'c']);
+        return trim(preg_replace('/\s+/u', ' ', $s) ?: '');
+    }
+}
 if (!function_exists('sonika_product_tags')) {
     function sonika_product_tags(array $p): array {
         $out = [];
@@ -239,7 +246,7 @@ if (!function_exists('sonika_filter_products')) {
             if ($desc > 0) { $d = ($cmp > 0) ? (($cmp - $price) / $cmp * 100) : 0; if ($d < $desc) return false; }
             if ($nuevo) { $pa = (string)($p['published_at'] ?? ''); if ($pa !== '' && (time() - strtotime($pa)) > $newDays * 86400) return false; }
             if ($disp && !sonika_available($p)) return false;
-            if ($want) { $pt = sonika_product_tags($p); foreach ($want as $lv => $vv) { if (($pt[$lv] ?? '') !== $vv) return false; } }
+            if ($want) { $pt = sonika_product_tags($p); foreach ($want as $lv => $vv) { if (sonika_fold((string)($pt[$lv] ?? '')) !== sonika_fold((string)$vv)) return false; } }
             return true;
         }));
         if ($orden === 'precio_asc') usort($all, fn($a, $b) => sonika_price($a) <=> sonika_price($b));
