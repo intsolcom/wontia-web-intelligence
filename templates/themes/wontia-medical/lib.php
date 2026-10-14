@@ -136,6 +136,8 @@ if (!function_exists('medical_page_start')) {
     <?= wwi_favicon_links() ?: '<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 32 32\'%3E%3Crect width=\'32\' height=\'32\' rx=\'10\' fill=\'%232F9E6F\'/%3E%3Ctext x=\'16\' y=\'23\' font-family=\'sans-serif\' font-size=\'20\' font-weight=\'800\' fill=\'white\' text-anchor=\'middle\'%3EW%3C/text%3E%3C/svg%3E" />' ?>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/assets/themes/wontia-medical/medical.css?v=<?= rawurlencode(\App\Core\Config::get('APP_VERSION', '1')) ?>" />
+    <script>window.WM_API_BASE = <?= json_encode(medical_api_base()) ?>;</script>
+    <script src="/assets/themes/wontia-medical/medical-app.js"></script>
 </head>
 <body>
 <header class="wm-nav">

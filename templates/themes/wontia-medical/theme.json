@@ -49,5 +49,9 @@
         { "key": "contact_phone", "label": "Telefono", "type": "text", "default": "" },
         { "key": "contact_email", "label": "Correo", "type": "text", "default": "" },
         { "key": "contact_whatsapp", "label": "WhatsApp (URL)", "type": "text", "default": "" }
-    ]
+    ],
+    "assets": {
+        "css": "/assets/themes/wontia-medical/medical.css",
+        "js": "/assets/themes/wontia-medical/medical-app.js"
+    }
 }
