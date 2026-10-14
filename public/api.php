@@ -302,6 +302,10 @@ $r->delete('/trash/{id}', [\App\Controllers\Admin\SectionController::class, 'tra
     // Conciliación de catálogo (robot de coherencia)
     $r->get('/catalog/reconciliation', [\App\Controllers\Admin\CatalogReconciliationController::class, 'report']);
     $r->post('/catalog/reconciliation/scan', [\App\Controllers\Admin\CatalogReconciliationController::class, 'scan']);
+    $r->get('/catalog/suggestions', [\App\Controllers\Admin\CatalogReconciliationController::class, 'suggestions']);
+    $r->post('/catalog/classify', [\App\Controllers\Admin\CatalogReconciliationController::class, 'classify']);
+    $r->post('/catalog/suggestions/apply', [\App\Controllers\Admin\CatalogReconciliationController::class, 'applySuggestions']);
+    $r->post('/catalog/suggestions/reject', [\App\Controllers\Admin\CatalogReconciliationController::class, 'rejectSuggestions']);
     $r->get('/bricks/{type}/preview', [\App\Controllers\Admin\BrickController::class, 'preview']);
     $r->get('/bricks/{type}/ratings', [\App\Controllers\Admin\BrickController::class, 'ratings']);
     $r->post('/bricks/{type}/rate', [\App\Controllers\Admin\BrickController::class, 'rate']);

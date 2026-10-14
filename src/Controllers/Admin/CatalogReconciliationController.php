@@ -2,6 +2,7 @@
 namespace App\Controllers\Admin;
 
 use App\Core\Database;
+use App\Core\Request;
 use App\Core\Response;
 use App\Core\Session;
 use App\Services\CatalogReconciliationService;
@@ -58,5 +59,48 @@ class CatalogReconciliationController
         $report = $svc->analyze($cats, $products);
         $svc->save($report);
         Response::json(['ok' => true, 'data' => $report]);
+    }
+
+    public function suggestions(Request $req): void
+    {
+        $this->guard();
+        [, $products] = $this->inputs();
+        $cls = new \App\Services\CatalogClassifierService();
+        Response::json(['ok' => true, 'data' => [
+            'suggestions' => $cls->suggestions(),
+            'untagged' => count($cls->untagged($products)),
+            'overrides' => count($cls->overrides()),
+        ]]);
+    }
+
+    public function classify(Request $req): void
+    {
+        $this->guard();
+        [, $products] = $this->inputs();
+        $limit = (int)$req->input('limit', 20);
+        $cls = new \App\Services\CatalogClassifierService();
+        $result = $cls->classifyBatch($products, $limit);
+        Response::json(['ok' => true, 'data' => [
+            'result' => $result,
+            'suggestions' => $cls->suggestions(),
+            'untagged' => count($cls->untagged($products)),
+            'overrides' => count($cls->overrides()),
+        ]]);
+    }
+
+    public function applySuggestions(Request $req): void
+    {
+        $this->guard();
+        $handles = (array)(((array)$req->json())['handles'] ?? []);
+        $cls = new \App\Services\CatalogClassifierService();
+        Response::json(['ok' => true, 'data' => $cls->apply($handles)]);
+    }
+
+    public function rejectSuggestions(Request $req): void
+    {
+        $this->guard();
+        $handles = (array)(((array)$req->json())['handles'] ?? []);
+        $cls = new \App\Services\CatalogClassifierService();
+        Response::json(['ok' => true, 'data' => $cls->reject($handles)]);
     }
 }
