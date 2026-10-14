@@ -311,6 +311,7 @@ if (count($__cur) > 1 && (string)wwi_setting('store_currency_switcher', '') === 
 <header class="site">
   <div class="wrap">
     <div class="nav">
+      <?= \App\Widgets\WidgetRegistry::render('mega-menu') ?>
       <a class="logo" href="/"><?= sonika_logo_tag() ?></a>
       <?php
       $__advBrands = []; $__advTypes = []; $__advMax = 0.0;
