@@ -16,7 +16,7 @@ class AdvanceSearchProductWidget extends Widget
 
     public static function meta(): array
     {
-        return ['id' => 'advance-search-product', 'name' => 'Advance Search Product', 'icon' => 'search', 'category' => 'ecommerce', 'version' => '0.2.0'];
+        return ['id' => 'advance-search-product', 'name' => 'Advance Search Product', 'icon' => 'search', 'category' => 'ecommerce', 'version' => '1.0.0'];
     }
 
     public static function configSchema(): array
@@ -35,10 +35,6 @@ class AdvanceSearchProductWidget extends Widget
             ['key' => 'show_new', 'label' => 'Filtro: novedades (por fecha)', 'type' => 'toggle', 'default' => true],
             ['key' => 'show_available', 'label' => 'Filtro: disponibilidad', 'type' => 'toggle', 'default' => true],
             ['key' => 'new_days', 'label' => 'Novedades: días hacia atrás', 'type' => 'number', 'default' => 90],
-            ['key' => 'brands', 'label' => 'Marcas (autodetectadas)', 'type' => 'textarea', 'default' => ''],
-            ['key' => 'types', 'label' => 'Tipos (autodetectados)', 'type' => 'textarea', 'default' => ''],
-            ['key' => 'subcats', 'label' => 'Subcategorías (autodetectadas)', 'type' => 'textarea', 'default' => ''],
-            ['key' => 'categories', 'label' => 'Categorías (autodetectadas)', 'type' => 'text', 'default' => ''],
             ['key' => 'max_price', 'label' => 'Precio máximo (0 = autodetectar)', 'type' => 'number', 'default' => 0],
         ];
     }
