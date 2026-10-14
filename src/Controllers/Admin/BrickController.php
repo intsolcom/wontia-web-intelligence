@@ -77,14 +77,12 @@ class BrickController
         try { $theme = (string)(Database::instance()->query("SELECT theme FROM sites WHERE id = @site_id")->fetchColumn() ?: 'default'); } catch (\Throwable $e) {}
         $theme = preg_replace('/[^a-z0-9_-]/i', '', $theme) ?: 'default';
         $lib = $root . '/templates/themes/' . $theme . '/lib.php';
-        $cats = [];
         $products = null;
         if (is_file($lib)) {
             require_once $lib;
-            if (function_exists('sonika_categories')) $cats = sonika_categories();
             if (function_exists('sonika_products')) $products = sonika_products();
         }
-        $tree = (new \App\Services\MegaMenuService())->tree($cats, $products);
+        $tree = (new \App\Services\MegaMenuService())->tree([], $products);
         Response::json(['ok' => true, 'data' => $tree]);
     }
 

@@ -77,10 +77,8 @@ class MegaMenuWidget extends Widget
         $cfg = $this->mergeConfig($config);
         if (empty($cfg['enabled'])) return '';
 
-        $cats = function_exists('sonika_categories') ? sonika_categories() : $this->fallbackCategories();
         $products = function_exists('sonika_products') ? sonika_products() : null;
-
-        $tree = (new MegaMenuService())->tree($cats, $products);
+        $tree = (new MegaMenuService())->tree([], $products);
         $nodes = $tree['categories'] ?? [];
         if (!$nodes) return '';
 
@@ -157,9 +155,11 @@ class MegaMenuWidget extends Widget
                 . ($showAll ? '<a class="mn-mega__all" href="' . $this->esc($n['url']) . '">Ver todo &#8250;</a>' : '')
                 . '</header>';
             $h .= '<div class="mn-cols">';
-            if (!empty($n['types']))  { $h .= $this->column('Tipos', $n['types'], $n['url'], $showAll); }
-            if (!empty($n['brands'])) { $h .= $this->column('Marcas', $n['brands'], null, $showAll); }
-            if (!empty($n['models'])) { $h .= $this->column('Modelos', $n['models'], null, $showAll); }
+            $k2 = (string)($n['kinds'][2] ?? 'Subcategoría'); $k3 = (string)($n['kinds'][3] ?? 'Marca'); $k4 = (string)($n['kinds'][4] ?? 'Modelo');
+            if (!empty($n['types']))  { $h .= $this->column($k2, $n['types'], $n['url'], $showAll); }
+            if (!empty($n['brands'])) { $h .= $this->column($k3, $n['brands'], null, $showAll); }
+            if (!empty($n['models'])) { $h .= $this->column($k4, $n['models'], null, $showAll); }
+            if (!empty($n['level5'])) { $h .= $this->column('Nivel 5', $n['level5'], null, $showAll); }
             if (!empty($n['prices'])) { $h .= $this->column('Precio', $n['prices'], null, false); }
             $promo = $this->resolvePromo($n, $promoMap, $cfg, $showImages);
             if ($promo) {

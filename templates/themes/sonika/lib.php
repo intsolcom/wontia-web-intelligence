@@ -127,6 +127,16 @@ if (!function_exists('sonika_subcategories')) {
         return $out;
     }
 }
+if (!function_exists('sonika_product_tags')) {
+    function sonika_product_tags(array $p): array {
+        $out = [];
+        foreach ((array)($p['tags'] ?? []) as $tag) {
+            if (!is_string($tag)) continue;
+            if (preg_match('/^(\d+)\)\s*[^_]+_(.+)$/u', trim($tag), $m)) $out[(int)$m[1]] = trim($m[2]);
+        }
+        return $out;
+    }
+}
 if (!function_exists('sonika_match')) {
     function sonika_match(array $p, array $kw): bool {
         $hay = strtoupper(($p['title'] ?? '') . ' ' . ($p['product_type'] ?? '') . ' ' . ($p['vendor'] ?? ''));
@@ -203,13 +213,15 @@ if (!function_exists('sonika_filter_products')) {
         $cat = trim((string)($gp['cat'] ?? '')); $desc = (float)($gp['desc'] ?? 0);
         $orden = trim((string)($gp['orden'] ?? ''));
         $oferta = !empty($gp['oferta']); $nuevo = !empty($gp['nuevo']); $disp = !empty($gp['disp']);
+        $tax = trim((string)($gp['tax'] ?? '')); $want = [];
+        if ($tax !== '') { foreach (explode(',', $tax) as $__part) { if (preg_match('/^\s*(\d+):(.+)$/u', $__part, $__m)) $want[(int)$__m[1]] = trim($__m[2]); } }
         $newDays = 90;
-        $has = ($q !== '' || $min > 0 || $max > 0 || $marca !== '' || $tipo !== '' || $sub !== '' || $cat !== '' || $desc > 0 || $oferta || $nuevo || $disp);
+        $has = ($q !== '' || $min > 0 || $max > 0 || $marca !== '' || $tipo !== '' || $sub !== '' || $cat !== '' || $desc > 0 || $oferta || $nuevo || $disp || $tax !== '');
         if (!$has) return [];
         if ($cat !== '' && sonika_category($cat)) $all = sonika_category_products($cat);
         elseif ($q !== '') $all = sonika_search($q);
         else $all = sonika_products();
-        $all = array_values(array_filter($all, function ($p) use ($min, $max, $marca, $tipo, $sub, $desc, $oferta, $nuevo, $disp, $newDays) {
+        $all = array_values(array_filter($all, function ($p) use ($min, $max, $marca, $tipo, $sub, $desc, $oferta, $nuevo, $disp, $newDays, $want) {
             $price = sonika_price($p); $cmp = sonika_compare($p);
             if ($min > 0 && $price < $min) return false;
             if ($max > 0 && $price > $max) return false;
@@ -220,6 +232,7 @@ if (!function_exists('sonika_filter_products')) {
             if ($desc > 0) { $d = ($cmp > 0) ? (($cmp - $price) / $cmp * 100) : 0; if ($d < $desc) return false; }
             if ($nuevo) { $pa = (string)($p['published_at'] ?? ''); if ($pa !== '' && (time() - strtotime($pa)) > $newDays * 86400) return false; }
             if ($disp && !sonika_available($p)) return false;
+            if ($want) { $pt = sonika_product_tags($p); foreach ($want as $lv => $vv) { if (($pt[$lv] ?? '') !== $vv) return false; } }
             return true;
         }));
         if ($orden === 'precio_asc') usort($all, fn($a, $b) => sonika_price($a) <=> sonika_price($b));

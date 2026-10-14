@@ -36,7 +36,7 @@ class MegaMenuService
     public function tree(array $categories, ?array $products = null, int $newDays = 90): array
     {
         $products = $products ?? $this->catalog();
-        if (!$categories) return ['categories' => [], 'index' => [], 'stats' => ['products' => count($products), 'categories' => 0]];
+        if (!$categories) return $this->tagTree($products, $newDays);
 
         $sig = md5(json_encode(array_map(fn($c) => (string)($c['slug'] ?? ''), $categories)) . '|' . count($products) . '|' . $newDays);
         $cache = rtrim(sys_get_temp_dir(), '/\\') . DIRECTORY_SEPARATOR . 'wwi_mega_' . $sig . '.json';
@@ -181,5 +181,105 @@ class MegaMenuService
             ];
         }
         return $ranges;
+    }
+
+    /**
+     * Árbol auto-indexado: se construye SOLO desde el catálogo usando los tags
+     * estructurados "N) Kind_Value" (niveles 1..5). Al agregar un producto, sus
+     * categorías/tipos/marcas/modelos aparecen automáticamente en el menú.
+     * Enlaces con el filtro genérico `/buscar?tax=N:Valor,...` (exacto).
+     */
+    private function tagTree(array $products, int $newDays): array
+    {
+        $now = time();
+        $cats = [];
+        foreach ($products as $p) {
+            $tags = $this->structuredTags($p);
+            $kinds = $this->structuredKinds($p);
+            if (empty($tags[1])) {
+                $t = trim((string)($p['product_type'] ?? ''));
+                $l1 = $t !== '' ? $t : 'Otros';
+                $kind1 = 'Tipo';
+            } else {
+                $l1 = (string)$tags[1];
+                $kind1 = (string)($kinds[1] ?? 'Categoría');
+            }
+            $k = mb_strtolower($l1, 'UTF-8');
+            if (!isset($cats[$k])) {
+                $cats[$k] = ['name' => $l1, 'kind' => $kind1, 'slug' => $this->slugify($l1), 'products' => [], 'kinds' => []];
+            }
+            $cats[$k]['products'][] = ['p' => $p, 'tags' => $tags, 'kinds' => $kinds];
+            foreach ([2, 3, 4, 5] as $lv) {
+                if (!empty($kinds[$lv]) && empty($cats[$k]['kinds'][$lv])) $cats[$k]['kinds'][$lv] = (string)$kinds[$lv];
+            }
+        }
+
+        $out = [];
+        $index = [];
+        foreach ($cats as $c) {
+            $levels = [];
+            $prices = [];
+            $new = 0;
+            $offers = 0;
+            foreach ($c['products'] as $pp) {
+                foreach ([2, 3, 4, 5] as $lv) {
+                    if (!empty($pp['tags'][$lv])) {
+                        $v = (string)$pp['tags'][$lv];
+                        $levels[$lv][$v] = ($levels[$lv][$v] ?? 0) + 1;
+                    }
+                }
+                $price = $this->price($pp['p']);
+                if ($price > 0) $prices[] = $price;
+                $created = strtotime((string)($pp['p']['created_at'] ?? '')) ?: 0;
+                if ($created > 0 && ($now - $created) <= $newDays * 86400) $new++;
+                if ($this->hasOffer($pp['p'])) $offers++;
+            }
+            $l1url = '/buscar?tax=1:' . rawurlencode((string)$c['name']);
+            $mk = function (int $lv, array $vals) use ($c) {
+                arsort($vals);
+                $arr = [];
+                foreach (array_slice($vals, 0, 24, true) as $v => $cnt) {
+                    $arr[] = ['name' => (string)$v, 'count' => (int)$cnt, 'url' => '/buscar?tax=1:' . rawurlencode((string)$c['name']) . ',' . $lv . ':' . rawurlencode((string)$v)];
+                }
+                return $arr;
+            };
+            $node = [
+                'slug' => (string)$c['slug'], 'name' => (string)$c['name'], 'kind' => (string)$c['kind'], 'icon' => '', 'subtitle' => '',
+                'url' => $l1url, 'count' => count($c['products']), 'badge_new' => $new > 0, 'badge_offer' => $offers > 0,
+                'types' => isset($levels[2]) ? $mk(2, $levels[2]) : [],
+                'brands' => isset($levels[3]) ? $mk(3, $levels[3]) : [],
+                'models' => isset($levels[4]) ? $mk(4, $levels[4]) : [],
+                'level5' => isset($levels[5]) ? $mk(5, $levels[5]) : [],
+                'kinds' => [2 => (string)($c['kinds'][2] ?? 'Subcategoría'), 3 => (string)($c['kinds'][3] ?? 'Marca'), 4 => (string)($c['kinds'][4] ?? 'Modelo')],
+                'prices' => $this->priceRanges($prices, $l1url),
+            ];
+            $out[] = $node;
+            $index[] = ['l' => 1, 'c' => (string)$c['name'], 'n' => (string)$c['name'], 'u' => $l1url];
+            foreach ($node['types'] as $x) $index[] = ['l' => 2, 'c' => (string)$c['name'], 'n' => $x['name'], 'u' => $x['url']];
+            foreach ($node['brands'] as $x) $index[] = ['l' => 3, 'c' => (string)$c['name'], 'n' => $x['name'], 'u' => $x['url']];
+            foreach ($node['models'] as $x) $index[] = ['l' => 4, 'c' => (string)$c['name'], 'n' => $x['name'], 'u' => $x['url']];
+        }
+        usort($out, fn($a, $b) => $b['count'] <=> $a['count']);
+        return ['categories' => $out, 'index' => $index, 'stats' => ['products' => count($products), 'categories' => count($out)]];
+    }
+
+    private function slugify(string $s): string
+    {
+        $s = mb_strtolower(trim($s), 'UTF-8');
+        $s = preg_replace('/[^a-z0-9]+/u', '-', $s) ?: '';
+        return trim($s, '-') ?: 'x';
+    }
+
+    /** Devuelve [nivel => "Kind"] de los tags "N) Kind_Value". */
+    private function structuredKinds(array $p): array
+    {
+        $out = [];
+        foreach ((array)($p['tags'] ?? []) as $tag) {
+            if (!is_string($tag)) continue;
+            if (preg_match('/^(\d+)\)\s*([^_]+)_(.+)$/u', trim($tag), $m)) {
+                $out[(int)$m[1]] = trim($m[2]);
+            }
+        }
+        return $out;
     }
 }
