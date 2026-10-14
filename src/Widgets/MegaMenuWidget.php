@@ -41,9 +41,18 @@ class MegaMenuWidget extends Widget
             ['key' => 'promo_image', 'label' => 'Imagen promocional', 'type' => 'image', 'default' => ''],
             ['key' => 'promo_alt', 'label' => 'Texto alternativo', 'type' => 'text', 'default' => ''],
             ['key' => 'promo_href', 'label' => 'Enlace de la promoción', 'type' => 'text', 'default' => ''],
+            ['key' => 'popular', 'label' => 'Mostrar “Populares ahora”', 'type' => 'toggle', 'default' => true],
+            ['key' => 'popular_title', 'label' => 'Título de populares', 'type' => 'text', 'default' => 'Populares ahora'],
+            ['key' => 'popular_limit', 'label' => 'Nº de populares', 'type' => 'number', 'default' => 8],
             ['key' => 'footer_links', 'label' => 'Enlaces inferiores', 'type' => 'repeater', 'default' => [], 'fields' => [
                 ['key' => 'label', 'label' => 'Etiqueta', 'type' => 'text'],
                 ['key' => 'url', 'label' => 'URL', 'type' => 'text'],
+            ]],
+            ['key' => 'category_promos', 'label' => 'Promociones por categoría (imagen)', 'type' => 'repeater', 'default' => [], 'fields' => [
+                ['key' => 'category', 'label' => 'Categoría (slug o nombre)', 'type' => 'text'],
+                ['key' => 'image', 'label' => 'Imagen', 'type' => 'image'],
+                ['key' => 'alt', 'label' => 'Texto alternativo', 'type' => 'text'],
+                ['key' => 'href', 'label' => 'Enlace', 'type' => 'text'],
             ]],
         ];
     }
@@ -55,6 +64,7 @@ class MegaMenuWidget extends Widget
             'header_color' => '#C6F24E', 'header_text_color' => '#111111', 'max_columns' => 4,
             'show_view_all' => true, 'show_badges' => true, 'show_images' => true, 'mobile_drill' => true,
             'transition_ms' => 200, 'promo_enabled' => false, 'promo_image' => '', 'promo_alt' => '', 'promo_href' => '',
+            'popular' => true, 'popular_title' => 'Populares ahora', 'popular_limit' => 8, 'category_promos' => [],
             'footer_links' => [],
         ];
     }
@@ -82,6 +92,9 @@ class MegaMenuWidget extends Widget
         $greeting = (string)($cfg['greeting'] ?? '¡Hola!');
         $btnText = (string)($cfg['button_text'] ?? 'Menú');
         $drill = !empty($cfg['mobile_drill']);
+        $popularTitle = (string)($cfg['popular_title'] ?? 'Populares ahora');
+        $popular = !empty($cfg['popular']) ? $this->popularSearches(max(1, min(20, (int)($cfg['popular_limit'] ?? 8)))) : [];
+        $promoMap = $this->promoMap((array)($cfg['category_promos'] ?? []));
 
         $h = $this->assets();
         $h .= '<div class="mn' . ($drill ? ' drill' : '') . '" data-mn data-trans="' . $trans . '" style="--mn-w:' . $width . 'px;--mn-head:' . $headColor . ';--mn-head-txt:' . $headText . ';--mn-maxcol:' . $maxCols . '">';
@@ -110,6 +123,11 @@ class MegaMenuWidget extends Widget
                 . '</a></li>';
         }
         $h .= '</ul><ul class="mn-filter__results" hidden></ul></nav>';
+        if ($popular) {
+            $h .= '<div class="mn-pop"><div class="mn-pop__t">' . $this->esc($popularTitle) . '</div><div class="mn-pop__chips">';
+            foreach ($popular as $pq) $h .= '<a class="mn-chip" href="/buscar?q=' . urlencode($pq) . '">' . $this->esc($pq) . '</a>';
+            $h .= '</div></div>';
+        }
         $foot = $this->safeLinks((array)($cfg['footer_links'] ?? []));
         if ($foot) {
             $h .= '<div class="mn-side__foot">';
@@ -135,12 +153,10 @@ class MegaMenuWidget extends Widget
             if (!empty($n['brands']))   { $h .= $this->column('Marcas', $n['brands'], null, $showAll); }
             if (!empty($n['models']))   { $h .= $this->column('Modelos', $n['models'], null, $showAll); }
             if (!empty($n['prices']))   { $h .= $this->column('Precio', $n['prices'], null, false); }
-            if ($showImages && !empty($cfg['promo_enabled']) && $showImages && (string)($cfg['promo_image'] ?? '') !== '') {
-                $img = (string)$cfg['promo_image'];
-                $alt = (string)($cfg['promo_alt'] ?? '');
-                $href = (string)($cfg['promo_href'] ?? '');
-                $imgTag = '<img class="mn-promo__img" src="' . $this->esc($img) . '" alt="' . $this->esc($alt) . '" loading="lazy"/>';
-                $h .= '<div class="mn-col mn-promo">' . ($href !== '' ? '<a href="' . $this->esc($href) . '">' . $imgTag . '</a>' : $imgTag) . '</div>';
+            $promo = $this->resolvePromo($n, $promoMap, $cfg, $showImages);
+            if ($promo) {
+                $imgTag = '<img class="mn-promo__img" src="' . $this->esc($promo['image']) . '" alt="' . $this->esc($promo['alt']) . '" loading="lazy"/>';
+                $h .= '<div class="mn-col mn-promo">' . ($promo['href'] !== '' ? '<a href="' . $this->esc($promo['href']) . '">' . $imgTag . '</a>' : $imgTag) . '</div>';
             }
             $h .= '</div></div></div>';
         }
@@ -150,6 +166,56 @@ class MegaMenuWidget extends Widget
         $h .= '<script type="application/json" class="mn-index">' . json_encode($tree['index'] ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) . '</script>';
         $h .= '</div>';
         return $h;
+    }
+
+    private function popularSearches(int $limit): array
+    {
+        $cache = rtrim(sys_get_temp_dir(), '/\\') . DIRECTORY_SEPARATOR . 'wwi_mn_pop.json';
+        if (is_file($cache) && (time() - filemtime($cache)) < 300) {
+            $c = json_decode((string)@file_get_contents($cache), true);
+            if (is_array($c)) return array_slice(array_values(array_filter($c, 'is_string')), 0, $limit);
+        }
+        $out = [];
+        try {
+            $rows = (new \App\Services\SearchAnalyticsService())->top($limit * 2);
+            foreach ($rows as $r) {
+                $q = trim((string)($r['q'] ?? ''));
+                if (mb_strlen($q) < 3) continue;
+                if ((int)($r['avg_results'] ?? 0) <= 0) continue;
+                $out[] = $q;
+                if (count($out) >= $limit) break;
+            }
+        } catch (\Throwable $e) {
+            return [];
+        }
+        @file_put_contents($cache, json_encode($out, JSON_UNESCAPED_UNICODE));
+        return $out;
+    }
+
+    private function promoMap(array $rows): array
+    {
+        $map = [];
+        foreach ($rows as $r) {
+            if (!is_array($r)) continue;
+            $img = trim((string)($r['image'] ?? ''));
+            if ($img === '') continue;
+            $key = strtolower(trim((string)($r['category'] ?? '')));
+            if ($key === '') continue;
+            $map[$key] = ['image' => $img, 'alt' => (string)($r['alt'] ?? ''), 'href' => (string)($r['href'] ?? '')];
+        }
+        return $map;
+    }
+
+    private function resolvePromo(array $node, array $promoMap, array $cfg, bool $showImages): ?array
+    {
+        if (!$showImages) return null;
+        foreach ([strtolower((string)($node['slug'] ?? '')), strtolower((string)($node['name'] ?? ''))] as $k) {
+            if ($k !== '' && isset($promoMap[$k])) return $promoMap[$k];
+        }
+        if (!empty($cfg['promo_enabled']) && (string)($cfg['promo_image'] ?? '') !== '') {
+            return ['image' => (string)$cfg['promo_image'], 'alt' => (string)($cfg['promo_alt'] ?? ''), 'href' => (string)($cfg['promo_href'] ?? '')];
+        }
+        return null;
     }
 
     private function column(string $title, array $items, ?string $viewAllUrl, bool $showAll): string
@@ -234,6 +300,11 @@ class MegaMenuWidget extends Widget
 .mn-tag--off{background:var(--brand,#F20D16);color:#fff}
 .mn-side__foot{border-top:1px solid var(--line,#EEE);padding:10px 16px;display:flex;flex-wrap:wrap;gap:12px}
 .mn-side__foot a{font-size:12px;color:var(--muted,#666);text-decoration:none}
+.mn-pop{padding:10px 14px;border-top:1px solid var(--line,#EEE)}
+.mn-pop__t{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted,#999);margin-bottom:8px}
+.mn-pop__chips{display:flex;flex-wrap:wrap;gap:6px}
+.mn-chip{font-size:12px;padding:5px 10px;border-radius:999px;background:var(--soft,#F5F5F5);color:var(--ink,#222);text-decoration:none}
+.mn-chip:hover{background:var(--brand,#F20D16);color:#fff}
 .mn-filter__results{overflow:auto}
 .mn-filter__results li a{display:flex;justify-content:space-between;gap:10px;padding:9px 12px;border-radius:8px;text-decoration:none;color:var(--ink,#111);font-size:13px}
 .mn-filter__results li a:hover{background:var(--soft,#F5F5F5)}
