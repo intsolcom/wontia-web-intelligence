@@ -38,6 +38,7 @@ class MegaMenuWidget extends Widget
             ['key' => 'show_badges', 'label' => 'Mostrar etiquetas (NUEVO/OFERTA)', 'type' => 'toggle', 'default' => true],
             ['key' => 'show_images', 'label' => 'Mostrar imagen promocional', 'type' => 'toggle', 'default' => true],
             ['key' => 'hide_empty', 'label' => 'Ocultar categorías sin productos', 'type' => 'toggle', 'default' => true],
+            ['key' => 'max_categories', 'label' => 'Máx. categorías en el menú (0 = todas)', 'type' => 'number', 'default' => 40],
             ['key' => 'mobile_drill', 'label' => 'Móvil: navegación por dentro del panel', 'type' => 'toggle', 'default' => true],
             ['key' => 'transition_ms', 'label' => 'Duración de la transición (ms)', 'type' => 'number', 'default' => 200],
             ['key' => 'promo_enabled', 'label' => 'Promoción (imagen global)', 'type' => 'toggle', 'default' => false],
@@ -73,7 +74,7 @@ class MegaMenuWidget extends Widget
         return [
             'enabled' => false, 'button_text' => 'Menú', 'greeting' => '¡Hola!', 'width' => 300,
             'header_color' => '#C6F24E', 'header_text_color' => '#111111', 'max_columns' => 4,
-            'show_view_all' => true, 'show_badges' => true, 'show_images' => true, 'hide_empty' => true, 'mobile_drill' => true,
+            'show_view_all' => true, 'show_badges' => true, 'show_images' => true, 'hide_empty' => true, 'max_categories' => 40, 'mobile_drill' => true,
             'transition_ms' => 200, 'promo_enabled' => false, 'promo_image' => '', 'promo_alt' => '', 'promo_href' => '',
             'popular' => true, 'popular_title' => 'Populares ahora', 'popular_limit' => 8, 'category_promos' => [],
             'show_info' => false, 'info_label' => 'Información', 'info_icon' => '📄', 'category_overrides' => [],
@@ -93,6 +94,13 @@ class MegaMenuWidget extends Widget
         if (!empty($cfg['show_info'])) {
             $info = $this->infoNode((string)($cfg['info_label'] ?? 'Información'), (string)($cfg['info_icon'] ?? '📄'));
             if ($info) $nodes[] = $info;
+        }
+        $maxCat = (int)($cfg['max_categories'] ?? 40);
+        if ($maxCat > 0 && count($nodes) > $maxCat) {
+            $nodes = array_slice($nodes, 0, $maxCat);
+            $shown = [];
+            foreach ($nodes as $n) $shown[strtolower((string)$n['name'])] = 1;
+            $tree['index'] = array_values(array_filter((array)($tree['index'] ?? []), fn($e) => isset($shown[strtolower((string)($e['c'] ?? ''))])));
         }
         if (!$nodes) return '';
 

@@ -14,18 +14,28 @@ class MegaMenuService
 {
     public const CACHE_TTL = 600;
 
-    /** Catálogo del tema activo (fallback sin funciones del tema). */
-    public function catalog(): array
+    /** Ruta del catálogo: prioriza el SINCRONIZADO (persistente), luego el snapshot del tema. */
+    private function catalogFile(): ?string
     {
+        $base = dirname(__DIR__, 2);
+        $synced = $base . '/public/assets/uploads/_catalog/catalog.json';
+        if (is_file($synced)) return $synced;
         $theme = 'default';
         try {
             $theme = (string)(\App\Core\Database::instance()->query("SELECT theme FROM sites WHERE id = @site_id")->fetchColumn() ?: 'default');
         } catch (\Throwable $e) {
         }
         $theme = preg_replace('/[^a-z0-9_-]/i', '', $theme) ?: 'default';
-        $file = dirname(__DIR__, 2) . '/templates/themes/' . $theme . '/catalog.json';
-        if (!is_file($file)) return [];
-        $d = json_decode((string)@file_get_contents($file), true);
+        $f = $base . '/templates/themes/' . $theme . '/catalog.json';
+        return is_file($f) ? $f : null;
+    }
+
+    /** Catálogo del tema activo (fallback sin funciones del tema). */
+    public function catalog(): array
+    {
+        $f = $this->catalogFile();
+        if (!$f) return [];
+        $d = json_decode((string)@file_get_contents($f), true);
         return is_array($d) ? ($d['products'] ?? []) : [];
     }
 
@@ -191,6 +201,13 @@ class MegaMenuService
      */
     private function tagTree(array $products, int $newDays): array
     {
+        $file = $this->catalogFile();
+        $sig = md5(($file ? (int)@filemtime($file) : 0) . '|' . count($products) . '|' . $newDays);
+        $cache = rtrim(sys_get_temp_dir(), '/\\') . DIRECTORY_SEPARATOR . 'wwi_megatag_' . $sig . '.json';
+        if (is_file($cache) && (time() - filemtime($cache)) < 3600) {
+            $c = json_decode((string)@file_get_contents($cache), true);
+            if (is_array($c) && isset($c['categories'])) return $c;
+        }
         $now = time();
         $cats = [];
         foreach ($products as $p) {
@@ -260,7 +277,9 @@ class MegaMenuService
             foreach ($node['models'] as $x) $index[] = ['l' => 4, 'c' => (string)$c['name'], 'n' => $x['name'], 'u' => $x['url']];
         }
         usort($out, fn($a, $b) => $b['count'] <=> $a['count']);
-        return ['categories' => $out, 'index' => $index, 'stats' => ['products' => count($products), 'categories' => count($out)]];
+        $result = ['categories' => $out, 'index' => $index, 'stats' => ['products' => count($products), 'categories' => count($out)]];
+        @file_put_contents($cache, json_encode($result, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+        return $result;
     }
 
     private function slugify(string $s): string
