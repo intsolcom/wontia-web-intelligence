@@ -46,6 +46,16 @@ class CartController
         Response::json(['ok' => true, 'data' => (new StoreCouponService())->validate($code, $sub)]);
     }
 
+    public function reserve(Request $req): void
+    {
+        if (!$this->rateLimit($req, 'res', 60)) return;
+        $token = (string)$req->input('token', '');
+        $items = (array)$req->input('items', []);
+        $s = (new \App\Services\StoreService())->settings();
+        $ttl = max(5, min(120, (int)($s['store_reservation_minutes'] ?? 20) ?: 20));
+        Response::json(['ok' => true, 'data' => (new \App\Services\ReservationService())->reserve($token, $items, $ttl)]);
+    }
+
     public function sync(Request $req): void
     {
         if (!$this->rateLimit($req, 'sync', 60)) return;

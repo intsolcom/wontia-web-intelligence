@@ -15,6 +15,7 @@ class StoreService
         'store_reviews_auto_approve', 'store_reviews_require_purchase',
         'store_loyalty_enabled', 'store_loyalty_points_per_1000', 'store_loyalty_redeem_cents',
         'store_currencies',
+        'store_recovery_enabled', 'store_recovery_hours', 'store_reservation_minutes',
     ];
 
     public const PAYMENT_METHODS = ['wompi', 'cod', 'manual'];

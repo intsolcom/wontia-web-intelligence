@@ -182,6 +182,7 @@ $router->post('/api/v1/public/banner/event', [\App\Controllers\BannerEventContro
 $router->post('/api/v1/public/cart/validate', [\App\Controllers\CartController::class, 'validate']);
 $router->post('/api/v1/public/cart/coupon', [\App\Controllers\CartController::class, 'coupon']);
 $router->post('/api/v1/public/cart/sync', [\App\Controllers\CartController::class, 'sync']);
+$router->post('/api/v1/public/cart/reserve', [\App\Controllers\CartController::class, 'reserve']);
 $router->post('/api/v1/public/variants/{id}/track', function ($request, $id) {
     $type = (string)$request->input('type', 'view');
     $ok = (new \App\Services\LiveEditorService())->variantTrack((int)$id, $type);

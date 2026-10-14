@@ -21,4 +21,10 @@ try {
 } catch (\Throwable $e) {
     $result['favorites_alerts'] = ['error' => $e->getMessage()];
 }
+try {
+    $result['reservations_expired'] = (new \App\Services\ReservationService())->expire();
+    $result['cart_recovery'] = (new \App\Services\CartRecoveryService())->runIfDue(60);
+} catch (\Throwable $e) {
+    $result['cart_recovery'] = ['error' => $e->getMessage()];
+}
 echo json_encode($result, JSON_UNESCAPED_UNICODE) . "\n";
