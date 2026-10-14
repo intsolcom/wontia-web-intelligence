@@ -47,6 +47,14 @@ class MegaMenuWidget extends Widget
             ['key' => 'popular', 'label' => 'Mostrar “Populares ahora”', 'type' => 'toggle', 'default' => true],
             ['key' => 'popular_title', 'label' => 'Título de populares', 'type' => 'text', 'default' => 'Populares ahora'],
             ['key' => 'popular_limit', 'label' => 'Nº de populares', 'type' => 'number', 'default' => 8],
+            ['key' => 'show_info', 'label' => 'Incluir nodo “Información” (páginas publicadas)', 'type' => 'toggle', 'default' => true],
+            ['key' => 'info_label', 'label' => 'Etiqueta del nodo Información', 'type' => 'text', 'default' => 'Información'],
+            ['key' => 'info_icon', 'label' => 'Ícono del nodo Información', 'type' => 'text', 'default' => '📄'],
+            ['key' => 'category_overrides', 'label' => 'Renombrar categorías (override: slug o nombre → nuevo nombre/ícono)', 'type' => 'repeater', 'default' => [], 'fields' => [
+                ['key' => 'match', 'label' => 'Categoría (slug o nombre)', 'type' => 'text'],
+                ['key' => 'label', 'label' => 'Nuevo nombre', 'type' => 'text'],
+                ['key' => 'icon', 'label' => 'Ícono', 'type' => 'text'],
+            ]],
             ['key' => 'footer_links', 'label' => 'Enlaces inferiores', 'type' => 'repeater', 'default' => [], 'fields' => [
                 ['key' => 'label', 'label' => 'Etiqueta', 'type' => 'text'],
                 ['key' => 'url', 'label' => 'URL', 'type' => 'text'],
@@ -68,6 +76,7 @@ class MegaMenuWidget extends Widget
             'show_view_all' => true, 'show_badges' => true, 'show_images' => true, 'hide_empty' => true, 'mobile_drill' => true,
             'transition_ms' => 200, 'promo_enabled' => false, 'promo_image' => '', 'promo_alt' => '', 'promo_href' => '',
             'popular' => true, 'popular_title' => 'Populares ahora', 'popular_limit' => 8, 'category_promos' => [],
+            'show_info' => true, 'info_label' => 'Información', 'info_icon' => '📄', 'category_overrides' => [],
             'footer_links' => [],
         ];
     }
@@ -80,6 +89,11 @@ class MegaMenuWidget extends Widget
         $products = function_exists('sonika_products') ? sonika_products() : null;
         $tree = (new MegaMenuService())->tree([], $products);
         $nodes = $tree['categories'] ?? [];
+        $nodes = $this->applyOverrides($nodes, (array)($cfg['category_overrides'] ?? []));
+        if (!empty($cfg['show_info'])) {
+            $info = $this->infoNode((string)($cfg['info_label'] ?? 'Información'), (string)($cfg['info_icon'] ?? '📄'));
+            if ($info) $nodes[] = $info;
+        }
         if (!$nodes) return '';
 
         $width = max(220, min(520, (int)($cfg['width'] ?? 300)));
@@ -223,6 +237,59 @@ class MegaMenuWidget extends Widget
             return ['image' => (string)$cfg['promo_image'], 'alt' => (string)($cfg['promo_alt'] ?? ''), 'href' => (string)($cfg['promo_href'] ?? '')];
         }
         return null;
+    }
+
+    private function applyOverrides(array $nodes, array $rows): array
+    {
+        if (!$rows) return $nodes;
+        $map = [];
+        foreach ($rows as $r) {
+            if (!is_array($r)) continue;
+            $k = strtolower(trim((string)($r['match'] ?? '')));
+            if ($k === '') continue;
+            $map[$k] = ['label' => trim((string)($r['label'] ?? '')), 'icon' => trim((string)($r['icon'] ?? ''))];
+        }
+        if (!$map) return $nodes;
+        foreach ($nodes as &$n) {
+            foreach ([strtolower((string)($n['slug'] ?? '')), strtolower((string)($n['name'] ?? ''))] as $k) {
+                if ($k !== '' && isset($map[$k])) {
+                    if ($map[$k]['label'] !== '') $n['name'] = $map[$k]['label'];
+                    if ($map[$k]['icon'] !== '') $n['icon'] = $map[$k]['icon'];
+                    break;
+                }
+            }
+        }
+        unset($n);
+        return $nodes;
+    }
+
+    private function infoNode(string $label, string $icon): ?array
+    {
+        $pages = $this->publishedPages();
+        if (!$pages) return null;
+        $items = [];
+        foreach ($pages as $p) $items[] = ['name' => $p['title'], 'url' => $p['url']];
+        return [
+            'slug' => 'informacion', 'name' => $label, 'kind' => 'Página', 'icon' => $icon, 'subtitle' => '',
+            'url' => (string)($items[0]['url'] ?? '#'), 'count' => count($items), 'badge_new' => false, 'badge_offer' => false,
+            'types' => $items, 'brands' => [], 'models' => [], 'level5' => [], 'kinds' => [2 => 'Página'], 'prices' => [],
+        ];
+    }
+
+    private function publishedPages(): array
+    {
+        $out = [];
+        try {
+            $st = \App\Core\Database::instance()->prepare("SELECT title, slug FROM pages WHERE site_id = @site_id AND status = 'published' ORDER BY title ASC LIMIT 40");
+            $st->execute();
+            foreach ($st->fetchAll() as $r) {
+                $slug = trim((string)($r['slug'] ?? ''));
+                if ($slug === '') continue;
+                $out[] = ['title' => (string)($r['title'] ?? $slug), 'url' => '/' . ltrim($slug, '/')];
+            }
+        } catch (\Throwable $e) {
+        }
+        return $out;
     }
 
     private function column(string $title, array $items, ?string $viewAllUrl, bool $showAll): string
