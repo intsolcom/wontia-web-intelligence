@@ -347,7 +347,7 @@ if (!function_exists('sonika_site_head')) {
     <?= SeoService::metaTags($pageMeta) ?>
     <?php if (($__fav = wwi_favicon_links()) !== '') { echo $__fav; } else { echo '<link rel="icon" type="image/png" href="/assets/themes/sonika/isotipo.png">'; } ?>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Sora:wght@600;700;800&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <style><?= sonika_css() ?></style>
 </head>
 <body>
@@ -509,14 +509,14 @@ if (!function_exists('sonika_css')) {
     function sonika_css(): string {
         return <<<'CSS'
         *{box-sizing:border-box;margin:0;padding:0}
-        :root{--ink:#111111;--muted:#777777;--line:#E6E6E6;--soft:#F5F5F5;--brand:#F20D16;--brand2:#C70A12;--accent:#F20D16;--ok:#0E9F6E;--radius:12px}
-        body{font-family:'Inter',system-ui,sans-serif;color:var(--ink);background:#fff;-webkit-font-smoothing:antialiased}
+        :root{--ink:#111111;--muted:#777777;--line:#E6E6E6;--soft:#F5F5F5;--brand:#F20D16;--brand2:#C70A12;--accent:#F20D16;--ok:#0E9F6E;--radius:12px;--font-body:'Sora',system-ui,sans-serif;--font-display:'Sora',system-ui,sans-serif}
+        body{font-family:var(--font-body);color:var(--ink);background:#fff;-webkit-font-smoothing:antialiased}
         a{color:inherit;text-decoration:none}
         .wrap{max-width:1180px;margin:0 auto;padding:0 22px}
         .topbar{background:#111111;color:#fff;font-size:12.5px;text-align:center;padding:8px 12px;font-weight:600;letter-spacing:.01em}
         header.site{position:sticky;top:0;z-index:80;background:rgba(255,255,255,.92);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
         .nav{display:flex;align-items:center;gap:20px;padding:14px 0}
-        .logo{display:flex;align-items:center;gap:10px;font-family:'Sora',sans-serif;font-weight:800;font-size:21px;letter-spacing:-.02em}
+        .logo{display:flex;align-items:center;gap:10px;font-family:var(--font-display);font-weight:800;font-size:21px;letter-spacing:-.02em}
         .logo .mark{width:36px;height:36px;border-radius:11px;background:linear-gradient(135deg,var(--brand),var(--brand2));display:flex;align-items:center;justify-content:center;color:#fff;font-size:19px;box-shadow:0 6px 18px rgba(242,13,22,.35)}
         .logo-img{height:34px;width:auto;display:block}
         .search{flex:1;display:flex;align-items:center;gap:8px;background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:10px 14px;min-width:140px}
@@ -530,7 +530,7 @@ if (!function_exists('sonika_css')) {
         .cats a:hover{color:var(--ink);border-color:var(--brand)}
         .hero{overflow:hidden;background:radial-gradient(1200px 500px at 80% -10%,#FFEAEA 0%,#fff 55%);border-bottom:1px solid var(--line)}
         .hero-in{display:grid;grid-template-columns:1.1fr .9fr;gap:40px;align-items:center;padding:64px 0}
-        .hero h1{font-family:'Sora',sans-serif;font-size:48px;line-height:1.05;letter-spacing:-.03em;font-weight:800}
+        .hero h1{font-family:var(--font-display);font-size:48px;line-height:1.05;letter-spacing:-.03em;font-weight:800}
         .hero h1 em{font-style:normal;background:linear-gradient(120deg,var(--brand),var(--brand2));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
         .hero p{margin:18px 0 26px;color:var(--muted);font-size:17px;max-width:520px;line-height:1.6}
         .cta{display:inline-flex;align-items:center;gap:10px;background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;padding:15px 30px;border-radius:13px;font-weight:700;box-shadow:0 12px 30px rgba(242,13,22,.32)}
@@ -542,7 +542,7 @@ if (!function_exists('sonika_css')) {
         .trust b{color:var(--ink)}
         section.pad{padding:48px 0}
         .head{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:26px;gap:12px;flex-wrap:wrap}
-        .head h1,.head h2{font-family:'Sora',sans-serif;font-size:30px;letter-spacing:-.02em}
+        .head h1,.head h2{font-family:var(--font-display);font-size:30px;letter-spacing:-.02em}
         .head a{color:var(--brand);font-weight:600;font-size:14px}
         .crumb{font-size:13px;color:var(--muted);padding:18px 22px 0;max-width:1180px;margin:0 auto}
         .crumb a:hover{color:var(--brand)}.crumb span{color:#9CA3AF}
@@ -567,12 +567,12 @@ if (!function_exists('sonika_css')) {
         .add:hover{background:var(--brand)}
         .empty{padding:40px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:var(--radius)}
         .band{background:linear-gradient(120deg,#111111,#C70A12);color:#fff;border-radius:22px;padding:42px;display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap}
-        .band h2{font-family:'Sora',sans-serif;font-size:28px;letter-spacing:-.02em}.band p{color:#FFD9DB;margin-top:8px;max-width:520px}
+        .band h2{font-family:var(--font-display);font-size:28px;letter-spacing:-.02em}.band p{color:#FFD9DB;margin-top:8px;max-width:520px}
         .pdp{display:grid;grid-template-columns:1.05fr .95fr;gap:44px;padding:28px 0 10px}
         .pdp-gallery{border:1px solid var(--line);border-radius:20px;overflow:hidden;background:#F8F8FB;aspect-ratio:1;display:flex;align-items:center;justify-content:center}
         .pdp-gallery img{width:100%;height:100%;object-fit:contain;mix-blend-mode:multiply}
         .pdp-vendor{font-size:12px;font-weight:700;letter-spacing:.08em;color:var(--brand);text-transform:uppercase}
-        .pdp h1{font-family:'Sora',sans-serif;font-size:32px;line-height:1.15;letter-spacing:-.02em;margin:8px 0 14px}
+        .pdp h1{font-family:var(--font-display);font-size:32px;line-height:1.15;letter-spacing:-.02em;margin:8px 0 14px}
         .pdp .price{font-size:30px}
         .pdp .meta{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0 20px}
         .chip{font-size:12px;font-weight:600;padding:6px 12px;border-radius:20px;background:var(--soft);border:1px solid var(--line)}
@@ -583,7 +583,7 @@ if (!function_exists('sonika_css')) {
         .qty input{width:46px;height:46px;border:none;text-align:center;font-size:15px;font-family:inherit}
         .btn-buy{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;border:none;border-radius:12px;padding:14px 34px;font-weight:700;font-size:15px;cursor:pointer;box-shadow:0 10px 26px rgba(242,13,22,.3)}
         .pdp-desc{margin-top:34px;padding-top:26px;border-top:1px solid var(--line)}
-        .pdp-desc h3{font-family:'Sora',sans-serif;font-size:18px;margin-bottom:12px}
+        .pdp-desc h3{font-family:var(--font-display);font-size:18px;margin-bottom:12px}
         .pdp-desc p{margin:10px 0;line-height:1.7;color:#374151}
         .pdp-desc ul{margin:10px 0 10px 20px;line-height:1.7;color:#374151}
         .toolbar{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:18px}
