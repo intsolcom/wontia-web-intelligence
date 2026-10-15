@@ -57,6 +57,16 @@ class MegaMenuWidget extends Widget
                 ['key' => 'label', 'label' => 'Nuevo nombre', 'type' => 'text'],
                 ['key' => 'icon', 'label' => 'Ícono', 'type' => 'text'],
             ]],
+            ['key' => 'banner_enabled', 'label' => 'Mostrar banner inferior', 'type' => 'toggle', 'default' => true],
+            ['key' => 'banner_title', 'label' => 'Banner inferior: título', 'type' => 'text', 'default' => 'Descubre todo lo que SONIKA tiene para ti.'],
+            ['key' => 'banner_text', 'label' => 'Banner inferior: texto', 'type' => 'text', 'default' => 'Explora nuestro catálogo de instrumentos y equipos musicales.'],
+            ['key' => 'banner_button', 'label' => 'Banner inferior: texto del botón', 'type' => 'text', 'default' => 'Explorar catálogo'],
+            ['key' => 'banner_href', 'label' => 'Banner inferior: enlace', 'type' => 'text', 'default' => '/tienda'],
+            ['key' => 'banner_image', 'label' => 'Banner inferior: imagen de fondo (opcional)', 'type' => 'image', 'default' => ''],
+            ['key' => 'brand_logos', 'label' => 'Logotipos de marca (marca → imagen)', 'type' => 'repeater', 'default' => [], 'fields' => [
+                ['key' => 'brand', 'label' => 'Marca', 'type' => 'text'],
+                ['key' => 'image', 'label' => 'Logotipo', 'type' => 'image'],
+            ]],
             ['key' => 'footer_links', 'label' => 'Enlaces inferiores', 'type' => 'repeater', 'default' => [], 'fields' => [
                 ['key' => 'label', 'label' => 'Etiqueta', 'type' => 'text'],
                 ['key' => 'url', 'label' => 'URL', 'type' => 'text'],
@@ -83,6 +93,7 @@ class MegaMenuWidget extends Widget
             'transition_ms' => 200, 'promo_enabled' => false, 'promo_image' => '', 'promo_alt' => '', 'promo_href' => '',
             'popular' => true, 'popular_title' => 'Populares ahora', 'popular_limit' => 8, 'category_promos' => [],
             'show_info' => false, 'info_label' => 'Información', 'info_icon' => '📄', 'category_overrides' => [],
+            'banner_enabled' => true, 'banner_title' => 'Descubre todo lo que SONIKA tiene para ti.', 'banner_text' => 'Explora nuestro catálogo de instrumentos y equipos musicales.', 'banner_button' => 'Explorar catálogo', 'banner_href' => '/tienda', 'banner_image' => '', 'brand_logos' => [],
             'footer_links' => [],
         ];
     }
@@ -104,9 +115,6 @@ class MegaMenuWidget extends Widget
         $maxCat = (int)($cfg['max_categories'] ?? 40);
         if ($maxCat > 0 && count($nodes) > $maxCat) {
             $nodes = array_slice($nodes, 0, $maxCat);
-            $shown = [];
-            foreach ($nodes as $n) $shown[strtolower((string)$n['name'])] = 1;
-            $tree['index'] = array_values(array_filter((array)($tree['index'] ?? []), fn($e) => isset($shown[strtolower((string)($e['c'] ?? ''))])));
         }
         if (!$nodes) return '';
 
@@ -125,6 +133,7 @@ class MegaMenuWidget extends Widget
         $popularTitle = (string)($cfg['popular_title'] ?? 'Populares ahora');
         $popular = !empty($cfg['popular']) ? $this->popularSearches(max(1, min(20, (int)($cfg['popular_limit'] ?? 8)))) : [];
         $promoMap = $this->promoMap((array)($cfg['category_promos'] ?? []));
+        $brandLogos = $this->brandLogoMap((array)($cfg['brand_logos'] ?? []));
 
         $vars = '--mn-w:' . $width . 'px;--mn-head:' . $headColor . ';--mn-head-txt:' . $headText . ';--mn-maxcol:' . $maxCols . ';--mn-ms:' . $trans . 'ms';
 
@@ -221,7 +230,8 @@ class MegaMenuWidget extends Widget
             if (!empty($n['brands'])) {
                 $h .= '<div class="mn-block mn-block--brands"><div class="mn-block__t">Comprar por marca</div><div class="mn-brands">';
                 foreach (array_slice($n['brands'], 0, 10) as $b) {
-                    $h .= '<a class="mn-brand" href="' . $this->esc($b['url']) . '"><b>' . $this->esc($b['name']) . '</b>' . (isset($b['count']) ? '<span>' . (int)$b['count'] . '</span>' : '') . '</a>';
+                    $lg = $brandLogos[strtolower((string)$b['name'])] ?? '';
+                    $h .= '<a class="mn-brand" href="' . $this->esc($b['url']) . '">' . ($lg !== '' ? '<img class="mn-brand__logo" src="' . $this->esc($lg) . '" alt="' . $this->esc($b['name']) . '" loading="lazy"/>' : '<b>' . $this->esc($b['name']) . '</b>') . (isset($b['count']) ? '<span>' . (int)$b['count'] . '</span>' : '') . '</a>';
                 }
                 $h .= '</div></div>';
             }
@@ -230,7 +240,14 @@ class MegaMenuWidget extends Widget
                 foreach ($n['prices'] as $pr) $h .= '<a class="mn-chip" href="' . $this->esc($pr['url']) . '">' . $this->esc($pr['name']) . '</a>';
                 $h .= '</div></div>';
             }
-            $h .= '<a class="mn-banner" href="/tienda"><b>Descubre todo lo que SONIKA tiene para ti.</b><span>Explora nuestro catálogo de instrumentos y equipos musicales.</span><em>Explorar catálogo &#8250;</em></a>';
+            if (!empty($cfg['banner_enabled']) && trim((string)($cfg['banner_title'] ?? '')) !== '') {
+                $bimg = trim((string)($cfg['banner_image'] ?? ''));
+                $h .= '<a class="mn-banner' . ($bimg !== '' ? ' has-img' : '') . '" href="' . $this->esc((string)($cfg['banner_href'] ?? '/tienda')) . '"' . ($bimg !== '' ? ' style="--mn-banner-img:url(\'' . $this->esc($bimg) . '\')"' : '') . '>'
+                    . '<b>' . $this->esc((string)$cfg['banner_title']) . '</b>'
+                    . (trim((string)($cfg['banner_text'] ?? '')) !== '' ? '<span>' . $this->esc((string)$cfg['banner_text']) . '</span>' : '')
+                    . (trim((string)($cfg['banner_button'] ?? '')) !== '' ? '<em>' . $this->esc((string)$cfg['banner_button']) . ' &#8250;</em>' : '')
+                    . '</a>';
+            }
             $h .= '</div></div>';
         }
         $h .= '</section>';
@@ -357,31 +374,16 @@ class MegaMenuWidget extends Widget
         return $out;
     }
 
-    private function column(string $title, array $items, ?string $viewAllUrl, bool $showAll): string
+    private function brandLogoMap(array $rows): array
     {
-        $h = '<div class="mn-col"><h4 class="mn-col__t">' . $this->esc($title) . '</h4><ul class="mn-col__list">';
-        foreach ($items as $it) {
-            $name = (string)($it['name'] ?? '');
-            $url = (string)($it['url'] ?? '#');
-            $cnt = isset($it['count']) ? ' <span class="mn-col__c">' . (int)$it['count'] . '</span>' : '';
-            $h .= '<li><a href="' . $this->esc($url) . '">' . $this->esc($name) . $cnt . '</a></li>';
+        $m = [];
+        foreach ($rows as $r) {
+            if (!is_array($r)) continue;
+            $b = strtolower(trim((string)($r['brand'] ?? '')));
+            $img = trim((string)($r['image'] ?? ''));
+            if ($b !== '' && $img !== '') $m[$b] = $img;
         }
-        if ($showAll && $viewAllUrl) $h .= '<li><a class="mn-col__all" href="' . $this->esc($viewAllUrl) . '">Ver todo &#8250;</a></li>';
-        return $h . '</ul></div>';
-    }
-
-    private function fallbackCategories(): array
-    {
-        $svc = new MegaMenuService();
-        $out = [];
-        foreach ($svc->catalog() as $p) {
-            $t = trim((string)($p['product_type'] ?? ''));
-            if ($t === '') continue;
-            $slug = strtolower(preg_replace('/[^a-z0-9]+/i', '-', $t));
-            if (isset($out[$slug])) continue;
-            $out[$slug] = ['slug' => $slug, 'name' => ucfirst($t), 'icon' => '', 'tags' => '', 'kw' => [strtoupper($t)]];
-        }
-        return array_values($out);
+        return $m;
     }
 
     private function safeLinks(array $rows): array
@@ -489,10 +491,12 @@ class MegaMenuWidget extends Widget
 .mn-brand{display:inline-flex;align-items:center;gap:8px;text-decoration:none;color:var(--ink,#111);border:1px solid var(--line,#ECECEC);border-radius:10px;padding:8px 12px;font-size:12.5px;font-weight:700}
 .mn-brand:hover{border-color:var(--brand,#F20D16);color:var(--brand,#F20D16)}
 .mn-brand span{color:var(--muted,#999);font-weight:600;font-size:11px}
+.mn-brand__logo{height:20px;width:auto;max-width:84px;display:block;object-fit:contain}
 .mn-chips{display:flex;flex-wrap:wrap;gap:6px}
 .mn-mega .mn-chip{font-size:12px;padding:5px 11px;border-radius:999px;background:var(--soft,#F5F5F5);color:var(--ink,#222);text-decoration:none}
 .mn-mega .mn-chip:hover{background:var(--brand,#F20D16);color:#fff}
 .mn-banner{display:flex;flex-direction:column;gap:4px;margin:14px 24px 0;padding:16px 18px;border-radius:14px;background:linear-gradient(120deg,#111,#2b2b2b);color:#fff;text-decoration:none}
+.mn-banner.has-img{background-image:var(--mn-banner-img);background-size:cover;background-position:center;box-shadow:inset 0 0 0 2000px rgba(0,0,0,.55)}
 .mn-banner b{font-family:var(--font-display,Sora),sans-serif;font-size:15px}
 .mn-banner span{font-size:12.5px;opacity:.85}
 .mn-banner em{margin-top:8px;align-self:flex-start;font-style:normal;font-weight:800;font-size:12px;background:var(--brand,#F20D16);padding:7px 14px;border-radius:999px}
