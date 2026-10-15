@@ -575,6 +575,8 @@ $r->delete('/media/{id}/purge', [\App\Controllers\Admin\MediaController::class, 
     $r->post('/nav/items', [\App\Controllers\Admin\NavController::class, 'saveItem']);
     $r->delete('/nav/items/{id}', [\App\Controllers\Admin\NavController::class, 'deleteItem']);
     $r->post('/nav/reorder', [\App\Controllers\Admin\NavController::class, 'reorder']);
+$r->get('/nav/style', [\App\Controllers\Admin\NavController::class, 'style']);
+$r->post('/nav/style', [\App\Controllers\Admin\NavController::class, 'saveStyle']);
 
     $r->get('/agent-bridge', [\App\Controllers\Admin\AgentBridgeController::class, 'index']);
     $r->get('/agent-bridge/export', [\App\Controllers\Admin\AgentBridgeController::class, 'export']);
