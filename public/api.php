@@ -310,6 +310,16 @@ $r->delete('/trash/{id}', [\App\Controllers\Admin\SectionController::class, 'tra
     // Robot de escaneo de seguridad
     $r->get('/security/scan', [\App\Controllers\Admin\SecurityScanController::class, 'report']);
     $r->post('/security/scan', [\App\Controllers\Admin\SecurityScanController::class, 'scan']);
+
+    // SONIKA HERO BUILDER
+    $r->get('/hero', [\App\Controllers\Admin\HeroController::class, 'index']);
+    $r->post('/hero/slides', [\App\Controllers\Admin\HeroController::class, 'save']);
+    $r->delete('/hero/slides/{id}', [\App\Controllers\Admin\HeroController::class, 'delete']);
+    $r->post('/hero/slides/{id}/duplicate', [\App\Controllers\Admin\HeroController::class, 'duplicate']);
+    $r->post('/hero/slides/{id}/publish', [\App\Controllers\Admin\HeroController::class, 'publish']);
+    $r->get('/hero/slides/{id}/versions', [\App\Controllers\Admin\HeroController::class, 'versions']);
+    $r->post('/hero/versions/{id}/restore', [\App\Controllers\Admin\HeroController::class, 'restore']);
+    $r->post('/hero/reorder', [\App\Controllers\Admin\HeroController::class, 'reorder']);
     $r->get('/bricks/{type}/preview', [\App\Controllers\Admin\BrickController::class, 'preview']);
     $r->get('/bricks/{type}/ratings', [\App\Controllers\Admin\BrickController::class, 'ratings']);
     $r->post('/bricks/{type}/rate', [\App\Controllers\Admin\BrickController::class, 'rate']);
