@@ -27,6 +27,7 @@ Si un agente de sitio necesita una capacidad nueva de plataforma → **NO la cod
 | MarcasBPO | 2 | `agent-bridges/marcasbpo.md` |
 | INTSOLCOM | 13 | `agent-bridges/intsolcom.md` |
 | IA Annotation | 3 | `agent-bridges/iannma.md` |
+| Wontia Medical | 14 | `agent-bridges/wontia-medical.md` |
 | Panadería / Cafetería / demos | 6/9/10 | `agent-bridges/<slug>.md` |
 
 Cada agente escribe y lee **solo el archivo de su sitio**; el Head Team Leader lee/escribe cualquiera.
