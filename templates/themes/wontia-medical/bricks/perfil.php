@@ -22,6 +22,15 @@ $apiBase = medical_api_base();
         WM.el('div', { class: 'wm-item' }, ['Idioma', d.user.locale]),
         WM.el('div', { class: 'wm-item' }, ['Roles', (d.user.roles || []).join(', ')])
       ];
+      if (d.professional) {
+        var estado = d.professional.verified
+          ? 'Verificado'
+          : (d.professional.status === 'rejected' ? 'Rechazado' : 'Pendiente de verificacion');
+        rows.push(WM.el('div', { class: 'wm-item' }, ['Estado profesional', estado]));
+        if (!d.professional.verified && d.professional.status !== 'rejected') {
+          rows.push(WM.el('p', { class: 'wm-note' }, 'Tu cuenta profesional esta en revision. Un administrador validara tus credenciales.'));
+        }
+      }
       var logout = WM.el('button', { class: 'wm-btn wm-btn-ghost', onClick: function () {
         WM.api('/api/v1/auth/logout', { method: 'POST' }).catch(function () {}).finally(function () {
           WM.setToken(null);
