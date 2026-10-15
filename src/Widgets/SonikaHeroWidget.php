@@ -11,6 +11,7 @@ use App\Services\HeroService;
 class SonikaHeroWidget extends Widget
 {
     private static bool $assets = false;
+    private static bool $guitarIncluded = false;
 
     public static function meta(): array
     {
@@ -117,9 +118,56 @@ class SonikaHeroWidget extends Widget
                 if (!empty($d['title'])) $h .= '<h3>' . $this->esc($d['title']) . '</h3>';
                 if (!empty($d['text'])) $h .= '<p>' . $this->esc($d['text']) . '</p>';
                 return $h . $this->ctas($d) . '</div>';
+            case 'guitar':
+                return $this->guitarBlock($d);
             default:
                 return '<div class="sh-inst"><div class="sh-inst__ph"><span aria-hidden="true">&#127928;</span><b>Instrumento interactivo</b><small>Disponible próximamente</small></div></div>';
         }
+    }
+
+    private function guitarBlock(array $d): string
+    {
+        $h = '<div class="sh-guitar" data-wwi-instrument="guitar" data-profile="clean" role="group" aria-label="Guitarra eléctrica interactiva" tabindex="0">';
+        $h .= '<div class="sh-guitar__neck">';
+        for ($i = 0; $i < 6; $i++) $h .= '<button type="button" class="sh-string" data-string="' . $i . '" aria-label="Tocar cuerda ' . ($i + 1) . '" title="Cuerda ' . ($i + 1) . '"></button>';
+        $h .= '</div>';
+        $h .= '<div class="sh-guitar__profiles" role="group" aria-label="Perfil de sonido">';
+        foreach (['clean' => 'Clean', 'overdrive' => 'Overdrive', 'distortion' => 'Distortion', 'fuzz' => 'Fuzz'] as $k => $lbl) {
+            $h .= '<button type="button" class="sh-prof' . ($k === 'clean' ? ' on' : '') . '" data-profile="' . $k . '">' . $lbl . '</button>';
+        }
+        $h .= '</div>';
+        $h .= '<p class="sh-guitar__hint">Toca las cuerdas (clic/tap) o usa las teclas <b>1–6</b>. El sonido se activa con la primera interacción.</p>';
+        $p = $this->findGuitar();
+        if ($p) {
+            $img = function_exists('sonika_img') ? sonika_img($p, 420) : '';
+            $price = function_exists('sonika_price') ? (float)sonika_price($p) : 0;
+            $h .= '<a class="sh-guitar__prod" href="/producto/' . $this->esc((string)($p['handle'] ?? '')) . '">';
+            if ($img !== '') $h .= '<img src="' . $this->esc($img) . '" alt="' . $this->esc((string)($p['title'] ?? '')) . '" loading="lazy" decoding="async"/>';
+            $h .= '<span><b>' . $this->esc((string)($p['title'] ?? '')) . '</b>' . ($price > 0 && function_exists('sonika_cop') ? '<em>' . $this->esc(sonika_cop($price)) . '</em>' : '') . '</span></a>';
+        }
+        $h .= '</div>';
+        return $h . $this->guitarAssets();
+    }
+
+    private function findGuitar(): ?array
+    {
+        if (!function_exists('sonika_products')) return null;
+        $best = null;
+        foreach (sonika_products() as $p) {
+            $t = strtoupper((string)($p['title'] ?? ''));
+            if (str_contains($t, 'GUITARRA')) {
+                if (str_contains($t, 'ELECTRIC')) return $p;
+                if (!$best) $best = $p;
+            }
+        }
+        return $best;
+    }
+
+    private function guitarAssets(): string
+    {
+        if (self::$guitarIncluded) return '';
+        self::$guitarIncluded = true;
+        return '<script defer src="/assets/js/instruments/guitar.js"></script><script>document.addEventListener("DOMContentLoaded",function(){document.querySelectorAll("[data-wwi-instrument=guitar]").forEach(function(r){if(window.WWIInstruments&&WWIInstruments.guitar)WWIInstruments.guitar.init(r);});});</script>';
     }
 
     private function ctas(array $d): string
@@ -162,6 +210,21 @@ class SonikaHeroWidget extends Widget
 .sh-inst{display:flex;align-items:center;justify-content:center;height:100%}
 .sh-inst__ph{display:flex;flex-direction:column;align-items:center;gap:6px;padding:28px;border:1px dashed rgba(255,255,255,.3);border-radius:16px;text-align:center;opacity:.85}
 .sh-inst__ph span{font-size:40px}
+.sh-guitar{display:flex;flex-direction:column;gap:12px;max-width:420px}
+.sh-guitar__neck{position:relative;display:flex;flex-direction:column;gap:10px;padding:16px;background:linear-gradient(180deg,#2a2a2a,#111);border-radius:14px;border:1px solid rgba(255,255,255,.12)}
+.sh-guitar__neck::before{content:'';position:absolute;inset:14px;border-radius:8px;background:repeating-linear-gradient(90deg,transparent 0 34px,rgba(255,255,255,.06) 34px 35px);pointer-events:none}
+.sh-string{position:relative;z-index:1;height:8px;border:0;border-radius:999px;background:linear-gradient(90deg,#cfcfcf,#9a9a9a);box-shadow:0 1px 2px rgba(0,0,0,.4);cursor:pointer;transition:transform .08s,filter .12s}
+.sh-string:hover{filter:brightness(1.25)}
+.sh-string.on{transform:scaleY(1.35);filter:brightness(1.6)}
+.sh-string:focus-visible{outline:2px solid var(--brand,#F20D16);outline-offset:2px}
+.sh-guitar__profiles{display:flex;gap:6px;flex-wrap:wrap}
+.sh-prof{border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.06);color:#fff;border-radius:999px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer}
+.sh-prof.on{background:var(--brand,#F20D16);border-color:var(--brand,#F20D16)}
+.sh-guitar__hint{font-size:11.5px;opacity:.75}
+.sh-guitar__prod{display:flex;gap:10px;align-items:center;color:#fff;text-decoration:none;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);border-radius:12px;padding:8px}
+.sh-guitar__prod img{width:52px;height:52px;object-fit:cover;border-radius:8px}
+.sh-guitar__prod em{display:block;font-style:normal;font-weight:800;color:#ffd9db}
+html[data-cap="low"] .sh-guitar__neck{pointer-events:none;opacity:.6}
 .sh-nav{position:absolute;top:50%;transform:translateY(-50%);z-index:3;width:40px;height:40px;border-radius:50%;border:1px solid rgba(255,255,255,.35);background:rgba(0,0,0,.35);color:#fff;font-size:20px;cursor:pointer}
 .sh-prev{left:12px}.sh-next{right:12px}
 .sh-dots{position:absolute;left:0;right:0;bottom:14px;display:flex;gap:8px;justify-content:center;z-index:3}
@@ -174,7 +237,8 @@ class SonikaHeroWidget extends Widget
 document.querySelectorAll('.sh').forEach(function(root){
  var slides=root.querySelectorAll('.sh-slide'),dots=root.querySelectorAll('.sh-dot'),i=0,n=slides.length,ap=parseInt(root.getAttribute('data-autoplay')||'0',10),t=null;
  if(n<2)return;
- function go(k){i=(k+n)%n;slides.forEach(function(s,j){s.classList.toggle('is-on',j===i);s.setAttribute('aria-hidden',j===i?'false':'true')});dots.forEach(function(d,j){d.classList.toggle('on',j===i)})}
+ function go(k){disposeSlide(slides[i]);i=(k+n)%n;slides.forEach(function(s,j){s.classList.toggle('is-on',j===i);s.setAttribute('aria-hidden',j===i?'false':'true')});dots.forEach(function(d,j){d.classList.toggle('on',j===i)})}
+ function disposeSlide(el){if(!el)return;el.querySelectorAll('[data-wwi-instrument]').forEach(function(inst){var id=inst.getAttribute('data-wwi-instrument');if(window.WWIInstruments&&WWIInstruments[id]&&WWIInstruments[id].dispose)try{WWIInstruments[id].dispose()}catch(e){}})}
  var next=root.querySelector('.sh-next'),prev=root.querySelector('.sh-prev');
  if(next)next.addEventListener('click',function(){go(i+1);stop()});
  if(prev)prev.addEventListener('click',function(){go(i-1);stop()});

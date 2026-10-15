@@ -16,7 +16,7 @@ class HeroService
         'video' => ['label' => 'Video personalizado', 'available' => true],
         'product' => ['label' => 'Producto del catálogo', 'available' => true],
         'combo' => ['label' => 'Combo o promoción', 'available' => true],
-        'guitar' => ['label' => 'Instrumento: Guitarra eléctrica', 'available' => false],
+        'guitar' => ['label' => 'Instrumento: Guitarra eléctrica', 'available' => true, 'engine' => 'guitar'],
         'piano' => ['label' => 'Instrumento: Piano Casio', 'available' => false],
         'bass' => ['label' => 'Instrumento: Bajo', 'available' => false],
         'drums' => ['label' => 'Instrumento: Batería', 'available' => false],
