@@ -31,6 +31,29 @@ $apiBase = medical_api_base();
           rows.push(WM.el('p', { class: 'wm-note' }, 'Tu cuenta profesional esta en revision. Un administrador validara tus credenciales.'));
         }
       }
+      var creds = null;
+      if (d.professional) {
+        var credList = WM.el('div', { class: 'wm-list' });
+        var cTitle = WM.el('input', { class: 'wm-input', placeholder: 'Titulo (ej. Tarjeta profesional)' });
+        var cContent = WM.el('textarea', { class: 'wm-input', placeholder: 'Detalle o numero de registro' });
+        var loadCreds = function () {
+          WM.api('/api/v1/professionals/me/credentials').then(function (r) {
+            credList.replaceChildren();
+            if (!r.credentials.length) { credList.append(WM.el('p', { class: 'wm-muted' }, 'Sin credenciales cargadas.')); return; }
+            r.credentials.forEach(function (c) {
+              credList.append(WM.el('div', { class: 'wm-item' }, [WM.el('span', {}, c.title), WM.el('span', { class: 'wm-badge' }, c.status)]));
+            });
+          }).catch(function (e) { err.textContent = e.message; });
+        };
+        var cBtn = WM.el('button', { class: 'wm-btn', onClick: function () {
+          if (!cTitle.value.trim() || !cContent.value.trim()) return;
+          WM.api('/api/v1/professionals/me/credentials', { method: 'POST', body: { title: cTitle.value, content: cContent.value } })
+            .then(function () { cTitle.value = ''; cContent.value = ''; loadCreds(); })
+            .catch(function (e) { err.textContent = e.message; });
+        } }, 'Subir credencial');
+        creds = WM.el('div', {}, [WM.el('h3', {}, 'Credenciales profesionales'), cTitle, cContent, cBtn, credList]);
+        loadCreds();
+      }
       var logout = WM.el('button', { class: 'wm-btn wm-btn-ghost', onClick: function () {
         WM.api('/api/v1/auth/logout', { method: 'POST' }).catch(function () {}).finally(function () {
           WM.setToken(null);
@@ -38,7 +61,7 @@ $apiBase = medical_api_base();
           WM.loginForm(host, function () { window.location.reload(); });
         });
       } }, 'Cerrar sesion');
-      out.replaceChildren(WM.el('div', { class: 'wm-list' }, rows), WM.el('div', { class: 'wm-row' }, [logout]), err);
+      out.replaceChildren(WM.el('div', { class: 'wm-list' }, rows), creds, WM.el('div', { class: 'wm-row' }, [logout]), err);
     }).catch(function (e) {
       err.textContent = e.message;
       host.replaceChildren(err);
