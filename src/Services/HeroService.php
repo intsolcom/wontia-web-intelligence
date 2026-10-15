@@ -141,6 +141,16 @@ class HeroService
         return $st->fetchAll();
     }
 
+    public function version(int $id): ?array
+    {
+        $st = Database::instance()->prepare("SELECT id, slide_id, data, created_by, created_at FROM wwi_hero_versions WHERE id = :id AND site_id = @site_id LIMIT 1");
+        $st->execute(['id' => $id]);
+        $v = $st->fetch();
+        if (!$v) return null;
+        $v['data'] = json_decode((string)$v['data'], true) ?: [];
+        return $v;
+    }
+
     public function restore(int $versionId): array
     {
         $st = Database::instance()->prepare("SELECT slide_id, data FROM wwi_hero_versions WHERE id = :id AND site_id = @site_id LIMIT 1");
