@@ -9,6 +9,10 @@ AnalyticsService::track($_SERVER['REQUEST_URI'], $_SERVER['HTTP_REFERER'] ?? '',
 sonika_site_head('SONIKA — Instrumentos Musicales', 'Compra instrumentos musicales, audio, iluminación y accesorios con envío a toda Colombia. Sonido profesional, precio justo.');
 ?>
 
+<?php $__heroBuilder = \App\Widgets\WidgetRegistry::render('sonika-hero', ['enabled' => 1]); ?>
+<?php if (trim($__heroBuilder) !== ''): ?>
+<?= $__heroBuilder ?>
+<?php else: ?>
 <div class="hero">
   <?php $bgv = trim((string)wwi_tc('sonika', 'hero_bg_video', '')); $bgp = trim((string)wwi_tc('sonika', 'hero_bg_poster', '')); if ($bgv !== ''): ?>
   <video class="hero-bg-video" autoplay muted loop playsinline preload="metadata"<?= $bgp !== '' ? ' poster="' . sonika_esc($bgp) . '"' : '' ?>><source src="<?= sonika_esc($bgv) ?>"></video>
@@ -35,6 +39,7 @@ sonika_site_head('SONIKA — Instrumentos Musicales', 'Compra instrumentos music
     </div>
   </div>
 </div>
+<?php endif; ?>
 
 <div class="wrap">
   <div class="trust">
