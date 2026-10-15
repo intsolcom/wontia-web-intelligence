@@ -107,6 +107,12 @@
 
   WM.ensureAuth = function (host, onReady) {
     if (WM.token()) { onReady(); return; }
+    if (window.WWISSO_TOKEN) {
+      WM.api('/api/v1/auth/sso', { method: 'POST', body: { token: window.WWISSO_TOKEN } })
+        .then(function (data) { WM.setToken(data.token); onReady(); })
+        .catch(function () { WM.loginForm(host, onReady); });
+      return;
+    }
     WM.loginForm(host, onReady);
   };
 
