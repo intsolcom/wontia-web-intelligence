@@ -45,5 +45,11 @@ class HeroController
 
     public function publish(Request $req, string $id): void { Response::json($this->svc()->publish((int)$id)); }
     public function versions(Request $req, string $id): void { Response::json(['ok' => true, 'data' => $this->svc()->versions((int)$id)]); }
+    public function version(Request $req, string $id): void
+    {
+        $v = $this->svc()->version((int)$id);
+        if (!$v) Response::error('Versión no encontrada', 404);
+        Response::json(['ok' => true, 'data' => $v]);
+    }
     public function restore(Request $req, string $id): void { Response::json($this->svc()->restore((int)$id)); }
 }

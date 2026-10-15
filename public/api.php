@@ -318,6 +318,7 @@ $r->delete('/trash/{id}', [\App\Controllers\Admin\SectionController::class, 'tra
     $r->post('/hero/slides/{id}/duplicate', [\App\Controllers\Admin\HeroController::class, 'duplicate']);
     $r->post('/hero/slides/{id}/publish', [\App\Controllers\Admin\HeroController::class, 'publish']);
     $r->get('/hero/slides/{id}/versions', [\App\Controllers\Admin\HeroController::class, 'versions']);
+    $r->get('/hero/versions/{id}', [\App\Controllers\Admin\HeroController::class, 'version']);
     $r->post('/hero/versions/{id}/restore', [\App\Controllers\Admin\HeroController::class, 'restore']);
     $r->post('/hero/reorder', [\App\Controllers\Admin\HeroController::class, 'reorder']);
     $r->get('/bricks/{type}/preview', [\App\Controllers\Admin\BrickController::class, 'preview']);

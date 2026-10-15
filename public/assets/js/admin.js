@@ -1637,7 +1637,21 @@ W.heroVersions=async function(id){
     var box=document.getElementById('hero-vers'); if(!box)return; box.innerHTML='Cargando…';
     var r=await W.api('/api/v1/admin/hero/slides/'+id+'/versions'); var v=(r&&r.data)||[];
     if(!v.length){box.innerHTML='<div style="font-size:12px;color:var(--w-muted)">Sin versiones.</div>';return}
-    box.innerHTML='<div style="font-size:12px;color:var(--w-muted);margin-bottom:4px">Restaurar:</div>'+v.map(function(x){return '<button class="w-btn w-btn-secondary w-btn-sm" style="margin:2px" onclick="wontia.heroRestore('+x.id+')">'+W.esc(String(x.created_at))+' · '+W.esc(x.created_by||'')+'</button>'}).join('');
+    box.innerHTML='<div style="font-size:12px;color:var(--w-muted);margin-bottom:4px">Historial (comparar / restaurar):</div>'+v.map(function(x){return '<span style="display:inline-flex;gap:4px;margin:2px"><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.heroDiff('+x.id+')" title="Comparar con el actual">🔍 '+W.esc(String(x.created_at))+'</button><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.heroRestore('+x.id+')" title="Restaurar">↩</button></span>'}).join('');
+};
+W.heroDiff=async function(vid){
+    var r=await W.api('/api/v1/admin/hero/versions/'+vid); var v=(r&&r.data)||{}; var d=v.data||{}; var cur=W._heroCur||{};
+    var esc=W.esc; function short(s){s=String(s==null?'':s); return esc(s.length>120?s.slice(0,120)+'…':s)}
+    var rows='';
+    function row(label,a,b){ if(JSON.stringify(a)===JSON.stringify(b))return ''; return '<tr><td style="vertical-align:top;color:var(--w-muted);white-space:nowrap">'+esc(label)+'</td><td style="font-size:12px">'+short(a)+'</td><td style="font-size:12px">'+short(b)+'</td></tr>'; }
+    rows+=row('Nombre',d.name,cur.name);
+    rows+=row('Estado',d.status,cur.status);
+    rows+=row('Tipo izquierda',d.left_type,cur.left_type);
+    rows+=row('Datos izquierda',JSON.stringify(d.left_data),JSON.stringify(cur.left_data));
+    rows+=row('Tipo derecha',d.right_type,cur.right_type);
+    rows+=row('Datos derecha',JSON.stringify(d.right_data),JSON.stringify(cur.right_data));
+    var h=rows?'<table class="w-table" style="width:100%"><thead><tr><th>Campo</th><th>Versión '+esc(String(v.created_at||''))+'</th><th>Actual</th></tr></thead><tbody>'+rows+'</tbody></table>':'<div style="color:var(--w-muted);font-size:13px">Sin diferencias con el contenido actual.</div>';
+    W.modal('Diferencias de la versión',h,'<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cerrar</button><button class="w-btn w-btn-primary" onclick="wontia.heroRestore('+vid+')">↩ Restaurar esta versión</button>');
 };
 W.heroRestore=async function(id){var r=await W.api('/api/v1/admin/hero/versions/'+id+'/restore',{method:'POST',body:{}});if(r&&r.ok){W.notify('Restaurado','success');W.renderHero();}};
 W.renderSettings=function(tab){
