@@ -1914,8 +1914,32 @@ W.renderSecurityPanel=async function(){
     }
     html+='</div>';
     html+='<div class="w-card"><h3>Recuperación de contraseña</h3><div style="font-size:11px;color:var(--w-muted);line-height:1.7">En la pantalla de login, el enlace <b>¿Olvidaste tu contraseña?</b> envía un código OTP de un solo uso al correo registrado del usuario. Correo SMTP: <b>'+(o.mail_configured?'configurado':'no configurado')+'</b>.</div></div>';
+    html+='<div class="w-card"><div class="w-flex-between" style="flex-wrap:wrap;gap:8px"><h3 style="margin:0">🛡️ Escaneo de seguridad</h3><button class="w-btn w-btn-primary" onclick="wontia.secScan()">↻ Escanear ahora</button></div><div id="sec-scan" style="margin-top:10px"></div></div>';
     html+='<div id="sec-setup"></div>';
     panel.innerHTML=html;
+    W.secScanLoad();
+};
+W.secScanLoad=async function(){
+    var box=document.getElementById('sec-scan'); if(!box)return;
+    box.innerHTML='<div style="color:var(--w-muted);font-size:12px">Cargando informe…</div>';
+    var r=await W.api('/api/v1/admin/security/scan'); W._secRender(r&&r.data);
+};
+W.secScan=async function(){
+    var box=document.getElementById('sec-scan'); if(box)box.innerHTML='<div style="color:var(--w-muted);font-size:12px">Escaneando…</div>';
+    var r=await W.api('/api/v1/admin/security/scan',{method:'POST',body:{}});
+    if(r&&r.ok)W.notify('Escaneo completado','success');
+    W._secRender(r&&r.data);
+};
+W._secRender=function(d){
+    var box=document.getElementById('sec-scan'); if(!box)return;
+    if(!d){box.innerHTML='<div style="font-size:12px;color:var(--w-muted)">Sin informe. Pulsa “Escanear ahora”.</div>';return}
+    var sc={high:'#DC2626',medium:'#b45309',low:'#6b7280'};
+    var h='<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px"><div class="w-card" style="flex:1;min-width:120px;text-align:center;margin:0;padding:10px"><div style="font-size:22px;font-weight:800;color:'+(d.score>=80?'#15803d':(d.score>=60?'#b45309':'#DC2626'))+'">'+W.num(d.score)+'/100</div><div style="font-size:11px;color:var(--w-muted)">Score</div></div><div class="w-card" style="flex:1;min-width:120px;text-align:center;margin:0;padding:10px"><div style="font-size:22px;font-weight:800;color:#DC2626">'+W.num(d.critical||0)+'</div><div style="font-size:11px;color:var(--w-muted)">Críticos</div></div></div>';
+    h+='<div style="font-size:11px;color:var(--w-muted);margin-bottom:8px">Último: '+W.esc(d.generated_at||'-')+' · v'+W.esc(d.version||'-')+'</div>';
+    h+='<div style="display:flex;flex-direction:column;gap:3px;max-height:320px;overflow:auto">';
+    (d.findings||[]).forEach(function(f){h+='<div style="display:flex;gap:8px;align-items:center;font-size:12px;padding:3px 0;border-bottom:1px dashed var(--w-border)"><span>'+(f.ok?'✅':'❌')+'</span><span style="flex:1">'+W.esc(f.label)+'</span><span class="w-badge" style="background:'+(sc[f.severity]||'#666')+'22;color:'+(sc[f.severity]||'#666')+'">'+W.esc(String(f.severity||'').toUpperCase())+'</span><span style="color:var(--w-muted);font-family:monospace;font-size:10px">'+W.esc(f.detail||'')+'</span></div>'});
+    h+='</div>';
+    box.innerHTML=h;
 };
 
 W.secSetup=async function(){

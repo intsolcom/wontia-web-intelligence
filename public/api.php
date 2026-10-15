@@ -306,6 +306,10 @@ $r->delete('/trash/{id}', [\App\Controllers\Admin\SectionController::class, 'tra
     $r->post('/catalog/classify', [\App\Controllers\Admin\CatalogReconciliationController::class, 'classify']);
     $r->post('/catalog/suggestions/apply', [\App\Controllers\Admin\CatalogReconciliationController::class, 'applySuggestions']);
     $r->post('/catalog/suggestions/reject', [\App\Controllers\Admin\CatalogReconciliationController::class, 'rejectSuggestions']);
+
+    // Robot de escaneo de seguridad
+    $r->get('/security/scan', [\App\Controllers\Admin\SecurityScanController::class, 'report']);
+    $r->post('/security/scan', [\App\Controllers\Admin\SecurityScanController::class, 'scan']);
     $r->get('/bricks/{type}/preview', [\App\Controllers\Admin\BrickController::class, 'preview']);
     $r->get('/bricks/{type}/ratings', [\App\Controllers\Admin\BrickController::class, 'ratings']);
     $r->post('/bricks/{type}/rate', [\App\Controllers\Admin\BrickController::class, 'rate']);
