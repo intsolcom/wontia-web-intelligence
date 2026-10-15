@@ -1565,16 +1565,17 @@ W.heroPub=async function(id){var r=await W.api('/api/v1/admin/hero/slides/'+id+'
 W.heroSetStatus=async function(id,st){var s=(W._heroSlides||[]).filter(function(x){return x.id===id})[0];if(!s)return;await W.api('/api/v1/admin/hero/slides',{method:'POST',body:{id:id,name:s.name,status:st,layout:s.layout,left_type:s.left_type,left_data:s.left_data,right_type:s.right_type,right_data:s.right_data,design:s.design}});W.renderHero();};
 W.heroSel=function(side,sel){var opts=Object.keys(W._heroTypes||{}).map(function(k){var t=W._heroTypes[k];return '<option value="'+W.esc(k)+'"'+(k===sel?' selected':'')+(t.available?'':' disabled')+'>'+W.esc(t.label)+(t.available?'':' — no disponible')+'</option>'}).join('');return '<select class="w-select" id="hero-'+side+'-type" onchange="wontia.heroEditReload(\''+side+'\')">'+opts+'</select>';};
 W.heroFields=function(side,type,data){var d=data||{};
-    var f=function(k,l,v){return '<div class="w-form-group"><label class="w-label">'+l+'</label><input class="w-input hero-f" data-k="'+k+'" value="'+W.esc(d[v]||'')+'"/></div>'};
-    var t=function(k,l){return '<div class="w-form-group"><label class="w-label">'+l+'</label><textarea class="w-textarea hero-f" data-k="'+k+'">'+W.esc(d[k]||'')+'</textarea></div>'};
-    if(type==='text')return f('','Etiqueta (eyebrow)','eyebrow')+f('','Título','title')+f('','Subtítulo','subtitle')+t('text','Texto descriptivo')+f('','Texto del CTA','cta')+f('','Destino del CTA','cta_url')+f('','CTA secundario','cta2')+f('','Destino CTA 2','cta2_url');
-    if(type==='image')return f('','Imagen (URL)','image')+f('','Texto alternativo','alt')+f('','Título','title')+f('','Subtítulo','subtitle')+t('text','Texto')+f('','Texto del CTA','cta')+f('','Destino del CTA','cta_url');
-    if(type==='video')return f('','Video (URL .mp4)','video')+f('','Portada (URL)','poster')+f('','Título','title')+f('','Subtítulo','subtitle')+t('text','Texto')+f('','Texto del CTA','cta')+f('','Destino del CTA','cta_url');
-    if(type==='product')return f('','Handle del producto','handle')+f('','Título (opcional)','title')+f('','Subtítulo','subtitle')+t('text','Texto')+f('','Texto del CTA','cta')+f('','Destino del CTA','cta_url');
-    if(type==='combo')return f('','Imagen','image')+f('','Texto alternativo','alt')+f('','Título','title')+t('text','Texto')+f('','CTA','cta')+f('','Destino','cta_url');
+    var f=function(k,l){return '<div class="w-form-group"><label class="w-label">'+l+'</label><input class="w-input hero-f" data-k="'+k+'" value="'+W.esc(d[k]||'')+'" oninput="wontia.heroPreview()"/></div>'};
+    var t=function(k,l){return '<div class="w-form-group"><label class="w-label">'+l+'</label><textarea class="w-textarea hero-f" data-k="'+k+'" oninput="wontia.heroPreview()">'+W.esc(d[k]||'')+'</textarea></div>'};
+    if(type==='text')return f('eyebrow','Etiqueta (eyebrow)')+f('title','Título')+f('subtitle','Subtítulo')+t('text','Texto descriptivo')+f('cta','Texto del CTA')+f('cta_url','Destino del CTA')+f('cta2','CTA secundario')+f('cta2_url','Destino CTA 2');
+    if(type==='image')return f('image','Imagen (URL)')+f('alt','Texto alternativo')+f('title','Título')+f('subtitle','Subtítulo')+t('text','Texto')+f('cta','Texto del CTA')+f('cta_url','Destino del CTA');
+    if(type==='video')return f('video','Video (URL .mp4)')+f('poster','Portada (URL)')+f('title','Título')+f('subtitle','Subtítulo')+t('text','Texto')+f('cta','Texto del CTA')+f('cta_url','Destino del CTA');
+    if(type==='product')return f('handle','Handle del producto')+f('title','Título (opcional)')+f('subtitle','Subtítulo')+t('text','Texto')+f('cta','Texto del CTA')+f('cta_url','Destino del CTA');
+    if(type==='combo')return f('image','Imagen')+f('alt','Texto alternativo')+f('title','Título')+t('text','Texto')+f('cta','CTA')+f('cta_url','Destino');
+    if(type==='guitar')return '<div style="font-size:12px;color:var(--w-muted)">Guitarra interactiva lista (motor E5): cuerdas + perfiles Clean/Overdrive/Distortion/Fuzz. El producto real se toma del catálogo.</div>'+f('product','Handle de guitarra (opcional)');
     return '<div style="font-size:12px;color:var(--w-muted)">Este tipo aún no tiene motor implementado; no se puede publicar.</div>';
 };
-W.heroEditReload=function(side){var sel=document.getElementById('hero-'+side+'-type');var box=document.getElementById('hero-'+side+'-fields');if(sel&&box)box.innerHTML=W.heroFields(side,sel.value,{});};
+W.heroEditReload=function(side){var sel=document.getElementById('hero-'+side+'-type');var box=document.getElementById('hero-'+side+'-fields');if(sel&&box){box.innerHTML=W.heroFields(side,sel.value,{});W.heroPreview();}};
 W.heroCollect=function(side){var box=document.getElementById('hero-'+side+'-fields');var out={};if(box)box.querySelectorAll('.hero-f').forEach(function(el){out[el.getAttribute('data-k')]=el.value});return out;};
 W.heroEdit=async function(id){
     var app=document.getElementById('wontia-app'); if(!app)return;
@@ -1588,8 +1589,31 @@ W.heroEdit=async function(id){
     h+='<div class="w-card"><h3>Zona izquierda</h3>'+W.heroSel('left',s.left_type)+'<div id="hero-left-fields" style="margin-top:10px">'+W.heroFields('left',s.left_type,s.left_data||{})+'</div></div>';
     h+='<div class="w-card"><h3>Zona derecha</h3>'+W.heroSel('right',s.right_type)+'<div id="hero-right-fields" style="margin-top:10px">'+W.heroFields('right',s.right_type,s.right_data||{})+'</div></div>';
     h+='</div>';
+    h+='<div class="w-card" style="margin-top:14px"><div class="w-flex-between" style="flex-wrap:wrap;gap:8px"><h3 style="margin:0">Vista previa</h3><div class="w-flex w-gap-sm" id="hero-dev"><button type="button" class="w-btn w-btn-primary" data-dev="desktop" onclick="wontia.heroDevice(\'desktop\')">🖥 Escritorio</button><button type="button" class="w-btn w-btn-secondary" data-dev="tablet" onclick="wontia.heroDevice(\'tablet\')">▭ Tablet</button><button type="button" class="w-btn w-btn-secondary" data-dev="mobile" onclick="wontia.heroDevice(\'mobile\')">▯ Móvil</button></div></div><div id="hero-preview" style="margin-top:12px"></div></div>';
     h+='<div class="w-card" style="margin-top:14px"><h3>Publicación</h3><div style="font-size:12px;color:var(--w-muted)">Guardar mantiene el borrador sin alterar el sitio. Publicar solo funciona si ambas zonas tienen un tipo con motor disponible.</div><div class="w-flex w-gap-sm" style="margin-top:10px"><button class="w-btn w-btn-primary" onclick="wontia.heroPub('+s.id+')">🚀 Publicar</button><button class="w-btn w-btn-secondary" onclick="wontia.heroVersions('+s.id+')">🕘 Versiones</button></div><div id="hero-vers" style="margin-top:10px"></div></div>';
     app.innerHTML=h;
+    W.heroPreview();
+};
+W._heroDevice='desktop';
+W.heroDevice=function(d){W._heroDevice=d;document.querySelectorAll('#hero-dev [data-dev]').forEach(function(b){b.className='w-btn '+(b.getAttribute('data-dev')===d?'w-btn-primary':'w-btn-secondary')});W.heroPreview();};
+W.heroPreview=function(){
+    var box=document.getElementById('hero-preview'); if(!box)return;
+    var lt=((document.getElementById('hero-left-type')||{}).value)||'text';
+    var rt=((document.getElementById('hero-right-type')||{}).value)||'text';
+    var ld=W.heroCollect('left'), rd=W.heroCollect('right');
+    var dev=W._heroDevice||'desktop';
+    var w=dev==='desktop'?'100%':(dev==='tablet'?'768px':'380px');
+    var cols=(dev==='mobile')?'1fr':'1fr 1fr';
+    function blk(type,d){
+        if(type==='text')return '<div><div style="font-family:Sora;font-size:'+(dev==='mobile'?'22px':'30px')+';font-weight:800;line-height:1.1">'+W.esc(d.title||'Título')+'</div>'+(d.subtitle?'<div style="margin-top:6px;opacity:.9">'+W.esc(d.subtitle)+'</div>':'')+(d.text?'<p style="margin-top:6px;opacity:.8;font-size:13px">'+W.esc(d.text)+'</p>':'')+(d.cta?'<div style="margin-top:10px"><span style="background:#F20D16;color:#fff;padding:9px 16px;border-radius:999px;font-weight:800;font-size:13px">'+W.esc(d.cta)+'</span></div>':'')+'</div>';
+        if(type==='image')return d.image?('<img src="'+W.esc(d.image)+'" alt="" style="width:100%;border-radius:14px"/>'):'<div style="height:140px;background:#222;border-radius:14px"></div>';
+        if(type==='video')return '<div style="padding:16px;background:#222;border-radius:14px;text-align:center">▶ Video</div>';
+        if(type==='product')return '<div style="display:flex;gap:10px;align-items:center"><div style="width:60px;height:60px;background:#222;border-radius:10px"></div><b>'+W.esc(d.title||d.handle||'Producto')+'</b></div>';
+        if(type==='combo')return '<div style="padding:14px;background:#222;border-radius:14px">'+W.esc(d.title||'Combo o promoción')+'</div>';
+        if(type==='guitar')return '<div style="padding:14px;background:#1b1b1b;border-radius:14px"><div style="display:flex;flex-direction:column;gap:8px">'+[0,1,2,3,4,5].map(function(){return '<div style="height:6px;background:#aaa;border-radius:999px"></div>'}).join('')+'</div><div style="margin-top:8px;font-size:12px;opacity:.85">🎸 Guitarra interactiva · Clean · Overdrive · Distortion · Fuzz</div></div>';
+        return '<div style="opacity:.5;font-size:12px">Instrumento no disponible</div>';
+    }
+    box.innerHTML='<div style="margin:0 auto;max-width:'+w+';background:#111;color:#fff;border-radius:14px;padding:18px;display:grid;grid-template-columns:'+cols+';gap:16px;align-items:center">'+blk(lt,ld)+blk(rt,rd)+'</div>';
 };
 W.heroSave=async function(){
     var s=W._heroCur||{};
