@@ -126,6 +126,21 @@ body {
 .wm-badge.urgent { background: #fdecec; color: var(--wm-danger); }
 .wm-toast { color: var(--wm-danger); font-size: 0.9rem; min-height: 1.2em; }
 
+.wm-roles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+.wm-role {
+  text-align: left; display: grid; gap: 3px; cursor: pointer;
+  background: var(--wm-bg); color: var(--wm-text);
+  border: 1px solid var(--wm-border); border-radius: 12px; padding: 12px 14px; font: inherit;
+}
+.wm-role:hover { border-color: var(--wm-primary); }
+.wm-role.on { border-color: var(--wm-primary); box-shadow: 0 0 0 3px var(--wm-primary-soft); }
+.wm-role-title { font-weight: 700; }
+.wm-role-desc { font-size: 0.8rem; color: var(--wm-muted); line-height: 1.3; }
+
+@media (max-width: 560px) {
+  .wm-roles { grid-template-columns: 1fr; }
+}
+
 .wm-footer { border-top: 1px solid var(--wm-border); background: var(--wm-surface); padding: 32px 20px; }
 .wm-footer-inner { max-width: 1100px; margin: 0 auto; display: flex; gap: 16px; justify-content: space-between; flex-wrap: wrap; }
 .wm-footer-contact { display: flex; gap: 14px; flex-wrap: wrap; color: var(--wm-muted); }

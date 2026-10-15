@@ -64,6 +64,31 @@
   WM.loginForm = function (host, onReady, onCancel) {
     var error = WM.el('p', { class: 'wm-toast' });
     var mode = 'login';
+    var role = 'patient';
+
+    var patientBtn = WM.el('button', { type: 'button', class: 'wm-role on', onClick: function () { setRole('patient'); } }, [
+      WM.el('span', { class: 'wm-role-title' }, 'Soy paciente'),
+      WM.el('span', { class: 'wm-role-desc' }, 'Gestiono mi salud, citas y bienestar.')
+    ]);
+    var proBtn = WM.el('button', { type: 'button', class: 'wm-role', onClick: function () { setRole('professional'); } }, [
+      WM.el('span', { class: 'wm-role-title' }, 'Soy profesional de la salud'),
+      WM.el('span', { class: 'wm-role-desc' }, 'Atiendo pacientes y gestiono mi agenda.')
+    ]);
+    function setRole(r) {
+      role = r;
+      patientBtn.classList.toggle('on', r === 'patient');
+      proBtn.classList.toggle('on', r === 'professional');
+      patientBtn.setAttribute('aria-pressed', r === 'patient' ? 'true' : 'false');
+      proBtn.setAttribute('aria-pressed', r === 'professional' ? 'true' : 'false');
+      hint.textContent = r === 'professional'
+        ? 'Cuenta profesional: tu verificacion se revisara por el equipo de Wontia Medical.'
+        : 'Cuenta de paciente: acceso a tu bienestar, citas e historial.';
+    }
+
+    var heading = WM.el('h2', {}, 'Iniciar sesion');
+    var sub = WM.el('p', { class: 'wm-muted' }, 'Elige como usas Wontia Medical e ingresa.');
+    var hint = WM.el('p', { class: 'wm-hint' }, 'Cuenta de paciente: acceso a tu bienestar, citas e historial.');
+
     var email = WM.el('input', { class: 'wm-input', type: 'email', placeholder: 'tu@correo.com', autocomplete: 'email' });
     var password = WM.el('input', { class: 'wm-input', type: 'password', placeholder: '••••••••', autocomplete: 'current-password' });
     var submit = WM.el('button', { class: 'wm-btn', type: 'submit' }, 'Entrar');
@@ -71,15 +96,19 @@
 
     toggle.addEventListener('click', function () {
       mode = mode === 'login' ? 'register' : 'login';
+      heading.textContent = mode === 'login' ? 'Iniciar sesion' : 'Crear cuenta';
       submit.textContent = mode === 'login' ? 'Entrar' : 'Crear cuenta';
       toggle.textContent = mode === 'login' ? 'Crear cuenta' : 'Ya tengo cuenta';
+      password.autocomplete = mode === 'login' ? 'current-password' : 'new-password';
       error.textContent = '';
     });
 
     var form = WM.el('form', {}, [
+      WM.el('div', { class: 'wm-roles' }, [patientBtn, proBtn]),
       WM.el('div', { class: 'wm-field' }, [WM.el('label', {}, 'Correo'), email]),
       WM.el('div', { class: 'wm-field' }, [WM.el('label', {}, 'Contrasena'), password]),
       WM.el('div', { class: 'wm-row' }, [submit, toggle]),
+      hint,
       error
     ]);
 
@@ -87,21 +116,16 @@
       ev.preventDefault();
       error.textContent = '';
       submit.disabled = true;
-      var path = mode === 'login' ? '/api/v1/auth/login' : '/api/v1/auth/register';
-      WM.api(path, { method: 'POST', body: { email: email.value, password: password.value } })
-        .then(function (data) {
-          WM.setToken(data.token);
-          onReady();
-        })
+      var body = { email: email.value, password: password.value };
+      var path = '/api/v1/auth/login';
+      if (mode === 'register') { path = '/api/v1/auth/register'; body.role = role; }
+      WM.api(path, { method: 'POST', body: body })
+        .then(function (data) { WM.setToken(data.token); onReady(); })
         .catch(function (err) { error.textContent = err.message; })
         .finally(function () { submit.disabled = false; });
     });
 
-    host.replaceChildren(WM.el('div', { class: 'wm-card' }, [
-      WM.el('h2', {}, 'Acceso Wontia Medical'),
-      WM.el('p', { class: 'wm-muted' }, 'Inicia sesion o crea tu cuenta para continuar.'),
-      form
-    ]));
+    host.replaceChildren(WM.el('div', { class: 'wm-card' }, [heading, sub, form]));
     if (onCancel) host.append(WM.el('p', { class: 'wm-hint' }, [WM.el('a', { href: '#', onClick: function (e) { e.preventDefault(); onCancel(); } }, 'Volver')]));
   };
 
