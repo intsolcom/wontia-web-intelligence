@@ -1567,14 +1567,24 @@ W.heroSel=function(side,sel){var opts=Object.keys(W._heroTypes||{}).map(function
 W.heroFields=function(side,type,data){var d=data||{};
     var f=function(k,l){return '<div class="w-form-group"><label class="w-label">'+l+'</label><input class="w-input hero-f" data-k="'+k+'" value="'+W.esc(d[k]||'')+'" oninput="wontia.heroPreview()"/></div>'};
     var t=function(k,l){return '<div class="w-form-group"><label class="w-label">'+l+'</label><textarea class="w-textarea hero-f" data-k="'+k+'" oninput="wontia.heroPreview()">'+W.esc(d[k]||'')+'</textarea></div>'};
+    var fi=function(k,l,mt){var id='herof-'+side+'-'+k;return '<div class="w-form-group"><label class="w-label">'+l+'</label><div style="display:flex;gap:6px;align-items:center"><input id="'+id+'" class="w-input hero-f" data-k="'+k+'" value="'+W.esc(d[k]||'')+'" oninput="wontia.heroPreview()"/><button type="button" class="w-btn w-btn-secondary w-btn-sm" title="Biblioteca de Media" onclick="wontia.heroPickMedia(\''+id+'\',\''+mt+'\')">📁</button></div></div>'};
     if(type==='text')return f('eyebrow','Etiqueta (eyebrow)')+f('title','Título')+f('subtitle','Subtítulo')+t('text','Texto descriptivo')+f('cta','Texto del CTA')+f('cta_url','Destino del CTA')+f('cta2','CTA secundario')+f('cta2_url','Destino CTA 2');
-    if(type==='image')return f('image','Imagen (URL)')+f('alt','Texto alternativo')+f('title','Título')+f('subtitle','Subtítulo')+t('text','Texto')+f('cta','Texto del CTA')+f('cta_url','Destino del CTA');
-    if(type==='video')return f('video','Video (URL .mp4)')+f('poster','Portada (URL)')+f('title','Título')+f('subtitle','Subtítulo')+t('text','Texto')+f('cta','Texto del CTA')+f('cta_url','Destino del CTA');
+    if(type==='image')return fi('image','Imagen','image')+f('alt','Texto alternativo')+f('title','Título')+f('subtitle','Subtítulo')+t('text','Texto')+f('cta','Texto del CTA')+f('cta_url','Destino del CTA');
+    if(type==='video')return fi('video','Video','video')+fi('poster','Portada / poster','image')+f('title','Título')+f('subtitle','Subtítulo')+t('text','Texto')+f('cta','Texto del CTA')+f('cta_url','Destino del CTA');
     if(type==='product')return f('handle','Handle del producto')+f('title','Título (opcional)')+f('subtitle','Subtítulo')+t('text','Texto')+f('cta','Texto del CTA')+f('cta_url','Destino del CTA');
-    if(type==='combo')return f('image','Imagen')+f('alt','Texto alternativo')+f('title','Título')+t('text','Texto')+f('cta','CTA')+f('cta_url','Destino');
+    if(type==='combo')return fi('image','Imagen','image')+f('alt','Texto alternativo')+f('title','Título')+t('text','Texto')+f('cta','CTA')+f('cta_url','Destino');
     if(type==='guitar')return '<div style="font-size:12px;color:var(--w-muted)">Guitarra interactiva lista (motor E5): cuerdas + perfiles Clean/Overdrive/Distortion/Fuzz. El producto real se toma del catálogo.</div>'+f('product','Handle de guitarra (opcional)');
     return '<div style="font-size:12px;color:var(--w-muted)">Este tipo aún no tiene motor implementado; no se puede publicar.</div>';
 };
+W.heroPickMedia=async function(inputId,type){
+    type=type||'image';
+    var d=await W.api('/api/v1/admin/media?type='+encodeURIComponent(type));
+    var items=(d&&d.data)||[];
+    var h=items.length?'<div class="w-lib-grid">'+items.map(function(m){return '<button type="button" class="w-lib-item" title="'+W.esc(m.filename||'')+'" onclick="wontia.heroSetMedia(\''+inputId+'\',\''+W.esc(m.url)+'\')"><img src="'+W.esc(m.url)+'" alt=""/></button>'}).join('')+'</div>':'<div style="color:var(--w-muted)">No hay archivos de este tipo. Súbelos en el menú <b>Media</b>.</div>';
+    h+='<div style="margin-top:12px;display:flex;gap:8px"><input class="w-input" id="heromedia-url" placeholder="…o pega una URL" style="flex:1"/><button type="button" class="w-btn w-btn-secondary" onclick="wontia.heroSetMedia(\''+inputId+'\',document.getElementById(\'heromedia-url\').value)">Usar URL</button></div>';
+    W.modal('Elegir de la Biblioteca de Media',h,'<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cerrar</button>');
+};
+W.heroSetMedia=function(inputId,url){var el=document.getElementById(inputId);if(el)el.value=url;W.closeModal();W.heroPreview();};
 W.heroEditReload=function(side){var sel=document.getElementById('hero-'+side+'-type');var box=document.getElementById('hero-'+side+'-fields');if(sel&&box){box.innerHTML=W.heroFields(side,sel.value,{});W.heroPreview();}};
 W.heroCollect=function(side){var box=document.getElementById('hero-'+side+'-fields');var out={};if(box)box.querySelectorAll('.hero-f').forEach(function(el){out[el.getAttribute('data-k')]=el.value});return out;};
 W.heroEdit=async function(id){
