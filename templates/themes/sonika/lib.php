@@ -71,10 +71,47 @@ if (!function_exists('sonika_fonts_url')) {
     function sonika_fonts_url(): string {
         $fb = sonika_font('body');
         $fd = sonika_font('display');
-        $fams = ($fb === $fd) ? [$fb] : [$fb, $fd];
+        $fams = array_values(array_unique(array_filter([$fb, $fd, function_exists('sonika_nav_font') ? sonika_nav_font() : 'Sora'])));
         $parts = [];
         foreach ($fams as $f) $parts[] = 'family=' . str_replace(' ', '+', $f) . ':wght@400;500;600;700;800';
         return 'https://fonts.googleapis.com/css2?' . implode('&', $parts) . '&display=swap';
+    }
+}
+if (!function_exists('sonika_nav_style')) {
+    function sonika_nav_style(): array {
+        static $s = null;
+        if ($s !== null) return $s;
+        $d = json_decode((string)wwi_setting('nav_menu_style', ''), true);
+        $d = is_array($d) ? $d : [];
+        $hex = fn($v, $f) => preg_match('/^#[0-9a-f]{6}$/i', (string)$v) ? (string)$v : $f;
+        $font = trim((string)($d['font'] ?? 'Sora'));
+        if ($font === '' || !preg_match('/^[A-Za-z0-9 \-\']+$/', $font)) $font = 'Sora';
+        $s = [
+            'align' => in_array((string)($d['align'] ?? 'left'), ['left', 'center', 'right'], true) ? (string)$d['align'] : 'left',
+            'bg' => $hex($d['bg'] ?? '', '#111111'),
+            'color' => $hex($d['color'] ?? '', '#ffffff'),
+            'hover_bg' => $hex($d['hover_bg'] ?? '', '#1f1f1f'),
+            'accent' => $hex($d['accent'] ?? '', '#F20D16'),
+            'font' => $font,
+            'size' => max(11, min(22, (int)($d['size'] ?? 14))),
+        ];
+        return $s;
+    }
+}
+if (!function_exists('sonika_nav_font')) {
+    function sonika_nav_font(): string { $s = sonika_nav_style(); return (string)$s['font']; }
+}
+if (!function_exists('sonika_nav_style_head')) {
+    function sonika_nav_style_head(): string {
+        $s = sonika_nav_style();
+        $just = ['left' => 'flex-start', 'center' => 'center', 'right' => 'flex-end'][$s['align']] ?? 'flex-start';
+        $e = fn($x) => htmlspecialchars((string)$x, ENT_QUOTES, 'UTF-8');
+        $css = '.mainnav{background:' . $e($s['bg']) . '}'
+            . '.mainnav ul{justify-content:' . $just . '}'
+            . '.mainnav li>a{color:' . $e($s['color']) . ';font-family:\'' . $e($s['font']) . '\',var(--font-body);font-size:' . (int)$s['size'] . 'px}'
+            . '.mainnav li>a:hover,.mainnav li>a:focus-visible{background:' . $e($s['hover_bg']) . ';color:' . $e($s['color']) . '}'
+            . '.mainnav li>a.hot{border-bottom-color:' . $e($s['accent']) . '}';
+        return '<style>' . $css . '</style>';
     }
 }
 if (!function_exists('sonika_catalog')) {
@@ -375,6 +412,7 @@ if (!function_exists('sonika_site_head')) {
     <link href="<?= sonika_fonts_url() ?>" rel="stylesheet" />
     <style><?= sonika_css() ?></style>
     <style>:root{--font-body:<?= sonika_font_stack('body') ?>;--font-display:<?= sonika_font_stack('display') ?>}</style>
+    <?= sonika_nav_style_head() ?>
 </head>
 <body>
 <div class="topbar"<?php

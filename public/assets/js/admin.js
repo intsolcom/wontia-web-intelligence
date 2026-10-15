@@ -1643,8 +1643,10 @@ W.renderNavPanel=async function(){
     var panel=document.getElementById('settings-panel'); if(!panel)return;
     panel.innerHTML='<div style="padding:20px;color:var(--w-muted)">Cargando menús…</div>';
     var r=await W.api('/api/v1/admin/nav'); var d=r.data||{};
+    var st=await W.api('/api/v1/admin/nav/style'); var s=(st&&st.data)||{};
     var locs=d.locations||{}, menus=d.menus||{};
-    var html='<div class="w-card" style="padding:14px 18px;margin-bottom:14px"><div style="font-size:13px;font-weight:700">Navegación administrable</div><div style="font-size:11px;color:var(--w-muted);margin-top:4px;line-height:1.6">Edita los menús del sitio. El tema los consume automáticamente, sin tocar código.</div></div>';
+    var html=W.navAppearance(s);
+    html+='<div class="w-card" style="padding:14px 18px;margin-bottom:14px"><div style="font-size:13px;font-weight:700">Navegación administrable</div><div style="font-size:11px;color:var(--w-muted);margin-top:4px;line-height:1.6">Edita los menús del sitio. El tema los consume automáticamente, sin tocar código.</div></div>';
     Object.keys(locs).forEach(function(loc){
         var items=(menus[loc]&&menus[loc].items)||[];
         var tops=items.filter(function(x){return x.parent_id===null});
@@ -1684,6 +1686,75 @@ W.navDel=async function(id){
     if(!window.confirm('¿Eliminar este elemento del menú?'))return;
     var r=await W.api('/api/v1/admin/nav/items/'+id,{method:'DELETE'});
     if(r.ok){W.notify('Eliminado','success');W.renderNavPanel();}
+};
+W.loadGf=function(f){f=(f||'').trim();if(!f)return;var id='gf-'+f.replace(/\s+/g,'-');if(document.getElementById(id))return;var l=document.createElement('link');l.id=id;l.rel='stylesheet';l.href='https://fonts.googleapis.com/css2?family='+encodeURIComponent(f)+':wght@400;500;600;700;800&display=swap';document.head.appendChild(l);};
+W.navAppearance=function(s){
+    s=s||{};
+    var align=s.align||'left', bg=s.bg||'#111111', color=s.color||'#ffffff', hover=s.hover_bg||'#1f1f1f', accent=s.accent||'#F20D16', font=s.font||'Sora', size=s.size||14;
+    W._navStyle={align:align,bg:bg,color:color,hover_bg:hover,accent:accent,font:font,size:size};
+    var fonts=['Sora','Inter','Manrope','Plus Jakarta Sans','Outfit','Poppins','Montserrat','Figtree','DM Sans','Space Grotesk','Work Sans','Rubik','Nunito Sans','Lexend','Public Sans'];
+    var sel=fonts.map(function(f){return '<option value="'+W.esc(f)+'"'+(f===font?' selected':'')+'>'+W.esc(f)+'</option>'}).join('');
+    var h='<div class="w-card" style="margin-bottom:14px"><div class="w-flex-between" style="flex-wrap:wrap;gap:8px"><h3 style="margin:0">🎨 Apariencia de la barra</h3><div class="w-flex w-gap-sm"><button class="w-btn w-btn-secondary" onclick="wontia.navPreset(\'dark\')">Oscura</button><button class="w-btn w-btn-secondary" onclick="wontia.navPreset(\'light\')">Clara</button><button class="w-btn w-btn-secondary" onclick="wontia.navPreset(\'brand\')">Marca</button><button class="w-btn w-btn-primary" onclick="wontia.navStyleSave()">💾 Guardar</button></div></div>';
+    h+='<div style="font-size:11px;color:var(--w-muted);margin:6px 0 12px">Estilo del menú principal (Inicio · Tienda · Ofertas · Marcas · Contacto · Soporte).</div>';
+    h+='<div class="w-form-group"><label class="w-label">Alineación del menú</label><div class="w-flex w-gap-sm" id="nav-align">'
+      +['left','center','right'].map(function(a){return '<button type="button" class="w-btn '+(a===align?'w-btn-primary':'w-btn-secondary')+'" data-align="'+a+'" onclick="wontia.navAlign(\''+a+'\')">'+({left:'⬅ Izquierda',center:'↔ Centro',right:'Derecha ➡'})[a]+'</button>'}).join('')
+      +'</div></div>';
+    h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-top:6px">'
+      +W.colorPick('navbg','Color de fondo',bg)
+      +W.colorPick('navfg','Color de letras',color)
+      +W.colorPick('navhover','Color al pasar el mouse',hover)
+      +W.colorPick('navaccent','Color de acento (activo/oferta)',accent)
+      +'<div class="w-form-group"><label class="w-label">Fuente</label><select class="w-select" id="nav-font">'+sel+'</select></div>'
+      +'<div class="w-form-group"><label class="w-label">Tamaño de letra</label><input type="range" min="11" max="22" value="'+size+'" id="nav-size" oninput="document.getElementById(\'nav-size-v\').textContent=this.value+\'px\';wontia.navPreview()" style="width:100%"/><div id="nav-size-v" style="font-size:11px;color:var(--w-muted)">'+size+'px</div></div>'
+      +'</div>';
+    h+='<div style="margin-top:14px"><label class="w-label">Vista previa</label><div id="nav-preview"></div></div></div>';
+    setTimeout(function(){W.colorPickInit();var f=document.getElementById('nav-font');if(f)f.addEventListener('change',W.navPreview);W.navPreview();},0);
+    return h;
+};
+W.colorPick=function(id,label,val){
+    var sw=['#111111','#ffffff','#F20D16','#C70A12','#2b2b2b','#F5F5F5','#0E9F6E','#1E40AF','#B45309','#7C3AED'];
+    return '<div class="w-form-group"><label class="w-label">'+W.esc(label)+'</label>'
+      +'<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><input type="color" id="cp-'+id+'" value="'+W.esc(val)+'" oninput="wontia.cpSync(\''+id+'\',\'c\')" style="width:40px;height:34px;border:1px solid var(--w-border);border-radius:8px;background:none;cursor:pointer"/>'
+      +'<input class="w-input" id="cph-'+id+'" value="'+W.esc(val)+'" oninput="wontia.cpSync(\''+id+'\',\'h\')" style="max-width:110px;font-family:monospace"/>'
+      +'<button type="button" class="w-btn w-btn-secondary w-btn-sm" id="cpe-'+id+'" title="Cuentagotas" onclick="wontia.cpEye(\''+id+'\')">🎧</button></div>'
+      +'<div id="cpr-'+id+'" style="font-size:10px;color:var(--w-muted);font-family:monospace;margin-top:2px"></div>'
+      +'<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:5px">'+sw.map(function(c){return '<button type="button" onclick="wontia.cpSet(\''+id+'\',\''+c+'\')" title="'+c+'" style="width:18px;height:18px;border-radius:5px;border:1px solid var(--w-border);background:'+c+';cursor:pointer"></button>'}).join('')+'</div></div>';
+};
+W.cpSync=function(id,src){
+    var c=document.getElementById('cp-'+id), hx=document.getElementById('cph-'+id), rgb=document.getElementById('cpr-'+id);
+    if(src==='c'&&c&&hx)hx.value=c.value;
+    if(src==='h'&&c&&hx&&/^#[0-9a-fA-F]{6}$/.test(hx.value))c.value=hx.value;
+    var v=(c&&c.value)||'#000000'; if(rgb){rgb.textContent=W.hexToRgb(v)+'  '+v}
+    W.navPreview();
+};
+W.cpSet=function(id,val){var c=document.getElementById('cp-'+id),hx=document.getElementById('cph-'+id);if(c)c.value=val;if(hx)hx.value=val;W.cpSync(id,'c')};
+W.cpEye=async function(id){if(!window.EyeDropper){W.notify('El cuentagotas no está disponible en este navegador','error');return}try{var r=await new EyeDropper().open();W.cpSet(id,r.sRGBHex)}catch(e){}};
+W.hexToRgb=function(h){h=(h||'').replace('#','');if(h.length!==6)return '';var n=parseInt(h,16);return 'rgb('+((n>>16)&255)+', '+((n>>8)&255)+', '+(n&255)+')'};
+W.colorPickInit=function(){['navbg','navfg','navhover','navaccent'].forEach(function(id){var c=document.getElementById('cp-'+id),hx=document.getElementById('cph-'+id);if(c&&hx)W.cpSync(id,'c')})};
+W.navAlign=function(a){if(!W._navStyle)W._navStyle={};W._navStyle.align=a;document.querySelectorAll('#nav-align [data-align]').forEach(function(b){b.className='w-btn '+(b.getAttribute('data-align')===a?'w-btn-primary':'w-btn-secondary')});W.navPreview()};
+W.navPreview=function(){
+    var box=document.getElementById('nav-preview'); if(!box)return;
+    var st=W._navStyle||{};
+    var g=function(id,d){var e=document.getElementById('cph-'+id);return (e&&e.value)||d};
+    var bg=g('navbg',st.bg), fg=g('navfg',st.color), hv=g('navhover',st.hover_bg), ac=g('navaccent',st.accent);
+    var fo=((document.getElementById('nav-font')||{}).value)||st.font, sz=((document.getElementById('nav-size')||{}).value)||st.size;
+    W.loadGf(fo);
+    var just=({left:'flex-start',center:'center',right:'flex-end'})[st.align]||'flex-start';
+    var it=function(t,hot){return '<span style="color:'+fg+';font-family:\''+W.esc(fo)+'\',sans-serif;font-size:'+sz+'px;font-weight:600;padding:11px 13px;'+(hot?'border-bottom:2px solid '+ac:'')+'">'+t+'</span>'};
+    box.innerHTML='<div style="background:'+bg+';display:flex;justify-content:'+just+';gap:2px;border-radius:8px;overflow:auto">'+it('Inicio')+it('Tienda')+it('Ofertas',1)+it('Marcas')+it('Contacto')+it('Soporte')+'</div>';
+};
+W.navPreset=function(kind){
+    var p={dark:{bg:'#111111',color:'#ffffff',hover_bg:'#1f1f1f',accent:'#F20D16'},light:{bg:'#F5F5F5',color:'#111111',hover_bg:'#E6E6E6',accent:'#F20D16'},brand:{bg:'#F20D16',color:'#ffffff',hover_bg:'#C70A12',accent:'#ffffff'}}[kind];
+    if(!p)return;var map={bg:'navbg',color:'navfg',hover_bg:'navhover',accent:'navaccent'};
+    Object.keys(map).forEach(function(k){var id=map[k],c=document.getElementById('cp-'+id),hx=document.getElementById('cph-'+id);if(c)c.value=p[k];if(hx)hx.value=p[k];W.cpSync(id,'c')});
+    W.navPreview();
+};
+W.navStyleSave=async function(){
+    var st=W._navStyle||{};
+    var g=function(id,d){var e=document.getElementById('cph-'+id);return (e&&e.value)||d};
+    var body={align:st.align||'left',bg:g('navbg','#111111'),color:g('navfg','#ffffff'),hover_bg:g('navhover','#1f1f1f'),accent:g('navaccent','#F20D16'),font:((document.getElementById('nav-font')||{}).value)||'Sora',size:parseInt(((document.getElementById('nav-size')||{}).value)||'14',10)};
+    var r=await W.api('/api/v1/admin/nav/style',{method:'POST',body:body});
+    if(r&&r.ok)W.notify('Apariencia de la barra guardada','success');
 };
 W.themeConfig=async function(slug){
     var r=await W.api('/api/v1/admin/themes/'+encodeURIComponent(slug)+'/config');
