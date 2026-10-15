@@ -53,6 +53,30 @@ if (!function_exists('sonika_json')) {
         return is_array($d) ? $d : [];
     }
 }
+if (!function_exists('sonika_font')) {
+    /** Familia configurada (Settings → Tipografía) o 'Sora'. Saneada. */
+    function sonika_font(string $role): string {
+        $key = ($role === 'display') ? 'font_family_display' : 'font_family_body';
+        $v = trim((string)wwi_setting($key, ''));
+        if ($v === '' || !preg_match('/^[A-Za-z0-9 \-\']+$/', $v)) $v = 'Sora';
+        return $v;
+    }
+}
+if (!function_exists('sonika_font_stack')) {
+    function sonika_font_stack(string $role): string {
+        return "'" . sonika_font($role) . "',system-ui,sans-serif";
+    }
+}
+if (!function_exists('sonika_fonts_url')) {
+    function sonika_fonts_url(): string {
+        $fb = sonika_font('body');
+        $fd = sonika_font('display');
+        $fams = ($fb === $fd) ? [$fb] : [$fb, $fd];
+        $parts = [];
+        foreach ($fams as $f) $parts[] = 'family=' . str_replace(' ', '+', $f) . ':wght@400;500;600;700;800';
+        return 'https://fonts.googleapis.com/css2?' . implode('&', $parts) . '&display=swap';
+    }
+}
 if (!function_exists('sonika_catalog')) {
     function sonika_catalog(): array {
         static $c = null;
@@ -347,8 +371,10 @@ if (!function_exists('sonika_site_head')) {
     <?= SeoService::metaTags($pageMeta) ?>
     <?php if (($__fav = wwi_favicon_links()) !== '') { echo $__fav; } else { echo '<link rel="icon" type="image/png" href="/assets/themes/sonika/isotipo.png">'; } ?>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="<?= sonika_fonts_url() ?>" rel="stylesheet" />
     <style><?= sonika_css() ?></style>
+    <style>:root{--font-body:<?= sonika_font_stack('body') ?>;--font-display:<?= sonika_font_stack('display') ?>}</style>
 </head>
 <body>
 <div class="topbar"<?php

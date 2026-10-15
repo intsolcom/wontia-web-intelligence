@@ -1449,6 +1449,33 @@ W.runSeoAudit=async function(){
     el.innerHTML='<div class="w-card"><h3>Audit Results ('+d.total_issues+' issues)</h3>'+(d.issues||[]).map(function(i){return '<div style="font-size:12px;padding:6px 0;border-bottom:1px solid var(--w-border)">['+i.type+'] '+(i.page||i.post)+' ('+i.slug+')</div>'}).join('')+'</div>';
 };
 
+W.renderTypographyPanel=async function(){
+    var panel=document.getElementById('settings-panel'); if(!panel)return;
+    panel.innerHTML='<div style="padding:20px;color:var(--w-muted)">Cargando…</div>';
+    var d=await W.api('/api/v1/admin/settings'); var s=(d&&d.data)||{};
+    var fonts=['Sora','Inter','Manrope','Plus Jakarta Sans','Outfit','Poppins','Montserrat','Figtree','DM Sans','Space Grotesk','Work Sans','Rubik','Nunito Sans','Lexend','Public Sans'];
+    var curB=s.font_family_body||'Sora', curD=s.font_family_display||'Sora';
+    var opts=function(sel){return fonts.map(function(f){return '<option value="'+W.esc(f)+'"'+(f===sel?' selected':'')+'>'+W.esc(f)+'</option>'}).join('')};
+    var h='<div class="w-flex-between" style="flex-wrap:wrap;gap:8px;margin-bottom:10px"><div><div style="font-size:11px;color:var(--w-muted)">Settings › Tipografía</div><h3 style="margin:0">🔤 Tipografía del sitio</h3></div><button class="w-btn w-btn-primary" onclick="wontia.typoSave()">💾 Guardar</button></div>';
+    h+='<div style="font-size:12px;color:var(--w-muted);margin-bottom:14px">Se aplica a <b>todo el sitio</b> (cuerpo y títulos) vía tokens de fuente. Fuentes de Google Fonts (pesos 400–800).</div>';
+    h+='<div class="w-card" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px">'
+      +'<div class="w-form-group"><label class="w-label">Fuente del cuerpo (texto, enlaces, listas)</label><select class="w-select" id="typo-body">'+opts(curB)+'</select></div>'
+      +'<div class="w-form-group"><label class="w-label">Fuente de títulos</label><select class="w-select" id="typo-display">'+opts(curD)+'</select></div>'
+      +'</div>';
+    h+='<div class="w-card" style="margin-top:14px"><h3 style="margin-bottom:10px">Vista previa</h3><div id="typo-preview" style="line-height:1.6"><div style="font-size:30px;font-weight:800" data-disp>Todo tu mundo musical en un solo lugar</div><div style="margin-top:8px;color:var(--w-muted)">Acordeón · Guitarra · Batería · Micrófono · Teclados — texto de cuerpo para leer listas y enlaces.</div><button class="w-btn w-btn-primary" style="margin-top:10px">Botón de ejemplo</button></div></div>';
+    panel.innerHTML=h;
+    var loadFont=function(f){f=(f||'').trim();if(!f)return;var id='gf-'+f.replace(/\s+/g,'-');if(document.getElementById(id))return;var l=document.createElement('link');l.id=id;l.rel='stylesheet';l.href='https://fonts.googleapis.com/css2?family='+encodeURIComponent(f)+':wght@400;500;600;700;800&display=swap';document.head.appendChild(l);};
+    var upd=function(){var b=(document.getElementById('typo-body')||{}).value||'Sora';var dp=(document.getElementById('typo-display')||{}).value||'Sora';loadFont(b);loadFont(dp);var pv=document.getElementById('typo-preview');if(!pv)return;pv.style.fontFamily="'"+b+"',system-ui,sans-serif";var t=pv.querySelector('[data-disp]');if(t)t.style.fontFamily="'"+dp+"',system-ui,sans-serif";};
+    var bsel=document.getElementById('typo-body'),dsel=document.getElementById('typo-display');
+    if(bsel)bsel.addEventListener('change',upd); if(dsel)dsel.addEventListener('change',upd);
+    upd();
+};
+W.typoSave=async function(){
+    var b=(document.getElementById('typo-body')||{}).value||'Sora';
+    var dp=(document.getElementById('typo-display')||{}).value||'Sora';
+    var r=await W.api('/api/v1/admin/settings',{method:'PUT',body:{font_family_body:b,font_family_display:dp}});
+    if(r&&r.ok)W.notify('Tipografía guardada','success');
+};
 W.renderCatalogReconciliation=async function(){
     var panel=document.getElementById('settings-panel'); if(!panel)return;
     panel.innerHTML='<div style="padding:20px;color:var(--w-muted)">Cargando informe de conciliación…</div>';
@@ -1512,13 +1539,14 @@ W.renderSettings=function(tab){
     W.state.settingsTab=tab||'general';
     var t=W.state.settingsTab;
     var tabBtn=function(id,label){return '<button class="w-btn '+(t===id?'w-btn-primary':'w-btn-secondary')+'" onclick="wontia.renderSettings(\''+id+'\')">'+label+'</button>';};
-    app.innerHTML='<div class="w-flex w-gap-sm" style="margin-bottom:16px;flex-wrap:wrap">'+tabBtn('general','Ajustes')+tabBtn('themes','Themes')+tabBtn('nav','Menús')+tabBtn('logo','Logo & Favicon')+tabBtn('security','Seguridad')+tabBtn('cache','Administración de caché')+tabBtn('update','Update')+tabBtn('reconciliation','Conciliación de catálogo')+'</div><div id="settings-panel"></div>';
+    app.innerHTML='<div class="w-flex w-gap-sm" style="margin-bottom:16px;flex-wrap:wrap">'+tabBtn('general','Ajustes')+tabBtn('themes','Themes')+tabBtn('nav','Menús')+tabBtn('logo','Logo & Favicon')+tabBtn('security','Seguridad')+tabBtn('cache','Administración de caché')+tabBtn('update','Update')+tabBtn('typography','Tipografía')+tabBtn('reconciliation','Conciliación de catálogo')+'</div><div id="settings-panel"></div>';
     if(t==='themes')W.renderThemesPanel();
     else if(t==='nav')W.renderNavPanel();
     else if(t==='logo')W.renderLogoPanel();
     else if(t==='security')W.renderSecurityPanel();
     else if(t==='cache')W.renderCachePanel();
     else if(t==='update')W.renderUpdatePanel();
+    else if(t==='typography')W.renderTypographyPanel();
     else if(t==='reconciliation')W.renderCatalogReconciliation();
     else W.renderSettingsGeneral();
 };
