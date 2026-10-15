@@ -1690,14 +1690,17 @@ W.navDel=async function(id){
 W.loadGf=function(f){f=(f||'').trim();if(!f)return;var id='gf-'+f.replace(/\s+/g,'-');if(document.getElementById(id))return;var l=document.createElement('link');l.id=id;l.rel='stylesheet';l.href='https://fonts.googleapis.com/css2?family='+encodeURIComponent(f)+':wght@400;500;600;700;800&display=swap';document.head.appendChild(l);};
 W.navAppearance=function(s){
     s=s||{};
-    var align=s.align||'left', bg=s.bg||'#111111', color=s.color||'#ffffff', hover=s.hover_bg||'#1f1f1f', accent=s.accent||'#F20D16', font=s.font||'Sora', size=s.size||14;
-    W._navStyle={align:align,bg:bg,color:color,hover_bg:hover,accent:accent,font:font,size:size};
+    var align=s.align||'left', pos=s.position||'below', bg=s.bg||'#111111', color=s.color||'#ffffff', hover=s.hover_bg||'#1f1f1f', accent=s.accent||'#F20D16', font=s.font||'Sora', size=s.size||14;
+    W._navStyle={align:align,position:pos,bg:bg,color:color,hover_bg:hover,accent:accent,font:font,size:size};
     var fonts=['Sora','Inter','Manrope','Plus Jakarta Sans','Outfit','Poppins','Montserrat','Figtree','DM Sans','Space Grotesk','Work Sans','Rubik','Nunito Sans','Lexend','Public Sans'];
     var sel=fonts.map(function(f){return '<option value="'+W.esc(f)+'"'+(f===font?' selected':'')+'>'+W.esc(f)+'</option>'}).join('');
     var h='<div class="w-card" style="margin-bottom:14px"><div class="w-flex-between" style="flex-wrap:wrap;gap:8px"><h3 style="margin:0">🎨 Apariencia de la barra</h3><div class="w-flex w-gap-sm"><button class="w-btn w-btn-secondary" onclick="wontia.navPreset(\'dark\')">Oscura</button><button class="w-btn w-btn-secondary" onclick="wontia.navPreset(\'light\')">Clara</button><button class="w-btn w-btn-secondary" onclick="wontia.navPreset(\'brand\')">Marca</button><button class="w-btn w-btn-primary" onclick="wontia.navStyleSave()">💾 Guardar</button></div></div>';
     h+='<div style="font-size:11px;color:var(--w-muted);margin:6px 0 12px">Estilo del menú principal (Inicio · Tienda · Ofertas · Marcas · Contacto · Soporte).</div>';
     h+='<div class="w-form-group"><label class="w-label">Alineación del menú</label><div class="w-flex w-gap-sm" id="nav-align">'
       +['left','center','right'].map(function(a){return '<button type="button" class="w-btn '+(a===align?'w-btn-primary':'w-btn-secondary')+'" data-align="'+a+'" onclick="wontia.navAlign(\''+a+'\')">'+({left:'⬅ Izquierda',center:'↔ Centro',right:'Derecha ➡'})[a]+'</button>'}).join('')
+      +'</div></div>';
+    h+='<div class="w-form-group"><label class="w-label">Posición de la barra</label><div class="w-flex w-gap-sm" id="nav-pos">'
+      +['above','below'].map(function(p){return '<button type="button" class="w-btn '+(p===pos?'w-btn-primary':'w-btn-secondary')+'" data-pos="'+p+'" onclick="wontia.navPos(\''+p+'\')">'+({above:'⬆ Arriba (sobre logo, buscador y cuenta/carrito)',below:'⬇ Abajo (actual)'})[p]+'</button>'}).join('')
       +'</div></div>';
     h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-top:6px">'
       +W.colorPick('navbg','Color de fondo',bg)
@@ -1732,6 +1735,7 @@ W.cpEye=async function(id){if(!window.EyeDropper){W.notify('El cuentagotas no es
 W.hexToRgb=function(h){h=(h||'').replace('#','');if(h.length!==6)return '';var n=parseInt(h,16);return 'rgb('+((n>>16)&255)+', '+((n>>8)&255)+', '+(n&255)+')'};
 W.colorPickInit=function(){['navbg','navfg','navhover','navaccent'].forEach(function(id){var c=document.getElementById('cp-'+id),hx=document.getElementById('cph-'+id);if(c&&hx)W.cpSync(id,'c')})};
 W.navAlign=function(a){if(!W._navStyle)W._navStyle={};W._navStyle.align=a;document.querySelectorAll('#nav-align [data-align]').forEach(function(b){b.className='w-btn '+(b.getAttribute('data-align')===a?'w-btn-primary':'w-btn-secondary')});W.navPreview()};
+W.navPos=function(p){if(!W._navStyle)W._navStyle={};W._navStyle.position=p;document.querySelectorAll('#nav-pos [data-pos]').forEach(function(b){b.className='w-btn '+(b.getAttribute('data-pos')===p?'w-btn-primary':'w-btn-secondary')});};
 W.navPreview=function(){
     var box=document.getElementById('nav-preview'); if(!box)return;
     var st=W._navStyle||{};
@@ -1752,7 +1756,7 @@ W.navPreset=function(kind){
 W.navStyleSave=async function(){
     var st=W._navStyle||{};
     var g=function(id,d){var e=document.getElementById('cph-'+id);return (e&&e.value)||d};
-    var body={align:st.align||'left',bg:g('navbg','#111111'),color:g('navfg','#ffffff'),hover_bg:g('navhover','#1f1f1f'),accent:g('navaccent','#F20D16'),font:((document.getElementById('nav-font')||{}).value)||'Sora',size:parseInt(((document.getElementById('nav-size')||{}).value)||'14',10)};
+    var body={align:st.align||'left',position:st.position||'below',bg:g('navbg','#111111'),color:g('navfg','#ffffff'),hover_bg:g('navhover','#1f1f1f'),accent:g('navaccent','#F20D16'),font:((document.getElementById('nav-font')||{}).value)||'Sora',size:parseInt(((document.getElementById('nav-size')||{}).value)||'14',10)};
     var r=await W.api('/api/v1/admin/nav/style',{method:'POST',body:body});
     if(r&&r.ok)W.notify('Apariencia de la barra guardada','success');
 };
