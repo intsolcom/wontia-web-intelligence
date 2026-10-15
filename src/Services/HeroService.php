@@ -76,7 +76,8 @@ class HeroService
         $id = (int)($d['id'] ?? 0);
         $name = trim((string)($d['name'] ?? 'Slide')) ?: 'Slide';
         $status = (($d['status'] ?? 'draft') === 'active') ? 'active' : 'draft';
-        $layout = in_array((string)($d['layout'] ?? 'split'), ['split', 'full', 'left', 'right'], true) ? (string)$d['layout'] : 'split';
+        $layoutIn = (string)($d['layout'] ?? 'split');
+        $layout = in_array($layoutIn, ['split', 'full', 'left', 'right'], true) ? $layoutIn : 'split';
         $lt = array_key_exists((string)($d['left_type'] ?? ''), self::CONTENT_TYPES) ? (string)$d['left_type'] : 'text';
         $rt = array_key_exists((string)($d['right_type'] ?? ''), self::CONTENT_TYPES) ? (string)$d['right_type'] : 'text';
         if ($status === 'active' && (!self::CONTENT_TYPES[$lt]['available'] || !self::CONTENT_TYPES[$rt]['available'])) $status = 'draft';
