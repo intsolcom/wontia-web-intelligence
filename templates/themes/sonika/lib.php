@@ -92,6 +92,7 @@ if (!function_exists('sonika_nav_style')) {
             'color' => $hex($d['color'] ?? '', '#ffffff'),
             'hover_bg' => $hex($d['hover_bg'] ?? '', '#1f1f1f'),
             'accent' => $hex($d['accent'] ?? '', '#F20D16'),
+            'position' => in_array((string)($d['position'] ?? 'below'), ['above', 'below'], true) ? (string)$d['position'] : 'below',
             'font' => $font,
             'size' => max(11, min(22, (int)($d['size'] ?? 14))),
         ];
@@ -446,6 +447,30 @@ if (count($__cur) > 1 && (string)wwi_setting('store_currency_switcher', '') === 
     $__act = $__cs->active();
 ?><select aria-label="Moneda" onchange="document.cookie='wwi_currency='+this.value+';path=/;max-age=31536000';location.reload()" style="margin-left:12px;background:transparent;color:inherit;border:1px solid rgba(255,255,255,.4);border-radius:6px;padding:2px 6px;font:inherit"><?php foreach ($__cur as $__c): ?><option value="<?= sonika_esc($__c['code']) ?>"<?= $__c['code'] === $__act ? ' selected' : '' ?>><?= sonika_esc($__c['label']) ?></option><?php endforeach; ?></select><?php endif; ?></div>
 <header class="site">
+<?php
+$__navAbove = ((string)(sonika_nav_style()['position'] ?? 'below') === 'above');
+ob_start();
+?>
+  <nav class="mainnav" aria-label="Menú principal">
+    <div class="wrap">
+      <ul>
+        <?php foreach (wwi_nav('primary') as $it): $hot = (mb_stripos((string)$it['label'], 'oferta') !== false); ?>
+        <li<?= !empty($it['children']) ? ' class="has-sub"' : '' ?>>
+          <a href="<?= sonika_esc($it['url']) ?>"<?= $hot ? ' class="hot"' : '' ?>><?= sonika_esc($it['label']) ?><?= !empty($it['children']) ? ' <span aria-hidden="true">&#9662;</span>' : '' ?></a>
+          <?php if (!empty($it['children'])): ?>
+          <div class="submenu">
+            <?php foreach ($it['children'] as $ch): ?>
+              <a href="<?= sonika_esc($ch['url']) ?>"><?= sonika_esc($ch['label']) ?></a>
+            <?php endforeach; ?>
+          </div>
+          <?php endif; ?>
+        </li>
+        <?php endforeach; ?>
+      </ul>
+    </div>
+  </nav>
+<?php $__mainnav = ob_get_clean(); ?>
+  <?php if ($__navAbove) echo $__mainnav; ?>
   <div class="wrap">
     <div class="nav">
       <?= \App\Widgets\WidgetRegistry::render('mega-menu') ?>
@@ -479,24 +504,7 @@ if (count($__cur) > 1 && (string)wwi_setting('store_currency_switcher', '') === 
       </div>
     </div>
   </div>
-  <nav class="mainnav" aria-label="Menú principal">
-    <div class="wrap">
-      <ul>
-        <?php foreach (wwi_nav('primary') as $it): $hot = (mb_stripos((string)$it['label'], 'oferta') !== false); ?>
-        <li<?= !empty($it['children']) ? ' class="has-sub"' : '' ?>>
-          <a href="<?= sonika_esc($it['url']) ?>"<?= $hot ? ' class="hot"' : '' ?>><?= sonika_esc($it['label']) ?><?= !empty($it['children']) ? ' <span aria-hidden="true">&#9662;</span>' : '' ?></a>
-          <?php if (!empty($it['children'])): ?>
-          <div class="submenu">
-            <?php foreach ($it['children'] as $ch): ?>
-              <a href="<?= sonika_esc($ch['url']) ?>"><?= sonika_esc($ch['label']) ?></a>
-            <?php endforeach; ?>
-          </div>
-          <?php endif; ?>
-        </li>
-        <?php endforeach; ?>
-      </ul>
-    </div>
-  </nav>
+  <?php if (!$__navAbove) echo $__mainnav; ?>
 </header>
 <main>
 <?php

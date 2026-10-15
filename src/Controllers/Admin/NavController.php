@@ -85,6 +85,7 @@ class NavController
         if ($font === '' || !preg_match('/^[A-Za-z0-9 \-\']+$/', $font)) $font = 'Sora';
         $out = [
             'align' => $align,
+            'position' => in_array((string)($in['position'] ?? ''), ['above', 'below'], true) ? (string)$in['position'] : 'below',
             'bg' => self::hex((string)($in['bg'] ?? ''), '#111111'),
             'color' => self::hex((string)($in['color'] ?? ''), '#ffffff'),
             'hover_bg' => self::hex((string)($in['hover_bg'] ?? ''), '#1f1f1f'),
@@ -101,7 +102,7 @@ class NavController
 
     private static function defaultStyle(): array
     {
-        return ['align' => 'left', 'bg' => '#111111', 'color' => '#ffffff', 'hover_bg' => '#1f1f1f', 'accent' => '#F20D16', 'font' => 'Sora', 'size' => 14];
+        return ['align' => 'left', 'position' => 'below', 'bg' => '#111111', 'color' => '#ffffff', 'hover_bg' => '#1f1f1f', 'accent' => '#F20D16', 'font' => 'Sora', 'size' => 14];
     }
 
     private static function hex(string $v, string $d): string
