@@ -127,40 +127,59 @@ class SonikaHeroWidget extends Widget
 
     private function guitarBlock(array $d): string
     {
+        $p = $this->findGuitar((string)($d['product'] ?? ''));
+        $img = ($p && function_exists('sonika_img')) ? sonika_img($p, 900) : '';
+        if ($img === '') {
+            return '<div class="sh-guitar sh-guitar--empty"><div class="sh-inst__ph"><span aria-hidden="true">&#127928;</span><b>Falta una imagen de guitarra</b><small>Selecciona un producto de guitarra eléctrica en la configuración.</small></div></div>' . $this->guitarAssets();
+        }
+        $top = max(0, min(90, (float)($d['string_top'] ?? 40)));
+        $hgt = max(6, min(60, (float)($d['string_height'] ?? 18)));
         $h = '<div class="sh-guitar" data-wwi-instrument="guitar" data-profile="clean" role="group" aria-label="Guitarra eléctrica interactiva" tabindex="0">';
-        $h .= '<div class="sh-guitar__neck">';
-        for ($i = 0; $i < 6; $i++) $h .= '<button type="button" class="sh-string" data-string="' . $i . '" aria-label="Tocar cuerda ' . ($i + 1) . '" title="Cuerda ' . ($i + 1) . '"></button>';
-        $h .= '</div>';
+        $h .= '<div class="sh-guitar__stage">';
+        $h .= '<img class="sh-guitar__img" src="' . $this->esc($img) . '" alt="' . $this->esc((string)($p['title'] ?? 'Guitarra eléctrica')) . '" loading="eager" decoding="async"/>';
+        $h .= '<svg class="sh-guitar__strings" viewBox="0 0 100 100" preserveAspectRatio="none" aria-label="Cuerdas">';
+        for ($i = 0; $i < 6; $i++) {
+            $y = $top + ($hgt * $i / 5);
+            $h .= '<rect class="sh-string" data-string="' . $i . '" x="6" y="' . round($y, 2) . '" width="88" height="2.4" rx="1.2" tabindex="0" role="button" aria-label="Tocar cuerda ' . ($i + 1) . '"></rect>';
+        }
+        $h .= '</svg></div>';
         $h .= '<div class="sh-guitar__profiles" role="group" aria-label="Perfil de sonido">';
         foreach (['clean' => 'Clean', 'overdrive' => 'Overdrive', 'distortion' => 'Distortion', 'fuzz' => 'Fuzz'] as $k => $lbl) {
             $h .= '<button type="button" class="sh-prof' . ($k === 'clean' ? ' on' : '') . '" data-profile="' . $k . '">' . $lbl . '</button>';
         }
         $h .= '</div>';
-        $h .= '<p class="sh-guitar__hint">Toca las cuerdas (clic/tap) o usa las teclas <b>1–6</b>. El sonido se activa con la primera interacción.</p>';
-        $p = $this->findGuitar();
-        if ($p) {
-            $img = function_exists('sonika_img') ? sonika_img($p, 420) : '';
-            $price = function_exists('sonika_price') ? (float)sonika_price($p) : 0;
-            $h .= '<a class="sh-guitar__prod" href="/producto/' . $this->esc((string)($p['handle'] ?? '')) . '">';
-            if ($img !== '') $h .= '<img src="' . $this->esc($img) . '" alt="' . $this->esc((string)($p['title'] ?? '')) . '" loading="lazy" decoding="async"/>';
-            $h .= '<span><b>' . $this->esc((string)($p['title'] ?? '')) . '</b>' . ($price > 0 && function_exists('sonika_cop') ? '<em>' . $this->esc(sonika_cop($price)) . '</em>' : '') . '</span></a>';
-        }
+        $h .= '<p class="sh-guitar__hint">Toca las cuerdas para escuchar las notas. Cambia de efecto para explorar otros sonidos.</p>';
+        if ($p) $h .= $this->productCard($p);
         $h .= '</div>';
         return $h . $this->guitarAssets();
     }
 
-    private function findGuitar(): ?array
+    private function findGuitar(string $handle = ''): ?array
     {
         if (!function_exists('sonika_products')) return null;
+        if ($handle !== '' && function_exists('sonika_find')) { $p = sonika_find($handle); if ($p) return $p; }
         $best = null;
         foreach (sonika_products() as $p) {
             $t = strtoupper((string)($p['title'] ?? ''));
-            if (str_contains($t, 'GUITARRA')) {
-                if (str_contains($t, 'ELECTRIC')) return $p;
-                if (!$best) $best = $p;
-            }
+            $isGuitar = str_contains($t, 'GUITARRA') && !str_contains($t, 'AMPLIFICADOR') && !str_contains($t, 'BAJO') && !str_contains($t, 'CUERDA') && !str_contains($t, 'FUNDA') && !str_contains($t, 'CORREA') && !str_contains($t, 'PEDAL');
+            if (!$isGuitar) continue;
+            if (str_contains($t, 'ELECTRIC') || str_contains($t, 'ELECTR')) return $p;
+            if (!$best) $best = $p;
         }
         return $best;
+    }
+
+    private function productCard(array $p): string
+    {
+        $img = function_exists('sonika_img') ? sonika_img($p, 300) : '';
+        $price = function_exists('sonika_price') ? (float)sonika_price($p) : 0;
+        $h = '<a class="sh-pcard" href="/producto/' . $this->esc((string)($p['handle'] ?? '')) . '">';
+        if ($img !== '') $h .= '<span class="sh-pcard__img"><img src="' . $this->esc($img) . '" alt="' . $this->esc((string)($p['title'] ?? '')) . '" loading="lazy" decoding="async"/></span>';
+        $h .= '<span class="sh-pcard__info"><span class="sh-pcard__b">' . $this->esc((string)($p['vendor'] ?? '')) . '</span>';
+        $h .= '<span class="sh-pcard__n">' . $this->esc((string)($p['title'] ?? '')) . '</span>';
+        if ($price > 0 && function_exists('sonika_cop')) $h .= '<span class="sh-pcard__p">' . $this->esc(sonika_cop($price)) . '</span>';
+        $h .= '<span class="sh-pcard__cta">Ver producto &#8250;</span></span></a>';
+        return $h;
     }
 
     private function guitarAssets(): string
@@ -210,21 +229,26 @@ class SonikaHeroWidget extends Widget
 .sh-inst{display:flex;align-items:center;justify-content:center;height:100%}
 .sh-inst__ph{display:flex;flex-direction:column;align-items:center;gap:6px;padding:28px;border:1px dashed rgba(255,255,255,.3);border-radius:16px;text-align:center;opacity:.85}
 .sh-inst__ph span{font-size:40px}
-.sh-guitar{display:flex;flex-direction:column;gap:12px;max-width:420px}
-.sh-guitar__neck{position:relative;display:flex;flex-direction:column;gap:10px;padding:16px;background:linear-gradient(180deg,#2a2a2a,#111);border-radius:14px;border:1px solid rgba(255,255,255,.12)}
-.sh-guitar__neck::before{content:'';position:absolute;inset:14px;border-radius:8px;background:repeating-linear-gradient(90deg,transparent 0 34px,rgba(255,255,255,.06) 34px 35px);pointer-events:none}
-.sh-string{position:relative;z-index:1;height:8px;border:0;border-radius:999px;background:linear-gradient(90deg,#cfcfcf,#9a9a9a);box-shadow:0 1px 2px rgba(0,0,0,.4);cursor:pointer;transition:transform .08s,filter .12s}
-.sh-string:hover{filter:brightness(1.25)}
-.sh-string.on{transform:scaleY(1.35);filter:brightness(1.6)}
-.sh-string:focus-visible{outline:2px solid var(--brand,#F20D16);outline-offset:2px}
+.sh-guitar{display:flex;flex-direction:column;gap:12px;max-width:460px}
+.sh-guitar__stage{position:relative;border-radius:14px;overflow:hidden;background:#fff;border:1px solid rgba(255,255,255,.14)}
+.sh-guitar__img{width:100%;height:auto;display:block;object-fit:contain}
+.sh-guitar__strings{position:absolute;inset:0;width:100%;height:100%}
+.sh-string{cursor:pointer;fill:rgba(60,60,60,.6);transition:fill .12s;pointer-events:all}
+.sh-string:hover{fill:#111}
+.sh-string.on{fill:var(--brand,#F20D16)}
+.sh-string:focus-visible{outline:2px solid var(--brand,#F20D16);outline-offset:1px}
 .sh-guitar__profiles{display:flex;gap:6px;flex-wrap:wrap}
 .sh-prof{border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.06);color:#fff;border-radius:999px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer}
 .sh-prof.on{background:var(--brand,#F20D16);border-color:var(--brand,#F20D16)}
-.sh-guitar__hint{font-size:11.5px;opacity:.75}
-.sh-guitar__prod{display:flex;gap:10px;align-items:center;color:#fff;text-decoration:none;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);border-radius:12px;padding:8px}
-.sh-guitar__prod img{width:52px;height:52px;object-fit:cover;border-radius:8px}
-.sh-guitar__prod em{display:block;font-style:normal;font-weight:800;color:#ffd9db}
-html[data-cap="low"] .sh-guitar__neck{pointer-events:none;opacity:.6}
+.sh-guitar__hint{font-size:12px;opacity:.8}
+.sh-pcard{display:flex;gap:12px;align-items:center;color:#fff;text-decoration:none;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);border-radius:12px;padding:10px}
+.sh-pcard__img img{width:84px;height:84px;object-fit:contain;background:#fff;border-radius:8px;display:block}
+.sh-pcard__info{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.sh-pcard__b{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;opacity:.7}
+.sh-pcard__n{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-weight:700;font-size:13.5px;line-height:1.25}
+.sh-pcard__p{font-weight:800;color:#ffd9db}
+.sh-pcard__cta{font-size:12px;font-weight:800;text-decoration:underline}
+html[data-cap="low"] .sh-guitar__strings{display:none}
 .sh-nav{position:absolute;top:50%;transform:translateY(-50%);z-index:3;width:40px;height:40px;border-radius:50%;border:1px solid rgba(255,255,255,.35);background:rgba(0,0,0,.35);color:#fff;font-size:20px;cursor:pointer}
 .sh-prev{left:12px}.sh-next{right:12px}
 .sh-dots{position:absolute;left:0;right:0;bottom:14px;display:flex;gap:8px;justify-content:center;z-index:3}
