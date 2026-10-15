@@ -51,7 +51,7 @@ W.router=function(){
     if(panel!=='bricks'){W.state.brickHost=null;W.state.bhHost=null}
     document.querySelectorAll('.w-nav-item').forEach(function(a){a.classList.toggle('active',a.dataset.panel===panel)});
     var title=document.getElementById('panel-title');
-    var titles={dashboard:'Dashboard',wwi:'WWI — Sistema',store:'Tienda','order-center':'Central de pedidos','mega-menu':'Mega Menú',pages:'Pages',sections:'Sections',bricks:'Bricks',brickhub:'BrickHub',brick:'AI BRICK',factory:'Factory',portal:'Mi Portal',blog:'Blog',media:'Media',banners:'Banners',seo:'SEO','seo-global-launch':'SEO Global Launch',analytics:'Analytics',settings:'Settings',users:'Users'};
+    var titles={dashboard:'Dashboard',wwi:'WWI — Sistema',store:'Tienda','order-center':'Central de pedidos','mega-menu':'Mega Menú',hero:'SONIKA Hero Builder',pages:'Pages',sections:'Sections',bricks:'Bricks',brickhub:'BrickHub',brick:'AI BRICK',factory:'Factory',portal:'Mi Portal',blog:'Blog',media:'Media',banners:'Banners',seo:'SEO','seo-global-launch':'SEO Global Launch',analytics:'Analytics',settings:'Settings',users:'Users'};
     if(title)title.textContent=titles[panel]||panel;
     var app=document.getElementById('wontia-app');
     if(!app)return;
@@ -1534,6 +1534,78 @@ W.crApply=async function(){
     W.renderCatalogReconciliation();
 };
 W.crReject=async function(h){ await W.api('/api/v1/admin/catalog/suggestions/reject',{method:'POST',body:{handles:[h]}}); W.renderCatalogReconciliation(); };
+W.renderHero=async function(id){
+    var app=document.getElementById('wontia-app'); if(!app)return;
+    if(id)return W.heroEdit(parseInt(id,10));
+    app.innerHTML='<div style="padding:30px;text-align:center;color:var(--w-muted)">Cargando…</div>';
+    var r=await W.api('/api/v1/admin/hero'); var d=(r&&r.data)||{}; W._heroTypes=d.types||{}; W._heroSlides=d.slides||[];
+    var h='<div class="w-flex-between" style="flex-wrap:wrap;gap:8px;margin-bottom:12px"><div><div style="font-size:11px;color:var(--w-muted)">Bricks › SONIKA Hero Builder</div><h3 style="margin:0">🚀 SONIKA Hero Builder</h3></div><div class="w-flex w-gap-sm"><button class="w-btn w-btn-secondary" onclick="location.hash=\'#bricks\'">← Bricks</button><button class="w-btn w-btn-primary" onclick="wontia.heroNew()">＋ Nuevo slide</button></div></div>';
+    h+='<div style="font-size:12px;color:var(--w-muted);margin-bottom:12px">Slides de <b>2 zonas</b>. <b>Borrador</b> = no visible · <b>Activo</b> = publicado. Los motores de instrumento aún no están implementados.</div>';
+    if(!W._heroSlides.length){h+='<div class="w-empty-state"><h3>Sin slides</h3><p>Crea el primero.</p></div>';}
+    else{
+        h+='<div style="display:flex;flex-direction:column;gap:8px">';
+        W._heroSlides.forEach(function(s){
+            var lt=(W._heroTypes[s.left_type]||{}).label||s.left_type, rt=(W._heroTypes[s.right_type]||{}).label||s.right_type;
+            h+='<div class="w-card" style="padding:12px 14px"><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span style="font-weight:800">'+W.esc(s.name)+'</span>'
+              +'<span class="w-badge" style="background:'+(s.status==='active'?'rgba(52,211,153,.15);color:#34d399':'rgba(148,163,184,.15);color:#94a3b8')+'">'+(s.status==='active'?'ACTIVO':'BORRADOR')+'</span>'
+              +'<span style="font-size:11px;color:var(--w-muted)">IZQ: '+W.esc(lt)+' · DER: '+W.esc(rt)+'</span><span style="flex:1"></span>'
+              +'<button class="w-btn w-btn-secondary w-btn-sm" onclick="location.hash=\'#hero/\'+'+s.id+'">Configurar</button>'
+              +'<button class="w-btn w-btn-secondary w-btn-sm" title="Duplicar" onclick="wontia.heroDup('+s.id+')">⧉</button>'
+              +(s.status==='active'?'<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.heroSetStatus('+s.id+',\'draft\')">Despublicar</button>':'<button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.heroPub('+s.id+')">🚀 Publicar</button>')
+              +'<button class="w-btn w-btn-danger w-btn-sm" title="Eliminar" onclick="wontia.heroDel('+s.id+')">🗑</button></div></div>';
+        });
+        h+='</div>';
+    }
+    app.innerHTML=h;
+};
+W.heroNew=async function(){var r=await W.api('/api/v1/admin/hero/slides',{method:'POST',body:{name:'Nuevo slide',status:'draft',left_type:'text',right_type:'text'}});if(r&&r.ok&&r.slide)location.hash='#hero/'+r.slide.id;};
+W.heroDup=async function(id){var r=await W.api('/api/v1/admin/hero/slides/'+id+'/duplicate',{method:'POST',body:{}});if(r&&r.ok)location.hash='#hero/'+r.id;};
+W.heroDel=async function(id){if(!confirm('¿Eliminar este slide?'))return;await W.api('/api/v1/admin/hero/slides/'+id,{method:'DELETE'});W.renderHero();};
+W.heroPub=async function(id){var r=await W.api('/api/v1/admin/hero/slides/'+id+'/publish',{method:'POST',body:{}});if(r&&r.ok)W.notify('Publicado','success');else W.notify((r&&r.message)||'No se pudo publicar','error');W.renderHero();};
+W.heroSetStatus=async function(id,st){var s=(W._heroSlides||[]).filter(function(x){return x.id===id})[0];if(!s)return;await W.api('/api/v1/admin/hero/slides',{method:'POST',body:{id:id,name:s.name,status:st,layout:s.layout,left_type:s.left_type,left_data:s.left_data,right_type:s.right_type,right_data:s.right_data,design:s.design}});W.renderHero();};
+W.heroSel=function(side,sel){var opts=Object.keys(W._heroTypes||{}).map(function(k){var t=W._heroTypes[k];return '<option value="'+W.esc(k)+'"'+(k===sel?' selected':'')+(t.available?'':' disabled')+'>'+W.esc(t.label)+(t.available?'':' — no disponible')+'</option>'}).join('');return '<select class="w-select" id="hero-'+side+'-type" onchange="wontia.heroEditReload(\''+side+'\')">'+opts+'</select>';};
+W.heroFields=function(side,type,data){var d=data||{};
+    var f=function(k,l,v){return '<div class="w-form-group"><label class="w-label">'+l+'</label><input class="w-input hero-f" data-k="'+k+'" value="'+W.esc(d[v]||'')+'"/></div>'};
+    var t=function(k,l){return '<div class="w-form-group"><label class="w-label">'+l+'</label><textarea class="w-textarea hero-f" data-k="'+k+'">'+W.esc(d[k]||'')+'</textarea></div>'};
+    if(type==='text')return f('','Etiqueta (eyebrow)','eyebrow')+f('','Título','title')+f('','Subtítulo','subtitle')+t('text','Texto descriptivo')+f('','Texto del CTA','cta')+f('','Destino del CTA','cta_url')+f('','CTA secundario','cta2')+f('','Destino CTA 2','cta2_url');
+    if(type==='image')return f('','Imagen (URL)','image')+f('','Texto alternativo','alt')+f('','Título','title')+f('','Subtítulo','subtitle')+t('text','Texto')+f('','Texto del CTA','cta')+f('','Destino del CTA','cta_url');
+    if(type==='video')return f('','Video (URL .mp4)','video')+f('','Portada (URL)','poster')+f('','Título','title')+f('','Subtítulo','subtitle')+t('text','Texto')+f('','Texto del CTA','cta')+f('','Destino del CTA','cta_url');
+    if(type==='product')return f('','Handle del producto','handle')+f('','Título (opcional)','title')+f('','Subtítulo','subtitle')+t('text','Texto')+f('','Texto del CTA','cta')+f('','Destino del CTA','cta_url');
+    if(type==='combo')return f('','Imagen','image')+f('','Texto alternativo','alt')+f('','Título','title')+t('text','Texto')+f('','CTA','cta')+f('','Destino','cta_url');
+    return '<div style="font-size:12px;color:var(--w-muted)">Este tipo aún no tiene motor implementado; no se puede publicar.</div>';
+};
+W.heroEditReload=function(side){var sel=document.getElementById('hero-'+side+'-type');var box=document.getElementById('hero-'+side+'-fields');if(sel&&box)box.innerHTML=W.heroFields(side,sel.value,{});};
+W.heroCollect=function(side){var box=document.getElementById('hero-'+side+'-fields');var out={};if(box)box.querySelectorAll('.hero-f').forEach(function(el){out[el.getAttribute('data-k')]=el.value});return out;};
+W.heroEdit=async function(id){
+    var app=document.getElementById('wontia-app'); if(!app)return;
+    var r=await W.api('/api/v1/admin/hero'); var d=(r&&r.data)||{}; W._heroTypes=d.types||{}; W._heroSlides=d.slides||[];
+    var s=(W._heroSlides||[]).filter(function(x){return x.id===id})[0];
+    if(!s){app.innerHTML='<div class="w-empty-state"><p>Slide no encontrado.</p><button class="w-btn w-btn-secondary" onclick="location.hash=\'#hero\'">← Volver</button></div>';return;}
+    W._heroCur=s;
+    var h='<div class="w-flex-between" style="flex-wrap:wrap;gap:8px;margin-bottom:12px"><div><div style="font-size:11px;color:var(--w-muted)">Hero Builder › slide</div><h3 style="margin:0">'+W.esc(s.name)+'</h3></div><div class="w-flex w-gap-sm"><button class="w-btn w-btn-secondary" onclick="location.hash=\'#hero\'">← Volver</button><button class="w-btn w-btn-primary" onclick="wontia.heroSave()">💾 Guardar</button></div></div>';
+    h+='<div class="w-card"><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px"><div class="w-form-group"><label class="w-label">Nombre</label><input class="w-input" id="hero-name" value="'+W.esc(s.name)+'"/></div><div class="w-form-group"><label class="w-label">Estado</label><select class="w-select" id="hero-status"><option value="draft"'+(s.status!=='active'?' selected':'')+'>Borrador</option><option value="active"'+(s.status==='active'?' selected':'')+'>Activo</option></select></div></div></div>';
+    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px">';
+    h+='<div class="w-card"><h3>Zona izquierda</h3>'+W.heroSel('left',s.left_type)+'<div id="hero-left-fields" style="margin-top:10px">'+W.heroFields('left',s.left_type,s.left_data||{})+'</div></div>';
+    h+='<div class="w-card"><h3>Zona derecha</h3>'+W.heroSel('right',s.right_type)+'<div id="hero-right-fields" style="margin-top:10px">'+W.heroFields('right',s.right_type,s.right_data||{})+'</div></div>';
+    h+='</div>';
+    h+='<div class="w-card" style="margin-top:14px"><h3>Publicación</h3><div style="font-size:12px;color:var(--w-muted)">Guardar mantiene el borrador sin alterar el sitio. Publicar solo funciona si ambas zonas tienen un tipo con motor disponible.</div><div class="w-flex w-gap-sm" style="margin-top:10px"><button class="w-btn w-btn-primary" onclick="wontia.heroPub('+s.id+')">🚀 Publicar</button><button class="w-btn w-btn-secondary" onclick="wontia.heroVersions('+s.id+')">🕘 Versiones</button></div><div id="hero-vers" style="margin-top:10px"></div></div>';
+    app.innerHTML=h;
+};
+W.heroSave=async function(){
+    var s=W._heroCur||{};
+    var body={id:s.id,name:(document.getElementById('hero-name')||{}).value||s.name,status:(document.getElementById('hero-status')||{}).value||'draft',layout:s.layout,
+      left_type:((document.getElementById('hero-left-type')||{}).value)||s.left_type,left_data:W.heroCollect('left'),
+      right_type:((document.getElementById('hero-right-type')||{}).value)||s.right_type,right_data:W.heroCollect('right'),design:s.design};
+    var r=await W.api('/api/v1/admin/hero/slides',{method:'POST',body:body});
+    if(r&&r.ok){W.notify('Slide guardado','success');W.renderHero();}else W.notify((r&&r.message)||'Error','error');
+};
+W.heroVersions=async function(id){
+    var box=document.getElementById('hero-vers'); if(!box)return; box.innerHTML='Cargando…';
+    var r=await W.api('/api/v1/admin/hero/slides/'+id+'/versions'); var v=(r&&r.data)||[];
+    if(!v.length){box.innerHTML='<div style="font-size:12px;color:var(--w-muted)">Sin versiones.</div>';return}
+    box.innerHTML='<div style="font-size:12px;color:var(--w-muted);margin-bottom:4px">Restaurar:</div>'+v.map(function(x){return '<button class="w-btn w-btn-secondary w-btn-sm" style="margin:2px" onclick="wontia.heroRestore('+x.id+')">'+W.esc(String(x.created_at))+' · '+W.esc(x.created_by||'')+'</button>'}).join('');
+};
+W.heroRestore=async function(id){var r=await W.api('/api/v1/admin/hero/versions/'+id+'/restore',{method:'POST',body:{}});if(r&&r.ok){W.notify('Restaurado','success');W.renderHero();}};
 W.renderSettings=function(tab){
     var app=document.getElementById('wontia-app');
     W.state.settingsTab=tab||'general';
@@ -3224,6 +3296,7 @@ if(!window.__wwiMmUnload){window.__wwiMmUnload=1;window.addEventListener('before
 W.showBrickConfig=async function(type){
     if(type==='banner'){ window.location.hash='#banners'; return; }
     if(type==='mega-menu'){ window.location.hash='#mega-menu'; return; }
+    if(type==='sonika-hero'){ window.location.hash='#hero'; return; }
     var d=await W.api('/api/v1/admin/bricks/'+type);
     var b=d.data||{};
     var schema=b.configSchema||[];
@@ -5514,6 +5587,7 @@ W.panels={
     media:W.renderMediaManager,
     banners:W.renderBanners,
     'mega-menu':W.renderMegaMenu,
+    hero:W.renderHero,
     seo:W.renderSeo,
     'seo-global-launch':W.renderSeoGlobalLaunch,
     analytics:W.renderAnalytics,
