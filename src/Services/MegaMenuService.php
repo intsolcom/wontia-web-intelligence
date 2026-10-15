@@ -162,6 +162,14 @@ class MegaMenuService
         return (float)($v['price'] ?? 0);
     }
 
+    private function img(array $p): string
+    {
+        $i = $p['images'][0] ?? null;
+        if (is_array($i)) return (string)($i['src'] ?? '');
+        if (is_string($i) && $i !== '') return $i;
+        return '';
+    }
+
     private function hasOffer(array $p): bool
     {
         foreach ((array)($p['variants'] ?? []) as $v) {
@@ -238,14 +246,18 @@ class MegaMenuService
             $prices = [];
             $new = 0;
             $offers = 0;
+            $samples = [];
             foreach ($c['products'] as $pp) {
+                $im = $this->img($pp['p']);
                 foreach ([2, 3, 4, 5] as $lv) {
                     if (!empty($pp['tags'][$lv])) {
                         $fk = $this->foldKey((string)$pp['tags'][$lv]);
-                        if (!isset($levels[$lv][$fk])) $levels[$lv][$fk] = ['name' => $this->displayLabel((string)$pp['tags'][$lv]), 'count' => 0];
+                        if (!isset($levels[$lv][$fk])) $levels[$lv][$fk] = ['name' => $this->displayLabel((string)$pp['tags'][$lv]), 'count' => 0, 'img' => ''];
                         $levels[$lv][$fk]['count']++;
+                        if ($levels[$lv][$fk]['img'] === '' && $im !== '') $levels[$lv][$fk]['img'] = $im;
                     }
                 }
+                if ($im !== '' && count($samples) < 8) $samples[] = ['title' => (string)($pp['p']['title'] ?? ''), 'brand' => (string)($pp['p']['vendor'] ?? ''), 'price' => $this->price($pp['p']), 'url' => '/producto/' . (string)($pp['p']['handle'] ?? ''), 'img' => $im];
                 $price = $this->price($pp['p']);
                 if ($price > 0) $prices[] = $price;
                 $created = strtotime((string)($pp['p']['created_at'] ?? '')) ?: 0;
@@ -258,7 +270,7 @@ class MegaMenuService
                 else { uasort($vals, fn($a, $b) => $b['count'] <=> $a['count']); }
                 $arr = [];
                 foreach (array_slice($vals, 0, 24, true) as $fk => $row) {
-                    $arr[] = ['name' => (string)$row['name'], 'count' => (int)$row['count'], 'url' => '/buscar?tax=1:' . rawurlencode((string)$c['name']) . ',' . $lv . ':' . rawurlencode((string)$row['name'])];
+                    $arr[] = ['name' => (string)$row['name'], 'count' => (int)$row['count'], 'thumb' => (string)($row['img'] ?? ''), 'url' => '/buscar?tax=1:' . rawurlencode((string)$c['name']) . ',' . $lv . ':' . rawurlencode((string)$row['name'])];
                 }
                 return $arr;
             };
@@ -270,6 +282,8 @@ class MegaMenuService
                 'models' => isset($levels[4]) ? $mk(4, $levels[4]) : [],
                 'level5' => isset($levels[5]) ? $mk(5, $levels[5]) : [],
                 'kinds' => [2 => (string)($c['kinds'][2] ?? 'Subcategoría'), 3 => (string)($c['kinds'][3] ?? 'Marca'), 4 => (string)($c['kinds'][4] ?? 'Modelo')],
+                'hero' => (string)($samples[0]['img'] ?? ''),
+                'samples' => $samples,
                 'prices' => $this->priceRanges($prices, $l1url),
             ];
             $out[] = $node;

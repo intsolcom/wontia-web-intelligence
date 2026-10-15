@@ -31,8 +31,8 @@ class MegaMenuWidget extends Widget
             ['key' => 'button_text', 'label' => 'Texto del botón', 'type' => 'text', 'default' => 'Menú'],
             ['key' => 'greeting', 'label' => 'Saludo de la cabecera lateral', 'type' => 'text', 'default' => '¡Hola!'],
             ['key' => 'width', 'label' => 'Ancho del panel lateral (px)', 'type' => 'number', 'default' => 300],
-            ['key' => 'header_color', 'label' => 'Color de la cabecera de categoría', 'type' => 'color', 'default' => '#C6F24E'],
-            ['key' => 'header_text_color', 'label' => 'Color del texto de la cabecera', 'type' => 'color', 'default' => '#111111'],
+            ['key' => 'header_color', 'label' => 'Color de la cabecera de categoría', 'type' => 'color', 'default' => '#F20D16'],
+            ['key' => 'header_text_color', 'label' => 'Color del texto de la cabecera', 'type' => 'color', 'default' => '#FFFFFF'],
             ['key' => 'max_columns', 'label' => 'Máximo de columnas', 'type' => 'number', 'default' => 4],
             ['key' => 'show_view_all', 'label' => 'Mostrar “Ver todo”', 'type' => 'toggle', 'default' => true],
             ['key' => 'show_badges', 'label' => 'Mostrar etiquetas (NUEVO/OFERTA)', 'type' => 'toggle', 'default' => true],
@@ -61,11 +61,15 @@ class MegaMenuWidget extends Widget
                 ['key' => 'label', 'label' => 'Etiqueta', 'type' => 'text'],
                 ['key' => 'url', 'label' => 'URL', 'type' => 'text'],
             ]],
-            ['key' => 'category_promos', 'label' => 'Promociones por categoría (imagen)', 'type' => 'repeater', 'default' => [], 'fields' => [
+            ['key' => 'category_promos', 'label' => 'Banner/hero por categoría (imagen y textos)', 'type' => 'repeater', 'default' => [], 'fields' => [
                 ['key' => 'category', 'label' => 'Categoría (slug o nombre)', 'type' => 'text'],
-                ['key' => 'image', 'label' => 'Imagen', 'type' => 'image'],
-                ['key' => 'alt', 'label' => 'Texto alternativo', 'type' => 'text'],
+                ['key' => 'image', 'label' => 'Imagen protagonista', 'type' => 'image'],
+                ['key' => 'eyebrow', 'label' => 'Etiqueta (eyebrow)', 'type' => 'text'],
+                ['key' => 'title', 'label' => 'Título', 'type' => 'text'],
+                ['key' => 'text', 'label' => 'Descripción', 'type' => 'text'],
+                ['key' => 'button', 'label' => 'Texto del botón', 'type' => 'text'],
                 ['key' => 'href', 'label' => 'Enlace', 'type' => 'text'],
+                ['key' => 'alt', 'label' => 'Texto alternativo de la imagen', 'type' => 'text'],
             ]],
         ];
     }
@@ -74,7 +78,7 @@ class MegaMenuWidget extends Widget
     {
         return [
             'enabled' => false, 'button_text' => 'Menú', 'greeting' => '¡Hola!', 'width' => 300,
-            'header_color' => '#C6F24E', 'header_text_color' => '#111111', 'max_columns' => 4,
+            'header_color' => '#F20D16', 'header_text_color' => '#FFFFFF', 'max_columns' => 4,
             'show_view_all' => true, 'show_badges' => true, 'show_images' => true, 'hide_empty' => true, 'max_categories' => 40, 'sort' => 'alpha', 'mobile_drill' => true,
             'transition_ms' => 200, 'promo_enabled' => false, 'promo_image' => '', 'promo_alt' => '', 'promo_href' => '',
             'popular' => true, 'popular_title' => 'Populares ahora', 'popular_limit' => 8, 'category_promos' => [],
@@ -108,8 +112,8 @@ class MegaMenuWidget extends Widget
 
         $width = max(220, min(520, (int)($cfg['width'] ?? 300)));
         $trans = max(0, min(1000, (int)($cfg['transition_ms'] ?? 200)));
-        $headColor = $this->safeColor((string)($cfg['header_color'] ?? '#C6F24E'), '#C6F24E');
-        $headText = $this->safeColor((string)($cfg['header_text_color'] ?? '#111111'), '#111111');
+        $headColor = $this->safeColor((string)($cfg['header_color'] ?? '#F20D16'), '#F20D16');
+        $headText = $this->safeColor((string)($cfg['header_text_color'] ?? '#FFFFFF'), '#FFFFFF');
         $maxCols = max(1, min(6, (int)($cfg['max_columns'] ?? 4)));
         $showAll = !empty($cfg['show_view_all']);
         $showBadges = !empty($cfg['show_badges']);
@@ -174,23 +178,60 @@ class MegaMenuWidget extends Widget
             $h .= '<div class="mn-mega__bg">';
             $h .= '<header class="mn-mega__head">'
                 . '<button type="button" class="mn-back" data-mn-back aria-label="Volver">&#8249; Volver</button>'
-                . '<span class="mn-mega__ic" aria-hidden="true">' . $this->esc($n['icon']) . '</span>'
                 . '<h3 class="mn-mega__title">' . $this->esc($n['name']) . '</h3>'
-                . ($showAll ? '<a class="mn-mega__all" href="' . $this->esc($n['url']) . '">Ver todo &#8250;</a>' : '')
+                . ($showAll ? '<a class="mn-mega__all" href="' . $this->esc($n['url']) . '">Ver todo el catálogo &#8250;</a>' : '')
                 . '</header>';
-            $h .= '<div class="mn-cols">';
-            $k2 = (string)($n['kinds'][2] ?? 'Subcategoría'); $k3 = (string)($n['kinds'][3] ?? 'Marca'); $k4 = (string)($n['kinds'][4] ?? 'Modelo');
-            if (!empty($n['types']))  { $h .= $this->column($k2, $n['types'], $n['url'], $showAll); }
-            if (!empty($n['brands'])) { $h .= $this->column($k3, $n['brands'], null, $showAll); }
-            if (!empty($n['models'])) { $h .= $this->column($k4, $n['models'], null, $showAll); }
-            if (!empty($n['level5'])) { $h .= $this->column('Nivel 5', $n['level5'], null, $showAll); }
-            if (!empty($n['prices'])) { $h .= $this->column('Precio', $n['prices'], null, false); }
-            $promo = $this->resolvePromo($n, $promoMap, $cfg, $showImages);
-            if ($promo) {
-                $imgTag = '<img class="mn-promo__img" src="' . $this->esc($promo['image']) . '" alt="' . $this->esc($promo['alt']) . '" loading="lazy"/>';
-                $h .= '<div class="mn-col mn-promo">' . ($promo['href'] !== '' ? '<a href="' . $this->esc($promo['href']) . '">' . $imgTag . '</a>' : $imgTag) . '</div>';
+            $k2 = (string)($n['kinds'][2] ?? 'Subcategoría');
+            $hero = $this->heroConfig($n, $promoMap, $cfg, $showImages);
+            $h .= '<div class="mn-top">';
+            $h .= '<a class="mn-hero' . ($hero['image'] !== '' ? ' has-img' : '') . '" href="' . $this->esc($hero['href']) . '"'
+                . ($hero['image'] !== '' ? ' style="--mn-hero-img:url(\'' . $this->esc($hero['image']) . '\')"' : '') . '>'
+                . '<span class="mn-hero__scrim" aria-hidden="true"></span>'
+                . '<span class="mn-hero__content">'
+                . '<span class="mn-hero__eyebrow">' . $this->esc($hero['eyebrow']) . '</span>'
+                . '<span class="mn-hero__title">' . $this->esc($hero['title']) . '</span>'
+                . ($hero['text'] !== '' ? '<span class="mn-hero__text">' . $this->esc($hero['text']) . '</span>' : '')
+                . ($hero['button'] !== '' ? '<span class="mn-hero__btn">' . $this->esc($hero['button']) . ' &#8250;</span>' : '')
+                . '</span></a>';
+            if (!empty($n['types'])) {
+                $h .= '<div class="mn-block"><div class="mn-block__t">' . $this->esc($k2) . '</div><div class="mn-cards">';
+                foreach (array_slice($n['types'], 0, 6) as $t) {
+                    $h .= '<a class="mn-card" href="' . $this->esc($t['url']) . '">'
+                        . '<span class="mn-card__img">' . (!empty($t['thumb']) ? '<img src="' . $this->esc($t['thumb']) . '" alt="" loading="lazy"/>' : '<span class="mn-card__ph" aria-hidden="true">&#9835;</span>') . '</span>'
+                        . '<span class="mn-card__nm">' . $this->esc($t['name']) . '</span>'
+                        . (isset($t['count']) ? '<span class="mn-card__ct">' . (int)$t['count'] . ' productos</span>' : '')
+                        . '</a>';
+                }
+                if (count($n['types']) > 6 && $showAll) $h .= '<a class="mn-card mn-card--all" href="' . $this->esc($n['url']) . '"><span class="mn-card__nm">Ver todas &#8250;</span></a>';
+                $h .= '</div></div>';
             }
-            $h .= '</div></div></div>';
+            $h .= '</div>';
+            if (!empty($n['samples'])) {
+                $h .= '<div class="mn-block mn-block--samples"><div class="mn-block__t">Modelos destacados</div><div class="mn-products">';
+                foreach (array_slice($n['samples'], 0, 6) as $s) {
+                    $h .= '<a class="mn-prod" href="' . $this->esc($s['url']) . '">'
+                        . '<span class="mn-prod__img"><img src="' . $this->esc($s['img']) . '" alt="' . $this->esc($s['title']) . '" loading="lazy"/></span>'
+                        . (!empty($s['brand']) ? '<span class="mn-prod__brand">' . $this->esc($s['brand']) . '</span>' : '')
+                        . '<span class="mn-prod__nm">' . $this->esc($s['title']) . '</span>'
+                        . ($s['price'] > 0 ? '<span class="mn-prod__pr">' . $this->money((float)$s['price']) . '</span>' : '')
+                        . '</a>';
+                }
+                $h .= '</div></div>';
+            }
+            if (!empty($n['brands'])) {
+                $h .= '<div class="mn-block mn-block--brands"><div class="mn-block__t">Comprar por marca</div><div class="mn-brands">';
+                foreach (array_slice($n['brands'], 0, 10) as $b) {
+                    $h .= '<a class="mn-brand" href="' . $this->esc($b['url']) . '"><b>' . $this->esc($b['name']) . '</b>' . (isset($b['count']) ? '<span>' . (int)$b['count'] . '</span>' : '') . '</a>';
+                }
+                $h .= '</div></div>';
+            }
+            if (!empty($n['prices'])) {
+                $h .= '<div class="mn-block mn-block--prices"><div class="mn-block__t">Precio</div><div class="mn-chips">';
+                foreach ($n['prices'] as $pr) $h .= '<a class="mn-chip" href="' . $this->esc($pr['url']) . '">' . $this->esc($pr['name']) . '</a>';
+                $h .= '</div></div>';
+            }
+            $h .= '<a class="mn-banner" href="/tienda"><b>Descubre todo lo que SONIKA tiene para ti.</b><span>Explora nuestro catálogo de instrumentos y equipos musicales.</span><em>Explorar catálogo &#8250;</em></a>';
+            $h .= '</div></div>';
         }
         $h .= '</section>';
         $h .= '</div>';
@@ -232,21 +273,35 @@ class MegaMenuWidget extends Widget
             if ($img === '') continue;
             $key = strtolower(trim((string)($r['category'] ?? '')));
             if ($key === '') continue;
-            $map[$key] = ['image' => $img, 'alt' => (string)($r['alt'] ?? ''), 'href' => (string)($r['href'] ?? '')];
+            $map[$key] = ['image' => $img, 'alt' => (string)($r['alt'] ?? ''), 'href' => (string)($r['href'] ?? ''), 'eyebrow' => (string)($r['eyebrow'] ?? ''), 'title' => (string)($r['title'] ?? ''), 'text' => (string)($r['text'] ?? ''), 'button' => (string)($r['button'] ?? '')];
         }
         return $map;
     }
 
-    private function resolvePromo(array $node, array $promoMap, array $cfg, bool $showImages): ?array
+    private function heroConfig(array $node, array $promoMap, array $cfg, bool $showImages): array
     {
-        if (!$showImages) return null;
-        foreach ([strtolower((string)($node['slug'] ?? '')), strtolower((string)($node['name'] ?? ''))] as $k) {
-            if ($k !== '' && isset($promoMap[$k])) return $promoMap[$k];
+        $name = (string)($node['name'] ?? '');
+        $p = null;
+        foreach ([strtolower((string)($node['slug'] ?? '')), strtolower($name)] as $k) {
+            if ($k !== '' && isset($promoMap[$k])) { $p = $promoMap[$k]; break; }
         }
-        if (!empty($cfg['promo_enabled']) && (string)($cfg['promo_image'] ?? '') !== '') {
-            return ['image' => (string)$cfg['promo_image'], 'alt' => (string)($cfg['promo_alt'] ?? ''), 'href' => (string)($cfg['promo_href'] ?? '')];
-        }
-        return null;
+        $img = (is_array($p) && !empty($p['image'])) ? (string)$p['image'] : '';
+        if ($img === '' && $showImages && !empty($cfg['promo_enabled'])) $img = (string)($cfg['promo_image'] ?? '');
+        if ($img === '') $img = (string)($node['hero'] ?? '');
+        $ln = mb_strtolower($name, 'UTF-8');
+        return [
+            'image' => $img,
+            'eyebrow' => (is_array($p) && !empty($p['eyebrow'])) ? (string)$p['eyebrow'] : mb_strtoupper($name, 'UTF-8'),
+            'title' => (is_array($p) && !empty($p['title'])) ? (string)$p['title'] : ('Explora ' . $ln),
+            'text' => (is_array($p) && !empty($p['text'])) ? (string)$p['text'] : ('Descubre ' . $ln . ' de las mejores marcas y modelos.'),
+            'button' => (is_array($p) && !empty($p['button'])) ? (string)$p['button'] : ('Ver todos los ' . $ln),
+            'href' => (is_array($p) && !empty($p['href'])) ? (string)$p['href'] : (string)($node['url'] ?? '/tienda'),
+        ];
+    }
+
+    private function money(float $n): string
+    {
+        return $n > 0 ? '$' . number_format($n, 0, ',', '.') : '';
     }
 
     private function applyOverrides(array $nodes, array $rows): array
@@ -372,8 +427,8 @@ class MegaMenuWidget extends Widget
 .mn-cats__list,.mn-filter__results{list-style:none;margin:0;padding:0}
 .mn-cat__link{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:10px;text-decoration:none;color:var(--ink,#111);font-weight:600;font-size:14px;position:relative;border-left:3px solid transparent}
 .mn-cat__link:hover{background:var(--soft,#F5F5F5)}
-.mn-cat.is-active .mn-cat__link{background:var(--soft,#F5F5F5);border-left-color:var(--mn-head,#C6F24E)}
-.mn-cat.is-active .mn-cat__chev{color:var(--mn-head,#C6F24E)}
+.mn-cat.is-active .mn-cat__link{background:var(--soft,#F5F5F5);border-left-color:var(--mn-head,#F20D16)}
+.mn-cat.is-active .mn-cat__chev{color:var(--mn-head,#F20D16)}
 .mn-cat__ic{font-size:17px;line-height:1}
 .mn-cat__nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:'Sora',sans-serif;font-weight:600;letter-spacing:-.01em}
 .mn-cat__ct{font-size:11px;color:var(--muted,#999);background:var(--soft,#F1F1F1);border-radius:999px;padding:1px 8px}
@@ -392,23 +447,55 @@ class MegaMenuWidget extends Widget
 .mn-filter__results li a{display:flex;justify-content:space-between;gap:10px;padding:9px 12px;border-radius:8px;text-decoration:none;color:var(--ink,#111);font-size:13px}
 .mn-filter__results li a:hover{background:var(--soft,#F5F5F5)}
 .mn-filter__results small{color:var(--muted,#999)}
-.mn-mega{background:#fff;border-right:1px solid var(--line,#E6E6E6);box-shadow:0 24px 60px rgba(0,0,0,.16);max-width:min(88vw,920px);overflow:auto}
+.mn-mega{background:#fff;border-right:1px solid var(--line,#E6E6E6);box-shadow:0 24px 60px rgba(0,0,0,.16);max-width:min(90vw,1000px);overflow:auto}
 .mn-mega__panel{min-height:100%}
-.mn-mega__bg{padding:0 0 24px}
-.mn-mega__head{display:flex;align-items:center;gap:12px;background:var(--mn-head,#C6F24E);color:var(--mn-head-txt,#111);padding:16px 22px;border-radius:0 22px 22px 0;margin:0 0 18px}
+.mn-mega__bg{padding:0 0 22px}
+.mn-mega__head{display:flex;align-items:center;gap:12px;background:var(--mn-head,#F20D16);color:var(--mn-head-txt,#fff);padding:15px 22px;position:sticky;top:0;z-index:2}
 .mn-mega__ic{font-size:22px}
-.mn-mega__title{font-family:Sora,sans-serif;font-size:17px;font-weight:800;margin:0;flex:1}
-.mn-mega__all{color:inherit;text-decoration:none;font-weight:700;font-size:13px;border-bottom:2px solid currentColor;white-space:nowrap}
+.mn-mega__title{font-family:var(--font-display,Sora),sans-serif;font-size:17px;font-weight:800;margin:0;flex:1}
+.mn-mega__all{color:inherit;text-decoration:none;font-weight:700;font-size:12.5px;white-space:nowrap;background:rgba(255,255,255,.16);padding:7px 13px;border-radius:999px}
+.mn-mega__all:hover{background:rgba(255,255,255,.3)}
 .mn-back{display:none;border:0;background:transparent;color:inherit;font:inherit;font-weight:700;cursor:pointer;padding:0}
-.mn-cols{display:grid;grid-template-columns:repeat(var(--mn-maxcol,4),minmax(0,1fr));gap:22px 30px;padding:0 24px}
-.mn-col{min-width:0}
-.mn-col__t{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted,#888);margin:0 0 10px;font-family:'Sora',sans-serif;font-weight:700}
-.mn-col__list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
-.mn-col__list a{display:flex;justify-content:space-between;gap:8px;padding:6px 8px;border-radius:7px;text-decoration:none;color:var(--ink,#222);font-size:13px}
-.mn-col__list a:hover{background:var(--soft,#F5F5F5);color:var(--brand,#F20D16)}
-.mn-col__c{color:var(--muted,#aaa);font-size:11px}
-.mn-col__all{font-weight:700;color:var(--brand,#F20D16)}
-.mn-promo img{width:100%;height:auto;border-radius:12px;display:block;object-fit:cover}
+.mn-top{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:18px;padding:18px 24px 6px;align-items:stretch}
+.mn-hero{position:relative;display:block;border-radius:16px;overflow:hidden;min-height:236px;background:#111;color:#fff;text-decoration:none;box-shadow:0 10px 30px rgba(0,0,0,.14)}
+.mn-hero.has-img{background-image:var(--mn-hero-img);background-size:cover;background-position:center center}
+.mn-hero__scrim{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.02) 25%,rgba(0,0,0,.8) 100%)}
+.mn-hero__content{position:relative;display:flex;flex-direction:column;justify-content:flex-end;gap:7px;padding:22px;min-height:236px}
+.mn-hero__eyebrow{font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;opacity:.9}
+.mn-hero__title{font-family:var(--font-display,Sora),sans-serif;font-size:clamp(20px,2vw,28px);font-weight:800;line-height:1.1}
+.mn-hero__text{font-size:13px;max-width:36ch;opacity:.92}
+.mn-hero__btn{align-self:flex-start;margin-top:6px;background:#fff;color:#111;font-weight:800;font-size:12.5px;padding:8px 16px;border-radius:999px}
+.mn-block__t{font-family:var(--font-display,Sora),sans-serif;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--muted,#8a8a8a);margin:0 0 10px}
+.mn-top .mn-block{margin:0;display:flex;flex-direction:column;min-width:0}
+.mn-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.mn-card{display:flex;flex-direction:column;gap:6px;text-decoration:none;color:var(--ink,#111);background:#fff;border:1px solid var(--line,#ECECEC);border-radius:12px;padding:9px;transition:border-color .15s,box-shadow .15s}
+.mn-card:hover{border-color:var(--brand,#F20D16);box-shadow:0 6px 18px rgba(242,13,22,.12)}
+.mn-card__img{aspect-ratio:1/1;border-radius:9px;overflow:hidden;background:var(--soft,#F5F5F5);display:flex;align-items:center;justify-content:center}
+.mn-card__img img{width:100%;height:100%;object-fit:cover}
+.mn-card__ph{font-size:20px;opacity:.4}
+.mn-card__nm{font-size:12.5px;font-weight:700;line-height:1.2;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.mn-card__ct{font-size:10.5px;color:var(--muted,#999)}
+.mn-card--all{align-items:center;justify-content:center;border-style:dashed}
+.mn-block--samples,.mn-block--brands,.mn-block--prices{padding:10px 24px 0}
+.mn-products{display:grid;grid-template-columns:repeat(auto-fill,minmax(138px,1fr));gap:12px}
+.mn-prod{display:flex;flex-direction:column;gap:4px;text-decoration:none;color:var(--ink,#111)}
+.mn-prod__img{aspect-ratio:1/1;border-radius:12px;overflow:hidden;background:var(--soft,#F5F5F5);border:1px solid var(--line,#ECECEC)}
+.mn-prod__img img{width:100%;height:100%;object-fit:cover}
+.mn-prod:hover .mn-prod__img{border-color:var(--brand,#F20D16)}
+.mn-prod__brand{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted,#999);font-weight:700}
+.mn-prod__nm{font-size:12px;font-weight:600;line-height:1.25;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.mn-prod__pr{font-size:12.5px;font-weight:800}
+.mn-brands{display:flex;flex-wrap:wrap;gap:8px}
+.mn-brand{display:inline-flex;align-items:center;gap:8px;text-decoration:none;color:var(--ink,#111);border:1px solid var(--line,#ECECEC);border-radius:10px;padding:8px 12px;font-size:12.5px;font-weight:700}
+.mn-brand:hover{border-color:var(--brand,#F20D16);color:var(--brand,#F20D16)}
+.mn-brand span{color:var(--muted,#999);font-weight:600;font-size:11px}
+.mn-chips{display:flex;flex-wrap:wrap;gap:6px}
+.mn-mega .mn-chip{font-size:12px;padding:5px 11px;border-radius:999px;background:var(--soft,#F5F5F5);color:var(--ink,#222);text-decoration:none}
+.mn-mega .mn-chip:hover{background:var(--brand,#F20D16);color:#fff}
+.mn-banner{display:flex;flex-direction:column;gap:4px;margin:14px 24px 0;padding:16px 18px;border-radius:14px;background:linear-gradient(120deg,#111,#2b2b2b);color:#fff;text-decoration:none}
+.mn-banner b{font-family:var(--font-display,Sora),sans-serif;font-size:15px}
+.mn-banner span{font-size:12.5px;opacity:.85}
+.mn-banner em{margin-top:8px;align-self:flex-start;font-style:normal;font-weight:800;font-size:12px;background:var(--brand,#F20D16);padding:7px 14px;border-radius:999px}
 html.mn-locked,html.mn-locked body{overflow:hidden}
 @media(max-width:900px){
   .mn-drawer{max-width:100vw}
@@ -417,9 +504,12 @@ html.mn-locked,html.mn-locked body{overflow:hidden}
   .mn-drawer.drill[data-view="panel"] .mn-side{display:none}
   .mn-drawer.drill:not([data-view="panel"]) .mn-mega{display:none}
   .mn-drawer.drill .mn-back{display:inline-block}
-  .mn-cols{grid-template-columns:repeat(2,minmax(0,1fr));padding:0 16px}
+  .mn-top{grid-template-columns:1fr;padding:14px 16px 6px}
+  .mn-cards{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .mn-block--samples,.mn-block--brands,.mn-block--prices{padding:10px 16px 0}
+  .mn-banner{margin:12px 16px 0}
 }
-@media(max-width:520px){.mn-cols{grid-template-columns:1fr}}
+@media(max-width:520px){.mn-products{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(prefers-reduced-motion:reduce){.mn-drawer,.mn-overlay{transition:none}}
 </style>
 <script>if(!window.__mnInit){window.__mnInit=1;(function(){
