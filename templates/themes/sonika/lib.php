@@ -5,6 +5,7 @@ use App\Services\CookieConsentService;
 use App\Services\AnalyticsService;
 
 require_once __DIR__ . '/../_shared/brand.php';
+require_once __DIR__ . '/../_shared/capabilities.php';
 
 if (!function_exists('sonika_esc')) {
     function sonika_esc($s): string { return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); }
@@ -414,8 +415,11 @@ if (!function_exists('sonika_site_head')) {
     <style><?= sonika_css() ?></style>
     <style>:root{--font-body:<?= sonika_font_stack('body') ?>;--font-display:<?= sonika_font_stack('display') ?>}</style>
     <?= sonika_nav_style_head() ?>
+    <?= wwi_cap_head() ?>
+    <style><?= wwi_cap_css() ?></style>
 </head>
 <body>
+<?= wwi_cap_notice() ?>
 <div class="topbar"<?php
       $__bnSvc = new \App\Services\BannerService();
       $__bnCfg = $__bnSvc->headerConfig();
