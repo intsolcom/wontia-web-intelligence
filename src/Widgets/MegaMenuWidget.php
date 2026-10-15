@@ -375,7 +375,7 @@ class MegaMenuWidget extends Widget
 .mn-cat.is-active .mn-cat__link{background:var(--soft,#F5F5F5);border-left-color:var(--mn-head,#C6F24E)}
 .mn-cat.is-active .mn-cat__chev{color:var(--mn-head,#C6F24E)}
 .mn-cat__ic{font-size:17px;line-height:1}
-.mn-cat__nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mn-cat__nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:'Sora',sans-serif;font-weight:600;letter-spacing:-.01em}
 .mn-cat__ct{font-size:11px;color:var(--muted,#999);background:var(--soft,#F1F1F1);border-radius:999px;padding:1px 8px}
 .mn-cat__chev{color:var(--muted,#bbb);font-size:18px;line-height:1}
 .mn-tag{font-size:9px;font-weight:800;letter-spacing:.04em;padding:2px 6px;border-radius:5px}
@@ -402,7 +402,7 @@ class MegaMenuWidget extends Widget
 .mn-back{display:none;border:0;background:transparent;color:inherit;font:inherit;font-weight:700;cursor:pointer;padding:0}
 .mn-cols{display:grid;grid-template-columns:repeat(var(--mn-maxcol,4),minmax(0,1fr));gap:22px 30px;padding:0 24px}
 .mn-col{min-width:0}
-.mn-col__t{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted,#888);margin:0 0 10px}
+.mn-col__t{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted,#888);margin:0 0 10px;font-family:'Sora',sans-serif;font-weight:700}
 .mn-col__list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
 .mn-col__list a{display:flex;justify-content:space-between;gap:8px;padding:6px 8px;border-radius:7px;text-decoration:none;color:var(--ink,#222);font-size:13px}
 .mn-col__list a:hover{background:var(--soft,#F5F5F5);color:var(--brand,#F20D16)}
