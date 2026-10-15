@@ -1573,7 +1573,7 @@ W.heroFields=function(side,type,data){var d=data||{};
     if(type==='video')return fi('video','Video','video')+fi('poster','Portada / poster','image')+f('title','Título')+f('subtitle','Subtítulo')+t('text','Texto')+f('cta','Texto del CTA')+f('cta_url','Destino del CTA');
     if(type==='product')return f('handle','Handle del producto')+f('title','Título (opcional)')+f('subtitle','Subtítulo')+t('text','Texto')+f('cta','Texto del CTA')+f('cta_url','Destino del CTA');
     if(type==='combo')return fi('image','Imagen','image')+f('alt','Texto alternativo')+f('title','Título')+t('text','Texto')+f('cta','CTA')+f('cta_url','Destino');
-    if(type==='guitar')return '<div style="font-size:12px;color:var(--w-muted)">Guitarra interactiva lista (motor E5): cuerdas + perfiles Clean/Overdrive/Distortion/Fuzz. El producto real se toma del catálogo.</div>'+f('product','Handle de guitarra (opcional)');
+    if(type==='guitar')return f('product','Producto (handle de guitarra eléctrica)')+f('string_top','Calibración: top de cuerdas (%)')+f('string_height','Calibración: alto de la banda de cuerdas (%)');
     return '<div style="font-size:12px;color:var(--w-muted)">Este tipo aún no tiene motor implementado; no se puede publicar.</div>';
 };
 W.heroPickMedia=async function(inputId,type){
