@@ -132,6 +132,18 @@ class CatalogClassifierService
         return ['rejected' => $n];
     }
 
+    public function setOverride(string $handle, string $category): array
+    {
+        $handle = trim($handle);
+        $category = trim($category);
+        if ($handle === '' || $category === '') return ['ok' => false, 'message' => 'Datos incompletos'];
+        $ov = $this->overrides();
+        $ov[$handle] = $category;
+        $this->writeJson($this->overridesPath(), $ov);
+        self::$ovCache = $ov;
+        return ['ok' => true, 'handle' => $handle, 'category' => $category, 'total_overrides' => count($ov)];
+    }
+
     private function ai(string $prompt): string
     {
         try {

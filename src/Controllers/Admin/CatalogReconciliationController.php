@@ -104,4 +104,12 @@ class CatalogReconciliationController
         $cls = new \App\Services\CatalogClassifierService();
         Response::json(['ok' => true, 'data' => $cls->reject($handles)]);
     }
+
+    public function assign(Request $req): void
+    {
+        $this->guard();
+        $j = (array)$req->json();
+        $cls = new \App\Services\CatalogClassifierService();
+        Response::json(['ok' => true, 'data' => $cls->setOverride((string)($j['handle'] ?? ''), (string)($j['category'] ?? ''))]);
+    }
 }

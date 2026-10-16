@@ -1550,9 +1550,9 @@ W._crRender=function(d,sug){
     h+='<div class="w-card"><h3>🧩 Cobertura por brick — ¿los productos aparecen y se pueden buscar?</h3><div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:6px">'
       +kpi('Buscable (título)',br.searchable)+kpi('Advance Search',br.advance_search)+kpi('Páginas de categoría',br.categorias)+kpi('Mega Menú',br.mega_menu)
       +'</div><div style="font-size:12px;color:var(--w-muted);margin-top:8px">Si un producto no tiene <b>categoría (tag)</b>, <b>tipo</b> ni <b>marca</b>, no aparece en los filtros (solo por búsqueda de título) → se marca como <b>huérfano</b>.</div></div>';
-    h+='<div class="w-card" style="margin-top:14px"><h3>🆕 Productos nuevos (desde el último escaneo)</h3>'+W.crList((iss.new_products||{}).samples||[],function(t){return W.esc(t)})+'</div>';
-    h+='<div class="w-card" style="margin-top:14px"><h3>🚫 Huérfanos — sin categoría/tipo/marca (no filtrables)</h3>'+W.crList((iss.orphans||{}).samples||[],function(t){return W.esc(t)})+'</div>';
-    h+='<div class="w-card" style="margin-top:14px"><h3>↔️ Divergencias (tag real ≠ clasificación del tema)</h3>'+W.crList((iss.divergence||{}).samples||[],function(x){return '<b>'+W.esc(x.title)+'</b> <span style="color:var(--w-muted)">tag: '+W.esc(x.tag)+' ('+W.esc(x.tag_slug)+') vs tema: '+((x.kw_slugs||[]).map(W.esc).join(', '))+'</span>'})+'</div>';
+    h+='<div class="w-card" style="margin-top:14px"><h3>🆕 Productos nuevos (desde el último escaneo)</h3>'+W.crList((iss.new_products||{}).samples||[],function(h){return '<b>'+W.esc(h)+'</b>'})+'</div>';
+    h+='<div class="w-card" style="margin-top:14px"><h3>🚫 Huérfanos — sin categoría/tipo/marca (no filtrables)</h3>'+W.crList((iss.orphans||{}).samples||[],function(x){var t=(x&&typeof x==='object')?x.title:x;var hd=(x&&typeof x==='object')?x.handle:'';return '<button class="w-btn w-btn-secondary w-btn-sm" style="float:right" onclick="wontia.crAssign(\''+W.esc(hd)+'\')">Asignar</button>'+W.esc(t)})+'</div>';
+    h+='<div class="w-card" style="margin-top:14px"><h3>↔️ Divergencias (tag real ≠ clasificación del tema)</h3>'+W.crList((iss.divergence||{}).samples||[],function(x){return '<button class="w-btn w-btn-secondary w-btn-sm" style="float:right" onclick="wontia.crAssign(\''+W.esc(x.handle||'')+'\')">Asignar</button><b>'+W.esc(x.title)+'</b> <span style="color:var(--w-muted)">tag: '+W.esc(x.tag)+' ('+W.esc(x.tag_slug)+') vs tema: '+((x.kw_slugs||[]).map(W.esc).join(', '))+'</span>'})+'</div>';
     h+='<div class="w-card"><h3>🧭 Categorías del catálogo SIN mapear (requieren clasificación)</h3>'+W.crList((iss.mismatch||{}).samples||[],function(x){return '<b>«'+W.esc(x.tag)+'»</b> <span style="color:var(--w-muted)">'+W.num(x.count||0)+' productos · ej: '+W.esc(x.title)+'</span>'})+'</div>';
     h+='<div class="w-card" style="margin-top:14px"><h3>🔁 Productos en 2+ categorías del tema (solapamiento)</h3>'+W.crList((iss.overlap||{}).samples||[],function(x){return '<b>'+W.esc(x.title)+'</b> <span style="color:var(--w-muted)">'+((x.cats||[]).map(W.esc).join(', '))+'</span>'})+'</div>';
     h+='<div class="w-card" style="margin-top:14px"><h3>📝 Duplicados por escritura (mayúsculas/acentos/plural)</h3>'+W.crList((iss.duplicates||{}).samples||[],function(x){return 'nivel '+x.level+': '+((x.variants||[]).map(W.esc).join(' · '))})+'</div>';
@@ -1582,6 +1582,13 @@ W.crApply=async function(){
     W.renderCatalogReconciliation();
 };
 W.crReject=async function(h){ await W.api('/api/v1/admin/catalog/suggestions/reject',{method:'POST',body:{handles:[h]}}); W.renderCatalogReconciliation(); };
+W.crAssign=async function(handle){
+    var cat=prompt('Asignar categoría (etiqueta nivel 1) a:\n'+handle+'\n\nEscribe la categoría del catálogo (ej.: Guitarra, Bajo, Piano, Parche, Reproducción…)');
+    if(!cat)return;
+    var r=await W.api('/api/v1/admin/catalog/assign',{method:'POST',body:{handle:handle,category:cat}});
+    if(r&&r.ok)W.notify('Categoría asignada (override): '+cat,'success'); else W.notify('Error al asignar','error');
+    W.renderCatalogReconciliation();
+};
 W.renderHero=async function(id){
     var app=document.getElementById('wontia-app'); if(!app)return;
     if(id)return W.heroEdit(parseInt(id,10));

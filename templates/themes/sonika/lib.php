@@ -548,8 +548,8 @@ ob_start();
           $__pr = sonika_price($__p); if ($__pr > $__advMax) $__advMax = $__pr;
       }
       arsort($__advBrands); arsort($__advTypes);
-      $__advBrands = array_slice($__advBrands, 0, 40, true);
-      $__advTypes = array_slice($__advTypes, 0, 40, true);
+      $__advBrands = array_slice($__advBrands, 0, 120, true);
+      $__advTypes = array_slice($__advTypes, 0, 120, true);
       $__advCats = [];
       foreach (sonika_categories() as $__cc) { $__n = count(sonika_category_products($__cc['slug'])); if ($__n > 0) $__advCats[] = [$__cc['slug'], $__cc['name'] . ' (' . $__n . ')']; }
       $__advSubs = [];

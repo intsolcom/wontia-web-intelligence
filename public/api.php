@@ -306,6 +306,7 @@ $r->delete('/trash/{id}', [\App\Controllers\Admin\SectionController::class, 'tra
     $r->post('/catalog/classify', [\App\Controllers\Admin\CatalogReconciliationController::class, 'classify']);
     $r->post('/catalog/suggestions/apply', [\App\Controllers\Admin\CatalogReconciliationController::class, 'applySuggestions']);
     $r->post('/catalog/suggestions/reject', [\App\Controllers\Admin\CatalogReconciliationController::class, 'rejectSuggestions']);
+    $r->post('/catalog/assign', [\App\Controllers\Admin\CatalogReconciliationController::class, 'assign']);
 
     // Robot de escaneo de seguridad
     $r->get('/security/scan', [\App\Controllers\Admin\SecurityScanController::class, 'report']);

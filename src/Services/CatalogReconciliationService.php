@@ -142,7 +142,7 @@ class CatalogReconciliationService
             if ($hasType || $hasBrand) $brick['advance_search']++;
             if ($tagCat !== '' || $hasType) $brick['mega_menu']++;
             if ($title !== '') $brick['searchable']++;
-            if ($tagCat === '' && empty($kw) && !$hasType && !$hasBrand) $orphans[] = $title;
+            if ($tagCat === '' && empty($kw) && !$hasType && !$hasBrand) $orphans[] = ['title' => $title, 'handle' => $hdl];
 
             if ($tagCat === '') {
                 $noTag[] = $title;
@@ -156,7 +156,7 @@ class CatalogReconciliationService
                     $unmappedCats[$fk]['count']++;
                 } else {
                     if (isset($covTag[$mapped])) $covTag[$mapped]++;
-                    if ($kw && !in_array($mapped, $kw, true)) $divergence[] = ['title' => $title, 'tag' => $tagCat, 'tag_slug' => $mapped, 'kw_slugs' => $kw];
+                    if ($kw && !in_array($mapped, $kw, true)) $divergence[] = ['title' => $title, 'handle' => $hdl, 'tag' => $tagCat, 'tag_slug' => $mapped, 'kw_slugs' => $kw];
                 }
                 $stat['legacy_assignments']++;
             }
