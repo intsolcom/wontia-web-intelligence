@@ -194,13 +194,16 @@ switch ($segments[0] ?? '') {
         if (($segments[1] ?? '') === 'live') {
             $all = sonika_filter_products($_GET);
             $pg = sonika_slice($all, 24);
+            $pages = max(1, (int)ceil($pg['total'] / max(1, $pg['perPage'])));
             ob_start();
             sonika_grid($pg['items']);
+            $items = ob_get_clean();
+            ob_start();
             $__qs = $_GET; unset($__qs['page']);
             sonika_pager($pg['total'], $pg['perPage'], $pg['page'], '/buscar?' . http_build_query($__qs));
-            $html = ob_get_clean();
+            $pager = ob_get_clean();
             header('Content-Type: application/json; charset=utf-8');
-            echo json_encode(['ok' => true, 'count' => (int)$pg['total'], 'html' => $html], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            echo json_encode(['ok' => true, 'count' => (int)$pg['total'], 'html' => $items . $pager, 'items' => $items, 'page' => (int)$pg['page'], 'pages' => $pages, 'has_more' => (int)$pg['page'] < $pages], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
             return true;
         }
         $q = trim((string)($_GET['q'] ?? ''));
