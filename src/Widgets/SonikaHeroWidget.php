@@ -310,7 +310,7 @@ class SonikaHeroWidget extends Widget
         if (!in_array($eff, self::DYN_EFFECTS, true)) $eff = 'fade';
         $iv = max(2000, min(30000, (int)($d['dyn_sub_interval'] ?? 10000)));
         $pause = (string)($d['dyn_pause_hover'] ?? '1') !== '0' ? '1' : '0';
-        $h = '<p class="sh-sub sh-dyn sh-dyn--sub" data-effect="' . $eff . '" data-interval="' . $iv . '" data-pause-hover="' . $pause . '" data-lines="1">';
+        $h = '<p class="sh-sub sh-dyn sh-dyn--sub" data-effect="' . $eff . '" data-interval="' . $iv . '" data-pause-hover="' . $pause . '" data-lines="2">';
         foreach ($items as $i => $it) {
             $h .= '<span class="sh-dyn__i' . ($i === 0 ? ' is-on' : '') . '"' . ($i === 0 ? '' : ' aria-hidden="true"') . '>' . $this->esc((string)$it['text']) . '</span>';
         }
