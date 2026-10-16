@@ -183,6 +183,8 @@ class SonikaHeroWidget extends Widget
         foreach ($points as $i => $pts) {
             $pts = trim((string)$pts);
             if ($pts === '') continue;
+            $per = (float)($d['cal_per' . $i] ?? 0) * $u;
+            $h .= '<g class="sh-str-one"' . (abs($per) > 0.01 ? ' transform="translate(' . round($per, 2) . ' 0)"' : '') . '>';
             $h .= '<polyline class="sh-str-hit" data-string="' . $i . '" points="' . $this->esc($pts) . '" fill="none" stroke="transparent" stroke-width="34" stroke-linecap="round" stroke-linejoin="round" pointer-events="stroke" tabindex="0" role="button" aria-label="Tocar cuerda ' . ($i + 1) . '"></polyline>';
             $h .= '<polyline class="sh-str" points="' . $this->esc($pts) . '" fill="none" stroke="rgba(20,20,20,.3)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"></polyline>';
             if ($guides) {
@@ -192,6 +194,7 @@ class SonikaHeroWidget extends Widget
                     $h .= '<circle class="sh-str-dot" cx="' . round((float)$pp[0], 1) . '" cy="' . round((float)$pp[1], 1) . '" r="5" fill="rgba(242,13,22,.5)" stroke="#fff" stroke-width="1.5"/>';
                 }
             }
+            $h .= '</g>';
         }
         if ($guides) {
             $h .= '<line x1="0" y1="' . round($cy, 1) . '" x2="1536" y2="' . round($cy, 1) . '" stroke="rgba(242,13,22,.2)" stroke-width="1"/>';
