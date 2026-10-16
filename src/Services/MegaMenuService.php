@@ -76,11 +76,13 @@ class MegaMenuService
             $brands = [];  // L3 por vendor (agregado)
             $models = [];  // L4/L5 por tags estructurados
             $prices = [];
+            $catImg = '';
             $new = 0; $offers = 0;
 
             foreach ($mine as $p) {
                 $t = trim((string)($p['product_type'] ?? ''));
                 if ($t !== '') { $types[$t] = ($types[$t] ?? 0) + 1; if (empty($typeImg[$t])) { $im = $this->img($p); if ($im !== '') $typeImg[$t] = $im; } }
+                if ($catImg === '') { $im2 = $this->img($p); if ($im2 !== '') $catImg = $im2; }
                 $v = trim((string)($p['vendor'] ?? ''));
                 if ($v !== '') $brands[$v] = ($brands[$v] ?? 0) + 1;
 
@@ -122,6 +124,7 @@ class MegaMenuService
                 'types' => $typeList,
                 'brands' => $brandList,
                 'models' => $modelList,
+                'catimg' => $catImg,
                 'prices' => $this->priceRanges($prices, $catUrl),
             ];
             $out[] = $node;

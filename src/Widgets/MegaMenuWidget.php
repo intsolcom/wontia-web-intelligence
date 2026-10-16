@@ -241,8 +241,9 @@ class MegaMenuWidget extends Widget
             if (!empty($n['types'])) {
                 $h .= '<div class="mn-block"><div class="mn-block__t">' . $this->esc($k2) . '</div><div class="mn-cards">';
                 foreach (array_slice($n['types'], 0, 6) as $t) {
+                    $cim = !empty($t['thumb']) ? (string)$t['thumb'] : (string)($n['catimg'] ?? '');
                     $h .= '<a class="mn-card" href="' . $this->esc($t['url']) . '">'
-                        . '<span class="mn-card__img">' . (!empty($t['thumb']) ? '<img src="' . $this->esc($t['thumb']) . '" alt="" loading="lazy"/>' : '<span class="mn-card__ph" aria-hidden="true">&#9835;</span>') . '</span>'
+                        . '<span class="mn-card__img">' . ($cim !== '' ? '<img src="' . $this->esc($cim) . '" alt="' . $this->esc($t['name']) . '" loading="lazy" decoding="async"/>' : '<span class="mn-card__ph" aria-hidden="true">&#9835;</span>') . '</span>'
                         . '<span class="mn-card__nm">' . $this->esc($t['name']) . '</span>'
                         . (isset($t['count']) ? '<span class="mn-card__ct">' . (int)$t['count'] . ' productos</span>' : '')
                         . '</a>';
@@ -341,6 +342,7 @@ class MegaMenuWidget extends Widget
         $img = (is_array($p) && !empty($p['image'])) ? (string)$p['image'] : '';
         if ($img === '' && $showImages && !empty($cfg['promo_enabled'])) $img = (string)($cfg['promo_image'] ?? '');
         if ($img === '') $img = (string)($node['hero'] ?? '');
+        if ($img === '' && $showImages) $img = (string)($node['catimg'] ?? '');
         if ($img === '' && $showImages) {
             foreach ((array)($node['samples'] ?? []) as $sp) { if (!empty($sp['img'])) { $img = (string)$sp['img']; break; } }
             if ($img === '') foreach ((array)($node['types'] ?? []) as $tp) { if (!empty($tp['thumb'])) { $img = (string)$tp['thumb']; break; } }
