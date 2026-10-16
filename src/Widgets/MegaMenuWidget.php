@@ -105,7 +105,8 @@ class MegaMenuWidget extends Widget
 
         $products = function_exists('sonika_products_effective') ? sonika_products_effective() : (function_exists('sonika_products') ? sonika_products() : null);
         $sort = ((string)($cfg['sort'] ?? 'alpha') === 'count') ? 'count' : 'alpha';
-        $tree = (new MegaMenuService())->tree([], $products, 90, $sort);
+        $megaCats = is_array($cfg['categories'] ?? null) ? $cfg['categories'] : [];
+        $tree = (new MegaMenuService())->tree($megaCats, $products, 90, $sort);
         $nodes = $tree['categories'] ?? [];
         $nodes = $this->applyOverrides($nodes, (array)($cfg['category_overrides'] ?? []));
         if (!empty($cfg['guitar_subs']) && is_array($cfg['guitar_subs'])) {
@@ -118,12 +119,19 @@ class MegaMenuWidget extends Widget
                 $subs[] = ['name' => (string)($sx['name'] ?? ''), 'count' => $cnt, 'thumb' => '', 'url' => '/guitarras?sub=' . rawurlencode((string)($sx['slug'] ?? ''))];
             }
             if ($subs) {
-                array_unshift($nodes, [
-                    'slug' => 'cuerdas', 'name' => 'Cuerdas', 'kind' => 'Categoría', 'icon' => '🎸', 'subtitle' => 'Guitarras · Bajos',
-                    'url' => '/guitarras', 'count' => $tot, 'badge_new' => false, 'badge_offer' => false,
-                    'types' => $subs, 'brands' => [], 'models' => [], 'level5' => [],
-                    'kinds' => [2 => 'Tipo', 3 => 'Marca', 4 => 'Modelo'], 'hero' => '', 'samples' => [], 'prices' => [],
-                ]);
+                $hasG = false;
+                foreach ($nodes as &$nn) {
+                    if (($nn['slug'] ?? '') === 'guitarras') { $nn['types'] = $subs; $nn['count'] = $tot; $nn['url'] = '/guitarras'; $hasG = true; }
+                }
+                unset($nn);
+                if (!$hasG) {
+                    array_unshift($nodes, [
+                        'slug' => 'guitarras', 'name' => 'Cuerdas', 'kind' => 'Categoría', 'icon' => '🎸', 'subtitle' => 'Guitarras · Bajos',
+                        'url' => '/guitarras', 'count' => $tot, 'badge_new' => false, 'badge_offer' => false,
+                        'types' => $subs, 'brands' => [], 'models' => [], 'level5' => [],
+                        'kinds' => [2 => 'Tipo', 3 => 'Marca', 4 => 'Modelo'], 'hero' => '', 'samples' => [], 'prices' => [],
+                    ]);
+                }
             }
         }
         if (!empty($cfg['show_info'])) {

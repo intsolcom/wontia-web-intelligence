@@ -104,6 +104,9 @@ class CatalogReconciliationService
         $covTag = [];
         $covKw = [];
         foreach ($legacySlugs as $s) { $covTag[$s] = 0; $covKw[$s] = 0; }
+        $handles = [];
+        $orphans = [];
+        $brick = ['categorias' => 0, 'advance_search' => 0, 'mega_menu' => 0, 'searchable' => 0];
 
         foreach ($products as $p) {
             $title = (string)($p['title'] ?? '');
@@ -129,6 +132,17 @@ class CatalogReconciliationService
             $kw = [];
             foreach ($legacy as $c) { if ($this->legacyMatch($p, (array)($c['kw'] ?? []))) $kw[] = (string)$c['slug']; }
             foreach ($kw as $s) { if (isset($covKw[$s])) $covKw[$s]++; }
+
+            $hdl = (string)($p['handle'] ?? '');
+            if ($hdl !== '') $handles[$hdl] = true;
+            $hasType = trim((string)($p['product_type'] ?? '')) !== '';
+            $hasBrand = trim((string)($p['vendor'] ?? '')) !== '';
+            $mappable = ($tagCat !== '' && self::legacySlug($tagCat) !== '') || !empty($kw);
+            if ($mappable) $brick['categorias']++;
+            if ($hasType || $hasBrand) $brick['advance_search']++;
+            if ($tagCat !== '' || $hasType) $brick['mega_menu']++;
+            if ($title !== '') $brick['searchable']++;
+            if ($tagCat === '' && empty($kw) && !$hasType && !$hasBrand) $orphans[] = $title;
 
             if ($tagCat === '') {
                 $noTag[] = $title;
@@ -173,10 +187,17 @@ class CatalogReconciliationService
         foreach ($seenCats as $fk => $info) { if (!isset($baseline[$fk])) $newCats[] = ['fold' => $fk, 'name' => $info['name'], 'level' => $info['level'], 'kind' => $info['kind'], 'count' => $info['count']]; }
         usort($newCats, fn($a, $b) => $b['count'] <=> $a['count']);
 
+        $firstProd = !isset($state['products']);
+        $baseProd = (array)($state['products'] ?? []);
+        $newProducts = [];
+        if (!$firstProd) { foreach ($handles as $hh => $_) { if (!isset($baseProd[$hh])) $newProducts[] = $hh; } }
+
         $findings = [];
         foreach ($mismatch as $m) $findings[] = ['sig' => 'unmapped:' . self::fold((string)$m['tag']), 'level' => 'critical', 'label' => 'Categoría no mapeada: “' . $m['tag'] . '” (' . $m['count'] . ')'];
         foreach ($emptyCats as $s) $findings[] = ['sig' => 'empty:' . $s, 'level' => 'critical', 'label' => 'Categoría del sitio SIN productos por tag: ' . $s];
         foreach ($newCats as $n) $findings[] = ['sig' => 'new:' . $n['fold'], 'level' => 'warning', 'label' => 'Categoría nueva detectada: “' . $n['name'] . '” (nivel ' . $n['level'] . ', ' . $n['count'] . ')'];
+        if ($newProducts) $findings[] = ['sig' => 'new_products:' . count($newProducts), 'level' => 'info', 'label' => count($newProducts) . ' producto(s) NUEVO(S) en el catálogo'];
+        if ($orphans) $findings[] = ['sig' => 'orphans:' . count($orphans), 'level' => 'warning', 'label' => count($orphans) . ' producto(s) sin categoría/tipo/marca (no filtrables)'];
 
         $report = [
             'generated_at' => date('c'),
@@ -194,12 +215,15 @@ class CatalogReconciliationService
                 'divergence' => ['count' => count($divergence), 'samples' => array_slice($divergence, 0, 60)],
                 'empty_categories' => ['count' => count($emptyCats), 'list' => $emptyCats],
                 'new_categories' => ['count' => count($newCats), 'samples' => array_slice($newCats, 0, 60)],
+                'new_products' => ['count' => count($newProducts), 'samples' => array_slice($newProducts, 0, 60)],
+                'orphans' => ['count' => count($orphans), 'samples' => array_slice($orphans, 0, 60)],
             ],
             'coverage' => $coverage,
+            'bricks' => $brick,
             'findings' => array_slice($findings, 0, 200),
         ];
 
-        $this->saveState(['cats' => array_map(fn($i) => $i['name'], $seenCats), 'updated_at' => date('c')]);
+        $this->saveState(['cats' => array_map(fn($i) => $i['name'], $seenCats), 'products' => array_fill_keys(array_keys($handles), 1), 'updated_at' => date('c')]);
         return $report;
     }
 
