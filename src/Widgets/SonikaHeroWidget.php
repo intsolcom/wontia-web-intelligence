@@ -95,8 +95,7 @@ class SonikaHeroWidget extends Widget
                 if (!empty($d['title'])) $h .= '<h2 class="sh-h1">' . $this->accentTitle((string)$d['title'], (string)($d['title_accent'] ?? '')) . '</h2>';
                 if (!empty($d['subtitle'])) $h .= '<p class="sh-sub">' . $this->esc($d['subtitle']) . '</p>';
                 if (!empty($d['text'])) $h .= '<p class="sh-text">' . $this->esc($d['text']) . '</p>';
-                $h .= $this->attrs($d);
-                return $h . $this->ctas($d) . '</div>';
+                return $h . $this->ctas($d) . $this->attrs($d) . '</div>';
             case 'image':
                 $h = '<div class="sh-media">';
                 if (!empty($d['image'])) $h .= '<img src="' . $this->esc($d['image']) . '" alt="' . $this->esc($d['alt'] ?? ($d['title'] ?? '')) . '" loading="lazy" decoding="async"/>';
