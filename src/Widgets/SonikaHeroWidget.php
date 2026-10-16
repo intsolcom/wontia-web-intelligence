@@ -58,7 +58,10 @@ class SonikaHeroWidget extends Widget
         foreach ($slides as $i => $s) {
             $bg = (string)($s['design']['bg'] ?? '#111111');
             if (!preg_match('/^#[0-9a-f]{3,8}$/i', $bg)) $bg = '#111111';
-            $h .= '<article class="sh-slide' . ($i === 0 ? ' is-on' : '') . '" data-i="' . $i . '" aria-hidden="' . ($i === 0 ? 'false' : 'true') . '" style="--sh-bg:' . $bg . '">';
+            $cols = $this->cols((string)($s['design']['cols'] ?? '50/50'));
+            $va = (string)($s['design']['valign'] ?? 'center');
+            $align = in_array($va, ['start', 'center', 'end'], true) ? $va : 'center';
+            $h .= '<article class="sh-slide' . ($i === 0 ? ' is-on' : '') . '" data-i="' . $i . '" aria-hidden="' . ($i === 0 ? 'false' : 'true') . '" style="--sh-bg:' . $bg . ';--sh-cols:' . $cols . ';--sh-valign:' . $align . '">';
             $h .= '<div class="sh-grid">';
             $h .= $this->zone('left', (string)$s['left_type'], (array)$s['left_data']);
             $h .= $this->zone('right', (string)$s['right_type'], (array)$s['right_data']);
@@ -89,9 +92,10 @@ class SonikaHeroWidget extends Widget
             case 'text':
                 $h = '<div class="sh-copy">';
                 if (!empty($d['eyebrow'])) $h .= '<span class="sh-eyebrow">' . $this->esc($d['eyebrow']) . '</span>';
-                if (!empty($d['title'])) $h .= '<h2 class="sh-h1">' . $this->esc($d['title']) . '</h2>';
+                if (!empty($d['title'])) $h .= '<h2 class="sh-h1">' . $this->accentTitle((string)$d['title'], (string)($d['title_accent'] ?? '')) . '</h2>';
                 if (!empty($d['subtitle'])) $h .= '<p class="sh-sub">' . $this->esc($d['subtitle']) . '</p>';
                 if (!empty($d['text'])) $h .= '<p class="sh-text">' . $this->esc($d['text']) . '</p>';
+                $h .= $this->attrs($d);
                 return $h . $this->ctas($d) . '</div>';
             case 'image':
                 $h = '<div class="sh-media">';
@@ -102,13 +106,30 @@ class SonikaHeroWidget extends Widget
                 $h .= $this->ctas($d) . '</div></div>';
                 return $h;
             case 'video':
-                $h = '<div class="sh-video">';
-                if (!empty($d['video'])) {
-                    $poster = !empty($d['poster']) ? ' poster="' . $this->esc($d['poster']) . '"' : '';
-                    $h .= '<video controls preload="none" playsinline' . $poster . '><source src="' . $this->esc($d['video']) . '" type="video/mp4"></video>';
-                } elseif (!empty($d['poster'])) {
-                    $h .= '<img src="' . $this->esc($d['poster']) . '" alt="' . $this->esc($d['title'] ?? '') . '" loading="lazy"/>';
+                $src = (string)($d['source'] ?? 'file');
+                $auto = !empty($d['autoplay']);
+                $mute = array_key_exists('mute', $d) ? !empty($d['mute']) : true;
+                $loop = !empty($d['loop']);
+                $ctrl = !empty($d['controls']);
+                $poster = trim((string)($d['poster'] ?? ''));
+                $alt = trim((string)($d['alt'] ?? '')) !== '' ? trim((string)$d['alt']) : (string)($d['title'] ?? '');
+                $inner = '';
+                if ($src === 'youtube') {
+                    $yt = $this->youtubeId((string)($d['yt_url'] ?? ($d['video'] ?? '')));
+                    if ($yt !== '') {
+                        $params = ['autoplay' => $auto ? 1 : 0, 'mute' => $mute ? 1 : 0, 'controls' => $ctrl ? 1 : 0, 'loop' => $loop ? 1 : 0, 'rel' => 0, 'playsinline' => 1, 'modestbranding' => 1];
+                        if ($loop) $params['playlist'] = $yt;
+                        $qs = http_build_query($params);
+                        $inner = '<iframe class="sh-video__fr" src="https://www.youtube-nocookie.com/embed/' . $this->esc($yt) . '?' . $this->esc($qs) . '" title="' . $this->esc($alt !== '' ? $alt : 'Video') . '" loading="lazy" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>';
+                    }
+                } elseif (!empty($d['video'])) {
+                    $attr = ($auto ? ' autoplay' : '') . ($mute ? ' muted' : '') . ($loop ? ' loop' : '') . ($ctrl ? ' controls' : '') . ' playsinline preload="metadata"';
+                    $pa = $poster !== '' ? ' poster="' . $this->esc($poster) . '"' : '';
+                    $inner = '<video class="sh-video__v"' . $attr . $pa . '><source src="' . $this->esc($d['video']) . '" type="video/mp4"></video>';
                 }
+                if ($inner === '' && $poster !== '') $inner = '<img class="sh-video__poster" src="' . $this->esc($poster) . '" alt="' . $this->esc($alt) . '" loading="lazy" decoding="async"/>';
+                $h = '<div class="sh-video">';
+                if ($inner !== '') $h .= '<div class="sh-video__box">' . $inner . '</div>';
                 if (!empty($d['title'])) $h .= '<h3 class="sh-media__t">' . $this->esc($d['title']) . '</h3>';
                 return $h . '</div>';
             case 'product':
@@ -247,6 +268,55 @@ class SonikaHeroWidget extends Widget
         return '<script defer src="/assets/js/instruments/guitar.js"></script><script>document.addEventListener("DOMContentLoaded",function(){document.querySelectorAll("[data-wwi-instrument=guitar]").forEach(function(r){if(window.WWIInstruments&&WWIInstruments.guitar)WWIInstruments.guitar.init(r);});});</script>';
     }
 
+    private function accentTitle(string $title, string $accent): string
+    {
+        $accent = trim($accent);
+        if ($accent === '') return $this->esc($title);
+        $pos = mb_stripos($title, $accent);
+        if ($pos === false) return $this->esc($title);
+        $before = mb_substr($title, 0, $pos);
+        $mid = mb_substr($title, $pos, mb_strlen($accent));
+        $after = mb_substr($title, $pos + mb_strlen($accent));
+        return $this->esc($before) . '<span class="sh-hl">' . $this->esc($mid) . '</span>' . $this->esc($after);
+    }
+
+    private function attrs(array $d): string
+    {
+        $list = $d['attrs'] ?? [];
+        if (!is_array($list)) return '';
+        $out = '';
+        foreach ($list as $a) {
+            if (!is_array($a)) continue;
+            if (array_key_exists('enabled', $a) && (string)$a['enabled'] === '0') continue;
+            $ic = trim((string)($a['icon'] ?? ''));
+            $tt = trim((string)($a['title'] ?? ''));
+            $tx = trim((string)($a['text'] ?? ''));
+            if ($tt === '' && $tx === '') continue;
+            $out .= '<li class="sh-attr">'
+                . ($ic !== '' ? '<span class="sh-attr__i" aria-hidden="true">' . $this->esc($ic) . '</span>' : '')
+                . '<span class="sh-attr__b">' . ($tt !== '' ? '<b>' . $this->esc($tt) . '</b>' : '') . ($tx !== '' ? ($tt !== '' ? ' — ' : '') . $this->esc($tx) : '') . '</span></li>';
+        }
+        return $out !== '' ? '<ul class="sh-attrs">' . $out . '</ul>' : '';
+    }
+
+    private function youtubeId(string $url): string
+    {
+        $url = trim($url);
+        if ($url === '') return '';
+        if (preg_match('~^[A-Za-z0-9_-]{11}$~', $url)) return $url;
+        if (preg_match('~(?:youtu\.be/|v=|/embed/|/shorts/|/live/)([A-Za-z0-9_-]{11})~i', $url, $m)) return $m[1];
+        return '';
+    }
+
+    private function cols(string $v): string
+    {
+        if (preg_match('~^(\d{2})/(\d{2})$~', trim($v), $m)) {
+            $a = max(30, min(70, (int)$m[1]));
+            return $a . 'fr ' . (100 - $a) . 'fr';
+        }
+        return '1fr 1fr';
+    }
+
     private function ctas(array $d): string
     {
         $l = [];
@@ -265,11 +335,12 @@ class SonikaHeroWidget extends Widget
 .sh-track{position:relative;height:100%}
 .sh-slide{position:absolute;inset:0;opacity:0;visibility:hidden;transition:opacity .4s ease;background:var(--sh-bg,#111)}
 .sh-slide.is-on{opacity:1;visibility:visible;position:relative}
-.sh-grid{height:100%;max-width:1180px;margin:0 auto;padding:0 22px;display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:center}
+.sh-grid{height:100%;max-width:1180px;margin:0 auto;padding:0 22px;display:grid;grid-template-columns:var(--sh-cols,1fr 1fr);gap:24px;align-items:var(--sh-valign,center)}
 .sh-zone{min-width:0}
 .sh-copy{display:flex;flex-direction:column;gap:10px;max-width:560px}
 .sh-eyebrow{font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#ffd9db}
-.sh-h1{font-family:var(--font-display,Sora),sans-serif;font-size:clamp(26px,3.4vw,46px);font-weight:800;line-height:1.05;letter-spacing:-.02em}
+.sh-h1{font-family:var(--font-display,Sora),sans-serif;font-size:clamp(26px,3.4vw,46px);font-weight:800;line-height:1.05;letter-spacing:-.02em;white-space:pre-line}
+.sh-hl{color:var(--brand,#F20D16)}
 .sh-sub{font-size:clamp(15px,1.5vw,19px);opacity:.95}
 .sh-text{font-size:14px;opacity:.8;max-width:52ch}
 .sh-ctas{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
@@ -277,6 +348,12 @@ class SonikaHeroWidget extends Widget
 .sh-btn--p{background:var(--brand,#F20D16);color:#fff}
 .sh-btn--s{background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.3)}
 .sh-media,.sh-video,.sh-promo{display:flex;flex-direction:column;gap:8px}
+.sh-attrs{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:7px}
+.sh-attr{display:flex;gap:9px;align-items:flex-start;font-size:13px;line-height:1.35;opacity:.92}
+.sh-attr__i{font-size:15px;line-height:1.2}
+.sh-attr__b b{font-weight:800}
+.sh-video__box{position:relative;aspect-ratio:16/9;width:100%;border-radius:16px;overflow:hidden;background:#0c0c0c;border:1px solid rgba(255,255,255,.1)}
+.sh-video__box iframe,.sh-video__box video,.sh-video__box img{position:absolute;inset:0;width:100%;height:100%;border:0;display:block;object-fit:cover}
 .sh-media img,.sh-video video,.sh-promo img,.sh-product__img img{width:100%;height:auto;border-radius:16px;display:block;object-fit:cover}
 .sh-media__cap h3,.sh-media__t,.sh-promo h3{font-family:var(--font-display,Sora),sans-serif;font-size:20px;font-weight:800}
 .sh-product{display:flex;flex-direction:column;gap:4px;color:#fff;text-decoration:none;max-width:320px}
@@ -319,8 +396,9 @@ html[data-cap="low"] .sh-guitar__strings{display:none}
 document.querySelectorAll('.sh').forEach(function(root){
  var slides=root.querySelectorAll('.sh-slide'),dots=root.querySelectorAll('.sh-dot'),i=0,n=slides.length,ap=parseInt(root.getAttribute('data-autoplay')||'0',10),t=null;
  if(n<2)return;
- function go(k){disposeSlide(slides[i]);i=(k+n)%n;slides.forEach(function(s,j){s.classList.toggle('is-on',j===i);s.setAttribute('aria-hidden',j===i?'false':'true')});dots.forEach(function(d,j){d.classList.toggle('on',j===i)})}
- function disposeSlide(el){if(!el)return;el.querySelectorAll('[data-wwi-instrument]').forEach(function(inst){var id=inst.getAttribute('data-wwi-instrument');if(window.WWIInstruments&&WWIInstruments[id]&&WWIInstruments[id].dispose)try{WWIInstruments[id].dispose()}catch(e){}})}
+ function go(k){disposeSlide(slides[i]);i=(k+n)%n;slides.forEach(function(s,j){s.classList.toggle('is-on',j===i);s.setAttribute('aria-hidden',j===i?'false':'true')});dots.forEach(function(d,j){d.classList.toggle('on',j===i)});resumeSlide(slides[i])}
+ function disposeSlide(el){if(!el)return;el.querySelectorAll('[data-wwi-instrument]').forEach(function(inst){var id=inst.getAttribute('data-wwi-instrument');if(window.WWIInstruments&&WWIInstruments[id]&&WWIInstruments[id].dispose)try{WWIInstruments[id].dispose()}catch(e){}});el.querySelectorAll('video').forEach(function(v){try{v.pause()}catch(e){}});el.querySelectorAll('iframe.sh-video__fr').forEach(function(f){try{if(f.src){f.setAttribute('data-src',f.src);f.removeAttribute('src')}}catch(e){}})}
+ function resumeSlide(el){if(!el)return;el.querySelectorAll('iframe.sh-video__fr[data-src]').forEach(function(f){try{if(!f.src)f.src=f.getAttribute('data-src')}catch(e){}});el.querySelectorAll('video[autoplay]').forEach(function(v){try{var p=v.play();if(p&&p.catch)p.catch(function(){})}catch(e){}})}
  var next=root.querySelector('.sh-next'),prev=root.querySelector('.sh-prev');
  if(next)next.addEventListener('click',function(){go(i+1);stop()});
  if(prev)prev.addEventListener('click',function(){go(i-1);stop()});
