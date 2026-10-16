@@ -96,7 +96,7 @@ class SonikaHeroWidget extends Widget
                 $h = '<div class="sh-copy">';
                 if (!empty($d['eyebrow'])) $h .= '<span class="sh-eyebrow">' . $this->esc($d['eyebrow']) . '</span>';
                 $h .= $this->titleHtml($d);
-                if (!empty($d['subtitle'])) $h .= '<p class="sh-sub">' . $this->esc($d['subtitle']) . '</p>';
+                $h .= $this->subHtml($d);
                 if (!empty($d['text'])) $h .= '<p class="sh-text">' . $this->esc($d['text']) . '</p>';
                 return $h . $this->ctas($d) . $this->attrs($d) . '</div>';
             case 'image':
@@ -289,7 +289,7 @@ class SonikaHeroWidget extends Widget
         if (!in_array($eff, self::DYN_EFFECTS, true)) $eff = 'rollup';
         $iv = max(1200, min(15000, (int)($d['dyn_interval'] ?? 2800)));
         $pause = (string)($d['dyn_pause_hover'] ?? '1') !== '0' ? '1' : '0';
-        $h = '<h2 class="sh-h1 sh-dyn" data-effect="' . $eff . '" data-interval="' . $iv . '" data-pause-hover="' . $pause . '">';
+        $h = '<h2 class="sh-h1 sh-dyn" data-effect="' . $eff . '" data-interval="' . $iv . '" data-pause-hover="' . $pause . '" data-lines="3">';
         foreach ($items as $i => $it) {
             $txt = (string)$it['text'];
             $acc = (string)($it['accent'] ?? '');
@@ -297,6 +297,24 @@ class SonikaHeroWidget extends Widget
             $h .= '<span class="sh-dyn__i' . ($i === 0 ? ' is-on' : '') . '"' . ($i === 0 ? '' : ' aria-hidden="true"') . '>' . $inner . '</span>';
         }
         return $h . '</h2>';
+    }
+
+    private function subHtml(array $d): string
+    {
+        $items = $d['dyn_sub_items'] ?? [];
+        $items = is_array($items) ? array_values(array_filter($items, fn($it) => is_array($it) && trim((string)($it['text'] ?? '')) !== '')) : [];
+        if (empty($d['dyn_sub_enabled']) || count($items) < 2) {
+            return !empty($d['subtitle']) ? '<p class="sh-sub">' . $this->esc($d['subtitle']) . '</p>' : '';
+        }
+        $eff = (string)($d['dyn_sub_effect'] ?? 'fade');
+        if (!in_array($eff, self::DYN_EFFECTS, true)) $eff = 'fade';
+        $iv = max(2000, min(30000, (int)($d['dyn_sub_interval'] ?? 10000)));
+        $pause = (string)($d['dyn_pause_hover'] ?? '1') !== '0' ? '1' : '0';
+        $h = '<p class="sh-sub sh-dyn sh-dyn--sub" data-effect="' . $eff . '" data-interval="' . $iv . '" data-pause-hover="' . $pause . '" data-lines="1">';
+        foreach ($items as $i => $it) {
+            $h .= '<span class="sh-dyn__i' . ($i === 0 ? ' is-on' : '') . '"' . ($i === 0 ? '' : ' aria-hidden="true"') . '>' . $this->esc((string)$it['text']) . '</span>';
+        }
+        return $h . '</p>';
     }
 
     private function charsHtml(string $text, string $accent): string
@@ -519,7 +537,7 @@ function init(root){
  var iv=Math.max(1200,parseInt(root.getAttribute('data-interval')||'2800',10)||2800);
  var pause=root.getAttribute('data-pause-hover')!=='0';
  var rm=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
- function measure(){var m=0;items.forEach(function(el){el.style.position='absolute';el.style.top='0';el.style.left='0';el.style.right='0';var h=el.offsetHeight;if(h>m)m=h});root.style.minHeight=(m+2)+'px';}
+ function measure(){var lh=parseFloat(getComputedStyle(root).lineHeight)||0;var lines=parseInt(root.getAttribute('data-lines')||'0',10)||0;var minH=lines>0?lh*lines:0;var m=0;items.forEach(function(el){el.style.position='absolute';el.style.top='0';el.style.left='0';el.style.right='0';var h=el.offsetHeight;if(h>m)m=h});root.style.minHeight=Math.ceil(Math.max(m,minH)+2)+'px';}
  measure();window.addEventListener('resize',measure);
  if(rm)return;
  requestAnimationFrame(function(){root.classList.add('sh-dyn--go')});
