@@ -187,8 +187,8 @@ class MegaMenuWidget extends Widget
                 . '<a class="mn-cat__link" href="' . $this->esc($n['url']) . '">'
                 . '<span class="mn-cat__ic" aria-hidden="true">' . $this->mnSvg((string)($n['icon'] !== '' ? $n['icon'] : $slug)) . '</span>'
                 . '<span class="mn-cat__nm">' . $this->esc($n['name']) . '</span>'
-                . ($showBadges && !empty($n['badge_new']) ? '<span class="mn-tag mn-tag--new">NUEVO</span>' : '')
-                . ($showBadges && !empty($n['badge_offer']) ? '<span class="mn-tag mn-tag--off">OFERTA</span>' : '')
+                . ($showBadges && !empty($n['badge_new']) ? '<span class="mn-dot mn-dot--new" title="Nuevo" aria-label="Nuevo"></span>' : '')
+                . ($showBadges && !empty($n['badge_offer']) ? '<span class="mn-dot mn-dot--off" title="Oferta" aria-label="Oferta"></span>' : '')
                 . '<span class="mn-cat__ct">' . (int)$n['count'] . '</span>'
                 . '</a>'
                 . ($has ? '<button type="button" class="mn-cat__chev" aria-expanded="false" aria-controls="mn-sub-' . $this->esc($slug) . '" aria-label="Desplegar ' . $this->esc($n['name']) . '">' . $this->mnSvg('chevron') . '</button>' : '')
@@ -341,6 +341,10 @@ class MegaMenuWidget extends Widget
         $img = (is_array($p) && !empty($p['image'])) ? (string)$p['image'] : '';
         if ($img === '' && $showImages && !empty($cfg['promo_enabled'])) $img = (string)($cfg['promo_image'] ?? '');
         if ($img === '') $img = (string)($node['hero'] ?? '');
+        if ($img === '' && $showImages) {
+            foreach ((array)($node['samples'] ?? []) as $sp) { if (!empty($sp['img'])) { $img = (string)$sp['img']; break; } }
+            if ($img === '') foreach ((array)($node['types'] ?? []) as $tp) { if (!empty($tp['thumb'])) { $img = (string)$tp['thumb']; break; } }
+        }
         $ln = mb_strtolower($name, 'UTF-8');
         return [
             'image' => $img,
@@ -504,12 +508,16 @@ class MegaMenuWidget extends Widget
 .mn-cat.is-active .mn-cat__chev{color:var(--mn-head,#F20D16)}
 .mn-cat__ic{flex:0 0 20px;width:20px;height:20px;color:#3a3a3a;display:inline-flex;align-items:center;justify-content:center}
 .mn-cat__ic svg{width:20px;height:20px;display:block}
-.mn-cat__nm{flex:1;min-width:0;white-space:normal;line-height:1.25;overflow-wrap:anywhere;font-family:'Sora',sans-serif;font-weight:600;letter-spacing:-.01em}
+.mn-cat__nm{flex:1;min-width:4ch;white-space:normal;line-height:1.25;overflow-wrap:break-word;word-break:normal;font-family:'Sora',sans-serif;font-weight:600;letter-spacing:-.01em}
 .mn-cat__ct{font-size:11px;color:var(--muted,#999);background:var(--soft,#F1F1F1);border-radius:999px;padding:1px 8px;flex:0 0 auto}
+.mn-dot{width:7px;height:7px;border-radius:50%;flex:0 0 auto}
+.mn-dot--new{background:#111}
+.mn-dot--off{background:var(--brand,#F20D16)}
 .mn-cat__chev{flex:0 0 auto;border:0;background:transparent;color:#6b6b6b;cursor:pointer;padding:8px 10px;display:inline-flex;align-items:center;transition:transform .2s ease}
 .mn-cat__chev svg{width:18px;height:18px}
 .mn-cat__chev[aria-expanded="true"]{transform:rotate(90deg);color:var(--mn-head,#F20D16)}
 .mn-cat__sub{list-style:none;margin:0 0 6px;padding:0 0 4px 30px;display:flex;flex-direction:column;gap:2px}
+.mn-cat__sub[hidden]{display:none}
 .mn-cat__sub li a{display:flex;justify-content:space-between;gap:8px;padding:7px 10px;border-radius:8px;text-decoration:none;color:var(--ink,#111);font-size:13px}
 .mn-cat__sub li a:hover{background:var(--soft,#F5F5F5)}
 .mn-cat__sub li a span{color:var(--muted,#999);font-size:11px}
