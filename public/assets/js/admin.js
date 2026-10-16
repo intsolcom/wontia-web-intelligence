@@ -1589,7 +1589,7 @@ W.renderHero=async function(id){
             h+='<div class="w-card" style="padding:12px 14px"><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span style="font-weight:800">'+W.esc(s.name)+'</span>'
               +'<span class="w-badge" style="background:'+(s.status==='active'?'rgba(52,211,153,.15);color:#34d399':'rgba(148,163,184,.15);color:#94a3b8')+'">'+(s.status==='active'?'ACTIVO':'BORRADOR')+'</span>'
               +'<span style="font-size:11px;color:var(--w-muted)">IZQ: '+W.esc(lt)+' · DER: '+W.esc(rt)+'</span><span style="flex:1"></span>'
-              +'<button class="w-btn w-btn-secondary w-btn-sm" onclick="location.hash=\'#hero/\'+'+s.id+'">Configurar</button>'
+              +'<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.heroGo('+s.id+')">Configurar</button>'
               +'<button class="w-btn w-btn-secondary w-btn-sm" title="Duplicar" onclick="wontia.heroDup('+s.id+')">⧉</button>'
               +(s.status==='active'?'<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.heroSetStatus('+s.id+',\'draft\')">Despublicar</button>':'<button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.heroPub('+s.id+')">🚀 Publicar</button>')
               +'<button class="w-btn w-btn-danger w-btn-sm" title="Eliminar" onclick="wontia.heroDel('+s.id+')">🗑</button></div></div>';
@@ -1598,8 +1598,10 @@ W.renderHero=async function(id){
     }
     app.innerHTML=h;
 };
-W.heroNew=async function(){var r=await W.api('/api/v1/admin/hero/slides',{method:'POST',body:{name:'Nuevo slide',status:'draft',left_type:'text',right_type:'text'}});if(r&&r.ok&&r.slide)location.hash='#hero/'+r.slide.id;};
-W.heroDup=async function(id){var r=await W.api('/api/v1/admin/hero/slides/'+id+'/duplicate',{method:'POST',body:{}});if(r&&r.ok)location.hash='#hero/'+r.id;};
+W.heroGo=function(id){try{history.replaceState(null,'','#hero/'+id)}catch(e){location.hash='#hero/'+id}W.renderHero(id);};
+W.heroBack=function(){try{history.replaceState(null,'','#hero')}catch(e){location.hash='#hero'}W.renderHero();};
+W.heroNew=async function(){var r=await W.api('/api/v1/admin/hero/slides',{method:'POST',body:{name:'Nuevo slide',status:'draft',left_type:'text',right_type:'text'}});if(r&&r.ok&&r.slide)W.heroGo(r.slide.id);};
+W.heroDup=async function(id){var r=await W.api('/api/v1/admin/hero/slides/'+id+'/duplicate',{method:'POST',body:{}});if(r&&r.ok)W.heroGo(r.id);};
 W.heroDel=async function(id){if(!confirm('¿Eliminar este slide?'))return;await W.api('/api/v1/admin/hero/slides/'+id,{method:'DELETE'});W.renderHero();};
 W.heroPub=async function(id){var r=await W.api('/api/v1/admin/hero/slides/'+id+'/publish',{method:'POST',body:{}});if(r&&r.ok)W.notify('Publicado','success');else W.notify((r&&r.message)||'No se pudo publicar','error');W.renderHero();};
 W.heroSetStatus=async function(id,st){var s=(W._heroSlides||[]).filter(function(x){return x.id===id})[0];if(!s)return;await W.api('/api/v1/admin/hero/slides',{method:'POST',body:{id:id,name:s.name,status:st,layout:s.layout,left_type:s.left_type,left_data:s.left_data,right_type:s.right_type,right_data:s.right_data,design:s.design}});W.renderHero();};
@@ -1663,9 +1665,9 @@ W.heroEdit=async function(id){
     var app=document.getElementById('wontia-app'); if(!app)return;
     var r=await W.api('/api/v1/admin/hero'); var d=(r&&r.data)||{}; W._heroTypes=d.types||{}; W._heroSlides=d.slides||[];
     var s=(W._heroSlides||[]).filter(function(x){return x.id===id})[0];
-    if(!s){app.innerHTML='<div class="w-empty-state"><p>Slide no encontrado.</p><button class="w-btn w-btn-secondary" onclick="location.hash=\'#hero\'">← Volver</button></div>';return;}
+    if(!s){app.innerHTML='<div class="w-empty-state"><p>Slide no encontrado.</p><button class="w-btn w-btn-secondary" onclick="wontia.heroBack()">← Volver</button></div>';return;}
     W._heroCur=s;
-    var h='<div class="w-flex-between" style="flex-wrap:wrap;gap:8px;margin-bottom:12px"><div><div style="font-size:11px;color:var(--w-muted)">Hero Builder › slide</div><h3 style="margin:0">'+W.esc(s.name)+'</h3></div><div class="w-flex w-gap-sm"><button class="w-btn w-btn-secondary" onclick="location.hash=\'#hero\'">← Volver</button><button class="w-btn w-btn-primary" onclick="wontia.heroSave()">💾 Guardar</button></div></div>';
+    var h='<div class="w-flex-between" style="flex-wrap:wrap;gap:8px;margin-bottom:12px"><div><div style="font-size:11px;color:var(--w-muted)">Hero Builder › slide</div><h3 style="margin:0">'+W.esc(s.name)+'</h3></div><div class="w-flex w-gap-sm"><button class="w-btn w-btn-secondary" onclick="wontia.heroBack()">← Volver</button><button class="w-btn w-btn-primary" onclick="wontia.heroSave()">💾 Guardar</button></div></div>';
     h+='<div class="w-card"><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px"><div class="w-form-group"><label class="w-label">Nombre</label><input class="w-input" id="hero-name" value="'+W.esc(s.name)+'"/></div><div class="w-form-group"><label class="w-label">Estado</label><select class="w-select" id="hero-status"><option value="draft"'+(s.status!=='active'?' selected':'')+'>Borrador</option><option value="active"'+(s.status==='active'?' selected':'')+'>Activo</option></select></div></div></div>';
     h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px">';
     h+='<div class="w-card"><h3>Zona izquierda</h3>'+W.heroSel('left',s.left_type)+'<div id="hero-left-fields" style="margin-top:10px">'+W.heroFields('left',s.left_type,s.left_data||{})+'</div></div>';
