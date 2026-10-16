@@ -280,23 +280,47 @@ class SonikaHeroWidget extends Widget
 
     private function titleHtml(array $d): string
     {
-        $items = $d['dyn_items'] ?? [];
-        $items = is_array($items) ? array_values(array_filter($items, fn($it) => is_array($it) && trim((string)($it['text'] ?? '')) !== '')) : [];
+        $items = $this->dynTitleItems($d['dyn_items'] ?? []);
         if (empty($d['dyn_enabled']) || count($items) < 2) {
             return $d['title'] ?? '' ? '<h2 class="sh-h1">' . $this->accentTitle((string)$d['title'], (string)($d['title_accent'] ?? '')) . '</h2>' : '';
         }
         $eff = (string)($d['dyn_effect'] ?? 'rollup');
         if (!in_array($eff, self::DYN_EFFECTS, true)) $eff = 'rollup';
+        $chars = in_array($eff, ['flipchars', 'typewriter'], true);
         $iv = max(1200, min(15000, (int)($d['dyn_interval'] ?? 2800)));
         $pause = (string)($d['dyn_pause_hover'] ?? '1') !== '0' ? '1' : '0';
-        $h = '<h2 class="sh-h1 sh-dyn" data-effect="' . $eff . '" data-interval="' . $iv . '" data-pause-hover="' . $pause . '" data-lines="3">';
+        $h = '<h2 class="sh-h1 sh-dyn" data-effect="' . $eff . '" data-interval="' . $iv . '" data-pause-hover="' . $pause . '" data-lines="2">';
         foreach ($items as $i => $it) {
-            $txt = (string)$it['text'];
-            $acc = (string)($it['accent'] ?? '');
-            $inner = in_array($eff, ['flipchars', 'typewriter'], true) ? $this->charsHtml($txt, $acc) : $this->accentTitle($txt, $acc);
-            $h .= '<span class="sh-dyn__i' . ($i === 0 ? ' is-on' : '') . '"' . ($i === 0 ? '' : ' aria-hidden="true"') . '>' . $inner . '</span>';
+            $l1 = $this->dynLine($it['l1'], $it['accent'], $chars);
+            $l2 = $it['l2'] !== '' ? '<br/>' . $this->dynLine($it['l2'], $it['accent'], $chars) : '';
+            $h .= '<span class="sh-dyn__i' . ($i === 0 ? ' is-on' : '') . '"' . ($i === 0 ? '' : ' aria-hidden="true"') . '>' . $l1 . $l2 . '</span>';
         }
         return $h . '</h2>';
+    }
+
+    private function dynTitleItems($raw): array
+    {
+        if (!is_array($raw)) return [];
+        $out = [];
+        foreach ($raw as $it) {
+            if (!is_array($it)) continue;
+            $l1 = trim((string)($it['l1'] ?? ''));
+            $l2 = trim((string)($it['l2'] ?? ''));
+            if ($l1 === '' && $l2 === '' && isset($it['text'])) {
+                $parts = preg_split('/\r\n|\r|\n/', (string)$it['text']);
+                $l1 = trim((string)($parts[0] ?? ''));
+                $l2 = trim((string)($parts[1] ?? ''));
+            }
+            if ($l1 === '' && $l2 === '') continue;
+            $out[] = ['l1' => $l1, 'l2' => $l2, 'accent' => trim((string)($it['accent'] ?? ''))];
+        }
+        return $out;
+    }
+
+    private function dynLine(string $text, string $accent, bool $chars): string
+    {
+        if ($text === '') return '';
+        return $chars ? $this->charsHtml($text, $accent) : $this->accentTitle($text, $accent);
     }
 
     private function subHtml(array $d): string
