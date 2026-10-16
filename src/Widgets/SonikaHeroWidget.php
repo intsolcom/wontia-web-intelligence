@@ -147,17 +147,57 @@ class SonikaHeroWidget extends Widget
         $alt = trim((string)($d['alt'] ?? '')) !== '' ? trim((string)$d['alt']) : (string)($p['title'] ?? 'Guitarra eléctrica');
         $points = (array)($d['string_points'] ?? []);
         if (count($points) !== 6) $points = self::GUITAR_STRINGS;
+        $points = array_values($points);
+        $unit = (string)($d['cal_unit'] ?? 'cm');
+        $refCm = (float)($d['cal_ref'] ?? 40);
+        if ($refCm <= 0) $refCm = 40;
+        $u = 1.0;
+        if ($unit === 'cm') $u = 1536 / $refCm;
+        elseif ($unit === 'mm') $u = 153.6 / $refCm;
+        $dx = (float)($d['cal_x'] ?? 0) * $u;
+        $dy = (float)($d['cal_y'] ?? 0) * $u;
+        $tilt = (float)($d['cal_tilt'] ?? 0);
+        $spread = (float)($d['cal_spread'] ?? 100);
+        if ($spread < 20 || $spread > 300) $spread = 100;
+        $spread = $spread / 100;
+        $allX = $allY = [];
+        foreach ($points as $row) {
+            foreach (preg_split('/\s+/', trim((string)$row)) as $pair) {
+                if ($pair === '') continue;
+                $pp = array_pad(explode(',', $pair), 2, 0);
+                $allX[] = (float)$pp[0];
+                $allY[] = (float)$pp[1];
+            }
+        }
+        $cx = $allX ? array_sum($allX) / count($allX) : 808.0;
+        $cy = $allY ? array_sum($allY) / count($allY) : 420.0;
+        $tr = 'translate(' . round($dx, 2) . ' ' . round($dy, 2) . ')';
+        if (abs($tilt) > 0.0001) $tr .= ' rotate(' . round($tilt, 3) . ' ' . round($cx, 1) . ' ' . round($cy, 1) . ')';
+        if (abs($spread - 1) > 0.0001) $tr .= ' translate(' . round($cx, 1) . ' ' . round($cy, 1) . ') scale(' . round($spread, 4) . ' 1) translate(-' . round($cx, 1) . ' -' . round($cy, 1) . ')';
+        $guides = !empty($d['cal_guides']) && (string)$d['cal_guides'] !== '0';
         $h = '<div class="sh-guitar" data-wwi-instrument="guitar" data-profile="clean" role="group" aria-label="Guitarra eléctrica interactiva" tabindex="0">';
         $h .= '<div class="sh-guitar__stage">';
         $h .= '<img class="sh-guitar__img" src="' . $this->esc($img) . '" alt="' . $this->esc($alt) . '" loading="eager" decoding="async"/>';
         $h .= '<svg class="sh-guitar__strings" viewBox="0 0 1536 1024" preserveAspectRatio="none" aria-label="Cuerdas">';
-        foreach (array_values($points) as $i => $pts) {
+        $h .= '<g class="sh-str-g" transform="' . $this->esc($tr) . '">';
+        foreach ($points as $i => $pts) {
             $pts = trim((string)$pts);
             if ($pts === '') continue;
             $h .= '<polyline class="sh-str-hit" data-string="' . $i . '" points="' . $this->esc($pts) . '" fill="none" stroke="transparent" stroke-width="34" stroke-linecap="round" stroke-linejoin="round" pointer-events="stroke" tabindex="0" role="button" aria-label="Tocar cuerda ' . ($i + 1) . '"></polyline>';
             $h .= '<polyline class="sh-str" points="' . $this->esc($pts) . '" fill="none" stroke="rgba(20,20,20,.3)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"></polyline>';
+            if ($guides) {
+                foreach (preg_split('/\s+/', $pts) as $pair) {
+                    if ($pair === '') continue;
+                    $pp = array_pad(explode(',', $pair), 2, 0);
+                    $h .= '<circle class="sh-str-dot" cx="' . round((float)$pp[0], 1) . '" cy="' . round((float)$pp[1], 1) . '" r="5" fill="rgba(242,13,22,.5)" stroke="#fff" stroke-width="1.5"/>';
+                }
+            }
         }
-        $h .= '</svg></div>';
+        if ($guides) {
+            $h .= '<line x1="0" y1="' . round($cy, 1) . '" x2="1536" y2="' . round($cy, 1) . '" stroke="rgba(242,13,22,.2)" stroke-width="1"/>';
+            $h .= '<line x1="' . round($cx, 1) . '" y1="0" x2="' . round($cx, 1) . '" y2="1024" stroke="rgba(242,13,22,.2)" stroke-width="1"/>';
+        }
+        $h .= '</g></svg></div>';
         $h .= '<div class="sh-guitar__profiles" role="group" aria-label="Perfil de sonido">';
         foreach (['clean' => 'Clean', 'overdrive' => 'Overdrive', 'distortion' => 'Distortion', 'fuzz' => 'Fuzz'] as $k => $lbl) {
             $h .= '<button type="button" class="sh-prof' . ($k === 'clean' ? ' on' : '') . '" data-profile="' . $k . '">' . $lbl . '</button>';
@@ -251,6 +291,7 @@ class SonikaHeroWidget extends Widget
 .sh-str{transition:stroke .12s,stroke-width .12s}
 .sh-str-hit{cursor:pointer;outline:none}
 .sh-str-hit.on + .sh-str,.sh-str-hit:focus-visible + .sh-str{stroke:var(--brand,#F20D16);stroke-width:7}
+.sh-str-dot{pointer-events:none}
 .sh-guitar__profiles{display:flex;gap:6px;flex-wrap:wrap}
 .sh-prof{border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.06);color:#fff;border-radius:999px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer}
 .sh-prof.on{background:var(--brand,#F20D16);border-color:var(--brand,#F20D16)}

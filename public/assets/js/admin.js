@@ -1613,7 +1613,31 @@ W.heroFields=function(side,type,data){var d=data||{};
     if(type==='video')return fi('video','Video','video')+fi('poster','Portada / poster','image')+f('title','Título')+f('subtitle','Subtítulo')+t('text','Texto')+f('cta','Texto del CTA')+f('cta_url','Destino del CTA');
     if(type==='product')return f('handle','Handle del producto')+f('title','Título (opcional)')+f('subtitle','Subtítulo')+t('text','Texto')+f('cta','Texto del CTA')+f('cta_url','Destino del CTA');
     if(type==='combo')return fi('image','Imagen','image')+f('alt','Texto alternativo')+f('title','Título')+t('text','Texto')+f('cta','CTA')+f('cta_url','Destino');
-    if(type==='guitar')return fi('image','Imagen de la guitarra (3:2 · 1536×1024)','image')+f('alt','Texto alternativo')+f('product','…o producto del catálogo (handle, opcional)')+'<div class="w-form-group"><label class="w-label">Coordenadas de cuerdas SVG (avanzado · una polilínea por línea · viewBox 1536×1024)</label><textarea class="w-textarea hero-f" data-k="string_points" oninput="wontia.heroPreview()" style="min-height:120px;font-family:monospace;font-size:11px">'+W.esc((d.string_points&&d.string_points.length?d.string_points:[0,1,2,3,4,5].map(function(){return ''})).join('\n'))+'</textarea></div>';
+    if(type==='guitar'){
+        var gv=function(k,def){return (d[k]===undefined||d[k]===null||d[k]==='')?def:d[k]};
+        var u=String(gv('cal_unit','cm'));
+        var num=function(v){v=parseFloat(v);return isNaN(v)?0:v};
+        var calRow=function(k,label,min,max,step,val,arrows){
+            return '<div class="w-form-group" style="margin-bottom:8px"><label class="w-label" style="display:flex;justify-content:space-between"><span>'+label+'</span><span id="calv-'+k+'" style="opacity:.7">'+val+'</span></label>'
+              +'<div style="display:flex;gap:6px;align-items:center">'
+              +(arrows?'<button type="button" class="w-btn w-btn-secondary w-btn-sm" title="Disminuir" onclick="wontia.calNudge(\''+k+'\',-1)">◀</button>':'')
+              +'<input type="range" class="hero-f" data-k="'+k+'" min="'+min+'" max="'+max+'" step="'+step+'" value="'+val+'" oninput="wontia.calSync(\''+k+'\',this.value);wontia.heroPreview()" style="flex:1"/>'
+              +(arrows?'<button type="button" class="w-btn w-btn-secondary w-btn-sm" title="Aumentar" onclick="wontia.calNudge(\''+k+'\',1)">▶</button>':'')
+              +'</div></div>';
+        };
+        var cal='<div class="w-card" style="padding:12px;margin:10px 0"><div style="font-weight:700;margin-bottom:4px">🎯 Calibrador de cuerdas</div>'
+          +'<div style="font-size:11px;color:var(--w-muted);margin-bottom:10px">Ajusta las cuerdas sobre la foto (vista previa en vivo abajo). Usa ◀ ▶ para precisión.</div>'
+          +'<div class="w-form-group"><label class="w-label">Unidad de calibración</label><select class="w-input hero-f" data-k="cal_unit" onchange="wontia.heroEditReloadKeep(this)"><option value="cm"'+(u==='cm'?' selected':'')+'>centímetros (cm)</option><option value="mm"'+(u==='mm'?' selected':'')+'>milímetros (mm)</option><option value="vb"'+(u==='vb'?' selected':'')+'>unidades de imagen (u)</option></select></div>'
+          +'<div class="w-form-group"><label class="w-label">Ancho real de la imagen (cm) — convierte mm/cm</label><input type="number" class="w-input hero-f" data-k="cal_ref" min="5" max="200" step="0.1" value="'+num(gv('cal_ref',40))+'" oninput="wontia.heroPreview()"/></div>'
+          +calRow('cal_x','↔ Mover izquierda / derecha',-30,30,0.1,num(gv('cal_x',0)),true)
+          +calRow('cal_y','↕ Mover arriba / abajo',-30,30,0.1,num(gv('cal_y',0)),true)
+          +calRow('cal_tilt','⟲ Inclinación izq. / der. (°)',-8,8,0.05,num(gv('cal_tilt',0)),true)
+          +calRow('cal_spread','⤢ Separación de cuerdas (%)',50,150,1,num(gv('cal_spread',100)),false)
+          +'<div class="w-form-group"><label class="w-label">Mostrar guías (puntos + cruces)</label><select class="w-input hero-f" data-k="cal_guides" onchange="wontia.heroPreview()"><option value="0"'+(String(gv('cal_guides','0'))==='0'?' selected':'')+'>No</option><option value="1"'+(String(gv('cal_guides','0'))==='1'?' selected':'')+'>Sí</option></select></div>'
+          +'<button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.calReset()">↺ Reiniciar calibración</button>'
+        +'</div>';
+        return fi('image','Imagen de la guitarra (3:2 · 1536×1024)','image')+f('alt','Texto alternativo')+f('product','…o producto del catálogo (handle, opcional)')+cal+'<div class="w-form-group"><label class="w-label">Coordenadas de cuerdas SVG (avanzado · una polilínea por línea · viewBox 1536×1024)</label><textarea class="w-textarea hero-f" data-k="string_points" oninput="wontia.heroPreview()" style="min-height:100px;font-family:monospace;font-size:11px">'+W.esc((d.string_points&&d.string_points.length?d.string_points:[0,1,2,3,4,5].map(function(){return ''})).join('\n'))+'</textarea></div>';
+    }
     return '<div style="font-size:12px;color:var(--w-muted)">Este tipo aún no tiene motor implementado; no se puede publicar.</div>';
 };
 W.heroPickMedia=async function(inputId,type){
@@ -1627,6 +1651,10 @@ W.heroPickMedia=async function(inputId,type){
 W.heroSetMedia=function(inputId,url){var el=document.getElementById(inputId);if(el)el.value=url;W.closeModal();W.heroPreview();};
 W.heroEditReload=function(side){var sel=document.getElementById('hero-'+side+'-type');var box=document.getElementById('hero-'+side+'-fields');if(sel&&box){box.innerHTML=W.heroFields(side,sel.value,{});W.heroPreview();}};
 W.heroCollect=function(side){var box=document.getElementById('hero-'+side+'-fields');var out={};if(box)box.querySelectorAll('.hero-f').forEach(function(el){out[el.getAttribute('data-k')]=el.value});if(typeof out.string_points==='string')out.string_points=out.string_points.split('\n').map(function(s){return s.trim()}).filter(function(s){return s});return out;};
+W.heroEditReloadKeep=function(el){var box=el&&el.closest?el.closest('#hero-left-fields, #hero-right-fields'):null;if(!box)return;var side=box.id.indexOf('left')>-1?'left':'right';var sel=document.getElementById('hero-'+side+'-type');if(!sel)return;var cur=W.heroCollect(side);box.innerHTML=W.heroFields(side,sel.value,cur);W.heroPreview();};
+W.calSync=function(k,v){var el=document.getElementById('calv-'+k);if(el){var s=document.querySelector('#hero-right-fields [data-k="cal_unit"], #hero-left-fields [data-k="cal_unit"]');el.textContent=v+' '+((s&&s.value==='vb')?'u':((s&&s.value)||''));}};
+W.calNudge=function(k,dir){var el=document.querySelector('#hero-right-fields [data-k="'+k+'"], #hero-left-fields [data-k="'+k+'"]');if(!el)return;var step=parseFloat(el.step||'1');var v=parseFloat(el.value||'0')+dir*step*5;v=Math.max(parseFloat(el.min===''?(-1e9):el.min),Math.min(parseFloat(el.max===''?1e9:el.max),v));el.value=Math.round(v*100)/100;W.calSync(k,el.value);W.heroPreview();};
+W.calReset=function(){var box=document.querySelector('#hero-right-fields')||document.querySelector('#hero-left-fields');if(!box){return}['cal_x','cal_y','cal_tilt'].forEach(function(k){var el=box.querySelector('[data-k="'+k+'"]');if(el){el.value=0;W.calSync(k,0)}});var sp=box.querySelector('[data-k="cal_spread"]');if(sp){sp.value=100;W.calSync('cal_spread',100)}var g=box.querySelector('[data-k="cal_guides"]');if(g)g.value='0';W.heroPreview();};
 W.heroEdit=async function(id){
     var app=document.getElementById('wontia-app'); if(!app)return;
     var r=await W.api('/api/v1/admin/hero'); var d=(r&&r.data)||{}; W._heroTypes=d.types||{}; W._heroSlides=d.slides||[];
