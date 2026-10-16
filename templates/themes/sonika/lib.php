@@ -136,8 +136,61 @@ if (!function_exists('sonika_catalog')) {
         return $c;
     }
 }
+if (!function_exists('sonika_store_local')) {
+    /** Productos de la Tienda WWI (store_products) alojados en el sitio, mapeados al formato del catálogo. */
+    function sonika_store_local(): array {
+        static $out = null;
+        if ($out !== null) return $out;
+        $out = [];
+        try {
+            $db = \App\Core\Database::instance();
+            $st = $db->query("SELECT * FROM store_products WHERE site_id = @site_id AND status = 'active'");
+            foreach ($st->fetchAll(\PDO::FETCH_ASSOC) as $r) {
+                $imgs = [];
+                foreach (['images', 'image'] as $k) {
+                    if (empty($r[$k])) continue;
+                    $v = $r[$k];
+                    if (is_string($v) && $v !== '' && $v[0] === '[') {
+                        $j = json_decode($v, true);
+                        if (is_array($j)) { foreach ($j as $x) { $imgs[] = is_string($x) ? $x : (string)($x['url'] ?? ($x['src'] ?? '')); } continue; }
+                    }
+                    if (is_string($v) && $v !== '') $imgs[] = $v;
+                }
+                $imgs = array_values(array_filter($imgs));
+                $price = (float)((int)($r['price_cents'] ?? 0)) / 100;
+                $cmp = (float)((int)($r['compare_cents'] ?? 0)) / 100;
+                $stock = (int)($r['stock'] ?? 0);
+                $pt = trim((string)($r['product_type'] ?? '')) ?: 'Tienda';
+                $out[] = [
+                    'handle' => (string)($r['slug'] ?: $r['id']),
+                    'title' => (string)($r['name'] ?? ''),
+                    'vendor' => (string)($r['vendor'] ?? ''),
+                    'product_type' => $pt,
+                    'body_html' => (string)($r['description'] ?? ''),
+                    'published_at' => (string)($r['created_at'] ?? ''),
+                    'images' => array_map(fn($u) => ['src' => $u], $imgs),
+                    'tags' => ['1) Categoría_' . $pt],
+                    'variants' => [['price' => $price, 'compare_at_price' => $cmp, 'available' => $stock > 0, 'sku' => (string)($r['sku'] ?? '')]],
+                    '_local' => true,
+                ];
+            }
+        } catch (\Throwable $e) {
+        }
+        return $out;
+    }
+}
 if (!function_exists('sonika_products')) {
-    function sonika_products(): array { $c = sonika_catalog(); return $c['products'] ?? []; }
+    function sonika_products(): array {
+        $c = sonika_catalog();
+        $ps = $c['products'] ?? [];
+        $local = function_exists('sonika_store_local') ? sonika_store_local() : [];
+        if ($local) {
+            $seen = [];
+            foreach ($ps as $p) $seen[(string)($p['handle'] ?? '')] = true;
+            foreach ($local as $p) { if (!isset($seen[$p['handle']])) $ps[] = $p; }
+        }
+        return $ps;
+    }
 }
 if (!function_exists('sonika_find')) {
     function sonika_find(string $handle): ?array {
