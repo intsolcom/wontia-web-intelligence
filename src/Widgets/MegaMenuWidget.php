@@ -242,6 +242,7 @@ class MegaMenuWidget extends Widget
                 $h .= '<div class="mn-block"><div class="mn-block__t">' . $this->esc($k2) . '</div><div class="mn-cards">';
                 foreach (array_slice($n['types'], 0, 6) as $t) {
                     $cim = !empty($t['thumb']) ? (string)$t['thumb'] : (string)($n['catimg'] ?? '');
+                    if ($cim === '' && !empty($n['types'][0]['thumb'])) $cim = (string)$n['types'][0]['thumb'];
                     $h .= '<a class="mn-card" href="' . $this->esc($t['url']) . '">'
                         . '<span class="mn-card__img">' . ($cim !== '' ? '<img src="' . $this->esc($cim) . '" alt="' . $this->esc($t['name']) . '" loading="lazy" decoding="async"/>' : '<span class="mn-card__ph" aria-hidden="true">&#9835;</span>') . '</span>'
                         . '<span class="mn-card__nm">' . $this->esc($t['name']) . '</span>'
