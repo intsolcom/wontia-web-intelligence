@@ -65,6 +65,30 @@ class CatalogReconciliationService
         return is_array($d) ? $d : null;
     }
 
+    public function statePath(): string
+    {
+        return dirname(__DIR__, 2) . '/public/assets/uploads/_catalog/reconciliation_state.json';
+    }
+
+    public function loadState(): array
+    {
+        $f = $this->statePath();
+        if (!is_file($f)) return [];
+        $d = json_decode((string)@file_get_contents($f), true);
+        return is_array($d) ? $d : [];
+    }
+
+    public function saveState(array $patch): void
+    {
+        $cur = $this->loadState();
+        $merged = array_merge($cur, $patch);
+        $f = $this->statePath();
+        $dir = dirname($f);
+        if (!is_dir($dir)) @mkdir($dir, 0777, true);
+        @file_put_contents($f . '.tmp', json_encode($merged, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+        @rename($f . '.tmp', $f);
+    }
+
     /** @param array $legacy sonika_categories()  @param array $products sonika_products() */
     public function analyze(array $legacy, array $products): array
     {
@@ -75,28 +99,40 @@ class CatalogReconciliationService
         $mismatch = [];
         $dupValues = [];
         $unmappedCats = [];
+        $divergence = [];
+        $seenCats = [];
+        $covTag = [];
+        $covKw = [];
+        foreach ($legacySlugs as $s) { $covTag[$s] = 0; $covKw[$s] = 0; }
 
         foreach ($products as $p) {
             $title = (string)($p['title'] ?? '');
-            // categoría real (tag nivel 1)
             $tagCat = '';
             $foldVals = [];
             foreach ((array)($p['tags'] ?? []) as $tg) {
                 if (!is_string($tg)) continue;
-                if (preg_match('/^(\d+)\)\s*[^_]+_(.+)$/u', trim($tg), $m)) {
+                if (preg_match('/^(\d+)\)\s*([^_]+)_(.+)$/u', trim($tg), $m)) {
                     $lv = (int)$m[1];
-                    $val = trim($m[2]);
+                    $kind = trim($m[2]);
+                    $val = trim($m[3]);
+                    if ($val === '') continue;
                     if ($lv === 1 && $tagCat === '') $tagCat = $val;
-                    if ($lv <= 4 && $val !== '') $foldVals[] = ['lv' => $lv, 'val' => $val, 'fold' => self::fold($val)];
+                    if ($lv <= 4) $foldVals[] = ['lv' => $lv, 'val' => $val, 'fold' => self::fold($val)];
+                    $fk = self::fold($val);
+                    if ($fk !== '') {
+                        if (!isset($seenCats[$fk])) $seenCats[$fk] = ['name' => $val, 'level' => $lv, 'kind' => $kind, 'count' => 0];
+                        $seenCats[$fk]['count']++;
+                    }
                 }
             }
 
+            $kw = [];
+            foreach ($legacy as $c) { if ($this->legacyMatch($p, (array)($c['kw'] ?? []))) $kw[] = (string)$c['slug']; }
+            foreach ($kw as $s) { if (isset($covKw[$s])) $covKw[$s]++; }
+
             if ($tagCat === '') {
-                // sin tag de categoría → respaldo por keyword (puede solapar)
                 $noTag[] = $title;
-                $matched = [];
-                foreach ($legacy as $c) { if ($this->legacyMatch($p, (array)($c['kw'] ?? []))) $matched[] = (string)$c['slug']; }
-                if (count($matched) > 1) $overlap[] = ['title' => $title, 'cats' => $matched];
+                if (count($kw) > 1) $overlap[] = ['title' => $title, 'cats' => $kw];
             } else {
                 $stat['with_tag']++;
                 $mapped = self::legacySlug($tagCat);
@@ -104,11 +140,15 @@ class CatalogReconciliationService
                     $fk = self::fold($tagCat);
                     if (!isset($unmappedCats[$fk])) $unmappedCats[$fk] = ['name' => $tagCat, 'count' => 0, 'sample' => $title];
                     $unmappedCats[$fk]['count']++;
+                } else {
+                    if (isset($covTag[$mapped])) $covTag[$mapped]++;
+                    if ($kw && !in_array($mapped, $kw, true)) $divergence[] = ['title' => $title, 'tag' => $tagCat, 'tag_slug' => $mapped, 'kw_slugs' => $kw];
                 }
                 $stat['legacy_assignments']++;
             }
             foreach ($foldVals as $fv) $dupValues[$fv['lv']][$fv['fold']][$fv['val']] = true;
         }
+        $stat['without_tag'] = count($noTag);
 
         foreach ($unmappedCats as $u) $mismatch[] = ['title' => $u['sample'], 'legacy' => [], 'tag' => $u['name'], 'expected' => '', 'count' => $u['count']];
         usort($mismatch, fn($a, $b) => ($b['count'] ?? 0) <=> ($a['count'] ?? 0));
@@ -121,12 +161,29 @@ class CatalogReconciliationService
             }
         }
 
+        $coverage = [];
+        foreach ($legacySlugs as $s) $coverage[$s] = ['by_tag' => $covTag[$s] ?? 0, 'by_keyword' => $covKw[$s] ?? 0];
+        $emptyCats = [];
+        foreach ($coverage as $s => $c) { if ($c['by_tag'] === 0) $emptyCats[] = $s; }
+
+        $firstRun = !is_file($this->statePath());
+        $state = $this->loadState();
+        $baseline = $firstRun ? array_map(fn($i) => $i['name'], $seenCats) : (array)($state['cats'] ?? []);
+        $newCats = [];
+        foreach ($seenCats as $fk => $info) { if (!isset($baseline[$fk])) $newCats[] = ['fold' => $fk, 'name' => $info['name'], 'level' => $info['level'], 'kind' => $info['kind'], 'count' => $info['count']]; }
+        usort($newCats, fn($a, $b) => $b['count'] <=> $a['count']);
+
+        $findings = [];
+        foreach ($mismatch as $m) $findings[] = ['sig' => 'unmapped:' . self::fold((string)$m['tag']), 'level' => 'critical', 'label' => 'Categoría no mapeada: “' . $m['tag'] . '” (' . $m['count'] . ')'];
+        foreach ($emptyCats as $s) $findings[] = ['sig' => 'empty:' . $s, 'level' => 'critical', 'label' => 'Categoría del sitio SIN productos por tag: ' . $s];
+        foreach ($newCats as $n) $findings[] = ['sig' => 'new:' . $n['fold'], 'level' => 'warning', 'label' => 'Categoría nueva detectada: “' . $n['name'] . '” (nivel ' . $n['level'] . ', ' . $n['count'] . ')'];
+
         $report = [
             'generated_at' => date('c'),
             'stats' => $stat,
             'severity' => [
-                'critical' => count($mismatch),
-                'warning' => count($overlap) + count($dups),
+                'critical' => count($mismatch) + count($emptyCats),
+                'warning' => count($overlap) + count($dups) + count($divergence),
                 'info' => count($noTag),
             ],
             'issues' => [
@@ -134,9 +191,56 @@ class CatalogReconciliationService
                 'overlap' => ['count' => count($overlap), 'samples' => array_slice($overlap, 0, 60)],
                 'no_tag' => ['count' => count($noTag), 'samples' => array_slice($noTag, 0, 60)],
                 'duplicates' => ['count' => count($dups), 'samples' => array_slice($dups, 0, 80)],
+                'divergence' => ['count' => count($divergence), 'samples' => array_slice($divergence, 0, 60)],
+                'empty_categories' => ['count' => count($emptyCats), 'list' => $emptyCats],
+                'new_categories' => ['count' => count($newCats), 'samples' => array_slice($newCats, 0, 60)],
             ],
+            'coverage' => $coverage,
+            'findings' => array_slice($findings, 0, 200),
         ];
+
+        $this->saveState(['cats' => array_map(fn($i) => $i['name'], $seenCats), 'updated_at' => date('c')]);
         return $report;
+    }
+
+    /** Devuelve los hallazgos NUEVOS (no avisados antes) y envía email si hay y está configurado. */
+    public function notifyNew(array $report, string $email = ''): array
+    {
+        $findings = (array)($report['findings'] ?? []);
+        $state = $this->loadState();
+        $prev = (array)($state['notified'] ?? []);
+        $new = array_values(array_filter($findings, fn($f) => !in_array((string)($f['sig'] ?? ''), $prev, true)));
+        if (!$new) return ['sent' => false, 'count' => 0, 'new' => []];
+        $sent = false;
+        if ($email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $mail = new EmailService();
+            if ($mail->configured()) {
+                $lines = ['Conciliación de catálogo — hallazgos NUEVOS (' . count($new) . '):', ''];
+                foreach ($new as $f) $lines[] = '• [' . $f['level'] . '] ' . $f['label'];
+                $lines[] = '';
+                $lines[] = 'Informe: ' . date('c');
+                $sent = $mail->send($email, 'WWI · Conciliación de catálogo — hallazgos nuevos', implode("\n", $lines));
+            }
+        }
+        $sigs = array_values(array_unique(array_merge($prev, array_map(fn($f) => (string)$f['sig'], $new))));
+        $this->saveState(['notified' => array_slice($sigs, -500)]);
+        return ['sent' => $sent, 'count' => count($new), 'new' => $new];
+    }
+
+    /** Email de alertas: settings catalog_reconcile_email → wwi.catalog_alert_email → store_notify_email. */
+    public function alertEmail(): string
+    {
+        try {
+            $db = \App\Core\Database::instance();
+            foreach (['catalog_reconcile_email', 'wwi.catalog_alert_email', 'store_notify_email'] as $k) {
+                $st = $db->prepare("SELECT value FROM settings WHERE site_id = @site_id AND `key` = :k LIMIT 1");
+                $st->execute(['k' => $k]);
+                $v = trim((string)$st->fetchColumn());
+                if ($v !== '' && filter_var($v, FILTER_VALIDATE_EMAIL)) return $v;
+            }
+        } catch (\Throwable $e) {
+        }
+        return '';
     }
 
     public function save(array $report): bool

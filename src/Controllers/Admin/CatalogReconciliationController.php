@@ -58,7 +58,8 @@ class CatalogReconciliationController
         [$cats, $products] = $this->inputs();
         $report = $svc->analyze($cats, $products);
         $svc->save($report);
-        Response::json(['ok' => true, 'data' => $report]);
+        $notify = $svc->notifyNew($report, $svc->alertEmail());
+        Response::json(['ok' => true, 'data' => $report, 'notify' => $notify, 'alert_email' => $svc->alertEmail()]);
     }
 
     public function suggestions(Request $req): void

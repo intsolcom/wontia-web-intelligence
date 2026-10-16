@@ -26,8 +26,13 @@ if (is_file($lib)) {
 $svc = new \App\Services\CatalogReconciliationService();
 $report = $svc->analyze($cats, $products);
 $ok = $svc->save($report);
+$notify = $svc->notifyNew($report, $svc->alertEmail());
 echo 'RECONCILE ' . ($ok ? 'OK' : 'FAIL') . ': products=' . ($report['stats']['products'] ?? 0)
     . ' sin_categoria=' . ($report['issues']['no_tag']['count'] ?? 0)
     . ' incoherencias=' . ($report['severity']['critical'] ?? 0)
     . ' solapamientos=' . ($report['issues']['overlap']['count'] ?? 0)
-    . ' duplicados=' . ($report['issues']['duplicates']['count'] ?? 0) . "\n";
+    . ' divergencias=' . ($report['issues']['divergence']['count'] ?? 0)
+    . ' cats_vacias=' . ($report['issues']['empty_categories']['count'] ?? 0)
+    . ' cats_nuevas=' . ($report['issues']['new_categories']['count'] ?? 0)
+    . ' duplicados=' . ($report['issues']['duplicates']['count'] ?? 0)
+    . ' alertas=' . ($notify['count'] ?? 0) . ($notify['sent'] ?? false ? '(email OK)' : '') . "\n";
