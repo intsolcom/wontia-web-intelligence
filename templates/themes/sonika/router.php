@@ -111,7 +111,9 @@ if (($segments[0] ?? '') === 'producto' && !empty($segments[1])) {
 
 $cat = sonika_category($path);
 if ($cat) {
-    $pg = sonika_slice(sonika_category_products($cat['slug']), 24);
+    $sub = (string)($_GET['sub'] ?? '');
+    $qsub = $sub !== '' ? '&sub=' . rawurlencode($sub) : '';
+    $pg = sonika_slice(sonika_category_products($cat['slug'], $sub), 24);
     sonika_site_head($cat['name'] . ' — SONIKA', $cat['name'] . ': ' . $cat['tags'] . '. Compra en SONIKA con envío a toda Colombia.');
     sonika_breadcrumb([$cat['name'] => null]);
     ?>
@@ -125,7 +127,15 @@ if ($cat) {
           <?php endforeach; ?>
         </div>
       </div>
-      <?php sonika_grid($pg['items']); sonika_pager($pg['total'], $pg['perPage'], $pg['page'], '/' . $cat['slug']); ?>
+      <?php if ($cat['slug'] === 'guitarras'): ?>
+      <div class="filters" style="margin:2px 0 18px">
+        <a class="<?= $sub === '' ? 'on' : '' ?>" href="/guitarras">Todas</a>
+        <?php foreach (sonika_guitar_subs_used() as $s2): if ((int)$s2['count'] <= 0) continue; ?>
+          <a class="<?= $sub === $s2['slug'] ? 'on' : '' ?>" href="/guitarras?sub=<?= sonika_esc($s2['slug']) ?>"><?= sonika_esc($s2['name']) ?> (<?= (int)$s2['count'] ?>)</a>
+        <?php endforeach; ?>
+      </div>
+      <?php endif; ?>
+      <?php sonika_grid($pg['items']); sonika_pager($pg['total'], $pg['perPage'], $pg['page'], '/' . $cat['slug'] . ($qq = ($sub !== '' ? '?sub=' . rawurlencode($sub) : ''))); ?>
     </section>
     <?php
     sonika_site_footer();

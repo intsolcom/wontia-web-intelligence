@@ -260,8 +260,57 @@ if (!function_exists('sonika_products_effective')) {
         return $ps;
     }
 }
+if (!function_exists('sonika_guitar_subs')) {
+    /** Subcategorías CURADAS de "Cuerdas" (híbrida: lista curada + tags reales del catálogo). */
+    function sonika_guitar_subs(): array {
+        return [
+            ['slug' => 'electricas',       'name' => 'Guitarras Eléctricas', 'tipos' => ['electrica', 'guitarra electrica'], 'labels' => 'Eléctrica · Guitarra Eléctrica'],
+            ['slug' => 'electroacusticas', 'name' => 'Electroacústicas',     'tipos' => ['electroacustica'],                  'labels' => 'Electroacústica'],
+            ['slug' => 'acusticas',        'name' => 'Acústicas',            'tipos' => ['acustica', 'guitarra acustica'],    'labels' => 'Acústica'],
+            ['slug' => 'clasicas',         'name' => 'Clásicas',             'tipos' => ['guitarra clasica', 'clasica'],      'labels' => 'Guitarra Clásica'],
+            ['slug' => 'bajos',            'name' => 'Bajos',                'tipos' => ['bajo', 'bajo electrico'],           'labels' => 'Bajo · Bajo Eléctrico'],
+        ];
+    }
+}
+if (!function_exists('sonika_guitar_sub_of')) {
+    /** Subcategoría curada de un producto (por tags de Tipo + respaldo por título), o '' si no aplica. */
+    function sonika_guitar_sub_of(array $p): string {
+        $types = [];
+        foreach ((array)($p['tags'] ?? []) as $tg) {
+            if (!is_string($tg)) continue;
+            if (preg_match('/^2\)\s*[^_]+_(.+)$/u', trim($tg), $m)) $types[] = sonika_fold(trim($m[1]));
+        }
+        if ($types) {
+            foreach (sonika_guitar_subs() as $sub) {
+                foreach ($sub['tipos'] as $t) { if (in_array($t, $types, true)) return $sub['slug']; }
+            }
+        }
+        $hay = strtoupper((string)($p['title'] ?? '') . ' ' . (string)($p['product_type'] ?? ''));
+        if (str_contains($hay, 'ELECTRIC') && str_contains($hay, 'GUITARRA')) return 'electricas';
+        if (str_contains($hay, 'ELECTROACUST')) return 'electroacusticas';
+        if (str_contains($hay, 'CLASIC')) return 'clasicas';
+        if (str_contains($hay, 'ACUSTIC')) return 'acusticas';
+        if (str_contains($hay, 'BAJO') || str_contains($hay, 'BASS')) return 'bajos';
+        return '';
+    }
+}
+if (!function_exists('sonika_guitar_subs_used')) {
+    /** Subcategorías curadas con su conteo real (indexado padre→hija). */
+    function sonika_guitar_subs_used(?array $products = null): array {
+        $products = $products ?? sonika_products();
+        $counts = [];
+        foreach ($products as $p) {
+            if (sonika_legacy_slug(sonika_effective_category($p)) !== 'guitarras') continue;
+            $s = sonika_guitar_sub_of($p);
+            if ($s !== '') $counts[$s] = ($counts[$s] ?? 0) + 1;
+        }
+        $out = [];
+        foreach (sonika_guitar_subs() as $sub) { $sub['count'] = $counts[$sub['slug']] ?? 0; $out[] = $sub; }
+        return $out;
+    }
+}
 if (!function_exists('sonika_category_products')) {
-    function sonika_category_products(string $slug): array {
+    function sonika_category_products(string $slug, string $sub = ''): array {
         $cat = sonika_category($slug);
         if (!$cat) return [];
         $out = [];
@@ -271,6 +320,12 @@ if (!function_exists('sonika_category_products')) {
                 if (sonika_legacy_slug($tagCat) === $slug) $out[] = $p;
             } elseif (sonika_match($p, $cat['kw'])) {
                 $out[] = $p; // respaldo: sin tag ni override
+            }
+        }
+        if ($sub !== '' && $slug === 'guitarras') {
+            $valid = array_column(sonika_guitar_subs(), 'slug');
+            if (in_array($sub, $valid, true)) {
+                $out = array_values(array_filter($out, fn($p) => sonika_guitar_sub_of($p) === $sub));
             }
         }
         return $out;
