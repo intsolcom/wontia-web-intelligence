@@ -108,6 +108,24 @@ class MegaMenuWidget extends Widget
         $tree = (new MegaMenuService())->tree([], $products, 90, $sort);
         $nodes = $tree['categories'] ?? [];
         $nodes = $this->applyOverrides($nodes, (array)($cfg['category_overrides'] ?? []));
+        if (!empty($cfg['guitar_subs']) && is_array($cfg['guitar_subs'])) {
+            $subs = [];
+            $tot = 0;
+            foreach ($cfg['guitar_subs'] as $sx) {
+                $cnt = (int)($sx['count'] ?? 0);
+                if ($cnt <= 0) continue;
+                $tot += $cnt;
+                $subs[] = ['name' => (string)($sx['name'] ?? ''), 'count' => $cnt, 'thumb' => '', 'url' => '/guitarras?sub=' . rawurlencode((string)($sx['slug'] ?? ''))];
+            }
+            if ($subs) {
+                array_unshift($nodes, [
+                    'slug' => 'cuerdas', 'name' => 'Cuerdas', 'kind' => 'Categoría', 'icon' => '🎸', 'subtitle' => 'Guitarras · Bajos',
+                    'url' => '/guitarras', 'count' => $tot, 'badge_new' => false, 'badge_offer' => false,
+                    'types' => $subs, 'brands' => [], 'models' => [], 'level5' => [],
+                    'kinds' => [2 => 'Tipo', 3 => 'Marca', 4 => 'Modelo'], 'hero' => '', 'samples' => [], 'prices' => [],
+                ]);
+            }
+        }
         if (!empty($cfg['show_info'])) {
             $info = $this->infoNode((string)($cfg['info_label'] ?? 'Información'), (string)($cfg['info_icon'] ?? '📄'));
             if ($info) $nodes[] = $info;

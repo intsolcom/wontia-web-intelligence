@@ -534,7 +534,7 @@ ob_start();
   <?php if ($__navAbove) echo $__mainnav; ?>
   <div class="wrap">
     <div class="nav">
-      <?= \App\Widgets\WidgetRegistry::render('mega-menu') ?>
+      <?= \App\Widgets\WidgetRegistry::render('mega-menu', ['guitar_subs' => sonika_guitar_subs_used()]) ?>
       <a class="logo" href="/"><?= sonika_logo_tag() ?></a>
       <?php
       $__advBrands = []; $__advTypes = []; $__advMax = 0.0;
