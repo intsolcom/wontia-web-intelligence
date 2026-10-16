@@ -192,6 +192,19 @@ class CatalogReconciliationService
         $newProducts = [];
         if (!$firstProd) { foreach ($handles as $hh => $_) { if (!isset($baseProd[$hh])) $newProducts[] = $hh; } }
 
+        $tot = max(1, count($products));
+        $brickPct = [
+            'searchable' => (int)round($brick['searchable'] / $tot * 100),
+            'advance_search' => (int)round($brick['advance_search'] / $tot * 100),
+            'categorias' => (int)round($brick['categorias'] / $tot * 100),
+            'mega_menu' => (int)round($brick['mega_menu'] / $tot * 100),
+        ];
+        $history = (array)($state['history'] ?? []);
+        $history[] = ['at' => date('c'), 'products' => count($products), 'new' => count($newProducts), 'orphans' => count($orphans), 'unmapped' => count($mismatch), 'divergence' => count($divergence)];
+        $history = array_slice($history, -60);
+        $cleared = 0;
+        if ($newProducts) $cleared = $this->clearIndexCaches();
+
         $findings = [];
         foreach ($mismatch as $m) $findings[] = ['sig' => 'unmapped:' . self::fold((string)$m['tag']), 'level' => 'critical', 'label' => 'Categoría no mapeada: “' . $m['tag'] . '” (' . $m['count'] . ')'];
         foreach ($emptyCats as $s) $findings[] = ['sig' => 'empty:' . $s, 'level' => 'critical', 'label' => 'Categoría del sitio SIN productos por tag: ' . $s];
@@ -220,10 +233,13 @@ class CatalogReconciliationService
             ],
             'coverage' => $coverage,
             'bricks' => $brick,
+            'bricks_pct' => $brickPct,
+            'index_cleared' => $cleared,
+            'history' => array_slice($history, -30),
             'findings' => array_slice($findings, 0, 200),
         ];
 
-        $this->saveState(['cats' => array_map(fn($i) => $i['name'], $seenCats), 'products' => array_fill_keys(array_keys($handles), 1), 'updated_at' => date('c')]);
+        $this->saveState(['cats' => array_map(fn($i) => $i['name'], $seenCats), 'products' => array_fill_keys(array_keys($handles), 1), 'history' => $history, 'updated_at' => date('c')]);
         return $report;
     }
 
@@ -249,6 +265,17 @@ class CatalogReconciliationService
         $sigs = array_values(array_unique(array_merge($prev, array_map(fn($f) => (string)$f['sig'], $new))));
         $this->saveState(['notified' => array_slice($sigs, -500)]);
         return ['sent' => $sent, 'count' => count($new), 'new' => $new];
+    }
+
+    /** Limpia las cachés del índice (Mega Menú) para que se reconstruya con productos nuevos. */
+    public function clearIndexCaches(): int
+    {
+        $n = 0;
+        $dir = rtrim(sys_get_temp_dir(), '/\\');
+        foreach (['wwi_mega_', 'wwi_megatag_'] as $pfx) {
+            foreach (glob($dir . DIRECTORY_SEPARATOR . $pfx . '*.json') ?: [] as $f) { if (@unlink($f)) $n++; }
+        }
+        return $n;
     }
 
     /** Email de alertas: settings catalog_reconcile_email → wwi.catalog_alert_email → store_notify_email. */
