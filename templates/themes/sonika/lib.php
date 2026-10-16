@@ -186,6 +186,13 @@ if (!function_exists('sonika_category')) {
 if (!function_exists('sonika_icon')) {
     /** Librería de iconos flat/outline (un solo color, hereda currentColor). Nombre → SVG; si no hay, devuelve el valor tal cual (emoji). */
     function sonika_icon(string $name): string {
+        $name = trim($name);
+        if (str_starts_with($name, '<svg')) {
+            $svg = preg_replace('/<script\b[^>]*>.*?<\/script>/is', '', $name);
+            $svg = preg_replace('/\bon\w+\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)/i', '', (string)$svg);
+            $svg = preg_replace('/javascript:/i', '', (string)$svg);
+            return (string)$svg;
+        }
         $ic = [
             'drum'      => '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M6 5.6v12.8M18 5.6v12.8"/>',
             'guitar'    => '<path d="M9 3l3 3M15 3l-3 3"/><path d="M12 6c-1.2 2-3 3.7-5 4.7A4.6 4.6 0 0 0 9.6 19h4.8A4.6 4.6 0 0 0 17 10.7C15 9.7 13.2 8 12 6z"/><circle cx="12" cy="14.5" r="1.7"/>',

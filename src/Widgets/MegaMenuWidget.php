@@ -444,6 +444,13 @@ class MegaMenuWidget extends Widget
     /** Iconos flat/outline (single-color, currentColor) por categoría — reemplazan emojis. */
     private function mnSvg(string $slug): string
     {
+        $slug = trim($slug);
+        if (str_starts_with($slug, '<svg')) {
+            $svg = preg_replace('/<script\b[^>]*>.*?<\/script>/is', '', $slug);
+            $svg = preg_replace('/\bon\w+\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)/i', '', (string)$svg);
+            $svg = preg_replace('/javascript:/i', '', (string)$svg);
+            return (string)$svg;
+        }
         $icons = [
             'drum'      => '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M6 5.6v12.8M18 5.6v12.8"/>',
             'guitar'    => '<path d="M9 3l3 3M15 3l-3 3"/><path d="M12 6c-1.2 2-3 3.7-5 4.7A4.6 4.6 0 0 0 9.6 19h4.8A4.6 4.6 0 0 0 17 10.7C15 9.7 13.2 8 12 6z"/><circle cx="12" cy="14.5" r="1.7"/>',
@@ -523,6 +530,7 @@ class MegaMenuWidget extends Widget
 .mn-filter__results small{color:var(--muted,#999)}
 .mn-filter__hd{padding:9px 12px 3px;font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted,#999)}
 .mn-filter__results li a.is-cur{background:var(--soft,#F5F5F5);box-shadow:inset 3px 0 0 var(--mn-head,#F20D16)}
+.mn-filter__results mark{background:rgba(242,13,22,.16);color:inherit;padding:0 1px;border-radius:3px}
 .mn-mega{background:#fff;border-right:1px solid var(--line,#E6E6E6);box-shadow:0 24px 60px rgba(0,0,0,.16);max-width:min(90vw,1000px);overflow:auto}
 .mn-mega__panel{min-height:100%}
 .mn-mega__bg{padding:0 0 22px}
@@ -593,6 +601,9 @@ html.mn-locked,html.mn-locked body{overflow:hidden}
 <script>if(!window.__mnInit){window.__mnInit=1;(function(){
   var D=document, state={open:false}, lastFocus=null, hoverT=null, searchT=null;
   function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]});}
+  function hi(txt,q){txt=String(txt==null?'':txt);if(!q)return esc(txt);var i=txt.toLowerCase().indexOf(q);if(i<0)return esc(txt);return esc(txt.slice(0,i))+'<mark>'+esc(txt.slice(i,i+q.length))+'</mark>'+esc(txt.slice(i+q.length));}
+  function recent(){try{return JSON.parse(localStorage.getItem('wwi_mn_recent')||'[]');}catch(e){return [];}}
+  function pushRecent(q){q=String(q||'').trim();if(q.length<2)return;var r=recent().filter(function(x){return String(x).toLowerCase()!==q.toLowerCase()});r.unshift(q);try{localStorage.setItem('wwi_mn_recent',JSON.stringify(r.slice(0,6)));}catch(e){}}
   function drawer(){return D.querySelector('.mn-drawer');}
   function overlay(){return D.querySelector('.mn-overlay');}
   function portal(){
@@ -619,6 +630,8 @@ html.mn-locked,html.mn-locked body{overflow:hidden}
     if(e.target.closest('.mn-toggle')){e.preventDefault();openDrawer(!state.open);return;}
     if(e.target.closest('[data-mn-close]')){e.preventDefault();openDrawer(false);return;}
     if(e.target.closest('[data-mn-back]')){e.preventDefault();setActive(null);return;}
+    var rec=e.target.closest('[data-mn-rec]');
+    if(rec){e.preventDefault();var fi=D.querySelector('.mn-filter__in');if(fi){fi.value=rec.getAttribute('data-mn-rec');fi.dispatchEvent(new Event('input',{bubbles:true}));fi.focus();}return;}
     var chev=e.target.closest('.mn-cat__chev');
     if(chev){e.preventDefault();var cli=chev.closest('.mn-cat');var csub=cli?cli.querySelector('.mn-cat__sub'):null;var copen=chev.getAttribute('aria-expanded')==='true';chev.setAttribute('aria-expanded',copen?'false':'true');if(csub)csub.hidden=copen;return;}
     var link=e.target.closest('.mn-cat__link');
@@ -646,19 +659,19 @@ html.mn-locked,html.mn-locked body{overflow:hidden}
     var cats=dr.querySelectorAll('.mn-cat');
     for(var i=0;i<cats.length;i++){var nm=(cats[i].querySelector('.mn-cat__nm')||{}).textContent||''; cats[i].style.display=(!q||nm.toLowerCase().indexOf(q)>=0)?'':'none';}
     var res=dr.querySelector('.mn-filter__results'); var idx=D.querySelector('.mn-index');
-    if(!q){if(res){res.hidden=true;res.innerHTML='';}clearTimeout(searchT);return;}
+    if(!q){clearTimeout(searchT);var rc=recent();if(res){if(rc.length){res.hidden=false;res.innerHTML='<li class="mn-filter__hd">Búsquedas recientes</li>'+rc.map(function(x){return '<li><a href="#" data-mn-rec="'+esc(x)+'"><span>'+esc(x)+'</span><small>reciente</small></a></li>';}).join('');}else{res.hidden=true;res.innerHTML='';}}return;}
     var data=[]; try{data=JSON.parse((idx&&idx.textContent)||'[]');}catch(x){}
     var hits=[],catHit=null;
     for(var k=0;k<data.length;k++){var n=data[k]; if(((n.n||'').toLowerCase().indexOf(q)>=0)||((n.c||'').toLowerCase().indexOf(q)>=0)){if(!catHit&&n.l===1)catHit=n; if(hits.length<20)hits.push(n);}}
-    if(res){res.hidden=false; res.innerHTML=hits.map(function(n){return '<li><a href="'+esc(n.u)+'"><span>'+esc(n.n)+'</span><small>'+esc(n.c)+'</small></a></li>';}).join('');}
+    if(res){res.hidden=false; res.innerHTML=hits.map(function(n){return '<li><a href="'+esc(n.u)+'"><span>'+hi(n.n,q)+'</span><small>'+esc(n.c)+'</small></a></li>';}).join('');}
     if(catHit){var cs=dr.querySelector('.mn-cat[data-mn-cat="'+(catHit.c||'').toLowerCase().replace(/[^a-z0-9]+/g,'-')+'"]'); if(!cs){var all=dr.querySelectorAll('.mn-cat'); for(var z=0;z<all.length;z++){var an=(all[z].querySelector('.mn-cat__nm')||{}).textContent||''; if(an.toLowerCase()===catHit.n.toLowerCase()){cs=all[z];break;}}} if(cs)catHit=cs.getAttribute('data-mn-cat'); else catHit=null;}
     if(catHit)setActive(catHit);
     clearTimeout(searchT);
-    if(qq.length>=2){ searchT=setTimeout(function(){
+    if(qq.length>=2){ pushRecent(qq); searchT=setTimeout(function(){
       fetch('/buscar/sugerencias?q='+encodeURIComponent(qq)).then(function(r){return r.json();}).then(function(d){
         var items=((d&&d.data&&d.data.products)||d&&d.data||[]); if(!Object.prototype.toString.call(items).match(/Array/))items=[]; items=items.slice(0,6);
         var res2=dr.querySelector('.mn-filter__results'); if(!res2||!items.length)return;
-        var ph=items.map(function(p){var u=p.handle?('/producto/'+esc(p.handle)):('/buscar?q='+encodeURIComponent(qq)); return '<li><a href="'+u+'"><span>'+esc(p.title||p.n||'')+'</span><small>'+esc(p.vendor||p.c||'')+'</small></a></li>';}).join('');
+        var ph=items.map(function(p){var u=p.handle?('/producto/'+esc(p.handle)):('/buscar?q='+encodeURIComponent(qq)); return '<li><a href="'+u+'"><span>'+hi(p.title||p.n||'',q)+'</span><small>'+esc(p.vendor||p.c||'')+'</small></a></li>';}).join('');
         res2.hidden=false; res2.innerHTML='<li class="mn-filter__hd">Productos</li>'+ph;
       }).catch(function(){});
     },220); }
