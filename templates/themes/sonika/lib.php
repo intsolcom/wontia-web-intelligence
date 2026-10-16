@@ -401,13 +401,17 @@ if (!function_exists('sonika_filter_products')) {
         if ($cat !== '' && sonika_category($cat)) $all = sonika_category_products($cat);
         elseif ($q !== '') $all = sonika_search($q);
         else $all = sonika_products();
-        $all = array_values(array_filter($all, function ($p) use ($min, $max, $marca, $tipo, $sub, $desc, $oferta, $nuevo, $disp, $newDays, $want) {
+        $__curSubs = array_column(sonika_guitar_subs(), 'slug');
+        $all = array_values(array_filter($all, function ($p) use ($min, $max, $marca, $tipo, $sub, $desc, $oferta, $nuevo, $disp, $newDays, $want, $__curSubs) {
             $price = sonika_price($p); $cmp = sonika_compare($p);
             if ($min > 0 && $price < $min) return false;
             if ($max > 0 && $price > $max) return false;
             if ($marca !== '' && strcasecmp((string)($p['vendor'] ?? ''), $marca) !== 0) return false;
             if ($tipo !== '' && strcasecmp((string)($p['product_type'] ?? ''), $tipo) !== 0) return false;
-            if ($sub !== '' && strcasecmp((string)($p['product_type'] ?? ''), $sub) !== 0) return false;
+            if ($sub !== '') {
+                if (in_array($sub, $__curSubs, true)) { if (sonika_guitar_sub_of($p) !== $sub) return false; }
+                elseif (strcasecmp((string)($p['product_type'] ?? ''), $sub) !== 0) return false;
+            }
             if ($oferta && !($cmp > $price && $price > 0)) return false;
             if ($desc > 0) { $d = ($cmp > 0) ? (($cmp - $price) / $cmp * 100) : 0; if ($d < $desc) return false; }
             if ($nuevo) { $pa = (string)($p['published_at'] ?? ''); if ($pa !== '' && (time() - strtotime($pa)) > $newDays * 86400) return false; }
@@ -548,10 +552,15 @@ ob_start();
       $__advTypes = array_slice($__advTypes, 0, 40, true);
       $__advCats = [];
       foreach (sonika_categories() as $__cc) { $__n = count(sonika_category_products($__cc['slug'])); if ($__n > 0) $__advCats[] = [$__cc['slug'], $__cc['name'] . ' (' . $__n . ')']; }
+      $__advSubs = [];
+      foreach (sonika_guitar_subs_used() as $__s) { if ((int)$__s['count'] > 0) $__advSubs[$__s['slug']] = $__s['name'] . ' (' . (int)$__s['count'] . ')'; }
+      $__guitarTypes = ['Eléctrica', 'Electrica', 'Guitarra Eléctrica', 'Acústica', 'Acustica', 'Electroacústica', 'Electroacustica', 'Guitarra Clásica', 'Clasica', 'Bajo', 'Bajo Eléctrico'];
+      foreach (sonika_subcategories() as $__t => $__cn) { if (in_array($__t, $__guitarTypes, true)) continue; $__advSubs[$__t] = $__t . ' (' . (int)$__cn . ')'; }
       echo \App\Widgets\WidgetRegistry::render('advance-search-product', [
           'brands' => $__advBrands,
           'types' => $__advTypes,
-          'subcats' => sonika_subcategories(),
+          'subcats' => $__advSubs,
+          'show_subcategory' => true,
           'categories' => $__advCats,
           'max_price' => $__advMax,
           'new_days' => 90,
