@@ -29,7 +29,11 @@ $apiBase = medical_api_base();
                 creds.replaceChildren();
                 if (!r.credentials.length) { creds.append(WM.el('p', { class: 'wm-muted' }, 'Sin credenciales.')); return; }
                 r.credentials.forEach(function (c) {
-                  creds.append(WM.el('div', { class: 'wm-item' }, [WM.el('span', {}, c.title), WM.el('span', { class: 'wm-badge' }, c.status + ' · ' + String(c.sha256).slice(0, 8))]));
+                  var row = [WM.el('span', {}, c.title), WM.el('span', { class: 'wm-badge' }, c.status + ' · ' + String(c.sha256).slice(0, 8))];
+                  if (c.file_name) {
+                    row.push(WM.el('a', { class: 'wm-btn wm-btn-ghost', href: WM.base() + '/api/v1/credentials/' + c.id + '/file', target: '_blank' }, 'Ver archivo'));
+                  }
+                  creds.append(WM.el('div', { class: 'wm-item' }, row));
                 });
               }).catch(function (e) { err.textContent = e.message; });
             } }, 'Ver credenciales'),

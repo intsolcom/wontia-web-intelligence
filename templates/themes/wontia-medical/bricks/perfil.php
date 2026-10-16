@@ -41,7 +41,11 @@ $apiBase = medical_api_base();
             credList.replaceChildren();
             if (!r.credentials.length) { credList.append(WM.el('p', { class: 'wm-muted' }, 'Sin credenciales cargadas.')); return; }
             r.credentials.forEach(function (c) {
-              credList.append(WM.el('div', { class: 'wm-item' }, [WM.el('span', {}, c.title), WM.el('span', { class: 'wm-badge' }, c.status)]));
+              var row = [WM.el('span', {}, c.title), WM.el('span', { class: 'wm-badge' }, c.status)];
+              if (c.file_name) {
+                row.push(WM.el('a', { class: 'wm-btn wm-btn-ghost', href: WM.base() + '/api/v1/credentials/' + c.id + '/file', target: '_blank' }, 'Ver archivo'));
+              }
+              credList.append(WM.el('div', { class: 'wm-item' }, row));
             });
           }).catch(function (e) { err.textContent = e.message; });
         };
@@ -50,8 +54,23 @@ $apiBase = medical_api_base();
           WM.api('/api/v1/professionals/me/credentials', { method: 'POST', body: { title: cTitle.value, content: cContent.value } })
             .then(function () { cTitle.value = ''; cContent.value = ''; loadCreds(); })
             .catch(function (e) { err.textContent = e.message; });
-        } }, 'Subir credencial');
-        creds = WM.el('div', {}, [WM.el('h3', {}, 'Credenciales profesionales'), cTitle, cContent, cBtn, credList]);
+        } }, 'Subir texto');
+        var cFileTitle = WM.el('input', { class: 'wm-input', placeholder: 'Titulo del archivo (PDF/PNG)' });
+        var cFile = WM.el('input', { class: 'wm-input', type: 'file', accept: 'application/pdf,image/png,image/jpeg,image/webp' });
+        var cFileBtn = WM.el('button', { class: 'wm-btn', onClick: function () {
+          var f = cFile.files && cFile.files[0];
+          if (!f) { err.textContent = 'Selecciona un archivo.'; return; }
+          if (!cFileTitle.value.trim()) { err.textContent = 'Pon un titulo al archivo.'; return; }
+          var reader = new FileReader();
+          reader.onload = function () {
+            var b64 = String(reader.result).split(',')[1] || '';
+            WM.api('/api/v1/professionals/me/credentials/upload', { method: 'POST', body: { title: cFileTitle.value, fileName: f.name, mime: f.type || 'application/octet-stream', data: b64 } })
+              .then(function () { cFile.value = ''; cFileTitle.value = ''; loadCreds(); })
+              .catch(function (e) { err.textContent = e.message; });
+          };
+          reader.readAsDataURL(f);
+        } }, 'Subir archivo');
+        creds = WM.el('div', {}, [WM.el('h3', {}, 'Credenciales profesionales'), cTitle, cContent, cBtn, cFileTitle, cFile, cFileBtn, credList]);
         loadCreds();
       }
       var logout = WM.el('button', { class: 'wm-btn wm-btn-ghost', onClick: function () {
