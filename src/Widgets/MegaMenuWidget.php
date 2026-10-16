@@ -555,7 +555,7 @@ class MegaMenuWidget extends Widget
 .mn-hero{position:relative;display:block;border-radius:16px;overflow:hidden;min-height:236px;background:#111;color:#fff;text-decoration:none;box-shadow:0 10px 30px rgba(0,0,0,.14)}
 .mn-hero.has-img{background-image:var(--mn-hero-img);background-size:cover;background-position:center center}
 .mn-hero__scrim{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.02) 25%,rgba(0,0,0,.8) 100%)}
-.mn-hero__content{position:relative;display:flex;flex-direction:column;justify-content:flex-end;gap:7px;padding:22px;min-height:236px}
+.mn-hero__content{position:absolute;inset:0;z-index:1;box-sizing:border-box;display:flex;flex-direction:column;justify-content:flex-end;align-items:flex-start;gap:7px;padding:22px 22px 24px 22px}
 .mn-hero__eyebrow{font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;opacity:.9}
 .mn-hero__title{font-family:var(--font-display,Sora),sans-serif;font-size:clamp(20px,2vw,28px);font-weight:800;line-height:1.1}
 .mn-hero__text{font-size:13px;max-width:36ch;opacity:.92}
