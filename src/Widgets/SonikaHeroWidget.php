@@ -113,19 +113,23 @@ class SonikaHeroWidget extends Widget
                 $mute = array_key_exists('mute', $d) ? !empty($d['mute']) : true;
                 $loop = !empty($d['loop']);
                 $ctrl = !empty($d['controls']);
+                $vol = max(0, min(100, (int)($d['volume'] ?? 100)));
+                $clean = array_key_exists('yt_clean', $d) ? ((string)$d['yt_clean'] !== '0') : true;
                 $poster = trim((string)($d['poster'] ?? ''));
                 $alt = trim((string)($d['alt'] ?? '')) !== '' ? trim((string)$d['alt']) : (string)($d['title'] ?? '');
                 $inner = '';
+                $veil = '';
                 if ($src === 'youtube') {
                     $yt = $this->youtubeId((string)($d['yt_url'] ?? ($d['video'] ?? '')));
                     if ($yt !== '') {
-                        $params = ['autoplay' => $auto ? 1 : 0, 'mute' => $mute ? 1 : 0, 'controls' => $ctrl ? 1 : 0, 'loop' => $loop ? 1 : 0, 'rel' => 0, 'playsinline' => 1, 'modestbranding' => 1];
+                        $params = ['autoplay' => $auto ? 1 : 0, 'mute' => $mute ? 1 : 0, 'controls' => $ctrl ? 1 : 0, 'loop' => $loop ? 1 : 0, 'rel' => 0, 'playsinline' => 1, 'modestbranding' => 1, 'iv_load_policy' => 3, 'disablekb' => 1, 'fs' => 0];
                         if ($loop) $params['playlist'] = $yt;
                         $qs = http_build_query($params);
                         $inner = '<iframe class="sh-video__fr" src="https://www.youtube-nocookie.com/embed/' . $this->esc($yt) . '?' . $this->esc($qs) . '" title="' . $this->esc($alt !== '' ? $alt : 'Video') . '" loading="lazy" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>';
+                        if ($clean) $veil = '<span class="sh-video__veil" aria-hidden="true"></span>';
                     }
                 } elseif (!empty($d['video'])) {
-                    $attr = ($auto ? ' autoplay' : '') . ($mute ? ' muted' : '') . ($loop ? ' loop' : '') . ($ctrl ? ' controls' : '') . ' playsinline preload="metadata"';
+                    $attr = ($auto ? ' autoplay' : '') . ($mute ? ' muted' : '') . ($loop ? ' loop' : '') . ($ctrl ? ' controls' : '') . ' playsinline preload="metadata" data-volume="' . $vol . '"';
                     $pa = $poster !== '' ? ' poster="' . $this->esc($poster) . '"' : '';
                     $inner = '<video class="sh-video__v"' . $attr . $pa . '><source src="' . $this->esc($d['video']) . '" type="video/mp4"></video>';
                 }
@@ -133,7 +137,7 @@ class SonikaHeroWidget extends Widget
                 $size = (string)($d['video_size'] ?? 'full');
                 $cls = $inner !== '' ? ($size === 'center' ? ' sh-video--center' : ' sh-video--fill') : '';
                 $h = '<div class="sh-video' . $cls . '">';
-                if ($inner !== '') $h .= '<div class="sh-video__box">' . $inner . '</div>';
+                if ($inner !== '') $h .= '<div class="sh-video__box">' . $inner . $veil . '</div>';
                 if (!empty($d['title'])) $h .= '<h3 class="sh-media__t">' . $this->esc($d['title']) . '</h3>';
                 return $h . '</div>';
             case 'product':
@@ -377,6 +381,7 @@ class SonikaHeroWidget extends Widget
 .sh-attr__b b{font-weight:800}
 .sh-video__box{position:relative;aspect-ratio:16/9;width:100%;border-radius:16px;overflow:hidden;background:#0c0c0c;border:1px solid rgba(255,255,255,.1)}
 .sh-video__box iframe,.sh-video__box video,.sh-video__box img{position:absolute;inset:0;width:100%;height:100%;border:0;display:block;object-fit:cover}
+.sh-video__veil{position:absolute;inset:0;z-index:2;pointer-events:none;background:linear-gradient(to bottom,rgba(10,10,10,.65) 0,rgba(10,10,10,0) 54px),linear-gradient(to top,rgba(10,10,10,.6) 0,rgba(10,10,10,0) 48px)}
 .sh-video--fill{height:100%;display:flex;flex-direction:column;justify-content:center}
 .sh-video--center{height:100%;display:flex;align-items:center;justify-content:center}
 .sh-zone--bleed{margin-top:calc(-1 * var(--sh-padt,0px));margin-bottom:calc(-1 * var(--sh-padt,0px))}
@@ -429,7 +434,7 @@ document.querySelectorAll('.sh').forEach(function(root){
  if(n<2)return;
  function go(k){disposeSlide(slides[i]);i=(k+n)%n;slides.forEach(function(s,j){s.classList.toggle('is-on',j===i);s.setAttribute('aria-hidden',j===i?'false':'true')});dots.forEach(function(d,j){d.classList.toggle('on',j===i)});resumeSlide(slides[i])}
  function disposeSlide(el){if(!el)return;el.querySelectorAll('[data-wwi-instrument]').forEach(function(inst){var id=inst.getAttribute('data-wwi-instrument');if(window.WWIInstruments&&WWIInstruments[id]&&WWIInstruments[id].dispose)try{WWIInstruments[id].dispose()}catch(e){}});el.querySelectorAll('video').forEach(function(v){try{v.pause()}catch(e){}});el.querySelectorAll('iframe.sh-video__fr').forEach(function(f){try{if(f.src){f.setAttribute('data-src',f.src);f.removeAttribute('src')}}catch(e){}})}
- function resumeSlide(el){if(!el)return;el.querySelectorAll('iframe.sh-video__fr[data-src]').forEach(function(f){try{if(!f.src)f.src=f.getAttribute('data-src')}catch(e){}});el.querySelectorAll('video[autoplay]').forEach(function(v){try{var p=v.play();if(p&&p.catch)p.catch(function(){})}catch(e){}})}
+ function resumeSlide(el){if(!el)return;el.querySelectorAll('iframe.sh-video__fr[data-src]').forEach(function(f){try{if(!f.src)f.src=f.getAttribute('data-src')}catch(e){}});el.querySelectorAll('video').forEach(function(v){var vol=parseInt(v.getAttribute('data-volume'),10);if(!isNaN(vol))try{v.volume=Math.max(0,Math.min(1,vol/100))}catch(e){}});el.querySelectorAll('video[autoplay]').forEach(function(v){try{var p=v.play();if(p&&p.catch)p.catch(function(){})}catch(e){}})}
  var next=root.querySelector('.sh-next'),prev=root.querySelector('.sh-prev');
  if(next)next.addEventListener('click',function(){go(i+1);stop()});
  if(prev)prev.addEventListener('click',function(){go(i-1);stop()});
