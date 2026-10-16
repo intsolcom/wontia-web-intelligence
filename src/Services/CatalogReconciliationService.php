@@ -234,6 +234,7 @@ class CatalogReconciliationService
             'coverage' => $coverage,
             'bricks' => $brick,
             'bricks_pct' => $brickPct,
+            'ui' => $this->uiChecks(),
             'index_cleared' => $cleared,
             'history' => array_slice($history, -30),
             'findings' => array_slice($findings, 0, 200),
@@ -276,6 +277,32 @@ class CatalogReconciliationService
             foreach (glob($dir . DIRECTORY_SEPARATOR . $pfx . '*.json') ?: [] as $f) { if (@unlink($f)) $n++; }
         }
         return $n;
+    }
+
+    /** Auto-revisión de UI: detecta regresiones típicas en el HTML servido (self-request). */
+    public function uiChecks(): array
+    {
+        $out = ['checked_at' => date('c'), 'issues' => []];
+        $html = '';
+        if (function_exists('curl_init')) {
+            $ch = curl_init('http://127.0.0.1/');
+            curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 6, CURLOPT_CONNECTTIMEOUT => 3, CURLOPT_FOLLOWLOCATION => false]);
+            $html = (string)curl_exec($ch);
+            curl_close($ch);
+        }
+        if ($html === '') return $out;
+        if (preg_match('/\.mn-cat__nm\{[^}]*overflow-wrap:anywhere/', $html)) {
+            $out['issues'][] = ['id' => 'mn_nm_anywhere', 'level' => 'warning', 'label' => 'Mega Menú: `.mn-cat__nm` con `overflow-wrap:anywhere` (riesgo de texto vertical).'];
+        }
+        if (str_contains($html, '.mn-cat__sub{') && !str_contains($html, '.mn-cat__sub[hidden]')) {
+            $out['issues'][] = ['id' => 'mn_sub_hidden', 'level' => 'warning', 'label' => 'Mega Menú: sub-listas visibles por defecto (`[hidden]` anulado por `display:flex`).'];
+        }
+        $heroNo = preg_match_all('/class="mn-hero"/', $html);
+        if ($heroNo > 0) {
+            $out['issues'][] = ['id' => 'mn_hero_img', 'level' => 'info', 'label' => 'Mega Menú: ' . $heroNo . ' hero(s) sin imagen (categoría sin foto).'];
+        }
+        $out['ok'] = count($out['issues']) === 0;
+        return $out;
     }
 
     /** Email de alertas: settings catalog_reconcile_email → wwi.catalog_alert_email → store_notify_email. */
