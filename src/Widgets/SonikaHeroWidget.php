@@ -13,6 +13,16 @@ class SonikaHeroWidget extends Widget
     private static bool $assets = false;
     private static bool $guitarIncluded = false;
 
+    /** Coordenadas SVG (viewBox 0 0 1536 1024) por cuerda — índice 0 = cuerda 6 (E2) … 5 = cuerda 1 (E4). */
+    private const GUITAR_STRINGS = [
+        '798,20 783,180 760,350 741,500 720,650 697,820',
+        '822,20 807,180 785,350 767,500 748,650 728,820',
+        '846,20 832,180 810,350 792,500 775,650 759,820',
+        '871,20 857,180 835,350 818,500 801,650 790,820',
+        '896,20 882,180 860,350 843,500 827,650 821,820',
+        '920,20 906,180 885,350 868,500 854,650 852,820',
+    ];
+
     public static function meta(): array
     {
         return ['id' => 'sonika-hero', 'name' => 'SONIKA Hero Builder', 'icon' => 'zap', 'category' => 'header', 'version' => '1.0.0'];
@@ -128,19 +138,24 @@ class SonikaHeroWidget extends Widget
     private function guitarBlock(array $d): string
     {
         $p = $this->findGuitar((string)($d['product'] ?? ''));
-        $img = ($p && function_exists('sonika_img')) ? sonika_img($p, 900) : '';
+        $img = trim((string)($d['image'] ?? ''));
+        if ($img === '') $img = $p ? (string)($p['images'][0]['src'] ?? '') : '';
+        if ($img === '' && $p && function_exists('sonika_img')) $img = sonika_img($p, 900);
         if ($img === '') {
             return '<div class="sh-guitar sh-guitar--empty"><div class="sh-inst__ph"><span aria-hidden="true">&#127928;</span><b>Falta una imagen de guitarra</b><small>Selecciona un producto de guitarra eléctrica en la configuración.</small></div></div>' . $this->guitarAssets();
         }
-        $top = max(0, min(90, (float)($d['string_top'] ?? 40)));
-        $hgt = max(6, min(60, (float)($d['string_height'] ?? 18)));
+        $alt = trim((string)($d['alt'] ?? '')) !== '' ? trim((string)$d['alt']) : (string)($p['title'] ?? 'Guitarra eléctrica');
+        $points = (array)($d['string_points'] ?? []);
+        if (count($points) !== 6) $points = self::GUITAR_STRINGS;
         $h = '<div class="sh-guitar" data-wwi-instrument="guitar" data-profile="clean" role="group" aria-label="Guitarra eléctrica interactiva" tabindex="0">';
         $h .= '<div class="sh-guitar__stage">';
-        $h .= '<img class="sh-guitar__img" src="' . $this->esc($img) . '" alt="' . $this->esc((string)($p['title'] ?? 'Guitarra eléctrica')) . '" loading="eager" decoding="async"/>';
-        $h .= '<svg class="sh-guitar__strings" viewBox="0 0 100 100" preserveAspectRatio="none" aria-label="Cuerdas">';
-        for ($i = 0; $i < 6; $i++) {
-            $y = $top + ($hgt * $i / 5);
-            $h .= '<rect class="sh-string" data-string="' . $i . '" x="6" y="' . round($y, 2) . '" width="88" height="2.4" rx="1.2" tabindex="0" role="button" aria-label="Tocar cuerda ' . ($i + 1) . '"></rect>';
+        $h .= '<img class="sh-guitar__img" src="' . $this->esc($img) . '" alt="' . $this->esc($alt) . '" loading="eager" decoding="async"/>';
+        $h .= '<svg class="sh-guitar__strings" viewBox="0 0 1536 1024" preserveAspectRatio="none" aria-label="Cuerdas">';
+        foreach (array_values($points) as $i => $pts) {
+            $pts = trim((string)$pts);
+            if ($pts === '') continue;
+            $h .= '<polyline class="sh-str-hit" data-string="' . $i . '" points="' . $this->esc($pts) . '" fill="none" stroke="transparent" stroke-width="34" stroke-linecap="round" stroke-linejoin="round" pointer-events="stroke" tabindex="0" role="button" aria-label="Tocar cuerda ' . ($i + 1) . '"></polyline>';
+            $h .= '<polyline class="sh-str" points="' . $this->esc($pts) . '" fill="none" stroke="rgba(20,20,20,.3)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"></polyline>';
         }
         $h .= '</svg></div>';
         $h .= '<div class="sh-guitar__profiles" role="group" aria-label="Perfil de sonido">';
@@ -230,13 +245,12 @@ class SonikaHeroWidget extends Widget
 .sh-inst__ph{display:flex;flex-direction:column;align-items:center;gap:6px;padding:28px;border:1px dashed rgba(255,255,255,.3);border-radius:16px;text-align:center;opacity:.85}
 .sh-inst__ph span{font-size:40px}
 .sh-guitar{display:flex;flex-direction:column;gap:12px;max-width:460px}
-.sh-guitar__stage{position:relative;border-radius:14px;overflow:hidden;background:#fff;border:1px solid rgba(255,255,255,.14)}
-.sh-guitar__img{width:100%;height:auto;display:block;object-fit:contain}
+.sh-guitar__stage{position:relative;aspect-ratio:1536/1024;border-radius:14px;overflow:hidden;background:#fff;border:1px solid rgba(255,255,255,.14)}
+.sh-guitar__img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
 .sh-guitar__strings{position:absolute;inset:0;width:100%;height:100%}
-.sh-string{cursor:pointer;fill:rgba(60,60,60,.6);transition:fill .12s;pointer-events:all}
-.sh-string:hover{fill:#111}
-.sh-string.on{fill:var(--brand,#F20D16)}
-.sh-string:focus-visible{outline:2px solid var(--brand,#F20D16);outline-offset:1px}
+.sh-str{transition:stroke .12s,stroke-width .12s}
+.sh-str-hit{cursor:pointer;outline:none}
+.sh-str-hit.on + .sh-str,.sh-str-hit:focus-visible + .sh-str{stroke:var(--brand,#F20D16);stroke-width:7}
 .sh-guitar__profiles{display:flex;gap:6px;flex-wrap:wrap}
 .sh-prof{border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.06);color:#fff;border-radius:999px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer}
 .sh-prof.on{background:var(--brand,#F20D16);border-color:var(--brand,#F20D16)}
