@@ -383,7 +383,7 @@ class SonikaHeroWidget extends Widget
             $tx = trim((string)($a['text'] ?? ''));
             if ($tt === '' && $tx === '') continue;
             $out .= '<li class="sh-attr">'
-                . ($ic !== '' ? '<span class="sh-attr__i" aria-hidden="true">' . $this->esc($ic) . '</span>' : '')
+                . ($ic !== '' ? '<span class="sh-attr__i" aria-hidden="true">' . (function_exists('sonika_icon') ? sonika_icon($ic) : $this->esc($ic)) . '</span>' : '')
                 . '<span class="sh-attr__b">' . ($tt !== '' ? '<b>' . $this->esc($tt) . '</b>' : '') . ($tx !== '' ? ($tt !== '' ? ' — ' : '') . $this->esc($tx) : '') . '</span></li>';
         }
         return $out !== '' ? '<ul class="sh-attrs">' . $out . '</ul>' : '';

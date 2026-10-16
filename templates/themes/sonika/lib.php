@@ -166,14 +166,14 @@ if (!function_exists('sonika_img')) {
 if (!function_exists('sonika_categories')) {
     function sonika_categories(): array {
         return [
-            ['slug' => 'percusion',     'name' => 'Percusión',   'icon' => '🥁', 'tags' => 'Baterías · Redoblantes · Cajones', 'kw' => ['PERCUS','BATER','REDOBL','PLATILL','CONGA','BONGO','DJEMBE','CAJON','CAJA','TIMBAL','MARAC','CAMPAN','PANDER','TAMBOR','GUIRO','CLAVE','CASTAN','XILOF','METALOF','PARCHE','BAQUETA','SHAKER','GUACHE']],
-            ['slug' => 'guitarras',     'name' => 'Cuerdas',     'icon' => '🎸', 'tags' => 'Guitarras · Bajos · Ukeleles',    'kw' => ['GUITAR','BAJO','UKELELE','VIOLIN','VIOLA','VIOLONCHELO','CUERDA','PICK','CORREA','CAPODASTRO','ENCOR','PUENTE','CLAVIJERO']],
-            ['slug' => 'acordeon',      'name' => 'Vientos',     'icon' => '🪗', 'tags' => 'Acordeones · Saxos · Trompetas','kw' => ['ACORDE','ARMONICA','CLARINET','FLAUTA','GAITA','MELODICA','SAXOF','SAX','TROMB','TROMPET','CORNO','OBOE','FAGOT','OCARINA']],
-            ['slug' => 'pianos',        'name' => 'Teclados',    'icon' => '🎹', 'tags' => 'Pianos · Sintetizadores',        'kw' => ['PIANO','TECLADO','SYNTH','SINTETIZ','CONTROLADOR','CASIO','CELVIANO','PRIVIA']],
-            ['slug' => 'amplificadores', 'name' => 'Audio',       'icon' => '🔊', 'tags' => 'Amplificadores · Mixers · Parlantes','kw' => ['AMPLIF','CABINA','MIXER','PARLANT','PLANTA','PROCESAD','INTERFAZ','INTERFACE','MONITOR','AUDIFONO','CONSOLA','POTENCIA','CROSSOVER','ECUALIZ','DI ']],
-            ['slug' => 'microfono-miche', 'name' => 'Micrófonos', 'icon' => '🎤', 'tags' => 'Shure · Inalámbricos',          'kw' => ['MICROFON','MICRO','SHURE','INALAMBR']],
-            ['slug' => 'cabeza-movil',  'name' => 'Iluminación',  'icon' => '💡', 'tags' => 'Cabezas móviles · Par LED',     'kw' => ['CABEZA','PAR LED','PARLED','LED','HUMO','TRUSS','TENSOR','DIMMER','STROBO','MOVIL','LUZ','LUCE','BLINDER','REFLECTOR']],
-            ['slug' => 'cuerdas-guitarras', 'name' => 'Accesorios','icon' => '🎛️', 'tags' => 'Cuerdas · Correas · Forros',   'kw' => ['FORRO','FUNDA','SOPORTE','STAND','SILLA','ATRIL','RACK','CLAMP','CABLE','ACOPLE','LIMPIADOR','PROTECT','EMPUNADURA','AFINADOR','SORDINA','SLIDE','BANQUETA']],
+            ['slug' => 'percusion',     'name' => 'Percusión',   'icon' => 'drum', 'tags' => 'Baterías · Redoblantes · Cajones', 'kw' => ['PERCUS','BATER','REDOBL','PLATILL','CONGA','BONGO','DJEMBE','CAJON','CAJA','TIMBAL','MARAC','CAMPAN','PANDER','TAMBOR','GUIRO','CLAVE','CASTAN','XILOF','METALOF','PARCHE','BAQUETA','SHAKER','GUACHE']],
+            ['slug' => 'guitarras',     'name' => 'Cuerdas',     'icon' => 'guitar', 'tags' => 'Guitarras · Bajos · Ukeleles',    'kw' => ['GUITAR','BAJO','UKELELE','VIOLIN','VIOLA','VIOLONCHELO','CUERDA','PICK','CORREA','CAPODASTRO','ENCOR','PUENTE','CLAVIJERO']],
+            ['slug' => 'acordeon',      'name' => 'Vientos',     'icon' => 'accordion', 'tags' => 'Acordeones · Saxos · Trompetas','kw' => ['ACORDE','ARMONICA','CLARINET','FLAUTA','GAITA','MELODICA','SAXOF','SAX','TROMB','TROMPET','CORNO','OBOE','FAGOT','OCARINA']],
+            ['slug' => 'pianos',        'name' => 'Teclados',    'icon' => 'piano', 'tags' => 'Pianos · Sintetizadores',        'kw' => ['PIANO','TECLADO','SYNTH','SINTETIZ','CONTROLADOR','CASIO','CELVIANO','PRIVIA']],
+            ['slug' => 'amplificadores', 'name' => 'Audio',       'icon' => 'speaker', 'tags' => 'Amplificadores · Mixers · Parlantes','kw' => ['AMPLIF','CABINA','MIXER','PARLANT','PLANTA','PROCESAD','INTERFAZ','INTERFACE','MONITOR','AUDIFONO','CONSOLA','POTENCIA','CROSSOVER','ECUALIZ','DI ']],
+            ['slug' => 'microfono-miche', 'name' => 'Micrófonos', 'icon' => 'mic', 'tags' => 'Shure · Inalámbricos',          'kw' => ['MICROFON','MICRO','SHURE','INALAMBR']],
+            ['slug' => 'cabeza-movil',  'name' => 'Iluminación',  'icon' => 'light', 'tags' => 'Cabezas móviles · Par LED',     'kw' => ['CABEZA','PAR LED','PARLED','LED','HUMO','TRUSS','TENSOR','DIMMER','STROBO','MOVIL','LUZ','LUCE','BLINDER','REFLECTOR']],
+            ['slug' => 'cuerdas-guitarras', 'name' => 'Accesorios','icon' => 'box', 'tags' => 'Cuerdas · Correas · Forros',   'kw' => ['FORRO','FUNDA','SOPORTE','STAND','SILLA','ATRIL','RACK','CLAMP','CABLE','ACOPLE','LIMPIADOR','PROTECT','EMPUNADURA','AFINADOR','SORDINA','SLIDE','BANQUETA']],
         ];
     }
 }
@@ -181,6 +181,33 @@ if (!function_exists('sonika_category')) {
     function sonika_category(string $slug): ?array {
         foreach (sonika_categories() as $c) { if ($c['slug'] === $slug) return $c; }
         return null;
+    }
+}
+if (!function_exists('sonika_icon')) {
+    /** Librería de iconos flat/outline (un solo color, hereda currentColor). Nombre → SVG; si no hay, devuelve el valor tal cual (emoji). */
+    function sonika_icon(string $name): string {
+        $ic = [
+            'drum'      => '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M6 5.6v12.8M18 5.6v12.8"/>',
+            'guitar'    => '<path d="M9 3l3 3M15 3l-3 3"/><path d="M12 6c-1.2 2-3 3.7-5 4.7A4.6 4.6 0 0 0 9.6 19h4.8A4.6 4.6 0 0 0 17 10.7C15 9.7 13.2 8 12 6z"/><circle cx="12" cy="14.5" r="1.7"/>',
+            'accordion' => '<rect x="3" y="6" width="18" height="12" rx="2"/><path d="M9 6v12M15 6v12M3 12h6M15 12h6"/>',
+            'piano'     => '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M8 5v6M12 5v6M16 5v6M3 14h18"/>',
+            'speaker'   => '<rect x="4" y="4" width="16" height="16" rx="2"/><circle cx="12" cy="14" r="3.2"/><path d="M8.5 8h7"/>',
+            'mic'       => '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4M9 21h6"/>',
+            'light'     => '<path d="M12 3l7 5v6l-7 5-7-5V8z"/><path d="M12 3v18M5 8l14 6"/>',
+            'box'       => '<rect x="4" y="7" width="16" height="12" rx="2"/><path d="M8 7V5a4 4 0 0 1 8 0v2M4 12h16"/>',
+            'truck'     => '<path d="M3 7h11v8H3zM14 10h4l3 3v2h-7z"/><circle cx="7" cy="18" r="1.6"/><circle cx="17" cy="18" r="1.6"/>',
+            'shield'    => '<path d="M12 3l7 3v6c0 4-3 7-7 9-4-2-7-5-7-9V6z"/><path d="M9 12l2 2 4-4"/>',
+            'headset'   => '<path d="M4 13a8 8 0 0 1 16 0"/><rect x="3" y="13" width="4" height="6" rx="1"/><rect x="17" y="13" width="4" height="6" rx="1"/>',
+            'card'      => '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h4"/>',
+            'lock'      => '<rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V8a4 4 0 0 1 8 0v2"/>',
+            'tag'       => '<path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"/>',
+            'star'      => '<path d="M12 3l2.6 5.4 5.9.8-4.3 4.1 1 5.9-5.2-2.8L7.8 19l1-5.9L4.5 9.2l5.9-.8z"/>',
+            'check'     => '<path d="M4 12l5 5L20 6"/>',
+            'chevron'   => '<path d="M9 6l6 6-6 6"/>',
+            'info'      => '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/>',
+        ];
+        if (isset($ic[$name])) return '<svg class="si" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' . $ic[$name] . '</svg>';
+        return htmlspecialchars($name, ENT_QUOTES, 'UTF-8');
     }
 }
 if (!function_exists('sonika_subcategories')) {

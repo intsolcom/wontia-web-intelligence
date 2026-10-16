@@ -44,7 +44,7 @@ sonika_site_head('SONIKA — Instrumentos Musicales', 'Compra instrumentos music
 <div class="wrap">
   <div class="trust">
     <?php foreach ((array)wwi_tc('sonika', 'benefits', []) as $b): ?>
-    <span><?= sonika_esc((string)($b['icon'] ?? '')) ?> <b><?= sonika_esc((string)($b['text'] ?? '')) ?></b></span>
+    <span><?= sonika_icon((string)($b['icon'] ?? '')) ?> <b><?= sonika_esc((string)($b['text'] ?? '')) ?></b></span>
     <?php endforeach; ?>
   </div>
 </div>
@@ -59,7 +59,7 @@ sonika_site_head('SONIKA — Instrumentos Musicales', 'Compra instrumentos music
         if (!$cat) continue;
     ?>
       <a class="cat" href="/<?= sonika_esc($cat['slug']) ?>">
-        <div class="ic"><?= $cat['icon'] ?></div>
+        <div class="ic"><?= sonika_icon((string)$cat['icon']) ?></div>
         <h3><?= sonika_esc($cat['name']) ?></h3>
         <p><?= sonika_esc($cat['tags']) ?></p>
       </a>
