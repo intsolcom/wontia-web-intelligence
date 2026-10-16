@@ -95,7 +95,7 @@ class SonikaHeroWidget extends Widget
             case 'text':
                 $h = '<div class="sh-copy">';
                 if (!empty($d['eyebrow'])) $h .= '<span class="sh-eyebrow">' . $this->esc($d['eyebrow']) . '</span>';
-                if (!empty($d['title'])) $h .= '<h2 class="sh-h1">' . $this->accentTitle((string)$d['title'], (string)($d['title_accent'] ?? '')) . '</h2>';
+                $h .= $this->titleHtml($d);
                 if (!empty($d['subtitle'])) $h .= '<p class="sh-sub">' . $this->esc($d['subtitle']) . '</p>';
                 if (!empty($d['text'])) $h .= '<p class="sh-text">' . $this->esc($d['text']) . '</p>';
                 return $h . $this->ctas($d) . $this->attrs($d) . '</div>';
@@ -276,6 +276,46 @@ class SonikaHeroWidget extends Widget
         return '<script defer src="/assets/js/instruments/guitar.js"></script><script>document.addEventListener("DOMContentLoaded",function(){document.querySelectorAll("[data-wwi-instrument=guitar]").forEach(function(r){if(window.WWIInstruments&&WWIInstruments.guitar)WWIInstruments.guitar.init(r);});});</script>';
     }
 
+    private const DYN_EFFECTS = ['rollup', 'rolldown', 'fade', 'blur', 'slide', 'scale', 'flip', 'flipchars', 'typewriter'];
+
+    private function titleHtml(array $d): string
+    {
+        $items = $d['dyn_items'] ?? [];
+        $items = is_array($items) ? array_values(array_filter($items, fn($it) => is_array($it) && trim((string)($it['text'] ?? '')) !== '')) : [];
+        if (empty($d['dyn_enabled']) || count($items) < 2) {
+            return $d['title'] ?? '' ? '<h2 class="sh-h1">' . $this->accentTitle((string)$d['title'], (string)($d['title_accent'] ?? '')) . '</h2>' : '';
+        }
+        $eff = (string)($d['dyn_effect'] ?? 'rollup');
+        if (!in_array($eff, self::DYN_EFFECTS, true)) $eff = 'rollup';
+        $iv = max(1200, min(15000, (int)($d['dyn_interval'] ?? 2800)));
+        $pause = (string)($d['dyn_pause_hover'] ?? '1') !== '0' ? '1' : '0';
+        $h = '<h2 class="sh-h1 sh-dyn" data-effect="' . $eff . '" data-interval="' . $iv . '" data-pause-hover="' . $pause . '">';
+        foreach ($items as $i => $it) {
+            $txt = (string)$it['text'];
+            $acc = (string)($it['accent'] ?? '');
+            $inner = in_array($eff, ['flipchars', 'typewriter'], true) ? $this->charsHtml($txt, $acc) : $this->accentTitle($txt, $acc);
+            $h .= '<span class="sh-dyn__i' . ($i === 0 ? ' is-on' : '') . '"' . ($i === 0 ? '' : ' aria-hidden="true"') . '>' . $inner . '</span>';
+        }
+        return $h . '</h2>';
+    }
+
+    private function charsHtml(string $text, string $accent): string
+    {
+        $accent = trim($accent);
+        $pos = false;
+        if ($accent !== '') $pos = mb_strpos(mb_strtolower($text, 'UTF-8'), mb_strtolower($accent, 'UTF-8'));
+        $alen = mb_strlen($accent, 'UTF-8');
+        $len = mb_strlen($text, 'UTF-8');
+        $out = '';
+        for ($k = 0; $k < $len; $k++) {
+            $ch = mb_substr($text, $k, 1, 'UTF-8');
+            if ($ch === "\n") { $out .= '<br/>'; continue; }
+            $inAcc = ($pos !== false && $k >= $pos && $k < $pos + $alen);
+            $out .= '<span class="sh-dyn__c' . ($inAcc ? ' sh-hl' : '') . '" style="--d:' . $k . '">' . ($ch === ' ' ? '&nbsp;' : $this->esc($ch)) . '</span>';
+        }
+        return $out;
+    }
+
     private function accentTitle(string $title, string $accent): string
     {
         $accent = trim($accent);
@@ -368,6 +408,30 @@ class SonikaHeroWidget extends Widget
 .sh-eyebrow{font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#ffd9db}
 .sh-h1{font-family:var(--font-display,Sora),sans-serif;font-size:clamp(26px,3.4vw,46px);font-weight:800;line-height:1.05;letter-spacing:-.02em;white-space:pre-line}
 .sh-hl{color:var(--brand,#F20D16)}
+.sh-dyn{position:relative;overflow:hidden;perspective:600px}
+.sh-dyn__i{display:block;opacity:0;transform:translate(var(--ix,0),var(--iy,0)) scale(var(--is,1));filter:blur(var(--ib,0));will-change:transform,opacity}
+.sh-dyn--go .sh-dyn__i{transition:transform .65s cubic-bezier(.22,1,.36,1),opacity .5s ease,filter .55s ease}
+.sh-dyn__i.is-in,.sh-dyn__i.is-on{opacity:1;--ix:0;--iy:0;--is:1;--ib:0}
+.sh-dyn[data-effect="rollup"] .sh-dyn__i{--iy:115%}
+.sh-dyn[data-effect="rollup"] .sh-dyn__i.is-out{--iy:-115%}
+.sh-dyn[data-effect="rolldown"] .sh-dyn__i{--iy:-115%}
+.sh-dyn[data-effect="rolldown"] .sh-dyn__i.is-out{--iy:115%}
+.sh-dyn[data-effect="slide"] .sh-dyn__i{--ix:70%}
+.sh-dyn[data-effect="slide"] .sh-dyn__i.is-out{--ix:-70%}
+.sh-dyn[data-effect="blur"] .sh-dyn__i{--ib:16px;--iy:10%}
+.sh-dyn[data-effect="scale"] .sh-dyn__i{--is:.82}
+.sh-dyn[data-effect="flip"] .sh-dyn__i{transform:rotateX(-92deg)}
+.sh-dyn[data-effect="flip"] .sh-dyn__i.is-in,.sh-dyn[data-effect="flip"] .sh-dyn__i.is-on{transform:rotateX(0)}
+.sh-dyn[data-effect="flip"] .sh-dyn__i.is-out{transform:rotateX(92deg)}
+.sh-dyn__c{display:inline-block;transform-origin:50% 100%;backface-visibility:hidden}
+.sh-dyn--go .sh-dyn__c{transition:transform .5s cubic-bezier(.22,1,.36,1),opacity .45s ease;transition-delay:calc(var(--d,0)*32ms)}
+.sh-dyn[data-effect="flipchars"] .sh-dyn__i .sh-dyn__c{transform:rotateX(-92deg);opacity:0}
+.sh-dyn[data-effect="flipchars"] .sh-dyn__i.is-in .sh-dyn__c,.sh-dyn[data-effect="flipchars"] .sh-dyn__i.is-on .sh-dyn__c{transform:rotateX(0);opacity:1}
+.sh-dyn[data-effect="flipchars"] .sh-dyn__i.is-out .sh-dyn__c{transform:rotateX(92deg);opacity:0}
+.sh-dyn[data-effect="typewriter"] .sh-dyn__i .sh-dyn__c{opacity:0}
+.sh-dyn[data-effect="typewriter"] .sh-dyn__i.is-in .sh-dyn__c,.sh-dyn[data-effect="typewriter"] .sh-dyn__i.is-on .sh-dyn__c{opacity:1}
+.sh-dyn[data-effect="typewriter"] .sh-dyn__i.is-out .sh-dyn__c{opacity:0}
+@media(prefers-reduced-motion:reduce){.sh-dyn__i,.sh-dyn__c{transition:none!important;transform:none!important;opacity:1!important;filter:none!important}}
 .sh-sub{font-size:clamp(15px,1.5vw,19px);opacity:.95}
 .sh-text{font-size:14px;opacity:.8;max-width:52ch}
 .sh-ctas{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
@@ -447,6 +511,41 @@ document.querySelectorAll('.sh').forEach(function(root){
  root.addEventListener('keydown',function(e){if(e.key==='ArrowLeft'){go(i-1);stop()}if(e.key==='ArrowRight'){go(i+1);stop()}});
  start();
 });});}</script>
+<script>if(!window.__shDyn){window.__shDyn=1;(function(){
+function init(root){
+ var items=Array.prototype.slice.call(root.querySelectorAll(':scope > .sh-dyn__i'));
+ if(items.length<2)return;
+ var eff=root.getAttribute('data-effect')||'rollup';
+ var iv=Math.max(1200,parseInt(root.getAttribute('data-interval')||'2800',10)||2800);
+ var pause=root.getAttribute('data-pause-hover')!=='0';
+ var rm=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+ function measure(){var m=0;items.forEach(function(el){el.style.position='absolute';el.style.top='0';el.style.left='0';el.style.right='0';var h=el.offsetHeight;if(h>m)m=h});root.style.minHeight=(m+2)+'px';}
+ measure();window.addEventListener('resize',measure);
+ if(rm)return;
+ requestAnimationFrame(function(){root.classList.add('sh-dyn--go')});
+ var i=0,busy=false;
+ function show(n){
+  if(busy||n===i)return;busy=true;
+  var out=items[i],inc=items[n];
+  inc.classList.add('is-in');inc.setAttribute('aria-hidden','false');
+  out.classList.add('is-out');out.classList.remove('is-on');
+  setTimeout(function(){
+   out.classList.remove('is-out','is-in');out.setAttribute('aria-hidden','true');
+   inc.classList.remove('is-in');inc.classList.add('is-on');
+   i=n;busy=false;
+  },eff==='flipchars'?950:700);
+ }
+ function next(){show((i+1)%items.length)}
+ var t=setInterval(next,iv);
+ function stop(){if(t){clearInterval(t);t=null}}
+ function start(){stop();t=setInterval(next,iv)}
+ if(pause){root.addEventListener('mouseenter',stop);root.addEventListener('mouseleave',start)}
+ root.addEventListener('focusin',stop);root.addEventListener('focusout',start);
+ document.addEventListener('visibilitychange',function(){document.hidden?stop():start()});
+ if('IntersectionObserver' in window){new IntersectionObserver(function(es){es.forEach(function(e){e.isIntersecting?start():stop()})},{threshold:.2}).observe(root)}
+}
+document.addEventListener('DOMContentLoaded',function(){document.querySelectorAll('.sh-dyn').forEach(init)});
+})();}</script>
 HTML;
     }
 }
