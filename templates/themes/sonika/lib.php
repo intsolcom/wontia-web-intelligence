@@ -336,12 +336,16 @@ if (!function_exists('sonika_guitar_subs_used')) {
     function sonika_guitar_subs_used(?array $products = null): array {
         $products = $products ?? sonika_category_products('guitarras');
         $counts = [];
+        $img = [];
         foreach ($products as $p) {
             $s = sonika_guitar_sub_of($p);
-            if ($s !== '') $counts[$s] = ($counts[$s] ?? 0) + 1;
+            if ($s !== '') {
+                $counts[$s] = ($counts[$s] ?? 0) + 1;
+                if (empty($img[$s])) { $u = function_exists('sonika_img') ? sonika_img($p, 600) : ''; if ($u !== '') $img[$s] = $u; }
+            }
         }
         $out = [];
-        foreach (sonika_guitar_subs() as $sub) { $sub['count'] = $counts[$sub['slug']] ?? 0; $out[] = $sub; }
+        foreach (sonika_guitar_subs() as $sub) { $sub['count'] = $counts[$sub['slug']] ?? 0; $sub['thumb'] = $img[$sub['slug']] ?? ''; $out[] = $sub; }
         return $out;
     }
 }

@@ -301,6 +301,14 @@ class CatalogReconciliationService
         if ($heroNo > 0) {
             $out['issues'][] = ['id' => 'mn_hero_img', 'level' => 'info', 'label' => 'Mega Menú: ' . $heroNo . ' hero(s) sin imagen (categoría sin foto).'];
         }
+        if (preg_match('~data-mn-panel="guitarras"(.*?)data-mn-panel="~s', $html, $mp)) {
+            if (preg_match_all('~mn-card__img"><img src="([^"]+)"~', $mp[1], $mm)) {
+                $uniq = count(array_unique($mm[1]));
+                if (count($mm[1]) > 1 && $uniq === 1) {
+                    $out['issues'][] = ['id' => 'mn_subs_img', 'level' => 'warning', 'label' => 'Mega Menú · Cuerdas: las subcategorías comparten la MISMA imagen (fallback genérico).'];
+                }
+            }
+        }
         $out['ok'] = count($out['issues']) === 0;
         return $out;
     }

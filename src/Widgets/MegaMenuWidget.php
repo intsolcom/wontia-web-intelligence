@@ -116,7 +116,7 @@ class MegaMenuWidget extends Widget
                 $cnt = (int)($sx['count'] ?? 0);
                 if ($cnt <= 0) continue;
                 $tot += $cnt;
-                $subs[] = ['name' => (string)($sx['name'] ?? ''), 'count' => $cnt, 'thumb' => '', 'url' => '/guitarras?sub=' . rawurlencode((string)($sx['slug'] ?? ''))];
+                $subs[] = ['name' => (string)($sx['name'] ?? ''), 'count' => $cnt, 'thumb' => (string)($sx['thumb'] ?? ''), 'url' => '/guitarras?sub=' . rawurlencode((string)($sx['slug'] ?? ''))];
             }
             if ($subs) {
                 $hasG = false;
