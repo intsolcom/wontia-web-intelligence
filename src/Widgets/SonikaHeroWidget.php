@@ -61,7 +61,9 @@ class SonikaHeroWidget extends Widget
             $cols = $this->cols((string)($s['design']['cols'] ?? '50/50'));
             $va = (string)($s['design']['valign'] ?? 'center');
             $align = in_array($va, ['start', 'center', 'end'], true) ? $va : 'center';
-            $h .= '<article class="sh-slide' . ($i === 0 ? ' is-on' : '') . '" data-i="' . $i . '" aria-hidden="' . ($i === 0 ? 'false' : 'true') . '" style="--sh-bg:' . $bg . ';--sh-cols:' . $cols . ';--sh-valign:' . $align . '">';
+            $padt = max(0, min(160, (int)($s['design']['pad_top'] ?? 0)));
+            $padx = max(0, min(80, (int)($s['design']['pad_x'] ?? 22)));
+            $h .= '<article class="sh-slide' . ($i === 0 ? ' is-on' : '') . '" data-i="' . $i . '" aria-hidden="' . ($i === 0 ? 'false' : 'true') . '" style="--sh-bg:' . $bg . ';--sh-cols:' . $cols . ';--sh-valign:' . $align . ';--sh-padt:' . $padt . 'px;--sh-padx:' . $padx . 'px">';
             $h .= '<div class="sh-grid">';
             $h .= $this->zone('left', (string)$s['left_type'], (array)$s['left_data']);
             $h .= $this->zone('right', (string)$s['right_type'], (array)$s['right_data']);
@@ -127,7 +129,9 @@ class SonikaHeroWidget extends Widget
                     $inner = '<video class="sh-video__v"' . $attr . $pa . '><source src="' . $this->esc($d['video']) . '" type="video/mp4"></video>';
                 }
                 if ($inner === '' && $poster !== '') $inner = '<img class="sh-video__poster" src="' . $this->esc($poster) . '" alt="' . $this->esc($alt) . '" loading="lazy" decoding="async"/>';
-                $h = '<div class="sh-video' . ($inner !== '' ? ' sh-video--fill' : '') . '">';
+                $size = (string)($d['video_size'] ?? 'full');
+                $cls = $inner !== '' ? ($size === 'center' ? ' sh-video--center' : ' sh-video--fill') : '';
+                $h = '<div class="sh-video' . $cls . '">';
                 if ($inner !== '') $h .= '<div class="sh-video__box">' . $inner . '</div>';
                 if (!empty($d['title'])) $h .= '<h3 class="sh-media__t">' . $this->esc($d['title']) . '</h3>';
                 return $h . '</div>';
@@ -318,10 +322,29 @@ class SonikaHeroWidget extends Widget
 
     private function ctas(array $d): string
     {
+        $radiusMap = ['pill' => '999px', 'rounded' => '10px', 'square' => '0'];
+        $radius = $radiusMap[(string)($d['btn_radius'] ?? 'pill')] ?? '999px';
+        $bg = $this->color((string)($d['btn_bg'] ?? ''), '#F20D16');
+        $tc = $this->color((string)($d['btn_tc'] ?? ''), '#ffffff');
+        $bg2 = $this->color((string)($d['btn2_bg'] ?? ''), 'rgba(255,255,255,.14)');
+        $tc2 = $this->color((string)($d['btn2_tc'] ?? ''), '#ffffff');
         $l = [];
-        if (!empty($d['cta']) && !empty($d['cta_url'])) $l[] = '<a class="sh-btn sh-btn--p" href="' . $this->esc($d['cta_url']) . '">' . $this->esc($d['cta']) . '</a>';
-        if (!empty($d['cta2']) && !empty($d['cta2_url'])) $l[] = '<a class="sh-btn sh-btn--s" href="' . $this->esc($d['cta2_url']) . '">' . $this->esc($d['cta2']) . '</a>';
+        if (!empty($d['cta']) && !empty($d['cta_url'])) {
+            $l[] = '<a class="sh-btn sh-btn--p" style="background:' . $bg . ';color:' . $tc . ';border-radius:' . $radius . '" href="' . $this->esc($d['cta_url']) . '">' . $this->esc($d['cta']) . '</a>';
+        }
+        if (!empty($d['cta2']) && !empty($d['cta2_url'])) {
+            $l[] = '<a class="sh-btn sh-btn--s" style="color:' . $tc2 . ';background:' . $bg2 . ';border-radius:' . $radius . '" href="' . $this->esc($d['cta2_url']) . '">' . $this->esc($d['cta2']) . '</a>';
+        }
         return $l ? '<div class="sh-ctas">' . implode('', $l) . '</div>' : '';
+    }
+
+    private function color(string $c, string $def): string
+    {
+        $c = trim($c);
+        if ($c === '') return $def;
+        if (preg_match('/^#[0-9a-f]{3,8}$/i', $c)) return $c;
+        if (preg_match('/^rgba?\([0-9.,\s%\/]+\)$/i', $c)) return $c;
+        return $def;
     }
 
     private function assets(): string
@@ -334,7 +357,7 @@ class SonikaHeroWidget extends Widget
 .sh-track{position:relative;height:100%}
 .sh-slide{position:absolute;inset:0;opacity:0;visibility:hidden;transition:opacity .4s ease;background:var(--sh-bg,#111)}
 .sh-slide.is-on{opacity:1;visibility:visible;position:relative}
-.sh-grid{height:100%;max-width:1180px;margin:0 auto;padding:0 22px;display:grid;grid-template-columns:var(--sh-cols,1fr 1fr);gap:24px;align-items:stretch}
+.sh-grid{height:100%;max-width:1180px;margin:0 auto;padding:var(--sh-padt,0px) var(--sh-padx,22px);display:grid;grid-template-columns:var(--sh-cols,1fr 1fr);gap:24px;align-items:stretch}
 .sh-zone{min-width:0;display:flex;flex-direction:column;justify-content:var(--sh-valign,center)}
 .sh-copy{display:flex;flex-direction:column;gap:10px;max-width:560px}
 .sh-eyebrow{font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#ffd9db}
@@ -354,8 +377,11 @@ class SonikaHeroWidget extends Widget
 .sh-video__box{position:relative;aspect-ratio:16/9;width:100%;border-radius:16px;overflow:hidden;background:#0c0c0c;border:1px solid rgba(255,255,255,.1)}
 .sh-video__box iframe,.sh-video__box video,.sh-video__box img{position:absolute;inset:0;width:100%;height:100%;border:0;display:block;object-fit:cover}
 .sh-video--fill{height:100%}
-.sh-video--fill .sh-video__box{height:100%;min-height:260px;aspect-ratio:auto;border-radius:18px;-webkit-mask-image:linear-gradient(to right,transparent 0,#000 26%);mask-image:linear-gradient(to right,transparent 0,#000 26%)}
-.sh-video--fill .sh-video__box video,.sh-video--fill .sh-video__box iframe,.sh-video--fill .sh-video__box img{object-fit:cover}
+.sh-video--center{height:100%;display:flex;align-items:center;justify-content:center}
+.sh-video--fill .sh-video__box,.sh-video--center .sh-video__box{border-radius:18px;-webkit-mask-image:linear-gradient(to right,transparent 0,#000 26%);mask-image:linear-gradient(to right,transparent 0,#000 26%)}
+.sh-video--fill .sh-video__box{height:100%;min-height:260px;aspect-ratio:auto}
+.sh-video--center .sh-video__box{width:86%;max-width:560px;aspect-ratio:16/9}
+.sh-video--fill .sh-video__box video,.sh-video--fill .sh-video__box iframe,.sh-video--fill .sh-video__box img,.sh-video--center .sh-video__box video,.sh-video--center .sh-video__box iframe,.sh-video--center .sh-video__box img{object-fit:cover}
 .sh-media img,.sh-video video,.sh-promo img,.sh-product__img img{width:100%;height:auto;border-radius:16px;display:block;object-fit:cover}
 .sh-media__cap h3,.sh-media__t,.sh-promo h3{font-family:var(--font-display,Sora),sans-serif;font-size:20px;font-weight:800}
 .sh-product{display:flex;flex-direction:column;gap:4px;color:#fff;text-decoration:none;max-width:320px}
@@ -391,7 +417,7 @@ html[data-cap="low"] .sh-guitar__strings{display:none}
 .sh-dots{position:absolute;left:0;right:0;bottom:14px;display:flex;gap:8px;justify-content:center;z-index:3}
 .sh-dot{width:9px;height:9px;border-radius:50%;border:0;background:rgba(255,255,255,.4);cursor:pointer}
 .sh-dot.on{background:var(--brand,#F20D16);width:24px;border-radius:999px}
-@media(max-width:820px){.sh{height:auto}.sh-slide.is-on{position:relative}.sh-grid{grid-template-columns:1fr;padding:22px;gap:16px}.sh{--sh-h:auto}.sh-video--fill{height:auto}.sh-video--fill .sh-video__box{height:auto;min-height:0;aspect-ratio:16/9;-webkit-mask-image:none;mask-image:none}}
+@media(max-width:820px){.sh{height:auto}.sh-slide.is-on{position:relative}.sh-grid{grid-template-columns:1fr;padding:22px;gap:16px}.sh{--sh-h:auto}.sh-video--fill,.sh-video--center{height:auto}.sh-video--fill .sh-video__box{height:auto;min-height:0;aspect-ratio:16/9}.sh-video--center .sh-video__box{width:100%;max-width:none;aspect-ratio:16/9}.sh-video--fill .sh-video__box,.sh-video--center .sh-video__box{-webkit-mask-image:none;mask-image:none}}
 @media(prefers-reduced-motion:reduce){.sh-slide{transition:none}}
 </style>
 <script>if(!window.__shInit){window.__shInit=1;document.addEventListener('DOMContentLoaded',function(){
