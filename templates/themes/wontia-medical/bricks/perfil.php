@@ -61,7 +61,10 @@ $apiBase = medical_api_base();
           WM.loginForm(host, function () { window.location.reload(); });
         });
       } }, 'Cerrar sesion');
-      out.replaceChildren(WM.el('div', { class: 'wm-list' }, rows), creds, WM.el('div', { class: 'wm-row' }, [logout]), err);
+      var adminLink = (d.user.roles || []).indexOf('admin') !== -1
+        ? WM.el('a', { class: 'wm-btn wm-btn-ghost', href: '/gestion' }, 'Panel de verificacion')
+        : null;
+      out.replaceChildren(WM.el('div', { class: 'wm-list' }, rows), creds, WM.el('div', { class: 'wm-row' }, [logout, adminLink]), err);
     }).catch(function (e) {
       err.textContent = e.message;
       host.replaceChildren(err);

@@ -9,6 +9,21 @@ $slug = $aliases[$slug] ?? $slug;
 
 $modules = medical_module_map();
 
+if ($slug === 'gestion') {
+    medical_page_start(
+        [
+            'title' => 'Gestion',
+            'meta_title' => 'Gestion — Wontia Medical',
+            'meta_description' => 'Verificacion de profesionales',
+            'slug' => 'gestion',
+        ],
+        'gestion'
+    );
+    echo medical_brick('gestion');
+    medical_page_end();
+    return true;
+}
+
 if ($slug === '' || !isset($modules[$slug]) || !medical_module_enabled($slug)) {
     return false;
 }
