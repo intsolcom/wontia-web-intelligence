@@ -55,7 +55,7 @@ class MegaMenuWidget extends Widget
             ['key' => 'category_overrides', 'label' => 'Renombrar categorías (override: slug o nombre → nuevo nombre/ícono)', 'type' => 'repeater', 'default' => [], 'fields' => [
                 ['key' => 'match', 'label' => 'Categoría (slug o nombre)', 'type' => 'text'],
                 ['key' => 'label', 'label' => 'Nuevo nombre', 'type' => 'text'],
-                ['key' => 'icon', 'label' => 'Ícono', 'type' => 'text'],
+                ['key' => 'icon', 'label' => 'Ícono (librería)', 'type' => 'icon'],
             ]],
             ['key' => 'banner_enabled', 'label' => 'Mostrar banner inferior', 'type' => 'toggle', 'default' => true],
             ['key' => 'banner_title', 'label' => 'Banner inferior: título', 'type' => 'text', 'default' => 'Descubre todo lo que SONIKA tiene para ti.'],
@@ -522,6 +522,7 @@ class MegaMenuWidget extends Widget
 .mn-filter__results li a:hover{background:var(--soft,#F5F5F5)}
 .mn-filter__results small{color:var(--muted,#999)}
 .mn-filter__hd{padding:9px 12px 3px;font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted,#999)}
+.mn-filter__results li a.is-cur{background:var(--soft,#F5F5F5);box-shadow:inset 3px 0 0 var(--mn-head,#F20D16)}
 .mn-mega{background:#fff;border-right:1px solid var(--line,#E6E6E6);box-shadow:0 24px 60px rgba(0,0,0,.16);max-width:min(90vw,1000px);overflow:auto}
 .mn-mega__panel{min-height:100%}
 .mn-mega__bg{padding:0 0 22px}
@@ -627,7 +628,19 @@ html.mn-locked,html.mn-locked body{overflow:hidden}
     if(!state.open)return; var li=e.target.closest&&e.target.closest('.mn-cat'); if(!li||!li.classList.contains('has-panel'))return;
     clearTimeout(hoverT); var slug=li.getAttribute('data-mn-cat'); hoverT=setTimeout(function(){setActive(slug);},300);
   },false);
-  D.addEventListener('keydown',function(e){ if(e.key==='Escape'&&state.open){e.preventDefault();openDrawer(false);} });
+  D.addEventListener('keydown',function(e){
+    if(e.key==='Escape'&&state.open){e.preventDefault();openDrawer(false);return;}
+    var inp=e.target.closest&&e.target.closest('.mn-filter__in'); if(!inp)return;
+    var dr=drawer(); var res=dr?dr.querySelector('.mn-filter__results'):null; if(!res||res.hidden)return;
+    var items=res.querySelectorAll('li a'); if(!items.length)return; var cur=-1;
+    for(var i=0;i<items.length;i++){if(items[i].classList.contains('is-cur')){cur=i;break;}}
+    if(e.key==='ArrowDown'){e.preventDefault();cur=Math.min(items.length-1,cur+1);}
+    else if(e.key==='ArrowUp'){e.preventDefault();cur=Math.max(0,cur-1);}
+    else if(e.key==='Enter'){if(cur>=0){e.preventDefault();items[cur].click();}return;}
+    else return;
+    for(var j=0;j<items.length;j++)items[j].classList.toggle('is-cur',j===cur);
+    if(cur>=0&&items[cur].scrollIntoView)items[cur].scrollIntoView({block:'nearest'});
+  });
   D.addEventListener('input',function(e){
     var inp=e.target.closest&&e.target.closest('.mn-filter__in'); if(!inp)return; var dr=drawer(); var q=inp.value.trim().toLowerCase(); var qq=inp.value.trim();
     var cats=dr.querySelectorAll('.mn-cat');
