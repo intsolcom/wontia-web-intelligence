@@ -1235,6 +1235,7 @@ W.renderMediaManager=function(){
     var app=document.getElementById('wontia-app');
     app.innerHTML='<div class="w-flex-between w-mb-lg"><h3>Media Library</h3><div class="w-flex w-gap-sm"><span id="media-stats" style="font-size:11px;color:var(--w-muted);align-self:center"></span><button class="w-btn w-btn-secondary" onclick="wontia.mediaSyncBrand()">↻ Marca</button><button class="w-btn w-btn-primary" id="media-upload-btn">Subir</button></div></div>'
       +'<div class="w-drop-zone w-mb-lg" id="media-drop"><span>Arrastra y suelta aquí (imágenes, videos, iconos) o haz clic para subir</span></div>'
+      +'<div id="media-uploader" style="display:none;margin-bottom:16px"></div>'
       +'<input type="file" id="media-file-input" accept="image/*,video/*,.svg,.ico,.pdf" style="display:none" multiple/>'
       +'<div style="display:grid;grid-template-columns:220px 1fr;gap:16px;align-items:start">'
       +'<div id="media-folders"></div>'
@@ -1306,20 +1307,59 @@ W.mediaSyncBrand=async function(){var r=await W.api('/api/v1/admin/media/sync-br
 
 W.handleMediaUpload=function(){W.uploadFiles(this.files)};
 
-W.uploadFiles=async function(files){
-    var folder=W.state.media&&W.state.media.folder?W.state.media.folder:0;
-    for(var i=0;i<files.length;i++){
-        if(files[i].size>12*1024*1024){W.notify('“'+files[i].name+'” supera 12MB. Optimízala antes de subir.','error');continue;}
-        var fd=new FormData();fd.append('file',files[i]);if(folder)fd.append('folder_id',folder);
-        W.notify('Subiendo '+files[i].name+'…','info');
-        var r=await W.api('/api/v1/admin/media/upload',{method:'POST',body:fd});
-        if(r.ok){
-            var m=(r.data&&r.data.data)||{};
-            if(r.data&&r.data.duplicate)W.notify('Ya existía (duplicado): '+files[i].name,'info');
-            else W.notify('OK '+files[i].name+(m.converted_ext?(' → '+String(m.converted_ext).toUpperCase()+' '+W.mediaHuman(m.converted_size)):''),'success');
-        }else W.notify((r.data&&r.data.message)||('Error subiendo '+files[i].name),'error');
-    }
-    W.refreshMedia();
+W.muEl=function(id){return document.getElementById(id)};
+W.muStart=function(file){
+    var box=W.muEl('media-uploader');if(!box)return;
+    var isImg=(file.type||'').indexOf('image')===0;
+    var thumb=isImg?'<img id="mu-img" alt="" style="width:100%;height:100%;object-fit:cover;display:block"/>':'<span style="font-size:22px">🎬</span>';
+    box.style.display='block';
+    box.innerHTML='<div class="w-card" style="padding:12px;display:flex;gap:12px;align-items:flex-start">'
+      +'<div id="mu-thumb" style="width:84px;height:84px;border-radius:10px;background:var(--w-bg-soft,#0d1220);overflow:hidden;display:grid;place-items:center;flex:0 0 auto;border:1px solid var(--w-border,#26303f)">'+thumb+'</div>'
+      +'<div style="flex:1;min-width:0">'
+        +'<div id="mu-name" style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+W.esc(file.name)+'</div>'
+        +'<div id="mu-meta" style="font-size:11px;color:var(--w-muted);margin-top:2px">'+W.mediaHuman(file.size)+' · subiendo…</div>'
+        +'<div style="margin-top:10px;height:9px;border-radius:999px;background:var(--w-border,#26303f);overflow:hidden"><div id="mu-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#9B8CDE,#B89EFF);transition:width .15s ease"></div></div>'
+        +'<div style="display:flex;justify-content:space-between;margin-top:5px"><span id="mu-status" style="font-size:11px;color:var(--w-muted)">Preparando…</span><span id="mu-pct" style="font-size:12px;font-weight:800">0%</span></div>'
+      +'</div></div>';
+    if(isImg){try{var u=URL.createObjectURL(file);var im=W.muEl('mu-img');if(im){im.src=u;im.onload=function(){try{URL.revokeObjectURL(u)}catch(e){}}}}catch(e){}}
+};
+W.muProgress=function(p,st){p=Math.max(0,Math.min(100,p||0));var b=W.muEl('mu-bar');if(b)b.style.width=p+'%';var t=W.muEl('mu-pct');if(t)t.textContent=Math.round(p)+'%';if(st){var s=W.muEl('mu-status');if(s)s.textContent=st;}};
+W.muDone=function(msg){W.muProgress(100,'');var s=W.muEl('mu-status');if(s){s.textContent='✓ '+msg;s.style.color='#34d399'}var b=W.muEl('mu-bar');if(b)b.style.background='#34d399';};
+W.muError=function(msg){var s=W.muEl('mu-status');if(s){s.textContent='✕ '+msg;s.style.color='#f87171'}var b=W.muEl('mu-bar');if(b)b.style.background='#f87171';var t=W.muEl('mu-pct');if(t)t.textContent='';};
+
+W.uploadFiles=function(files){
+    files=Array.prototype.slice.call(files||[]);
+    if(!files.length){W.notify('No se seleccionó ningún archivo','error');return;}
+    var folder=(W.state.media&&W.state.media.folder)?W.state.media.folder:0;
+    var idx=0;
+    var next=function(){
+        if(idx>=files.length){W.refreshMedia();setTimeout(function(){var el=W.muEl('media-uploader');var s=W.muEl('mu-status');if(el&&s&&s.textContent.indexOf('✓')===0)el.style.display='none';},1800);return;}
+        var f=files[idx++];
+        W.muStart(f);
+        if(f.size>12*1024*1024){W.muError('supera 12MB');W.notify('“'+f.name+'” supera 12MB.','error');setTimeout(next,1200);return;}
+        var fd=new FormData();fd.append('file',f);if(folder)fd.append('folder_id',folder);
+        var xhr=new XMLHttpRequest();
+        xhr.open('POST','/api/v1/admin/media/upload');
+        if(W.token)xhr.setRequestHeader('Authorization','Bearer '+W.token);
+        xhr.upload.onprogress=function(e){if(e.lengthComputable)W.muProgress(Math.round(e.loaded/e.total*100),'Subiendo…');};
+        xhr.onload=function(){
+            var r={};try{r=JSON.parse(xhr.responseText||'{}')}catch(e){}
+            if(xhr.status>=200&&xhr.status<300&&r.ok){
+                W.muProgress(100,'Optimizando…');
+                var m=r.data||{};
+                if(r.duplicate||(r.data&&r.data.duplicate))W.muDone('Ya existía (duplicado)');
+                else W.muDone('Subido'+(m.converted_ext?(' · '+String(m.converted_ext).toUpperCase()+' '+W.mediaHuman(m.converted_size)):''));
+            }else if(r.duplicate||(r.data&&r.data.duplicate)){
+                W.muDone('Ya existía (duplicado)');
+            }else{
+                W.muError((r.message)||(r.error&&r.error.message)||(r.data&&r.data.message)||('Error '+(xhr.status||'de red')));
+            }
+            setTimeout(next,700);
+        };
+        xhr.onerror=function(){W.muError('Error de red');setTimeout(next,700);};
+        xhr.send(fd);
+    };
+    next();
 };
 
 W.renderBanners=function(id){if(id){return W.bnEdit(id)}return W.bnList()};
@@ -1573,7 +1613,7 @@ W.heroFields=function(side,type,data){var d=data||{};
     if(type==='video')return fi('video','Video','video')+fi('poster','Portada / poster','image')+f('title','Título')+f('subtitle','Subtítulo')+t('text','Texto')+f('cta','Texto del CTA')+f('cta_url','Destino del CTA');
     if(type==='product')return f('handle','Handle del producto')+f('title','Título (opcional)')+f('subtitle','Subtítulo')+t('text','Texto')+f('cta','Texto del CTA')+f('cta_url','Destino del CTA');
     if(type==='combo')return fi('image','Imagen','image')+f('alt','Texto alternativo')+f('title','Título')+t('text','Texto')+f('cta','CTA')+f('cta_url','Destino');
-    if(type==='guitar')return f('product','Producto (handle de guitarra eléctrica)')+f('string_top','Calibración: top de cuerdas (%)')+f('string_height','Calibración: alto de la banda de cuerdas (%)');
+    if(type==='guitar')return fi('image','Imagen de la guitarra (3:2 · 1536×1024)','image')+f('alt','Texto alternativo')+f('product','…o producto del catálogo (handle, opcional)')+'<div class="w-form-group"><label class="w-label">Coordenadas de cuerdas SVG (avanzado · una polilínea por línea · viewBox 1536×1024)</label><textarea class="w-textarea hero-f" data-k="string_points" oninput="wontia.heroPreview()" style="min-height:120px;font-family:monospace;font-size:11px">'+W.esc((d.string_points&&d.string_points.length?d.string_points:[0,1,2,3,4,5].map(function(){return ''})).join('\n'))+'</textarea></div>';
     return '<div style="font-size:12px;color:var(--w-muted)">Este tipo aún no tiene motor implementado; no se puede publicar.</div>';
 };
 W.heroPickMedia=async function(inputId,type){
@@ -1586,7 +1626,7 @@ W.heroPickMedia=async function(inputId,type){
 };
 W.heroSetMedia=function(inputId,url){var el=document.getElementById(inputId);if(el)el.value=url;W.closeModal();W.heroPreview();};
 W.heroEditReload=function(side){var sel=document.getElementById('hero-'+side+'-type');var box=document.getElementById('hero-'+side+'-fields');if(sel&&box){box.innerHTML=W.heroFields(side,sel.value,{});W.heroPreview();}};
-W.heroCollect=function(side){var box=document.getElementById('hero-'+side+'-fields');var out={};if(box)box.querySelectorAll('.hero-f').forEach(function(el){out[el.getAttribute('data-k')]=el.value});return out;};
+W.heroCollect=function(side){var box=document.getElementById('hero-'+side+'-fields');var out={};if(box)box.querySelectorAll('.hero-f').forEach(function(el){out[el.getAttribute('data-k')]=el.value});if(typeof out.string_points==='string')out.string_points=out.string_points.split('\n').map(function(s){return s.trim()}).filter(function(s){return s});return out;};
 W.heroEdit=async function(id){
     var app=document.getElementById('wontia-app'); if(!app)return;
     var r=await W.api('/api/v1/admin/hero'); var d=(r&&r.data)||{}; W._heroTypes=d.types||{}; W._heroSlides=d.slides||[];
