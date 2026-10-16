@@ -85,7 +85,8 @@ class SonikaHeroWidget extends Widget
     {
         $inner = $this->block($type, $d);
         if ($inner === '') return '';
-        return '<div class="sh-zone sh-zone--' . $side . '">' . $inner . '</div>';
+        $bleed = ($type === 'video' && (string)($d['video_size'] ?? 'full') !== 'center') ? ' sh-zone--bleed' : '';
+        return '<div class="sh-zone sh-zone--' . $side . $bleed . '">' . $inner . '</div>';
     }
 
     private function block(string $type, array $d): string
@@ -376,11 +377,13 @@ class SonikaHeroWidget extends Widget
 .sh-attr__b b{font-weight:800}
 .sh-video__box{position:relative;aspect-ratio:16/9;width:100%;border-radius:16px;overflow:hidden;background:#0c0c0c;border:1px solid rgba(255,255,255,.1)}
 .sh-video__box iframe,.sh-video__box video,.sh-video__box img{position:absolute;inset:0;width:100%;height:100%;border:0;display:block;object-fit:cover}
-.sh-video--fill{height:100%}
+.sh-video--fill{height:100%;display:flex;flex-direction:column;justify-content:center}
 .sh-video--center{height:100%;display:flex;align-items:center;justify-content:center}
-.sh-video--fill .sh-video__box,.sh-video--center .sh-video__box{border-radius:18px;-webkit-mask-image:linear-gradient(to right,transparent 0,#000 26%);mask-image:linear-gradient(to right,transparent 0,#000 26%)}
-.sh-video--fill .sh-video__box{height:100%;min-height:260px;aspect-ratio:auto}
-.sh-video--center .sh-video__box{width:86%;max-width:560px;aspect-ratio:16/9}
+.sh-zone--bleed{margin-top:calc(-1 * var(--sh-padt,0px));margin-bottom:calc(-1 * var(--sh-padt,0px))}
+.sh-zone--right.sh-zone--bleed{margin-right:calc((min(100vw,1180px) - 100vw) / 2 - var(--sh-padx,22px))}
+.sh-zone--left.sh-zone--bleed{margin-left:calc((min(100vw,1180px) - 100vw) / 2 - var(--sh-padx,22px))}
+.sh-video--fill .sh-video__box{height:100%;min-height:260px;aspect-ratio:auto;border-radius:0;-webkit-mask-image:linear-gradient(to right,transparent 0,#000 26%);mask-image:linear-gradient(to right,transparent 0,#000 26%)}
+.sh-video--center .sh-video__box{width:86%;max-width:560px;aspect-ratio:16/9;border-radius:18px;-webkit-mask-image:linear-gradient(to right,transparent 0,#000 26%);mask-image:linear-gradient(to right,transparent 0,#000 26%)}
 .sh-video--fill .sh-video__box video,.sh-video--fill .sh-video__box iframe,.sh-video--fill .sh-video__box img,.sh-video--center .sh-video__box video,.sh-video--center .sh-video__box iframe,.sh-video--center .sh-video__box img{object-fit:cover}
 .sh-media img,.sh-video video,.sh-promo img,.sh-product__img img{width:100%;height:auto;border-radius:16px;display:block;object-fit:cover}
 .sh-media__cap h3,.sh-media__t,.sh-promo h3{font-family:var(--font-display,Sora),sans-serif;font-size:20px;font-weight:800}
@@ -417,7 +420,7 @@ html[data-cap="low"] .sh-guitar__strings{display:none}
 .sh-dots{position:absolute;left:0;right:0;bottom:14px;display:flex;gap:8px;justify-content:center;z-index:3}
 .sh-dot{width:9px;height:9px;border-radius:50%;border:0;background:rgba(255,255,255,.4);cursor:pointer}
 .sh-dot.on{background:var(--brand,#F20D16);width:24px;border-radius:999px}
-@media(max-width:820px){.sh{height:auto}.sh-slide.is-on{position:relative}.sh-grid{grid-template-columns:1fr;padding:22px;gap:16px}.sh{--sh-h:auto}.sh-video--fill,.sh-video--center{height:auto}.sh-video--fill .sh-video__box{height:auto;min-height:0;aspect-ratio:16/9}.sh-video--center .sh-video__box{width:100%;max-width:none;aspect-ratio:16/9}.sh-video--fill .sh-video__box,.sh-video--center .sh-video__box{-webkit-mask-image:none;mask-image:none}}
+@media(max-width:820px){.sh{height:auto}.sh-slide.is-on{position:relative}.sh-grid{grid-template-columns:1fr;padding:22px;gap:16px}.sh{--sh-h:auto}.sh-zone--bleed{margin:0}.sh-video--fill,.sh-video--center{height:auto}.sh-video--fill .sh-video__box{height:auto;min-height:0;aspect-ratio:16/9;border-radius:16px}.sh-video--center .sh-video__box{width:100%;max-width:none;aspect-ratio:16/9}.sh-video--fill .sh-video__box,.sh-video--center .sh-video__box{-webkit-mask-image:none;mask-image:none}}
 @media(prefers-reduced-motion:reduce){.sh-slide{transition:none}}
 </style>
 <script>if(!window.__shInit){window.__shInit=1;document.addEventListener('DOMContentLoaded',function(){
