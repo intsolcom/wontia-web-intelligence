@@ -1543,8 +1543,16 @@ W._crRender=function(d,sug){
     h+='<div style="font-size:12px;color:var(--w-muted);margin-bottom:10px">Compara la clasificación del tema (keywords) con la taxonomía real (tags) y detecta incoherencias. Último escaneo: '+W.esc(d.generated_at||'—')+'</div>';
     h+='<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px">'
       +kpi('Productos',s.products)+kpi('Con categoría (tag)',s.with_tag)+kpi('Sin categoría',s.without_tag,'#b45309')
-      +kpi('Categorías sin mapear',(s.unmapped_categories||0),'#DC2626')+kpi('Solapamientos',(iss.overlap||{}).count,'#b45309')+kpi('Duplicados',(iss.duplicates||{}).count)
+      +kpi('Categorías sin mapear',(s.unmapped_categories||0),'#DC2626')+kpi('Solapamientos',(iss.overlap||{}).count,'#b45309')+kpi('Divergencias',(iss.divergence||{}).count,'#b45309')
+      +kpi('Duplicados',(iss.duplicates||{}).count)+kpi('Productos nuevos',(iss.new_products||{}).count,'#7C3AED')+kpi('Huérfanos',(iss.orphans||{}).count,'#DC2626')
       +'</div>';
+    var br=d.bricks||{};
+    h+='<div class="w-card"><h3>🧩 Cobertura por brick — ¿los productos aparecen y se pueden buscar?</h3><div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:6px">'
+      +kpi('Buscable (título)',br.searchable)+kpi('Advance Search',br.advance_search)+kpi('Páginas de categoría',br.categorias)+kpi('Mega Menú',br.mega_menu)
+      +'</div><div style="font-size:12px;color:var(--w-muted);margin-top:8px">Si un producto no tiene <b>categoría (tag)</b>, <b>tipo</b> ni <b>marca</b>, no aparece en los filtros (solo por búsqueda de título) → se marca como <b>huérfano</b>.</div></div>';
+    h+='<div class="w-card" style="margin-top:14px"><h3>🆕 Productos nuevos (desde el último escaneo)</h3>'+W.crList((iss.new_products||{}).samples||[],function(t){return W.esc(t)})+'</div>';
+    h+='<div class="w-card" style="margin-top:14px"><h3>🚫 Huérfanos — sin categoría/tipo/marca (no filtrables)</h3>'+W.crList((iss.orphans||{}).samples||[],function(t){return W.esc(t)})+'</div>';
+    h+='<div class="w-card" style="margin-top:14px"><h3>↔️ Divergencias (tag real ≠ clasificación del tema)</h3>'+W.crList((iss.divergence||{}).samples||[],function(x){return '<b>'+W.esc(x.title)+'</b> <span style="color:var(--w-muted)">tag: '+W.esc(x.tag)+' ('+W.esc(x.tag_slug)+') vs tema: '+((x.kw_slugs||[]).map(W.esc).join(', '))+'</span>'})+'</div>';
     h+='<div class="w-card"><h3>🧭 Categorías del catálogo SIN mapear (requieren clasificación)</h3>'+W.crList((iss.mismatch||{}).samples||[],function(x){return '<b>«'+W.esc(x.tag)+'»</b> <span style="color:var(--w-muted)">'+W.num(x.count||0)+' productos · ej: '+W.esc(x.title)+'</span>'})+'</div>';
     h+='<div class="w-card" style="margin-top:14px"><h3>🔁 Productos en 2+ categorías del tema (solapamiento)</h3>'+W.crList((iss.overlap||{}).samples||[],function(x){return '<b>'+W.esc(x.title)+'</b> <span style="color:var(--w-muted)">'+((x.cats||[]).map(W.esc).join(', '))+'</span>'})+'</div>';
     h+='<div class="w-card" style="margin-top:14px"><h3>📝 Duplicados por escritura (mayúsculas/acentos/plural)</h3>'+W.crList((iss.duplicates||{}).samples||[],function(x){return 'nivel '+x.level+': '+((x.variants||[]).map(W.esc).join(' · '))})+'</div>';
