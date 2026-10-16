@@ -72,6 +72,7 @@ class MegaMenuService
             }
 
             $types = [];   // L2 por product_type
+            $typeImg = [];
             $brands = [];  // L3 por vendor (agregado)
             $models = [];  // L4/L5 por tags estructurados
             $prices = [];
@@ -79,7 +80,7 @@ class MegaMenuService
 
             foreach ($mine as $p) {
                 $t = trim((string)($p['product_type'] ?? ''));
-                if ($t !== '') $types[$t] = ($types[$t] ?? 0) + 1;
+                if ($t !== '') { $types[$t] = ($types[$t] ?? 0) + 1; if (empty($typeImg[$t])) { $im = $this->img($p); if ($im !== '') $typeImg[$t] = $im; } }
                 $v = trim((string)($p['vendor'] ?? ''));
                 if ($v !== '') $brands[$v] = ($brands[$v] ?? 0) + 1;
 
@@ -98,7 +99,7 @@ class MegaMenuService
             arsort($types); arsort($brands); arsort($models);
             $typeList = [];
             foreach (array_slice($types, 0, 24, true) as $tn => $cnt) {
-                $typeList[] = ['name' => $tn, 'count' => (int)$cnt, 'url' => $catUrl . '&tipo=' . urlencode($tn)];
+                $typeList[] = ['name' => $tn, 'count' => (int)$cnt, 'url' => $catUrl . '&tipo=' . urlencode($tn), 'thumb' => (string)($typeImg[$tn] ?? '')];
             }
             $brandList = [];
             foreach (array_slice($brands, 0, 24, true) as $bn => $cnt) {
