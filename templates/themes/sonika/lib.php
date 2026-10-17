@@ -853,26 +853,7 @@ if (!function_exists('sonika_site_footer')) {
     function sonika_site_footer(): void {
         ?>
 </main>
-<footer class="site">
-  <div class="wrap">
-    <div class="fgrid">
-      <div>
-        <a class="logo" href="/" style="color:#fff"><?php $lg = wwi_logo_img(120); if ($lg !== '') { echo str_replace('display:block', 'display:block;filter:brightness(0) invert(1)', $lg); } else { echo '<span class="mark">S</span>SONIKA'; } ?></a>
-        <p style="margin-top:14px;font-size:13px;line-height:1.6;max-width:300px"><?= sonika_esc((string)wwi_tc('sonika', 'footer_about', 'Instrumentos musicales, audio e iluminación profesional. Sonido de alto nivel para músicos, estudios y eventos.')) ?></p>
-        <?php $phone = (string)wwi_tc('sonika', 'contact_phone', ''); $mail = (string)wwi_tc('sonika', 'contact_email', ''); if ($phone !== '' || $mail !== ''): ?>
-        <p style="margin-top:10px;font-size:13px;line-height:1.7">
-          <?php if ($phone !== ''): ?><span>&#128222; <?= sonika_esc($phone) ?></span><br><?php endif; ?>
-          <?php if ($mail !== ''): ?><span>&#9993; <?= sonika_esc($mail) ?></span><?php endif; ?>
-        </p>
-        <?php endif; ?>
-      </div>
-      <?php $footCols = ['footer_shop' => 'Tienda', 'footer_help' => 'Ayuda', 'footer_legal' => 'Legal']; foreach ($footCols as $loc => $title): $items = wwi_nav($loc); ?>
-      <div><h4><?= sonika_esc($title) ?></h4><?php foreach ($items as $it): ?><a href="<?= sonika_esc($it['url']) ?>"><?= sonika_esc($it['label']) ?></a><?php endforeach; ?></div>
-      <?php endforeach; ?>
-    </div>
-    <div class="fbot">© <?= date('Y') ?> <?= sonika_esc(wwi_site_name('SONIKA')) ?> · Todos los derechos reservados.</div>
-  </div>
-</footer>
+<?php echo \App\Widgets\WidgetRegistry::render('sonika-footer', []); ?>
 <?= CookieConsentService::render() ?>
 <script><?= sonika_js() ?></script>
 </body>
