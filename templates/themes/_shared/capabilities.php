@@ -31,6 +31,6 @@ if (!function_exists('wwi_cap_notice')) {
 }
 if (!function_exists('wwi_cap_css')) {
     function wwi_cap_css(): string {
-        return '.wwi-cap-notice{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:9500;max-width:min(92vw,560px);background:#111;color:#fff;border-radius:12px;padding:10px 14px;font-size:12.5px;line-height:1.45;box-shadow:0 12px 34px rgba(0,0,0,.3);display:flex;gap:8px;align-items:center}.wwi-cap-notice__d{color:#ffd9db}.wwi-cap-notice__x{border:0;background:transparent;color:#fff;cursor:pointer;font-size:14px;line-height:1}html[data-data="save"] .wwi-cap-heavy{display:none!important}';
+        return '[hidden]{display:none!important}.wwi-cap-notice{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:9500;max-width:min(92vw,560px);background:#111;color:#fff;border-radius:12px;padding:10px 14px;font-size:12.5px;line-height:1.45;box-shadow:0 12px 34px rgba(0,0,0,.3);display:flex;gap:8px;align-items:center}.wwi-cap-notice__d{color:#ffd9db}.wwi-cap-notice__x{border:0;background:transparent;color:#fff;cursor:pointer;font-size:14px;line-height:1}html[data-data="save"] .wwi-cap-heavy{display:none!important}';
     }
 }
