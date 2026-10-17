@@ -219,3 +219,16 @@ code { background: var(--wm-surface-2); padding: 1px 6px; border-radius: 6px; fo
   .wm-float-tia, .wm-float-pro, .wm-float-dir, .wm-float-appt { left: auto; right: auto; top: auto; bottom: auto; }
 }
 @media (max-width: 720px) { .wm-hamburger { display: flex; } }
+
+.wm-hero2-accent { color: var(--wm-tia); }
+
+.wm-how-head { max-width: 720px; margin-bottom: 24px; }
+.wm-how-head h2 { margin: 10px 0 8px; font-size: clamp(1.5rem, 2.6vw, 2.1rem); }
+.wm-steps { list-style: none; padding: 0; margin: 0 0 24px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.wm-step { background: var(--wm-surface); border: 1px solid var(--wm-border); border-radius: var(--wm-radius); padding: 18px; }
+.wm-step h3 { margin: 10px 0 6px; font-size: 1rem; }
+.wm-step p { margin: 0; font-size: 0.88rem; color: var(--wm-muted); }
+.wm-step-num { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 9px; background: var(--wm-primary-soft); color: var(--wm-primary-strong); font-weight: 800; }
+.wm-how-cta { display: flex; gap: 12px; flex-wrap: wrap; }
+@media (max-width: 1023px) { .wm-steps { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 560px) { .wm-steps { grid-template-columns: 1fr; } .wm-how-cta .wm-btn { width: 100%; text-align: center; } }

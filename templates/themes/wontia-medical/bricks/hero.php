@@ -1,6 +1,12 @@
 <?php
 $badge = trim((string) medical_tc('hero_badge', 'Salud digital · impulsada por TIA'));
 $title = (string) medical_tc('hero_title', 'Tu salud, conectada de una forma mas inteligente.');
+$titleWords = preg_split('/\s+/', trim($title)) ?: [];
+$titleHtml = htmlspecialchars($title);
+if (count($titleWords) > 1) {
+    $lastWord = array_pop($titleWords);
+    $titleHtml = htmlspecialchars(implode(' ', $titleWords)) . ' <span class="wm-hero2-accent">' . htmlspecialchars($lastWord) . '</span>';
+}
 $subtitle = trim((string) medical_tc('hero_subtitle', 'Encuentra profesionales, agenda tu consulta, accede a servicios de bienestar y recibe el apoyo de TIA, todo en un solo lugar.'));
 $cta1 = (string) medical_tc('hero_cta_label', 'Comenzar ahora');
 $cta1Url = (string) medical_tc('hero_cta_url', '/perfil');
@@ -29,7 +35,7 @@ $apptNote = (string) medical_tc('card_appt_note', 'Vista previa · sin datos rea
   <div class="wm-hero2-grid">
     <div class="wm-hero2-copy">
       <?php if ($badge !== ''): ?><span class="wm-hero2-badge"><?= htmlspecialchars($badge) ?></span><?php endif; ?>
-      <h1 class="wm-hero2-title"><?= htmlspecialchars($title) ?></h1>
+      <h1 class="wm-hero2-title"><?= $titleHtml ?></h1>
       <?php if ($subtitle !== ''): ?><p class="wm-hero2-lead"><?= htmlspecialchars($subtitle) ?></p><?php endif; ?>
       <div class="wm-hero2-cta">
         <a class="wm-btn" href="<?= htmlspecialchars($cta1Url) ?>"><?= htmlspecialchars($cta1) ?></a>
