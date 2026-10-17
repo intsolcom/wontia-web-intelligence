@@ -334,26 +334,25 @@ if (!function_exists('sonika_image_audit')) {
 if (!function_exists('sonika_category_images')) {
     /** Lista de imágenes de la categoría: config (varias por slug) o la mejor del catálogo según el auditor. */
     function sonika_category_images(string $slug, int $w = 700): array {
-        $out = [];
+        $cfg = [];
         $rows = function_exists('wwi_tc') ? (array)wwi_tc('sonika', 'home_cat_images', []) : [];
         foreach ($rows as $r) {
             if (!is_array($r) || strtolower(trim((string)($r['slug'] ?? ''))) !== strtolower($slug)) continue;
             $v = trim((string)($r['image'] ?? ''));
             if ($v === '') continue;
-            if (str_starts_with($v, 'http') || str_starts_with($v, '/')) { $out[] = $v; continue; }
+            if (str_starts_with($v, 'http') || str_starts_with($v, '/')) { $cfg[] = $v; continue; }
             $p = function_exists('sonika_find') ? sonika_find($v) : null;
-            if ($p) { $u = sonika_img($p, $w); if ($u !== '') $out[] = $u; }
+            if ($p) { $u = sonika_img($p, $w); if ($u !== '') $cfg[] = $u; }
         }
-        if ($out) return array_values(array_unique($out));
-        $min = (int)(function_exists('wwi_tc') ? wwi_tc('sonika', 'home_cat_quality', 55) : 55);
-        $best = ''; $bestScore = -1;
-        foreach (sonika_category_products($slug) as $p) {
-            $u = sonika_img($p, $w);
-            if ($u === '') continue;
-            $s = sonika_image_audit($u);
-            if ($s > $bestScore) { $bestScore = $s; $best = $u; }
+        $cat = [];
+        foreach (sonika_category_products($slug) as $p) { $u = sonika_img($p, $w); if ($u === '') continue; $cat[] = $u; if (count($cat) >= 6) break; }
+        if (!$cfg && $cat) {
+            $min = (int)(function_exists('wwi_tc') ? wwi_tc('sonika', 'home_cat_quality', 55) : 55);
+            $best = ''; $bs = -1;
+            foreach ($cat as $u) { $s = sonika_image_audit($u); if ($s > $bs) { $bs = $s; $best = $u; } }
+            if ($best !== '' && $bs >= $min) $cfg = [$best];
         }
-        return $best !== '' && $bestScore >= $min ? [$best] : ($best !== '' ? [$best] : []);
+        return array_values(array_unique(array_merge($cfg, $cat)));
     }
 }
 if (!function_exists('sonika_category_badges')) {
