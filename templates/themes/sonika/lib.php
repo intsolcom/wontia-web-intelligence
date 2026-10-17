@@ -658,8 +658,22 @@ if (!function_exists('sonika_related')) {
 if (!function_exists('sonika_logo_tag')) {
     function sonika_logo_tag(): string {
         $img = wwi_logo_img(150);
-        if ($img !== '') return $img;
         $root = defined('ROOT_DIR') ? ROOT_DIR : dirname(__DIR__, 3);
+        if ($img !== '' && is_file($root . '/public/assets/themes/sonika/logo-s.png') && is_file($root . '/public/assets/themes/sonika/logo-nika.png')) {
+            $b = wwi_brand();
+            $h = max(12, min(150, (int)($b['logo_height'] ?: 100)));
+            $ow = round($h * 155 / 288, 2);
+            $specs = [[0, 35.8, 15.3, 20.1], [19.7, 27.8, 15.3, 35.8], [40.1, 18.4, 17.8, 53.8], [63.1, 27.8, 15.3, 35.8], [83.4, 35.8, 15.3, 20.5]];
+            $bars = '';
+            foreach ($specs as $sp) $bars .= '<i style="left:' . $sp[0] . '%;top:' . $sp[1] . '%;width:' . $sp[2] . '%;height:' . $sp[3] . '%"></i>';
+            return '<style>.sonika-logo{display:inline-flex;align-items:center;height:' . $h . 'px}.sonika-logo img{height:100%;width:auto;display:block}.sonika-logo .sl-o{position:relative;height:100%;width:' . $ow . 'px}.sonika-logo .sl-o i{position:absolute;background:var(--brand,#F20D16);border-radius:2px;transform-origin:center;animation:logoEq 2.6s ease-in-out infinite}.sonika-logo .sl-o i:nth-child(2){animation-delay:.25s}.sonika-logo .sl-o i:nth-child(3){animation-delay:.5s}.sonika-logo .sl-o i:nth-child(4){animation-delay:.25s}.sonika-logo .sl-o i:nth-child(5){animation-delay:.7s}.sonika-logo:hover .sl-o i{animation-duration:1.1s}@keyframes logoEq{0%,100%{transform:scaleY(1)}50%{transform:scaleY(1.14)}}@media(prefers-reduced-motion:reduce){.sonika-logo .sl-o i{animation:none}}</style>'
+                . '<span class="sonika-logo" role="img" aria-label="SONIKA">'
+                . '<img src="/assets/themes/sonika/logo-s.png" alt="">'
+                . '<span class="sl-o" aria-hidden="true">' . $bars . '</span>'
+                . '<img src="/assets/themes/sonika/logo-nika.png" alt="">'
+                . '</span>';
+        }
+        if ($img !== '') return $img;
         if (is_file($root . '/public/assets/themes/sonika/logo-transparent.png')) {
             return '<img class="logo-img" src="/assets/themes/sonika/logo-transparent.png" alt="SONIKA" />';
         }
