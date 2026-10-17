@@ -43,6 +43,32 @@ if (!function_exists('sonika_pager')) {
 $path = trim((string)$uri, '/');
 $segments = $path === '' ? [] : explode('/', $path);
 
+if (($segments[0] ?? '') === 'politicas') {
+    $pol = [
+        'pagos' => 'Política de pagos en línea',
+        'devoluciones' => 'Política de Devoluciones, Retracto y Garantía',
+        'envios' => 'Política de Envíos',
+        'privacidad' => 'Política de Privacidad y Tratamiento de Datos Personales',
+        'terminos' => 'Términos y Condiciones del Servicio',
+        'promociones' => 'Información sobre Promociones',
+        'pqrs' => 'PQRS — Peticiones, Quejas, Reclamos y Sugerencias',
+    ];
+    sonika_site_head('Políticas — SONIKA', 'Políticas, términos y condiciones de SONIKA.');
+    sonika_breadcrumb(['Políticas' => null]);
+    echo '<section class="pad wrap" style="max-width:900px">';
+    echo '<div class="head"><h1>Políticas y condiciones</h1></div>';
+    echo '<p style="display:inline-block;background:#fff5f5;color:#b00;border:1px solid #f3c2c2;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;margin-bottom:18px">BORRADOR — contenido pendiente de revisión legal</p>';
+    echo '<p style="color:#777;margin-bottom:10px">Los textos definitivos de cada política serán publicados tras la revisión legal correspondiente. Este es el índice de políticas en preparación.</p>';
+    echo '<div style="line-height:1.8">';
+    foreach ($pol as $slug => $title) {
+        echo '<h2 id="' . $slug . '" style="font-size:18px;margin:28px 0 8px">' . sonika_esc($title) . '</h2>';
+        echo '<p style="color:#999">Contenido en preparación.</p>';
+    }
+    echo '</div></section>';
+    sonika_site_footer();
+    return true;
+}
+
 if (($segments[0] ?? '') === 'producto' && !empty($segments[1])) {
     $product = sonika_find($segments[1]);
     if ($product) {
