@@ -495,6 +495,8 @@ class MegaMenuWidget extends Widget
 .mn-overlay.is-open{opacity:1}
 .mn-drawer{position:fixed;top:0;left:0;bottom:0;display:flex;transform:translateX(-100%);transition:transform var(--mn-ms,200ms) cubic-bezier(.22,.61,.36,1);z-index:9010;max-width:100vw}
 .mn-drawer.is-open{transform:translateX(0)}
+.mn-drawer[hidden]{display:none}
+.mn-overlay[hidden]{display:none}
 .mn-side{width:var(--mn-w,300px);max-width:86vw;background:#fff;border-right:1px solid var(--line,#E6E6E6);display:flex;flex-direction:column;min-height:0}
 .mn-side__head{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid var(--line,#EEE)}
 .mn-side__hello{font-family:Sora,sans-serif;font-weight:800;font-size:18px}
