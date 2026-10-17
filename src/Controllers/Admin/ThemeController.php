@@ -22,6 +22,14 @@ class ThemeController
         }
     }
 
+    /** Configuración simple del tema (colores, categorías, imágenes, textos): admin/editor permitidos. */
+    private function requireThemeEditor(): void
+    {
+        if (!in_array((string)Session::userRole(), ['superadmin', 'admin', 'editor'], true)) {
+            Response::error('No tienes permiso para configurar el tema.', 403);
+        }
+    }
+
     private function actor(): string
     {
         $u = Session::user() ?: [];
@@ -98,14 +106,14 @@ class ThemeController
 
     public function config(Request $req, string $slug): void
     {
-        $this->requireSuperadmin();
+        $this->requireThemeEditor();
         $schema = ThemeConfig::schema($slug);
         Response::json(['ok' => true, 'data' => ['slug' => $slug, 'schema' => $schema, 'values' => ThemeConfig::all($slug)]]);
     }
 
     public function saveConfig(Request $req, string $slug): void
     {
-        $this->requireSuperadmin();
+        $this->requireThemeEditor();
         $values = $req->input('values', []);
         if (!is_array($values)) $values = [];
         ThemeConfig::save($slug, $values);
