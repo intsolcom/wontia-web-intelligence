@@ -188,6 +188,7 @@ switch ($segments[0] ?? '') {
                 ];
             }, $res);
             header('Content-Type: application/json; charset=utf-8');
+            header('Cache-Control: no-store');
             echo json_encode(['q' => $q, 'results' => $out], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
             return true;
         }
@@ -203,6 +204,7 @@ switch ($segments[0] ?? '') {
             sonika_pager($pg['total'], $pg['perPage'], $pg['page'], '/buscar?' . http_build_query($__qs));
             $pager = ob_get_clean();
             header('Content-Type: application/json; charset=utf-8');
+            header('Cache-Control: no-store');
             echo json_encode(['ok' => true, 'count' => (int)$pg['total'], 'html' => $items . $pager, 'items' => $items, 'page' => (int)$pg['page'], 'pages' => $pages, 'has_more' => (int)$pg['page'] < $pages], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
             return true;
         }
