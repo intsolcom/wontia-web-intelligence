@@ -869,7 +869,7 @@ if (!function_exists('sonika_css')) {
         body{font-family:var(--font-body);color:var(--ink);background:#fff;-webkit-font-smoothing:antialiased}
         a{color:inherit;text-decoration:none}
         .wrap{max-width:1180px;margin:0 auto;padding:0 22px}
-        .topbar{position:relative;isolation:isolate;width:100%;min-width:0;box-sizing:border-box;background:#ed101b;color:#fff;overflow:hidden}
+        .topbar{position:relative;isolation:isolate;width:100%;min-width:0;box-sizing:border-box;background:#ed101b!important;color:#fff;overflow:hidden}
 .topbar__inner{display:grid;grid-template-columns:minmax(145px,.8fr) minmax(0,2.4fr) minmax(160px,.8fr);align-items:center;gap:20px;min-height:54px;padding:10px clamp(20px,4.8vw,72px);line-height:1.35;font-family:inherit}
 .topbar__benefit{min-width:0;justify-self:start;display:inline-flex;align-items:center;gap:8px;color:#fff;font-size:11px;font-weight:800;letter-spacing:.075em;line-height:1.3;text-transform:uppercase}
 .topbar__benefit svg{flex:0 0 auto;width:15px;height:15px;color:#fff}
