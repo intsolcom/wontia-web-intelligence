@@ -277,6 +277,21 @@ if (!function_exists('sonika_category_image')) {
         return '';
     }
 }
+if (!function_exists('sonika_category_badges')) {
+    /** Badges de la categoría: NUEVO (producto reciente) y OFERTA (descuento). */
+    function sonika_category_badges(string $slug): array {
+        $new = false; $offer = false; $now = time();
+        foreach (sonika_category_products($slug) as $p) {
+            $pa = (string)($p['published_at'] ?? '');
+            $ts = $pa !== '' ? (int)strtotime($pa) : 0;
+            if ($ts && ($now - $ts) <= 90 * 86400) $new = true;
+            $cmp = sonika_compare($p); $pr = sonika_price($p);
+            if ($cmp > $pr && $pr > 0) $offer = true;
+            if ($new && $offer) break;
+        }
+        return ['new' => $new, 'offer' => $offer];
+    }
+}
 if (!function_exists('sonika_subcategories')) {
     /** Subcategorías AUTOMÁTICAS: se derivan del catálogo (product_type), opcionalmente dentro de una categoría. */
     function sonika_subcategories(?string $catSlug = null): array {
@@ -820,6 +835,10 @@ if (!function_exists('sonika_css')) {
         .cat__ttl{font-family:var(--font-display,Sora),sans-serif;font-size:20px;font-weight:800;line-height:1.1}
         .cat__arrow{position:absolute;top:12px;right:12px;z-index:3;width:34px;height:34px;border-radius:50%;background:var(--brand,#F20D16);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;transition:transform .2s ease}
         .cat:hover .cat__arrow,.cat:focus-visible .cat__arrow{transform:translateX(2px)}
+        .cat__badge{position:absolute;top:12px;left:12px;z-index:3;font-size:10px;font-weight:800;letter-spacing:.05em;padding:3px 8px;border-radius:6px;text-transform:uppercase}
+        .cat__badge--new{background:#111;color:#fff}
+        .cat__badge--off{background:var(--brand,#F20D16);color:#fff}
+        .cat__badge--new + .cat__badge--off{left:auto;right:12px;top:52px}
         @media(prefers-reduced-motion:reduce){.cat,.cat__img,.cat__arrow{transition:none}}
         .prod-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
         .card{border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;background:#fff;display:flex;flex-direction:column;transition:transform .2s,box-shadow .2s}

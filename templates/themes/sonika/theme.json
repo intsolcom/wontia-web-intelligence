@@ -50,6 +50,10 @@
         ] },
         { "key": "_h_cats", "label": "Categorías destacadas", "type": "heading" },
         { "key": "home_categories", "label": "Slugs de categorías (separados por coma)", "type": "text", "default": "guitarras,acordeon,amplificadores,pianos,percusion,cuerdas-guitarras" },
+        { "key": "home_cat_subs", "label": "Subtítulos por categoría", "type": "repeater", "default": [], "fields": [
+          { "key": "slug", "label": "Categoría (slug)", "type": "text" },
+          { "key": "subtitle", "label": "Subtítulo", "type": "text" }
+        ] },
         { "key": "_h_cards", "label": "Tarjetas de producto", "type": "heading" },
         { "key": "card_add_label", "label": "Texto del botón 'Agregar' en tarjetas", "type": "text", "default": "Agregar" },
         { "key": "_h_footer", "label": "Footer / contacto", "type": "heading" },
