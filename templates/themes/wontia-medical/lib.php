@@ -170,8 +170,28 @@ if (!function_exists('medical_page_start')) {
   </nav>
   <div class="wm-nav-actions">
     <a class="wm-btn wm-btn-ghost" href="/perfil">Mi cuenta</a>
+    <button type="button" class="wm-hamburger" id="wm-hamburger" aria-label="Menu" aria-expanded="false" aria-controls="wm-mobile-nav">
+      <span></span><span></span><span></span>
+    </button>
   </div>
 </header>
+<nav id="wm-mobile-nav" class="wm-mobile-nav" aria-label="Navegacion movil">
+  <?php foreach (medical_nav_items() as $item): ?>
+    <a href="<?= htmlspecialchars($item['url']) ?>"><?= htmlspecialchars($item['label']) ?></a>
+  <?php endforeach; ?>
+  <a href="/perfil">Mi cuenta</a>
+</nav>
+<script>
+(function () {
+  var btn = document.getElementById('wm-hamburger');
+  var nav = document.getElementById('wm-mobile-nav');
+  if (!btn || !nav) return;
+  btn.addEventListener('click', function () {
+    var open = nav.classList.toggle('open');
+    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  });
+})();
+</script>
 <main class="wm-main">
 <?php
     }
