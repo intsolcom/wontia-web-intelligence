@@ -724,12 +724,18 @@ if (!function_exists('sonika_site_head')) {
           $__st .= 'background:' . $__bg . ';';
       }
       echo ' style="' . $__st . '"';
-      ?>><span class="topbar__msg"><?php
+      ?>><div class="topbar__inner"><span class="topbar__benefit"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="1" y="6" width="13" height="10" rx="1"/><path d="M14 9h4l3 3v4h-7z"/><circle cx="5.5" cy="18.5" r="2"/><circle cx="17.5" cy="18.5" r="2"/></svg><span>BENEFICIO SONIKA</span></span><span class="topbar__msg"><?php
       $__bnCfg['bare'] = true;
       $__bnCfg['dismissible'] = false;
       $__bnCfg['mode'] = 'bar';
       echo \App\Widgets\WidgetRegistry::render('banner', $__bnCfg);
       ?></span><?php
+$__act = ''; $__actL = '';
+foreach ((array)($__bnCfg['items'] ?? []) as $__it) {
+    if (!empty($__it['link'])) { $__act = (string)$__it['link']; $__actL = trim((string)($__it['link_label'] ?? '')) ?: 'Ver más'; break; }
+}
+if ($__act !== '' && preg_match('~^(https?://|/)~i', $__act)):
+?><a class="topbar__act" href="<?= htmlspecialchars($__act, ENT_QUOTES) ?>"><?= sonika_esc($__actL) ?> &rarr;</a><?php endif; ?></div><?php
 $__cs = new \App\Services\CurrencyService();
 $__cur = $__cs->currencies();
 if (count($__cur) > 1 && (string)wwi_setting('store_currency_switcher', '') === '1'):
@@ -882,7 +888,16 @@ if (!function_exists('sonika_css')) {
         body{font-family:var(--font-body);color:var(--ink);background:#fff;-webkit-font-smoothing:antialiased}
         a{color:inherit;text-decoration:none}
         .wrap{max-width:1180px;margin:0 auto;padding:0 22px}
-        .topbar{background:#111111;color:#fff;font-size:12.5px;text-align:center;padding:8px 12px;font-weight:600;letter-spacing:.01em}
+        .topbar{background:#0e0e0e;color:#fff;font-size:13px;font-weight:600;letter-spacing:.01em;border-bottom:1px solid rgba(255,255,255,.06)}
+.topbar__inner{max-width:1440px;margin:0 auto;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:20px;padding:0 24px;min-height:56px}
+.topbar__benefit{display:inline-flex;align-items:center;gap:8px;font-size:11px;font-weight:800;letter-spacing:.08em;white-space:nowrap;text-transform:uppercase}
+.topbar__benefit svg{color:#F20D16;flex:none}
+.topbar__msg{text-align:center;min-width:0}
+.topbar__msg .wwi-bn{font-size:14px;font-weight:700;color:#fff}
+.topbar__msg .wwi-bn__cta{display:none}
+.topbar__act{font-size:13px;font-weight:700;color:#fff;text-decoration:none;white-space:nowrap}
+.topbar__act:hover,.topbar__act:focus-visible{color:#F20D16}
+@media(max-width:900px){.topbar__inner{grid-template-columns:1fr;gap:2px;padding:8px 14px;min-height:0}.topbar__benefit,.topbar__act{display:none}}
         header.site{position:sticky;top:0;z-index:80;background:rgba(255,255,255,.92);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
         .nav{display:flex;align-items:center;gap:20px;padding:14px 0}
         .logo{display:flex;align-items:center;gap:10px;font-family:var(--font-display);font-weight:800;font-size:21px;letter-spacing:-.02em}
@@ -1019,7 +1034,7 @@ if (!function_exists('sonika_css')) {
         .icon-btn{width:auto;padding:0 12px;gap:7px}
         .icon-btn .lbl{font-size:13px;font-weight:600}
         @media(max-width:960px){.hero-in,.pdp,.cart-wrap{grid-template-columns:1fr}.cat-grid,.prod-grid{grid-template-columns:repeat(2,1fr)}.fgrid{grid-template-columns:1fr 1fr}.summary{position:static}}
-        @media(max-width:600px){.hero h1{font-size:34px}.nav{flex-wrap:wrap}.search{order:9;flex-basis:100%;margin-top:8px}.icon-btn .lbl{display:none}.cat-grid,.prod-grid{grid-template-columns:repeat(2,1fr);gap:12px}.topbar{font-size:11px}}
+        @media(max-width:600px){.hero h1{font-size:34px}.nav{flex-wrap:wrap}.search{order:9;flex-basis:100%;margin-top:8px}.icon-btn .lbl{display:none}.cat-grid,.prod-grid{grid-template-columns:repeat(2,1fr);gap:12px}.topbar__msg .wwi-bn{font-size:12px}}
         .hero{position:relative;overflow:hidden}
         .hero-bg-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;opacity:.4}
         .hero>.wrap{position:relative;z-index:1}
