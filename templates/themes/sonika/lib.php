@@ -472,6 +472,25 @@ if (!function_exists('sonika_search')) {
                 if ($matched) $out[] = $p;
             }
         }
+        usort($out, function ($a, $b) use ($terms) {
+            $score = function (array $p) use ($terms): int {
+                $t = mb_strtolower((string)($p['title'] ?? ''));
+                $ty = mb_strtolower((string)($p['product_type'] ?? ''));
+                $acc = ['accesorio', 'amplificador', 'sonido', 'forro', 'funda', 'correa', 'cable', 'adaptador', 'stand', 'soporte', 'pedal', 'estuche', 'atril', 'clavijero', 'capodastro', 'baqueta', 'herraje', 'repuesto'];
+                $isAcc = false;
+                foreach ($acc as $x) { if (str_contains($ty, $x) || str_contains($t, $x)) { $isAcc = true; break; } }
+                $s = 0;
+                foreach ($terms as $w) {
+                    if ($w === '') continue;
+                    if (str_contains($ty, $w)) $s += 5;
+                    if (str_starts_with($t, $w)) $s += 4;
+                    elseif (str_contains($t, $w)) $s += 1;
+                }
+                if ($isAcc) $s -= 4;
+                return $s;
+            };
+            return $score($b) <=> $score($a);
+        });
         return $out;
     }
 }
