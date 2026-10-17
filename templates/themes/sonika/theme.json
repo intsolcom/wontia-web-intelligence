@@ -54,9 +54,13 @@
           { "key": "slug", "label": "Categoría (slug)", "type": "text" },
           { "key": "subtitle", "label": "Subtítulo", "type": "text" }
         ] },
-        { "key": "home_cat_images", "label": "Imágenes por categoría (slug → handle del producto o URL)", "type": "repeater", "default": [], "fields": [
+        { "key": "home_cat_cols", "label": "Categorías por fila (1–6)", "type": "number", "default": 3 },
+        { "key": "home_cat_images_mode", "label": "Imágenes de categoría", "type": "select", "options": { "static": "Fija", "interval": "Rotar cada N segundos", "refresh": "Aleatoria en cada carga" }, "default": "static" },
+        { "key": "home_cat_images_interval", "label": "Intervalo de rotación (segundos)", "type": "number", "default": 6 },
+        { "key": "home_cat_quality", "label": "Calidad mínima del auditor (0–100)", "type": "number", "default": 55 },
+        { "key": "home_cat_images", "label": "Imágenes por categoría (slug → Media/URL o handle del catálogo · varias filas = rotación)", "type": "repeater", "default": [], "fields": [
           { "key": "slug", "label": "Categoría (slug)", "type": "text" },
-          { "key": "image", "label": "Handle del producto o URL", "type": "text" }
+          { "key": "image", "label": "Imagen (Media/URL) o handle del catálogo", "type": "image" }
         ] },
         { "key": "_h_cards", "label": "Tarjetas de producto", "type": "heading" },
         { "key": "card_add_label", "label": "Texto del botón 'Agregar' en tarjetas", "type": "text", "default": "Agregar" },

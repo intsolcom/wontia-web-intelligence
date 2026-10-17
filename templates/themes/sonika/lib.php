@@ -273,17 +273,87 @@ if (!function_exists('sonika_icon')) {
 if (!function_exists('sonika_category_image')) {
     /** Imagen representativa de la categoría: config (slug → handle/URL) o primer producto con foto. */
     function sonika_category_image(string $slug, int $w = 700): string {
-        $map = [];
-        $rows = function_exists('wwi_tc') ? (array)wwi_tc('sonika', 'home_cat_images', []) : [];
-        foreach ($rows as $r) { if (is_array($r) && !empty($r['slug']) && !empty($r['image'])) $map[strtolower(trim((string)$r['slug']))] = trim((string)$r['image']); }
-        $val = $map[strtolower($slug)] ?? '';
-        if ($val !== '') {
-            if (str_starts_with($val, 'http') || str_starts_with($val, '/')) return $val;
-            $p = function_exists('sonika_find') ? sonika_find($val) : null;
-            if ($p) { $u = sonika_img($p, $w); if ($u !== '') return $u; }
+        $imgs = sonika_category_images($slug, $w);
+        return $imgs[0] ?? '';
+    }
+}
+if (!function_exists('sonika_image_audit')) {
+    /** Auditor de calidad de imagen (0–100): resolución + fondo blanco en bordes. Cacheado en disco. */
+    function sonika_image_audit(string $url): int {
+        $url = trim($url);
+        if ($url === '') return 0;
+        static $cache = null;
+        $f = dirname(__DIR__, 3) . '/public/assets/uploads/_catalog/img_audit.json';
+        if ($cache === null) {
+            $j = is_file($f) ? json_decode((string)@file_get_contents($f), true) : null;
+            $cache = is_array($j) ? $j : [];
         }
-        foreach (sonika_category_products($slug) as $p) { $u = sonika_img($p, $w); if ($u !== '') return $u; }
-        return '';
+        $key = md5($url);
+        if (isset($cache[$key])) return (int)$cache[$key];
+        $score = 0;
+        $bin = @file_get_contents($url, false, stream_context_create(['http' => ['timeout' => 8, 'header' => "User-Agent: Mozilla/5.0\r\n"]]));
+        if ($bin !== false) {
+            $tmp = tempnam(sys_get_temp_dir(), 'img');
+            if ($tmp !== false) {
+                @file_put_contents($tmp, $bin);
+                $i = @getimagesize($tmp);
+                if ($i) {
+                    $w = (int)$i[0];
+                    $score += $w >= 1200 ? 30 : ($w >= 800 ? 25 : ($w >= 500 ? 15 : 5));
+                    if (function_exists('imagecreatefromstring')) {
+                        $im = @imagecreatefromstring($bin);
+                        if ($im) {
+                            $pw = imagesx($im); $ph = imagesy($im);
+                            $samples = 0; $white = 0;
+                            $step = max(1, (int)($pw / 24));
+                            for ($x = 0; $x < $pw; $x += $step) {
+                                foreach ([0, $ph - 1] as $y) {
+                                    $c = imagecolorat($im, $x, $y);
+                                    $r = ($c >> 16) & 255; $g = ($c >> 8) & 255; $b = $c & 255;
+                                    $samples++;
+                                    if ($r > 232 && $g > 232 && $b > 232) $white++;
+                                }
+                            }
+                            $ratio = $samples ? $white / $samples : 0;
+                            $score += (int)round($ratio * 55) + 10;
+                            imagedestroy($im);
+                        }
+                    }
+                }
+                @unlink($tmp);
+            }
+        }
+        $score = max(0, min(100, $score));
+        $cache[$key] = $score;
+        $dir = dirname($f);
+        if (!is_dir($dir)) @mkdir($dir, 0777, true);
+        @file_put_contents($f, json_encode($cache, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+        return $score;
+    }
+}
+if (!function_exists('sonika_category_images')) {
+    /** Lista de imágenes de la categoría: config (varias por slug) o la mejor del catálogo según el auditor. */
+    function sonika_category_images(string $slug, int $w = 700): array {
+        $out = [];
+        $rows = function_exists('wwi_tc') ? (array)wwi_tc('sonika', 'home_cat_images', []) : [];
+        foreach ($rows as $r) {
+            if (!is_array($r) || strtolower(trim((string)($r['slug'] ?? ''))) !== strtolower($slug)) continue;
+            $v = trim((string)($r['image'] ?? ''));
+            if ($v === '') continue;
+            if (str_starts_with($v, 'http') || str_starts_with($v, '/')) { $out[] = $v; continue; }
+            $p = function_exists('sonika_find') ? sonika_find($v) : null;
+            if ($p) { $u = sonika_img($p, $w); if ($u !== '') $out[] = $u; }
+        }
+        if ($out) return array_values(array_unique($out));
+        $min = (int)(function_exists('wwi_tc') ? wwi_tc('sonika', 'home_cat_quality', 55) : 55);
+        $best = ''; $bestScore = -1;
+        foreach (sonika_category_products($slug) as $p) {
+            $u = sonika_img($p, $w);
+            if ($u === '') continue;
+            $s = sonika_image_audit($u);
+            if ($s > $bestScore) { $bestScore = $s; $best = $u; }
+        }
+        return $best !== '' && $bestScore >= $min ? [$best] : ($best !== '' ? [$best] : []);
     }
 }
 if (!function_exists('sonika_category_badges')) {
@@ -832,11 +902,11 @@ if (!function_exists('sonika_css')) {
         .head a{color:var(--brand);font-weight:600;font-size:14px}
         .crumb{font-size:13px;color:var(--muted);padding:18px 22px 0;max-width:1180px;margin:0 auto}
         .crumb a:hover{color:var(--brand)}.crumb span{color:#9CA3AF}
-        .cat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+        .cat-grid{display:grid;grid-template-columns:repeat(var(--cat-cols,3),1fr);gap:16px}
         .cat{position:relative;display:block;border-radius:18px;overflow:hidden;background:#111;color:#fff;text-decoration:none;aspect-ratio:3/4;isolation:isolate;box-shadow:0 10px 28px rgba(17,24,39,.10);transition:transform .25s ease,box-shadow .25s ease}
         .cat:hover,.cat:focus-visible{transform:translateY(-4px);box-shadow:0 18px 44px rgba(17,24,39,.18);outline:none}
         .cat:focus-visible{box-shadow:0 0 0 3px rgba(242,13,22,.5),0 18px 44px rgba(17,24,39,.18)}
-        .cat__img{position:absolute;inset:0;z-index:0;width:100%;height:100%;object-fit:cover;transition:transform .6s cubic-bezier(.22,1,.36,1)}
+        .cat__img{position:absolute;inset:0;z-index:0;width:100%;height:100%;object-fit:cover;transition:transform .6s cubic-bezier(.22,1,.36,1),opacity .25s ease}
         .cat:hover .cat__img,.cat:focus-visible .cat__img{transform:scale(1.07)}
         .cat__scrim{position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(10,10,10,0) 32%,rgba(10,10,10,.55) 66%,rgba(10,10,10,.93) 100%)}
         .cat__body{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:16px 18px;display:flex;flex-direction:column;gap:3px}

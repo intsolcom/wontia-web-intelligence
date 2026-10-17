@@ -51,7 +51,7 @@ sonika_site_head('SONIKA — Instrumentos Musicales', 'Compra instrumentos music
 
 <section class="pad wrap" id="categorias">
   <div class="head"><h2>Explora por categoría</h2><a href="/tienda">Ver todo →</a></div>
-  <div class="cat-grid">
+  <div class="cat-grid" style="--cat-cols:<?= max(1, min(6, (int)wwi_tc('sonika', 'home_cat_cols', 3))) ?>">
     <?php
     $catSlugs = array_filter(array_map('trim', explode(',', (string)wwi_tc('sonika', 'home_categories', 'guitarras,acordeon,amplificadores,pianos,percusion,cuerdas-guitarras'))));
     $__subsMap = [];
@@ -61,12 +61,17 @@ sonika_site_head('SONIKA — Instrumentos Musicales', 'Compra instrumentos music
     foreach ($catSlugs as $slug):
         $cat = sonika_category($slug);
         if (!$cat) continue;
-        $cimg = sonika_category_image((string)$cat['slug'], 700);
+        $__imgs = sonika_category_images((string)$cat['slug'], 700);
+        $__mode = (string)wwi_tc('sonika', 'home_cat_images_mode', 'static');
+        $__iv = max(2, (int)wwi_tc('sonika', 'home_cat_images_interval', 6));
+        if ($__mode === 'refresh' && count($__imgs) > 1) { shuffle($__imgs); }
+        $cimg = $__imgs[0] ?? '';
+        $__rotation = ($__mode === 'interval' && count($__imgs) > 1) ? ' data-imgs="' . sonika_esc(json_encode(array_values($__imgs))) . '" data-int="' . ($__iv * 1000) . '"' : '';
         $__sub = $__subsMap[strtolower((string)$cat['slug'])] ?? (string)$cat['tags'];
         $__b = sonika_category_badges((string)$cat['slug']);
     ?>
       <a class="cat" href="/<?= sonika_esc($cat['slug']) ?>">
-        <?php if ($cimg !== ''): ?><img class="cat__img" src="<?= sonika_esc($cimg) ?>" alt="<?= sonika_esc($cat['name']) ?>" loading="lazy" decoding="async"/><?php endif; ?>
+        <?php if ($cimg !== ''): ?><img class="cat__img" src="<?= sonika_esc($cimg) ?>" alt="<?= sonika_esc($cat['name']) ?>"<?= $__rotation ?> loading="lazy" decoding="async"/><?php endif; ?>
         <span class="cat__scrim" aria-hidden="true"></span>
         <?php if ($__b['new']): ?><span class="cat__badge cat__badge--new">NUEVO</span><?php endif; ?>
         <?php if ($__b['offer']): ?><span class="cat__badge cat__badge--off">OFERTA</span><?php endif; ?>
@@ -75,6 +80,7 @@ sonika_site_head('SONIKA — Instrumentos Musicales', 'Compra instrumentos music
       </a>
     <?php endforeach; ?>
   </div>
+  <script>(function(){var imgs=document.querySelectorAll('.cat__img[data-imgs]');if(!imgs.length)return;if(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches)return;imgs.forEach(function(img){var list;try{list=JSON.parse(img.getAttribute('data-imgs'))}catch(e){list=[]}if(list.length<2)return;var i=0,iv=parseInt(img.getAttribute('data-int'),10)||6000;setInterval(function(){i=(i+1)%list.length;img.style.opacity='0';setTimeout(function(){img.src=list[i];img.style.opacity='1'},200)},iv)})})();</script>
 </section>
 
 <section class="pad wrap" id="catalogo">
