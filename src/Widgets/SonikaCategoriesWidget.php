@@ -38,10 +38,12 @@ class SonikaCategoriesWidget extends Widget
             ['key' => 'gap', 'label' => 'Separación (px)', 'type' => 'number', 'default' => '16'],
             ['key' => '_h_layout', 'label' => 'Contenedor y título', 'type' => 'heading'],
             ['key' => 'max_width', 'label' => 'Ancho máximo (px, 0 = todo el ancho)', 'type' => 'number', 'default' => '1180'],
+            ['key' => 'top_space', 'label' => 'Espacio superior (px)', 'type' => 'number', 'default' => '0'],
             ['key' => 'side_pad', 'label' => 'Espacio lateral de seguridad (px)', 'type' => 'number', 'default' => '22'],
             ['key' => 'title_color', 'label' => 'Color del título', 'type' => 'color', 'default' => '#111111'],
             ['key' => 'title_align', 'label' => 'Alineación del título', 'type' => 'select', 'options' => ['left' => 'Izquierda', 'center' => 'Centrado', 'right' => 'Derecha'], 'default' => 'left'],
             ['key' => 'title_size', 'label' => 'Tamaño del título (px)', 'type' => 'number', 'default' => '30'],
+            ['key' => 'top_space', 'label' => 'Espacio superior / separación de la sección anterior (px)', 'type' => 'number', 'default' => '24'],
             ['key' => 'direction', 'label' => 'Dirección del carrusel', 'type' => 'select', 'options' => ['left' => 'Automático hacia la izquierda (avanza)', 'right' => 'Automático hacia la derecha (retrocede)'], 'default' => 'left'],
         ];
     }
@@ -75,9 +77,11 @@ class SonikaCategoriesWidget extends Widget
         $showBadges = !empty($c['show_badges']);
         $maxw = max(0, min(2400, (int)($c['max_width'] ?? 1180)));
         $sidepad = max(0, min(200, (int)($c['side_pad'] ?? 22)));
+        $topSpace = max(0, min(300, (int)($c['top_space'] ?? 0)));
         $titleColor = $this->col((string)($c['title_color'] ?? ''), '#111111');
         $titleAlign = in_array((string)($c['title_align'] ?? 'left'), ['left', 'center', 'right'], true) ? (string)$c['title_align'] : 'left';
         $titleSize = max(12, min(72, (int)($c['title_size'] ?? 30)));
+        $topSpace = max(0, min(240, (int)($c['top_space'] ?? 24)));
         $dir = (string)($c['direction'] ?? 'left') === 'right' ? -1 : 1;
 
         $items = $this->safeJson($c['categories'] ?? []);
@@ -89,13 +93,13 @@ class SonikaCategoriesWidget extends Widget
 
         $uid = 'sc' . substr(md5(uniqid('', true)), 0, 6);
         $h = '<style>'
-            . '.scats{position:relative}'
+            . '.scats{position:relative;padding-top:' . $topSpace . 'px}'
             . '.scats__inner{' . ($maxw > 0 ? 'max-width:' . $maxw . 'px;' : 'max-width:none;') . 'margin:0 auto;padding:0 ' . $sidepad . 'px;box-sizing:border-box}'
             . '.scats__head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:20px}'
             . '.scats__head h2{font-family:var(--font-display,Sora),sans-serif;letter-spacing:-.02em;margin:0;flex:1;text-align:' . $titleAlign . ';color:' . $titleColor . ';font-size:' . $titleSize . 'px}'
             . '.scats__head a{color:' . $accent . ';font-weight:600;font-size:14px;text-decoration:none}'
             . '.scats__wrap{position:relative}'
-            . '.scats__track{display:grid;grid-auto-flow:column;grid-template-rows:repeat(' . $rows . ',minmax(0,1fr));grid-auto-columns:calc((100% - (' . $per . ' - 1)*' . $gap . 'px)/' . $per . ');gap:' . $gap . 'px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-behavior:smooth;padding:2px 2px 8px;scrollbar-width:none;-ms-overflow-style:none}'
+            . '.scats__track{display:grid;grid-auto-flow:column;grid-template-rows:repeat(' . $rows . ',minmax(0,1fr));grid-auto-columns:calc((100% - (' . $per . ' - 1)*' . $gap . 'px)/' . $per . ');gap:' . $gap . 'px;overflow-x:auto;scroll-snap-type:x proximity;scroll-behavior:smooth;padding:2px 2px 8px;scrollbar-width:none;-ms-overflow-style:none}'
             . '.scats__track::-webkit-scrollbar{display:none}'
             . '.sc__card{position:relative;display:block;overflow:hidden;border-radius:' . $radius . 'px;aspect-ratio:' . $aspect . ';scroll-snap-align:start;background:#111;color:#fff;isolation:isolate;text-decoration:none;box-shadow:0 8px 22px rgba(17,24,39,.10);transition:transform .25s ease,box-shadow .25s ease}'
             . '.sc__card:hover,.sc__card:focus-visible{transform:translateY(-4px);box-shadow:0 16px 40px rgba(17,24,39,.18);outline:none}'
@@ -134,36 +138,33 @@ class SonikaCategoriesWidget extends Widget
         $h .= '<div class="scats__track" role="list">';
 
         foreach ($items as $it) {
-            $slug = trim((string)($it['slug'] ?? ''));
-            if ($slug === '' && function_exists('sonika_category')) {
-                $slug = (string)($it['slug'] ?? '');
-            }
-            $label = trim((string)($it['label'] ?? ''));
-            $sub = trim((string)($it['subtitle'] ?? ''));
-            $img = trim((string)($it['image'] ?? ''));
-            if ($img === '' && $slug !== '' && function_exists('sonika_category_images')) {
-                $imgs = sonika_category_images($slug, 700);
-                $img = $imgs[0] ?? '';
-            }
-            if ($img === '' && function_exists('sonika_category')) {
-                $cat = sonika_category($slug);
-                if ($cat) { $label = $label ?: $cat['name']; $sub = $sub ?: $cat['tags']; }
-            }
-            if ($label === '' && $slug === '') continue;
-            $url = $slug !== '' ? '/' . rawurlencode($slug) : '#';
-            $b = ($showBadges && $slug !== '' && function_exists('sonika_category_badges')) ? sonika_category_badges($slug) : ['new' => false, 'offer' => false];
-            $bimg = $img !== '' ? '<img class="sc__img" src="' . $this->esc($img) . '" alt="' . $this->esc($label) . '" loading="lazy" decoding="async"/>' : '';
-            $h .= '<a class="sc__card" role="listitem" href="' . $this->esc($url) . '">'
-                . $bimg . '<span class="sc__scrim" aria-hidden="true"></span>'
-                . ($b['new'] ? '<span class="sc__badge sc__badge--new">NUEVO</span>' : '')
-                . ($b['offer'] ? '<span class="sc__badge sc__badge--off">OFERTA</span>' : '')
-                . '<span class="sc__body">' . ($sub !== '' ? '<span class="sc__kick">' . $this->esc($sub) . '</span>' : '')
-                . '<span class="sc__ttl">' . $this->esc($label) . '</span></span>'
-                . '<span class="sc__arrow" aria-hidden="true">&#8594;</span></a>';
+                $slug = trim((string)($it['slug'] ?? ''));
+                $label = trim((string)($it['label'] ?? ''));
+                $sub = trim((string)($it['subtitle'] ?? ''));
+                $img = trim((string)($it['image'] ?? ''));
+                if ($img === '' && $slug !== '' && function_exists('sonika_category_images')) {
+                    $imgs = sonika_category_images($slug, 700);
+                    $img = $imgs[0] ?? '';
+                }
+                if ($img === '' && function_exists('sonika_category')) {
+                    $cat = sonika_category($slug);
+                    if ($cat) { $label = $label ?: $cat['name']; $sub = $sub ?: $cat['tags']; }
+                }
+                if ($label === '' && $slug === '') continue;
+                $url = $slug !== '' ? '/' . rawurlencode($slug) : '#';
+                $b = ($showBadges && $slug !== '' && function_exists('sonika_category_badges')) ? sonika_category_badges($slug) : ['new' => false, 'offer' => false];
+                $bimg = $img !== '' ? '<img class="sc__img" src="' . $this->esc($img) . '" alt="' . $this->esc($label) . '" loading="lazy" decoding="async"/>' : '';
+                $h .= '<a class="sc__card" role="listitem" href="' . $this->esc($url) . '">'
+                    . $bimg . '<span class="sc__scrim" aria-hidden="true"></span>'
+                    . ($b['new'] ? '<span class="sc__badge sc__badge--new">NUEVO</span>' : '')
+                    . ($b['offer'] ? '<span class="sc__badge sc__badge--off">OFERTA</span>' : '')
+                    . '<span class="sc__body">' . ($sub !== '' ? '<span class="sc__kick">' . $this->esc($sub) . '</span>' : '')
+                    . '<span class="sc__ttl">' . $this->esc($label) . '</span></span>'
+                    . '<span class="sc__arrow" aria-hidden="true">&#8594;</span></a>';
         }
 
         $h .= '</div></div></div>';
-        $h .= '<script>(function(){var el=document.getElementById("' . $uid . '");if(!el||el.getAttribute("data-ready"))return;el.setAttribute("data-ready","1");var t=el.querySelector(".scats__track");if(!t)return;var speed=parseInt(el.getAttribute("data-speed"),10)||6000;var auto=el.getAttribute("data-autoplay")==="1";var pause=el.getAttribute("data-pause")==="1";var dir=parseInt(el.getAttribute("data-dir"),10)||1;var reduce=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;function step(){var c=t.querySelector(".sc__card");var w=c?c.getBoundingClientRect().width+(parseInt(getComputedStyle(t).gap,10)||16):t.clientWidth;return Math.max(1,Math.round(t.clientWidth/w))*w;}var paused=false,timer=null;function go(d){var max=t.scrollWidth-t.clientWidth-2;if(d>0&&t.scrollLeft>=max){t.scrollTo({left:0,behavior:reduce?"auto":"smooth"});return;}if(d<0&&t.scrollLeft<=0){t.scrollTo({left:max,behavior:reduce?"auto":"smooth"});return;}t.scrollBy({left:d*step(),behavior:reduce?"auto":"smooth"});}function stop(){if(timer){clearInterval(timer);timer=null;}}function start(){stop();if(!auto||reduce)return;timer=setInterval(function(){if(!paused)go(dir);},speed);}if(pause){t.addEventListener("mouseenter",function(){paused=true;});t.addEventListener("mouseleave",function(){paused=false;});t.addEventListener("focusin",function(){paused=true;});t.addEventListener("focusout",function(){paused=false;});}var p=el.querySelector(".scats__prev"),n=el.querySelector(".scats__next");if(p)p.addEventListener("click",function(){go(-1);});if(n)n.addEventListener("click",function(){go(1);});start();})();</script>';
+        $h .= '<script>(function(){var el=document.getElementById("' . $uid . '");if(!el||el.getAttribute("data-ready"))return;el.setAttribute("data-ready","1");var t=el.querySelector(".scats__track");if(!t)return;var speed=parseInt(el.getAttribute("data-speed"),10)||6000;var auto=el.getAttribute("data-autoplay")==="1";var pause=el.getAttribute("data-pause")==="1";var dir=parseInt(el.getAttribute("data-dir"),10)||1;var reduce=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;var base=t.scrollWidth;if(base>0){t.insertAdjacentHTML("beforeend",t.innerHTML);t.style.scrollSnapType="none";t.style.scrollBehavior="auto";t.scrollLeft=base;t.style.scrollBehavior="";}var C=base;var last=t.scrollLeft;var paused=false,timer=null;function cardStep(){var c=t.querySelector(".sc__card");if(!c)return Math.max(1,t.clientWidth);var gap=parseInt(getComputedStyle(t).gap,10)||16;return c.getBoundingClientRect().width+gap;}function normalize(){var s=t.scrollLeft;if(s>last+0.5&&s>=C){t.style.scrollBehavior="auto";t.scrollLeft=s-C;t.style.scrollBehavior="";}else if(s<last-0.5&&s<=0.5){t.style.scrollBehavior="auto";t.scrollLeft=s+C;t.style.scrollBehavior="";}last=t.scrollLeft;}function go(d){var max=t.scrollWidth-t.clientWidth;if(max<=4)return;t.scrollBy({left:d*cardStep(),behavior:reduce?"auto":"smooth"});if(reduce){normalize();}else{setTimeout(normalize,420);}}function stop(){if(timer){clearInterval(timer);timer=null;}}function start(){stop();if(!auto||reduce)return;timer=setInterval(function(){if(!paused)go(dir);},speed);}if(pause){t.addEventListener("mouseenter",function(){paused=true;});t.addEventListener("mouseleave",function(){paused=false;});t.addEventListener("focusin",function(){paused=true;});t.addEventListener("focusout",function(){paused=false;});}var p=el.querySelector(".scats__prev"),n=el.querySelector(".scats__next");if(p)p.addEventListener("click",function(){go(-1);});if(n)n.addEventListener("click",function(){go(1);});start();})();</script>';
         $h .= '</section>';
         return $h;
     }
