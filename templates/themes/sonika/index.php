@@ -59,9 +59,11 @@ sonika_site_head('SONIKA — Instrumentos Musicales', 'Compra instrumentos music
         if (!$cat) continue;
     ?>
       <a class="cat" href="/<?= sonika_esc($cat['slug']) ?>">
-        <div class="ic"><?= sonika_icon((string)$cat['icon']) ?></div>
-        <h3><?= sonika_esc($cat['name']) ?></h3>
-        <p><?= sonika_esc($cat['tags']) ?></p>
+        <?php $cimg = sonika_category_image((string)$cat['slug'], 700); ?>
+        <?php if ($cimg !== ''): ?><img class="cat__img" src="<?= sonika_esc($cimg) ?>" alt="<?= sonika_esc($cat['name']) ?>" loading="lazy" decoding="async"/><?php endif; ?>
+        <span class="cat__scrim" aria-hidden="true"></span>
+        <span class="cat__body"><span class="cat__kicker"><?= sonika_esc($cat['tags']) ?></span><span class="cat__ttl"><?= sonika_esc($cat['name']) ?></span></span>
+        <span class="cat__arrow" aria-hidden="true">&#8594;</span>
       </a>
     <?php endforeach; ?>
   </div>
