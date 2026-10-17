@@ -54,6 +54,10 @@
           { "key": "slug", "label": "Categoría (slug)", "type": "text" },
           { "key": "subtitle", "label": "Subtítulo", "type": "text" }
         ] },
+        { "key": "home_cat_images", "label": "Imágenes por categoría (slug → handle del producto o URL)", "type": "repeater", "default": [], "fields": [
+          { "key": "slug", "label": "Categoría (slug)", "type": "text" },
+          { "key": "image", "label": "Handle del producto o URL", "type": "text" }
+        ] },
         { "key": "_h_cards", "label": "Tarjetas de producto", "type": "heading" },
         { "key": "card_add_label", "label": "Texto del botón 'Agregar' en tarjetas", "type": "text", "default": "Agregar" },
         { "key": "_h_footer", "label": "Footer / contacto", "type": "heading" },

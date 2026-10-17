@@ -271,8 +271,17 @@ if (!function_exists('sonika_icon')) {
     }
 }
 if (!function_exists('sonika_category_image')) {
-    /** Imagen representativa de la categoría (primer producto de la categoría con foto). */
+    /** Imagen representativa de la categoría: config (slug → handle/URL) o primer producto con foto. */
     function sonika_category_image(string $slug, int $w = 700): string {
+        $map = [];
+        $rows = function_exists('wwi_tc') ? (array)wwi_tc('sonika', 'home_cat_images', []) : [];
+        foreach ($rows as $r) { if (is_array($r) && !empty($r['slug']) && !empty($r['image'])) $map[strtolower(trim((string)$r['slug']))] = trim((string)$r['image']); }
+        $val = $map[strtolower($slug)] ?? '';
+        if ($val !== '') {
+            if (str_starts_with($val, 'http') || str_starts_with($val, '/')) return $val;
+            $p = function_exists('sonika_find') ? sonika_find($val) : null;
+            if ($p) { $u = sonika_img($p, $w); if ($u !== '') return $u; }
+        }
         foreach (sonika_category_products($slug) as $p) { $u = sonika_img($p, $w); if ($u !== '') return $u; }
         return '';
     }
