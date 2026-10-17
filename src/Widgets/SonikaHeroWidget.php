@@ -73,8 +73,10 @@ class SonikaHeroWidget extends Widget
         if (count($slides) > 1) {
             $h .= '<button type="button" class="sh-nav sh-prev" aria-label="Slide anterior">&#8249;</button>';
             $h .= '<button type="button" class="sh-nav sh-next" aria-label="Slide siguiente">&#8250;</button>';
-            $h .= '<div class="sh-dots" role="tablist">';
-            foreach ($slides as $i => $s) $h .= '<button type="button" class="sh-dot' . ($i === 0 ? ' on' : '') . '" data-i="' . $i . '" role="tab" aria-label="Slide ' . ($i + 1) . '"></button>';
+            $h .= '<div class="sh-eqs" role="tablist" aria-label="Slides">';
+            foreach ($slides as $i => $s) {
+                $h .= '<button type="button" class="sh-eq' . ($i === 0 ? ' on' : '') . '" data-i="' . $i . '" role="tab" aria-label="Slide ' . ($i + 1) . '"><i></i><i></i><i></i><i></i></button>';
+            }
             $h .= '</div>';
         }
         $h .= '</section>';
@@ -531,12 +533,23 @@ html[data-cap="low"] .sh-guitar__strings{display:none}
 .sh-dots{position:absolute;left:0;right:0;bottom:14px;display:flex;gap:8px;justify-content:center;z-index:3}
 .sh-dot{width:9px;height:9px;border-radius:50%;border:0;background:rgba(255,255,255,.4);cursor:pointer}
 .sh-dot.on{background:var(--brand,#F20D16);width:24px;border-radius:999px}
+.sh-eqs{position:absolute;left:0;right:0;bottom:14px;display:flex;gap:12px;justify-content:center;align-items:flex-end;z-index:3}
+.sh-eq{display:inline-flex;align-items:flex-end;gap:2px;height:18px;padding:4px 6px;border:0;background:transparent;cursor:pointer}
+.sh-eq i{display:block;width:3px;height:6px;border-radius:2px;background:rgba(255,255,255,.45);transition:background .2s;transform-origin:bottom}
+.sh-eq:hover i{background:rgba(255,255,255,.8)}
+.sh-eq.on i{background:var(--brand,#F20D16);animation:shEq .9s ease-in-out infinite}
+.sh-eq.on i:nth-child(2){animation-delay:.15s}
+.sh-eq.on i:nth-child(3){animation-delay:.3s}
+.sh-eq.on i:nth-child(4){animation-delay:.45s}
+.sh-eq:focus-visible{outline:2px solid rgba(255,255,255,.8);outline-offset:2px;border-radius:6px}
+@keyframes shEq{0%,100%{height:6px}50%{height:16px}}
+@media(prefers-reduced-motion:reduce){.sh-eq.on i{animation:none;height:12px}}
 @media(max-width:820px){.sh{height:auto}.sh-slide.is-on{position:relative}.sh-grid{grid-template-columns:1fr;padding:22px;gap:16px}.sh{--sh-h:auto}.sh-zone--bleed{margin:0}.sh-video--fill,.sh-video--center{height:auto}.sh-video--fill .sh-video__box{height:auto;min-height:0;aspect-ratio:16/9;border-radius:16px}.sh-video--center .sh-video__box{width:100%;max-width:none;aspect-ratio:16/9}.sh-video--fill .sh-video__box,.sh-video--center .sh-video__box{-webkit-mask-image:none;mask-image:none}}
 @media(prefers-reduced-motion:reduce){.sh-slide{transition:none}}
 </style>
 <script>if(!window.__shInit){window.__shInit=1;document.addEventListener('DOMContentLoaded',function(){
 document.querySelectorAll('.sh').forEach(function(root){
- var slides=root.querySelectorAll('.sh-slide'),dots=root.querySelectorAll('.sh-dot'),i=0,n=slides.length,ap=parseInt(root.getAttribute('data-autoplay')||'0',10),t=null;
+ var slides=root.querySelectorAll('.sh-slide'),dots=root.querySelectorAll('.sh-eq'),i=0,n=slides.length,ap=parseInt(root.getAttribute('data-autoplay')||'0',10),t=null;
  if(n<2)return;
  function go(k){disposeSlide(slides[i]);i=(k+n)%n;slides.forEach(function(s,j){s.classList.toggle('is-on',j===i);s.setAttribute('aria-hidden',j===i?'false':'true')});dots.forEach(function(d,j){d.classList.toggle('on',j===i)});resumeSlide(slides[i])}
  function disposeSlide(el){if(!el)return;el.querySelectorAll('[data-wwi-instrument]').forEach(function(inst){var id=inst.getAttribute('data-wwi-instrument');if(window.WWIInstruments&&WWIInstruments[id]&&WWIInstruments[id].dispose)try{WWIInstruments[id].dispose()}catch(e){}});el.querySelectorAll('video').forEach(function(v){try{v.pause()}catch(e){}});el.querySelectorAll('iframe.sh-video__fr').forEach(function(f){try{if(f.src){f.setAttribute('data-src',f.src);f.removeAttribute('src')}}catch(e){}})}
