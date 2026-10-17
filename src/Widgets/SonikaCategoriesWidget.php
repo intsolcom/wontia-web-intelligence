@@ -36,6 +36,13 @@ class SonikaCategoriesWidget extends Widget
             ['key' => 'accent', 'label' => 'Acento', 'type' => 'color', 'default' => '#F20D16'],
             ['key' => 'show_badges', 'label' => 'Mostrar NUEVO/OFERTA', 'type' => 'toggle', 'default' => true],
             ['key' => 'gap', 'label' => 'Separación (px)', 'type' => 'number', 'default' => '16'],
+            ['key' => '_h_layout', 'label' => 'Contenedor y título', 'type' => 'heading'],
+            ['key' => 'max_width', 'label' => 'Ancho máximo (px, 0 = todo el ancho)', 'type' => 'number', 'default' => '1180'],
+            ['key' => 'side_pad', 'label' => 'Espacio lateral de seguridad (px)', 'type' => 'number', 'default' => '22'],
+            ['key' => 'title_color', 'label' => 'Color del título', 'type' => 'color', 'default' => '#111111'],
+            ['key' => 'title_align', 'label' => 'Alineación del título', 'type' => 'select', 'options' => ['left' => 'Izquierda', 'center' => 'Centrado', 'right' => 'Derecha'], 'default' => 'left'],
+            ['key' => 'title_size', 'label' => 'Tamaño del título (px)', 'type' => 'number', 'default' => '30'],
+            ['key' => 'direction', 'label' => 'Dirección del carrusel', 'type' => 'select', 'options' => ['left' => 'Automático hacia la izquierda (avanza)', 'right' => 'Automático hacia la derecha (retrocede)'], 'default' => 'left'],
         ];
     }
 
@@ -66,19 +73,26 @@ class SonikaCategoriesWidget extends Widget
         $accent = $this->col((string)($c['accent'] ?? ''), '#F20D16');
         $gap = max(0, min(40, (int)($c['gap'] ?? 16)));
         $showBadges = !empty($c['show_badges']);
+        $maxw = max(0, min(2400, (int)($c['max_width'] ?? 1180)));
+        $sidepad = max(0, min(200, (int)($c['side_pad'] ?? 22)));
+        $titleColor = $this->col((string)($c['title_color'] ?? ''), '#111111');
+        $titleAlign = in_array((string)($c['title_align'] ?? 'left'), ['left', 'center', 'right'], true) ? (string)$c['title_align'] : 'left';
+        $titleSize = max(12, min(72, (int)($c['title_size'] ?? 30)));
+        $dir = (string)($c['direction'] ?? 'left') === 'right' ? -1 : 1;
 
         $items = $this->safeJson($c['categories'] ?? []);
         if (!$items && function_exists('sonika_categories')) {
-            foreach (sonika_categories() as $slug => $cat) {
-                $items[] = ['slug' => $slug, 'label' => $cat['name'], 'subtitle' => $cat['tags'], 'image' => ''];
+            foreach (sonika_categories() as $cat) {
+                $items[] = ['slug' => (string)($cat['slug'] ?? ''), 'label' => (string)($cat['name'] ?? ''), 'subtitle' => (string)($cat['tags'] ?? ''), 'image' => ''];
             }
         }
 
         $uid = 'sc' . substr(md5(uniqid('', true)), 0, 6);
         $h = '<style>'
             . '.scats{position:relative}'
+            . '.scats__inner{' . ($maxw > 0 ? 'max-width:' . $maxw . 'px;' : 'max-width:none;') . 'margin:0 auto;padding:0 ' . $sidepad . 'px;box-sizing:border-box}'
             . '.scats__head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:20px}'
-            . '.scats__head h2{font-family:var(--font-display,Sora),sans-serif;font-size:30px;letter-spacing:-.02em;margin:0}'
+            . '.scats__head h2{font-family:var(--font-display,Sora),sans-serif;letter-spacing:-.02em;margin:0;flex:1;text-align:' . $titleAlign . ';color:' . $titleColor . ';font-size:' . $titleSize . 'px}'
             . '.scats__head a{color:' . $accent . ';font-weight:600;font-size:14px;text-decoration:none}'
             . '.scats__wrap{position:relative}'
             . '.scats__track{display:grid;grid-auto-flow:column;grid-template-rows:repeat(' . $rows . ',minmax(0,1fr));grid-auto-columns:calc((100% - (' . $per . ' - 1)*' . $gap . 'px)/' . $per . ');gap:' . $gap . 'px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-behavior:smooth;padding:2px 2px 8px;scrollbar-width:none;-ms-overflow-style:none}'
@@ -106,7 +120,8 @@ class SonikaCategoriesWidget extends Widget
             . '@media(prefers-reduced-motion:reduce){.scats__track{scroll-behavior:auto}.sc__card,.sc__img{transition:none}}'
             . '</style>';
 
-        $h .= '<section class="scats" id="' . $uid . '" data-speed="' . $speed . '" data-autoplay="' . ($auto ? '1' : '0') . '" data-pause="' . ($pause ? '1' : '0') . '">';
+        $h .= '<section class="scats" id="' . $uid . '" data-speed="' . $speed . '" data-autoplay="' . ($auto ? '1' : '0') . '" data-pause="' . ($pause ? '1' : '0') . '" data-dir="' . $dir . '">';
+        $h .= '<div class="scats__inner">';
         $h .= '<div class="scats__head"><h2>' . $this->esc((string)($c['title'] ?? '')) . '</h2>'
             . ((string)($c['view_all_url'] ?? '') !== '' ? '<a href="' . $this->esc((string)$c['view_all_url']) . '">' . $this->esc((string)($c['view_all_label'] ?? '')) . '</a>' : '')
             . '</div>';
@@ -147,8 +162,8 @@ class SonikaCategoriesWidget extends Widget
                 . '<span class="sc__arrow" aria-hidden="true">&#8594;</span></a>';
         }
 
-        $h .= '</div></div>';
-        $h .= '<script>(function(){var el=document.getElementById("' . $uid . '");if(!el||el.getAttribute("data-ready"))return;el.setAttribute("data-ready","1");var t=el.querySelector(".scats__track");if(!t)return;var speed=parseInt(el.getAttribute("data-speed"),10)||6000;var auto=el.getAttribute("data-autoplay")==="1";var pause=el.getAttribute("data-pause")==="1";var reduce=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;function step(){var c=t.querySelector(".sc__card");var w=c?c.getBoundingClientRect().width+16:t.clientWidth;return Math.max(1,Math.round(t.clientWidth/w))*w;}var paused=false,timer=null;function go(dir){var max=t.scrollWidth-t.clientWidth-2;if(dir>0&&t.scrollLeft>=max){t.scrollTo({left:0,behavior:reduce?"auto":"smooth"});return;}t.scrollBy({left:dir*step(),behavior:reduce?"auto":"smooth"});}function stop(){if(timer){clearInterval(timer);timer=null;}}function start(){stop();if(!auto||reduce)return;timer=setInterval(function(){if(!paused)go(1);},speed);}if(pause){t.addEventListener("mouseenter",function(){paused=true;});t.addEventListener("mouseleave",function(){paused=false;});t.addEventListener("focusin",function(){paused=true;});t.addEventListener("focusout",function(){paused=false;});}var p=el.querySelector(".scats__prev"),n=el.querySelector(".scats__next");if(p)p.addEventListener("click",function(){go(-1);});if(n)n.addEventListener("click",function(){go(1);});start();})();</script>';
+        $h .= '</div></div></div>';
+        $h .= '<script>(function(){var el=document.getElementById("' . $uid . '");if(!el||el.getAttribute("data-ready"))return;el.setAttribute("data-ready","1");var t=el.querySelector(".scats__track");if(!t)return;var speed=parseInt(el.getAttribute("data-speed"),10)||6000;var auto=el.getAttribute("data-autoplay")==="1";var pause=el.getAttribute("data-pause")==="1";var dir=parseInt(el.getAttribute("data-dir"),10)||1;var reduce=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;function step(){var c=t.querySelector(".sc__card");var w=c?c.getBoundingClientRect().width+(parseInt(getComputedStyle(t).gap,10)||16):t.clientWidth;return Math.max(1,Math.round(t.clientWidth/w))*w;}var paused=false,timer=null;function go(d){var max=t.scrollWidth-t.clientWidth-2;if(d>0&&t.scrollLeft>=max){t.scrollTo({left:0,behavior:reduce?"auto":"smooth"});return;}if(d<0&&t.scrollLeft<=0){t.scrollTo({left:max,behavior:reduce?"auto":"smooth"});return;}t.scrollBy({left:d*step(),behavior:reduce?"auto":"smooth"});}function stop(){if(timer){clearInterval(timer);timer=null;}}function start(){stop();if(!auto||reduce)return;timer=setInterval(function(){if(!paused)go(dir);},speed);}if(pause){t.addEventListener("mouseenter",function(){paused=true;});t.addEventListener("mouseleave",function(){paused=false;});t.addEventListener("focusin",function(){paused=true;});t.addEventListener("focusout",function(){paused=false;});}var p=el.querySelector(".scats__prev"),n=el.querySelector(".scats__next");if(p)p.addEventListener("click",function(){go(-1);});if(n)n.addEventListener("click",function(){go(1);});start();})();</script>';
         $h .= '</section>';
         return $h;
     }
