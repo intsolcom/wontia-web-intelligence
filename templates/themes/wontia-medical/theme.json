@@ -37,7 +37,7 @@
         { "key": "hero_cta_label", "label": "Boton principal", "type": "text", "default": "Comenzar ahora" },
         { "key": "hero_cta_url", "label": "Enlace del boton principal", "type": "text", "default": "/perfil" },
         { "key": "hero_cta2_label", "label": "Boton secundario", "type": "text", "default": "Conoce como funciona" },
-        { "key": "hero_cta2_url", "label": "Enlace del boton secundario", "type": "text", "default": "/tia" },
+        { "key": "hero_cta2_url", "label": "Enlace del boton secundario", "type": "text", "default": "/#como-funciona" },
         { "key": "hero_image", "label": "Imagen del hero (la subes aqui desde el configurador)", "type": "image", "default": "" },
         { "key": "hero_image_alt", "label": "Texto alternativo de la imagen", "type": "text", "default": "Acompanamiento de salud digital con TIA" },
         { "key": "_h_benefits", "label": "Beneficios", "type": "heading" },

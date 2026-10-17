@@ -36,6 +36,7 @@ if ($builderHtml !== '') {
     }
     if ($rendered === 0) {
         echo medical_brick('hero');
+        echo medical_brick('como-funciona');
         echo medical_brick('module', ['module' => 'tia']);
     }
 }
