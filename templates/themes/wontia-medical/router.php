@@ -9,6 +9,21 @@ $slug = $aliases[$slug] ?? $slug;
 
 $modules = medical_module_map();
 
+if ($slug === 'demo') {
+    medical_page_start(
+        [
+            'title' => 'Demo en vivo',
+            'meta_title' => 'Demo — Wontia Medical',
+            'meta_description' => 'Demo interactiva: profesionales de la salud cerca de ti.',
+            'slug' => 'demo',
+        ],
+        'demo'
+    );
+    include __DIR__ . '/bricks/demo.php';
+    medical_page_end();
+    return true;
+}
+
 if ($slug === 'gestion') {
     medical_page_start(
         [
