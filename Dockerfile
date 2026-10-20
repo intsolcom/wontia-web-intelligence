@@ -7,7 +7,8 @@ RUN apk add --no-cache nginx curl libpng-dev libjpeg-turbo-dev libwebp-dev freet
 COPY nginx.conf /etc/nginx/http.d/default.conf
 COPY . /app
 
-RUN mkdir -p /app/public/assets/uploads /app/cache \
+RUN mkdir -p /app/public/assets/uploads /app/cache /app/vendor \
+    && cp /app/install/autoload.php /app/vendor/autoload.php \
     && chown -R www-data:www-data /app/public/assets/uploads /app/cache \
     && chmod 777 /app/public/assets/uploads /app/cache \
     && chmod -R a+rX /app/src /app/templates \
