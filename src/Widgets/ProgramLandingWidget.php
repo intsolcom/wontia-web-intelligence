@@ -1,11 +1,13 @@
 <?php
 namespace App\Widgets;
 
+use App\Core\Lang;
+
 class ProgramLandingWidget extends Widget
 {
     public static function meta(): array
     {
-        return ['id' => 'program-landing', 'name' => 'INTSOLCOM: Program Landing', 'icon' => 'rocket', 'category' => 'content', 'version' => '2.0.0'];
+        return ['id' => 'program-landing', 'name' => 'INTSOLCOM: Program Landing', 'icon' => 'rocket', 'category' => 'content', 'version' => '2.1.0'];
     }
 
     public static function configSchema(): array
@@ -37,12 +39,13 @@ class ProgramLandingWidget extends Widget
     {
         $c = $this->mergeConfig($config);
         $e = fn($s) => $this->esc((string)$s);
+        $es = Lang::current() === 'es';
 
         $applyUrl = $this->settings('program_application_url', (string)($c['application_url'] ?? 'REPLACE_WITH_MARCAS_BPO_APPLICATION_URL'));
         $deadlineRaw = trim($this->settings('program_deadline', (string)($c['deadline'] ?? '2026-11-15')));
         $deadlineTs = strtotime($deadlineRaw);
-        $deadline = $deadlineTs ? date('F j, Y', $deadlineTs) : $deadlineRaw;
         $deadlineIso = $deadlineTs ? date('Y-m-d', $deadlineTs) : $deadlineRaw;
+        $deadline = $deadlineTs ? date($es ? 'j \d\e F \d\e Y' : 'F j, Y', $deadlineTs) : $deadlineRaw;
 
         $appsBase = max(0, (int)$this->settings('program_applications_base', (string)($c['applications_base'] ?? '3')));
         $appsDaily = max(0, (int)$this->settings('program_applications_daily', (string)($c['applications_daily'] ?? '3')));
@@ -57,8 +60,144 @@ class ProgramLandingWidget extends Widget
         $countriesShown = array_slice($countries, 0, max(1, min($applications, count($countries))));
         $countryCount = count($countriesShown);
 
-        $cta = fn(string $extraClass = '') => '<a class="plp-btn plp-btn-primary ' . $extraClass . '" href="' . $e($applyUrl) . '">Apply for the Program <span aria-hidden="true">&#8594;</span></a>';
-        $miniTimer = fn() => '<span class="plp-mini-timer" data-deadline="' . $e($deadlineIso) . '" aria-hidden="true"><span class="plp-mini-dot"></span><span class="plp-mini-text">Applications close soon</span></span>';
+        $t = $es ? [
+            'badge' => 'Programa selectivo — Limitado a 5 proyectos',
+            'h1a' => 'Desarrollamos tu aplicación web ',
+            'h1b' => 'sin costo inicial.',
+            'copy' => 'Convierte un reto operativo en una solución digital práctica. INTSOLCOM desarrolla tu aplicación web y la cuota mensual de uso aplica solo bajo las condiciones acordadas, si la solución entrega el valor esperado.',
+            'micro' => 'Programa selectivo para empresas con necesidades operativas reales. Cada solicitud se revisa individualmente.',
+            'cta' => 'Aplicar al Programa',
+            'how' => 'Cómo Funciona',
+            'program' => 'El Programa',
+            'row1t' => 'Sin costo inicial de desarrollo', 'row1d' => 'La aplicación web acordada se desarrolla sin costo inicial bajo el programa.',
+            'row2t' => 'Valor antes de una cuota mensual', 'row2d' => 'Primero los criterios de éxito acordados. La cuota aplica según los términos acordados solo si se demuestra valor.',
+            'row3t' => 'Selectivo y enfocado en el negocio', 'row3d' => 'Los proyectos se evalúan por el problema de negocio, el impacto, la viabilidad y los resultados medibles.',
+            'row5t' => 'Solo se seleccionan cinco proyectos', 'row5d' => 'Las solicitudes cierran el ' . $deadline . '. Cada una se revisa individualmente.',
+            'closeIn' => 'Las solicitudes cierran en',
+            'deadlineLbl' => 'Fecha límite:',
+            'units' => ['Semanas', 'Días', 'Horas', 'Minutos', 'Segundos'],
+            'closed' => 'Las solicitudes de esta convocatoria están cerradas.',
+            'appsLbl' => 'Solicitudes recibidas', 'reviewed' => 'Revisadas individualmente',
+            'countriesLbl' => $countryCount === 1 ? 'país aplicó' : 'países aplicaron',
+            'international' => 'Empresas internacionales',
+            'reviewVal' => '48h', 'reviewLbl' => 'Tiempo promedio de revisión', 'reviewSub' => 'Respondemos a cada solicitud',
+            'miniPre' => 'Cierra en ', 'miniPost' => ' — aplica hoy', 'miniClosed' => 'Las solicitudes están cerradas',
+            'problemKicker' => 'El Problema del Negocio',
+            'problemTitle' => 'Tu empresa no necesita más herramientas. Necesita una mejor solución.',
+            'problemLead' => 'Las empresas pierden tiempo y productividad cada día por procesos que ya no se ajustan a cómo trabajan:',
+            'problemItems' => [
+                'Procesos manuales repetitivos que consumen horas de tu equipo.',
+                'Información dispersa en hojas de cálculo y sistemas desconectados.',
+                'Cuellos de botella operativos que frenan el servicio y las ventas.',
+                'Errores, retrasos y falta de visibilidad sobre la operación diaria.',
+                'Flujos de trabajo que ya no escalan con el negocio.',
+            ],
+            'problemNote' => 'No todo problema requiere software a la medida. El programa se enfoca en casos donde una aplicación web propia es la respuesta correcta.',
+            'valueKicker' => 'La Propuesta de Valor del Programa',
+            'valueTitle' => 'Una forma diferente de abordar el desarrollo de software.',
+            'values' => [
+                ['1', 'Sin costo inicial de desarrollo', 'INTSOLCOM desarrolla la aplicación web acordada sin cobrar un costo inicial de desarrollo bajo el programa.'],
+                ['2', 'Valor antes de una cuota mensual', 'Las partes acuerdan criterios de éxito y condiciones comerciales. La cuota mensual aplica según esos términos si la solución entrega el valor esperado.'],
+                ['3', 'Un enfoque selectivo y de negocio', 'Los proyectos se evalúan por el problema de negocio, el impacto potencial, la viabilidad y la oportunidad de medir resultados.'],
+            ],
+            'stepsKicker' => 'Cómo Funciona',
+            'stepsTitle' => 'Del reto de negocio a una aplicación funcionando.',
+            'steps' => [
+                ['Aplica', 'Cuéntanos sobre tu empresa y el problema que quieres resolver.'],
+                ['Evaluación', 'INTSOLCOM revisa tu solicitud y evalúa la idoneidad del proyecto.'],
+                ['Define el proyecto', 'Si es seleccionado, ambas partes acuerdan alcance, métricas de éxito, propiedad, condiciones de uso y términos comerciales.'],
+                ['Construye y evalúa', 'INTSOLCOM desarrolla la solución acordada y sus resultados se evalúan contra los criterios establecidos.'],
+            ],
+            'stepsNote' => 'Enviar una solicitud no garantiza la selección ni el desarrollo.',
+            'fitKicker' => '¿Quién debería aplicar?',
+            'fitTitle' => '¿Tu empresa es un buen candidato?',
+            'fitItems' => [
+                'Tu empresa ya está operando.',
+                'Puedes identificar un proceso o problema específico a mejorar.',
+                'El problema afecta el tiempo, los costos, los errores, la experiencia del cliente o el crecimiento.',
+                'Puedes explicar cómo funciona el proceso actual.',
+                'Tú o tu equipo pueden participar en definir requisitos y evaluar resultados.',
+                'Estás abierto a un esquema de cuota mensual si se demuestra el valor acordado.',
+            ],
+            'fitNote' => 'Los proyectos se seleccionan según idoneidad, viabilidad, impacto esperado y capacidad del programa.',
+            'deadlineTitle' => 'Solo se seleccionarán cinco proyectos.',
+            'deadlineCopy' => 'INTSOLCOM seleccionará hasta cinco proyectos empresariales para este programa. Cada solicitud se revisará individualmente según la necesidad del negocio, su viabilidad y el impacto medible potencial.',
+            'finalTitle' => 'Cuéntanos qué necesita mejorar tu empresa.',
+            'finalCopy' => 'Comparte tu reto de negocio con INTSOLCOM. Si tu proyecto encaja en el programa, nuestro equipo puede evaluar los siguientes pasos contigo.',
+            'finalMicro' => 'Las solicitudes se revisan individualmente. La selección no está garantizada.',
+            'stickyPre' => 'Limitado a 5 proyectos ·', 'stickyCta' => 'Aplicar ahora', 'dismiss' => 'Cerrar',
+            'applyUrlLabel' => 'Aplicar',
+        ] : [
+            'badge' => 'Selective Program — Limited to 5 Projects',
+            'h1a' => 'We Develop Your Web Application at ',
+            'h1b' => 'No Upfront Cost.',
+            'copy' => 'Turn an operational challenge into a practical digital solution. INTSOLCOM develops your web application, and a monthly usage fee applies only under the agreed conditions if the solution delivers the expected value.',
+            'micro' => 'Selective program for businesses with real operational needs. Applications are reviewed individually.',
+            'cta' => 'Apply for the Program',
+            'how' => 'How It Works',
+            'program' => 'The Program',
+            'row1t' => 'No upfront development fee', 'row1d' => 'The agreed web application is developed without an upfront fee under the program.',
+            'row2t' => 'Value before a monthly usage fee', 'row2d' => 'Agreed success criteria first. The fee applies according to agreed terms only if value is demonstrated.',
+            'row3t' => 'Selective, business-focused', 'row3d' => 'Projects are evaluated on the business problem, impact, feasibility, and measurable results.',
+            'row5t' => 'Only five projects selected', 'row5d' => 'Applications close on ' . $deadline . '. Each one is reviewed individually.',
+            'closeIn' => 'Applications close in',
+            'deadlineLbl' => 'Deadline:',
+            'units' => ['Weeks', 'Days', 'Hours', 'Minutes', 'Seconds'],
+            'closed' => 'Applications for this campaign are now closed.',
+            'appsLbl' => 'Applications received', 'reviewed' => 'Reviewed individually',
+            'countriesLbl' => $countryCount === 1 ? 'country applied' : 'countries applied',
+            'international' => 'International businesses',
+            'reviewVal' => '48h', 'reviewLbl' => 'Average review time', 'reviewSub' => 'We reply to every application',
+            'miniPre' => 'Closes in ', 'miniPost' => ' — apply today', 'miniClosed' => 'Applications are closed',
+            'problemKicker' => 'The Business Problem',
+            'problemTitle' => 'Your Business May Not Need More Tools. It May Need a Better Solution.',
+            'problemLead' => 'Businesses lose time and productivity every day because of processes that no longer fit how they work:',
+            'problemItems' => [
+                'Repetitive manual processes that consume your team\'s hours.',
+                'Information spread across spreadsheets and disconnected systems.',
+                'Operational bottlenecks that slow down service and sales.',
+                'Errors, delays, and lack of visibility over daily operations.',
+                'Existing workflows that no longer scale with the business.',
+            ],
+            'problemNote' => 'Not every problem requires custom software. The program focuses on cases where a tailored web application is the right answer.',
+            'valueKicker' => 'The Program Value Proposition',
+            'valueTitle' => 'A Different Way to Approach Software Development.',
+            'values' => [
+                ['1', 'No Upfront Development Fee', 'INTSOLCOM develops the agreed web application without charging an upfront development fee under the program.'],
+                ['2', 'Value Before a Monthly Usage Fee', 'The parties agree on relevant success criteria and commercial conditions. A monthly usage fee applies according to those agreed terms if the solution delivers the expected value.'],
+                ['3', 'A Selective, Business-Focused Approach', 'Projects are evaluated based on the business problem, potential impact, feasibility, and the opportunity to measure results.'],
+            ],
+            'stepsKicker' => 'How It Works',
+            'stepsTitle' => 'From Business Challenge to Working Application.',
+            'steps' => [
+                ['Apply', 'Describe your business and the problem you want to solve.'],
+                ['Get Evaluated', 'INTSOLCOM reviews your application and assesses project suitability.'],
+                ['Define the Project', 'If selected, both parties agree on scope, success metrics, ownership, usage conditions, and commercial terms.'],
+                ['Build and Evaluate', 'INTSOLCOM develops the agreed solution, and its results are evaluated against the established criteria.'],
+            ],
+            'stepsNote' => 'Submitting an application does not guarantee selection or development.',
+            'fitKicker' => 'Who Should Apply?',
+            'fitTitle' => 'Is Your Business a Good Fit?',
+            'fitItems' => [
+                'Your business is already operating.',
+                'You can identify a specific process or problem to improve.',
+                'The problem affects time, costs, errors, customer experience, or growth.',
+                'You can explain how the current process works.',
+                'You or your team can participate in defining requirements and evaluating results.',
+                'You are open to a monthly usage arrangement if the agreed value is demonstrated.',
+            ],
+            'fitNote' => 'Projects are selected based on suitability, feasibility, expected business impact, and program capacity.',
+            'deadlineTitle' => 'Only Five Projects Will Be Selected.',
+            'deadlineCopy' => 'INTSOLCOM will select up to five business projects for this program. Each application will be reviewed individually based on business need, feasibility, and potential measurable impact.',
+            'finalTitle' => 'Tell Us What Your Business Needs to Improve.',
+            'finalCopy' => 'Share your business challenge with INTSOLCOM. If your project fits the program, our team can evaluate the next steps with you.',
+            'finalMicro' => 'Applications are reviewed individually. Selection is not guaranteed.',
+            'stickyPre' => 'Limited to 5 projects ·', 'stickyCta' => 'Apply now', 'dismiss' => 'Dismiss',
+            'applyUrlLabel' => 'Apply',
+        ];
+
+        $cta = fn(string $extraClass = '') => '<a class="plp-btn plp-btn-primary ' . $extraClass . '" href="' . $e($applyUrl) . '">' . $e($t['cta']) . ' <span aria-hidden="true">&#8594;</span></a>';
+        $miniTimer = fn() => '<span class="plp-mini-timer" data-deadline="' . $e($deadlineIso) . '" data-pre="' . $e($t['miniPre']) . '" data-post="' . $e($t['miniPost']) . '" data-closed="' . $e($t['miniClosed']) . '" aria-hidden="true"><span class="plp-mini-dot"></span><span class="plp-mini-text">' . $e($t['miniPre']) . '</span></span>';
 
         $html = '<style>'
             . '.plp{font-family:Inter,-apple-system,sans-serif;color:#20252B;background:#FFFFFF;line-height:1.6}'
@@ -153,119 +292,104 @@ class ProgramLandingWidget extends Widget
         $html .= '<div class="plp">';
 
         $html .= '<section class="plp-hero"><div class="plp-wrap"><div class="plp-hero-grid">';
-        $html .= '<div><span class="plp-badge"><span class="plp-badge-dot"></span>Selective Program — Limited to 5 Projects</span>';
-        $html .= '<h1>We Develop Your Web Application at <em>No Upfront Cost.</em></h1>';
-        $html .= '<p class="plp-hero-copy">Turn an operational challenge into a practical digital solution. INTSOLCOM develops your web application, and a monthly usage fee applies only under the agreed conditions if the solution delivers the expected value.</p>';
-        $html .= '<p class="plp-hero-micro">Selective program for businesses with real operational needs. Applications are reviewed individually.</p>';
-        $html .= '<div class="plp-hero-actions"><span class="plp-cta-wrap">' . $cta() . $miniTimer() . '</span><a class="plp-btn plp-btn-ghost" href="#how-it-works">How It Works</a></div>';
+        $html .= '<div><span class="plp-badge"><span class="plp-badge-dot"></span>' . $e($t['badge']) . '</span>';
+        $html .= '<h1>' . $e($t['h1a']) . '<em>' . $e($t['h1b']) . '</em></h1>';
+        $html .= '<p class="plp-hero-copy">' . $e($t['copy']) . '</p>';
+        $html .= '<p class="plp-hero-micro">' . $e($t['micro']) . '</p>';
+        $html .= '<div class="plp-hero-actions"><span class="plp-cta-wrap">' . $cta() . $miniTimer() . '</span><a class="plp-btn plp-btn-ghost" href="#how-it-works">' . $e($t['how']) . '</a></div>';
 
         $html .= '<div class="plp-countdown" aria-label="Program countdown and activity">';
-        $html .= '<div class="plp-countdown-head"><span class="plp-countdown-title">Applications close in</span><span class="plp-countdown-deadline">Deadline: ' . $e($deadline) . '</span></div>';
+        $html .= '<div class="plp-countdown-head"><span class="plp-countdown-title">' . $e($t['closeIn']) . '</span><span class="plp-countdown-deadline">' . $e($t['deadlineLbl']) . ' ' . $e($deadline) . '</span></div>';
         $html .= '<div class="plp-clock" id="plp-clock" data-deadline="' . $e($deadlineIso) . '" role="timer" aria-live="off">';
-        $html .= '<div class="plp-clock-cell"><span class="plp-clock-val" data-unit="w">--</span><span class="plp-clock-lbl">Weeks</span></div>';
-        $html .= '<div class="plp-clock-cell"><span class="plp-clock-val" data-unit="d">--</span><span class="plp-clock-lbl">Days</span></div>';
-        $html .= '<div class="plp-clock-cell"><span class="plp-clock-val" data-unit="h">--</span><span class="plp-clock-lbl">Hours</span></div>';
-        $html .= '<div class="plp-clock-cell"><span class="plp-clock-val" data-unit="m">--</span><span class="plp-clock-lbl">Minutes</span></div>';
-        $html .= '<div class="plp-clock-cell"><span class="plp-clock-val" data-unit="s">--</span><span class="plp-clock-lbl">Seconds</span></div>';
+        foreach ($t['units'] as $i => $u) {
+            $unitKey = ['w', 'd', 'h', 'm', 's'][$i];
+            $html .= '<div class="plp-clock-cell"><span class="plp-clock-val" data-unit="' . $unitKey . '">--</span><span class="plp-clock-lbl">' . $e($u) . '</span></div>';
+        }
         $html .= '</div>';
-        $html .= '<div class="plp-clock-closed" id="plp-clock-closed">Applications for this campaign are now closed.</div>';
+        $html .= '<div class="plp-clock-closed" id="plp-clock-closed">' . $e($t['closed']) . '</div>';
         $html .= '<div class="plp-indicators">';
-        $html .= '<div class="plp-ind"><span class="plp-ind-icon" aria-hidden="true">&#128203;</span><div class="plp-ind-body"><div class="plp-ind-val" id="plp-apps">' . (int)$applications . '</div><div class="plp-ind-lbl">Applications received</div><div class="plp-ind-sub">Reviewed individually</div></div></div>';
+        $html .= '<div class="plp-ind"><span class="plp-ind-icon" aria-hidden="true">&#128203;</span><div class="plp-ind-body"><div class="plp-ind-val" id="plp-apps">' . (int)$applications . '</div><div class="plp-ind-lbl">' . $e($t['appsLbl']) . '</div><div class="plp-ind-sub">' . $e($t['reviewed']) . '</div></div></div>';
         $html .= '<div class="plp-ind"><span class="plp-ind-icon" aria-hidden="true">&#127758;</span><div class="plp-ind-body"><div class="plp-country-ticker" id="plp-countries" aria-hidden="true">';
         foreach ($countriesShown as $i => $country) {
             $html .= '<span class="plp-country-item' . ($i === 0 ? ' on' : '') . '">' . $e($country) . '</span>';
         }
-        $html .= '</div><div class="plp-ind-lbl">' . (int)$countryCount . ' ' . ($countryCount === 1 ? 'country' : 'countries') . ' applied</div><div class="plp-ind-sub">International businesses</div></div></div>';
-        $html .= '<div class="plp-ind"><span class="plp-ind-icon" aria-hidden="true">&#9889;</span><div class="plp-ind-body"><div class="plp-ind-val">48h</div><div class="plp-ind-lbl">Average review time</div><div class="plp-ind-sub">We reply to every application</div></div></div>';
+        $html .= '</div><div class="plp-ind-lbl">' . (int)$countryCount . ' ' . $e($t['countriesLbl']) . '</div><div class="plp-ind-sub">' . $e($t['international']) . '</div></div></div>';
+        $html .= '<div class="plp-ind"><span class="plp-ind-icon" aria-hidden="true">&#9889;</span><div class="plp-ind-body"><div class="plp-ind-val">' . $e($t['reviewVal']) . '</div><div class="plp-ind-lbl">' . $e($t['reviewLbl']) . '</div><div class="plp-ind-sub">' . $e($t['reviewSub']) . '</div></div></div>';
         $html .= '</div></div>';
 
-        $html .= '</div><div class="plp-visual"><span class="plp-visual-tag">The Program</span>';
-        $html .= '<div class="plp-visual-row"><span class="plp-visual-num">1</span><div><b>No upfront development fee</b><span>The agreed web application is developed without an upfront fee under the program.</span></div></div>';
-        $html .= '<div class="plp-visual-row"><span class="plp-visual-num">2</span><div><b>Value before a monthly usage fee</b><span>Agreed success criteria first. The fee applies according to agreed terms only if value is demonstrated.</span></div></div>';
-        $html .= '<div class="plp-visual-row"><span class="plp-visual-num">3</span><div><b>Selective, business-focused</b><span>Projects are evaluated on the business problem, impact, feasibility, and measurable results.</span></div></div>';
-        $html .= '<div class="plp-visual-row"><span class="plp-visual-num">5</span><div><b>Only five projects selected</b><span>Applications close on ' . $e($deadline) . '. Each one is reviewed individually.</span></div></div>';
+        $html .= '</div><div class="plp-visual"><span class="plp-visual-tag">' . $e($t['program']) . '</span>';
+        $html .= '<div class="plp-visual-row"><span class="plp-visual-num">1</span><div><b>' . $e($t['row1t']) . '</b><span>' . $e($t['row1d']) . '</span></div></div>';
+        $html .= '<div class="plp-visual-row"><span class="plp-visual-num">2</span><div><b>' . $e($t['row2t']) . '</b><span>' . $e($t['row2d']) . '</span></div></div>';
+        $html .= '<div class="plp-visual-row"><span class="plp-visual-num">3</span><div><b>' . $e($t['row3t']) . '</b><span>' . $e($t['row3d']) . '</span></div></div>';
+        $html .= '<div class="plp-visual-row"><span class="plp-visual-num">5</span><div><b>' . $e($t['row5t']) . '</b><span>' . $e($t['row5d']) . '</span></div></div>';
         $html .= '</div></div></div></section>';
 
         $html .= '<section class="plp-section"><div class="plp-wrap">';
-        $html .= '<span class="plp-kicker">The Business Problem</span>';
-        $html .= '<h2 class="plp-h2">Your Business May Not Need More Tools. It May Need a Better Solution.</h2>';
-        $html .= '<p class="plp-lead">Businesses lose time and productivity every day because of processes that no longer fit how they work:</p>';
-        $checks = [
-            'Repetitive manual processes that consume your team\'s hours.',
-            'Information spread across spreadsheets and disconnected systems.',
-            'Operational bottlenecks that slow down service and sales.',
-            'Errors, delays, and lack of visibility over daily operations.',
-            'Existing workflows that no longer scale with the business.',
-        ];
+        $html .= '<span class="plp-kicker">' . $e($t['problemKicker']) . '</span>';
+        $html .= '<h2 class="plp-h2">' . $e($t['problemTitle']) . '</h2>';
+        $html .= '<p class="plp-lead">' . $e($t['problemLead']) . '</p>';
         $html .= '<div style="margin-top:28px;max-width:760px">';
-        foreach ($checks as $chk) {
+        foreach ($t['problemItems'] as $chk) {
             $html .= '<div class="plp-check"><span class="plp-check-mark">&#10003;</span><span>' . $e($chk) . '</span></div>';
         }
         $html .= '</div>';
-        $html .= '<p class="plp-note">Not every problem requires custom software. The program focuses on cases where a tailored web application is the right answer.</p>';
+        $html .= '<p class="plp-note">' . $e($t['problemNote']) . '</p>';
         $html .= '</div></section>';
 
         $html .= '<section class="plp-section plp-section-alt"><div class="plp-wrap">';
-        $html .= '<span class="plp-kicker">The Program Value Proposition</span>';
-        $html .= '<h2 class="plp-h2">A Different Way to Approach Software Development.</h2>';
+        $html .= '<span class="plp-kicker">' . $e($t['valueKicker']) . '</span>';
+        $html .= '<h2 class="plp-h2">' . $e($t['valueTitle']) . '</h2>';
         $html .= '<div class="plp-grid-3">';
-        $html .= '<div class="plp-card"><div class="plp-card-num">1</div><h3>No Upfront Development Fee</h3><p>INTSOLCOM develops the agreed web application without charging an upfront development fee under the program.</p></div>';
-        $html .= '<div class="plp-card"><div class="plp-card-num">2</div><h3>Value Before a Monthly Usage Fee</h3><p>The parties agree on relevant success criteria and commercial conditions. A monthly usage fee applies according to those agreed terms if the solution delivers the expected value.</p></div>';
-        $html .= '<div class="plp-card"><div class="plp-card-num">3</div><h3>A Selective, Business-Focused Approach</h3><p>Projects are evaluated based on the business problem, potential impact, feasibility, and the opportunity to measure results.</p></div>';
+        foreach ($t['values'] as $v) {
+            $html .= '<div class="plp-card"><div class="plp-card-num">' . $e($v[0]) . '</div><h3>' . $e($v[1]) . '</h3><p>' . $e($v[2]) . '</p></div>';
+        }
         $html .= '</div></div></section>';
 
         $html .= '<section class="plp-section" id="how-it-works"><div class="plp-wrap">';
-        $html .= '<span class="plp-kicker">How It Works</span>';
-        $html .= '<h2 class="plp-h2">From Business Challenge to Working Application.</h2>';
+        $html .= '<span class="plp-kicker">' . $e($t['stepsKicker']) . '</span>';
+        $html .= '<h2 class="plp-h2">' . $e($t['stepsTitle']) . '</h2>';
         $html .= '<div class="plp-steps">';
-        $steps = [
-            ['Apply', 'Describe your business and the problem you want to solve.'],
-            ['Get Evaluated', 'INTSOLCOM reviews your application and assesses project suitability.'],
-            ['Define the Project', 'If selected, both parties agree on scope, success metrics, ownership, usage conditions, and commercial terms.'],
-            ['Build and Evaluate', 'INTSOLCOM develops the agreed solution, and its results are evaluated against the established criteria.'],
-        ];
-        foreach ($steps as $i => $st) {
-            $html .= '<div class="plp-step"><b>Step ' . ($i + 1) . '</b><h3>' . $e($st[0]) . '</h3><p>' . $e($st[1]) . '</p></div>';
+        foreach ($t['steps'] as $i => $st) {
+            $html .= '<div class="plp-step"><b>' . ($es ? 'Paso' : 'Step') . ' ' . ($i + 1) . '</b><h3>' . $e($st[0]) . '</h3><p>' . $e($st[1]) . '</p></div>';
         }
         $html .= '</div>';
-        $html .= '<p class="plp-note">Submitting an application does not guarantee selection or development.</p>';
+        $html .= '<p class="plp-note">' . $e($t['stepsNote']) . '</p>';
         $html .= '</div></section>';
 
         $html .= '<section class="plp-section"><div class="plp-wrap">';
-        $html .= '<span class="plp-kicker">Who Should Apply?</span>';
-        $html .= '<h2 class="plp-h2">Is Your Business a Good Fit?</h2>';
-        $fit = [
-            'Your business is already operating.',
-            'You can identify a specific process or problem to improve.',
-            'The problem affects time, costs, errors, customer experience, or growth.',
-            'You can explain how the current process works.',
-            'You or your team can participate in defining requirements and evaluating results.',
-            'You are open to a monthly usage arrangement if the agreed value is demonstrated.',
-        ];
+        $html .= '<span class="plp-kicker">' . $e($t['fitKicker']) . '</span>';
+        $html .= '<h2 class="plp-h2">' . $e($t['fitTitle']) . '</h2>';
         $html .= '<div style="margin-top:30px;max-width:760px">';
-        foreach ($fit as $f) {
+        foreach ($t['fitItems'] as $f) {
             $html .= '<div class="plp-check"><span class="plp-check-mark">&#10003;</span><span>' . $e($f) . '</span></div>';
         }
         $html .= '</div>';
-        $html .= '<p class="plp-note">Projects are selected based on suitability, feasibility, expected business impact, and program capacity.</p>';
+        $html .= '<p class="plp-note">' . $e($t['fitNote']) . '</p>';
         $html .= '</div></section>';
 
         $html .= '<section class="plp-section plp-section-alt"><div class="plp-wrap">';
         $html .= '<div class="plp-deadline">';
-        $html .= '<div class="plp-deadline-date"><b>' . $e($deadline) . '</b><span>Application Deadline</span></div>';
-        $html .= '<div><h3>Only Five Projects Will Be Selected.</h3><p>INTSOLCOM will select up to five business projects for this program. Each application will be reviewed individually based on business need, feasibility, and potential measurable impact.</p></div>';
+        $html .= '<div class="plp-deadline-date"><b>' . $e($deadline) . '</b><span>' . $e($t['deadlineLbl']) . '</span></div>';
+        $html .= '<div><h3>' . $e($t['deadlineTitle']) . '</h3><p>' . $e($t['deadlineCopy']) . '</p></div>';
         $html .= '</div></div></section>';
 
         $html .= '<section class="plp-final"><div class="plp-wrap">';
-        $html .= '<h2>Tell Us What Your Business Needs to Improve.</h2>';
-        $html .= '<p>Share your business challenge with INTSOLCOM. If your project fits the program, our team can evaluate the next steps with you.</p>';
+        $html .= '<h2>' . $e($t['finalTitle']) . '</h2>';
+        $html .= '<p>' . $e($t['finalCopy']) . '</p>';
         $html .= '<span class="plp-cta-wrap">' . $cta() . $miniTimer() . '</span>';
-        $html .= '<p class="plp-final-micro">Applications are reviewed individually. Selection is not guaranteed.</p>';
+        $html .= '<p class="plp-final-micro">' . $e($t['finalMicro']) . '</p>';
         $html .= '</div></section>';
 
         $html .= '</div>';
 
+        $jsLabels = json_encode([
+            'closed' => $t['miniClosed'],
+            'pre' => $t['miniPre'],
+            'post' => $t['miniPost'],
+        ], JSON_UNESCAPED_UNICODE);
+
         $html .= '<script>(function(){'
+            . 'var L=' . $jsLabels . ';'
             . 'var clock=document.getElementById("plp-clock");'
             . 'var closed=document.getElementById("plp-clock-closed");'
             . 'function pad(n){return n<10?"0"+n:""+n}'
@@ -274,24 +398,24 @@ class ProgramLandingWidget extends Widget
             . 'function setClock(deadlineIso){'
             . 'var u=units();var target=new Date(deadlineIso+"T23:59:59").getTime();'
             . 'function tick(){var diff=target-Date.now();'
-            . 'if(diff<=0){if(clock)clock.style.display="none";if(closed)closed.style.display="block";document.querySelectorAll(".plp-mini-text").forEach(function(t){t.textContent="Applications are closed"});return false}'
+            . 'if(diff<=0){if(clock)clock.style.display="none";if(closed)closed.style.display="block";document.querySelectorAll(".plp-mini-text").forEach(function(t){t.textContent=L.closed});return false}'
             . 'var totalSec=Math.floor(diff/1000);var w=Math.floor(totalSec/604800);var d=Math.floor((totalSec%604800)/86400);var h=Math.floor((totalSec%86400)/3600);var m=Math.floor((totalSec%3600)/60);var s=totalSec%60;'
             . 'if(u.w)u.w.textContent=w;if(u.d)u.d.textContent=pad(d);if(u.h)u.h.textContent=pad(h);if(u.m)u.m.textContent=pad(m);if(u.s)u.s.textContent=pad(s);return true}'
             . 'if(!tick())return;var iv=setInterval(function(){if(!tick())clearInterval(iv)},1000)}'
             . 'if(clock){setClock(clock.getAttribute("data-deadline"))}'
-            . 'function setMini(){var els=document.querySelectorAll(".plp-mini-timer");els.forEach(function(el){var target=new Date(el.getAttribute("data-deadline")+"T23:59:59").getTime();var diff=target-Date.now();var t=el.querySelector(".plp-mini-text");if(!t)return;if(diff<=0){t.textContent="Applications are closed";return}var totalSec=Math.floor(diff/1000);var w=Math.floor(totalSec/604800);var d=Math.floor((totalSec%604800)/86400);var h=Math.floor((totalSec%86400)/3600);var m=Math.floor((totalSec%3600)/60);var parts=[];if(w>0)parts.push(w+"w");if(d>0||w>0)parts.push(d+"d");if(h>0||d>0||w>0)parts.push(h+"h");parts.push(m+"m");t.textContent="Closes in "+parts.join(" ")+" — apply today";})}'
+            . 'function setMini(){document.querySelectorAll(".plp-mini-timer").forEach(function(el){var target=new Date(el.getAttribute("data-deadline")+"T23:59:59").getTime();var diff=target-Date.now();var t=el.querySelector(".plp-mini-text");if(!t)return;if(diff<=0){t.textContent=L.closed;return}var totalSec=Math.floor(diff/1000);var w=Math.floor(totalSec/604800);var d=Math.floor((totalSec%604800)/86400);var h=Math.floor((totalSec%86400)/3600);var m=Math.floor((totalSec%3600)/60);var parts=[];if(w>0)parts.push(w+"w");if(d>0||w>0)parts.push(d+"d");if(h>0||d>0||w>0)parts.push(h+"h");parts.push(m+"m");t.textContent=L.pre+parts.join(" ")+L.post})}'
             . 'setMini();setInterval(setMini,30000);'
             . 'var ticker=document.getElementById("plp-countries");'
             . 'if(ticker){var items=ticker.querySelectorAll(".plp-country-item");if(items.length>1){var idx=0;setInterval(function(){items[idx].classList.remove("on");idx=(idx+1)%items.length;items[idx].classList.add("on")},2600)}}'
             . 'var bar=document.getElementById("plp-sticky");'
-            . 'if(bar){var closedFlag=false;if(sessionStorage.getItem("plpStickyHidden")==="1"){bar.style.display="none";closedFlag=true}'
+            . 'if(bar){var hidden=false;if(sessionStorage.getItem("plpStickyHidden")==="1"){bar.style.display="none";hidden=true}'
             . 'var btn=bar.querySelector(".plp-sticky-close");if(btn){btn.addEventListener("click",function(){bar.style.display="none";sessionStorage.setItem("plpStickyHidden","1")})}'
-            . 'if(!closedFlag){window.addEventListener("scroll",function(){if(window.scrollY>600){bar.style.display="flex"}else{bar.style.display="none"}},{passive:true})}}'
+            . 'if(!hidden){window.addEventListener("scroll",function(){if(window.scrollY>600){bar.style.display="flex"}else{bar.style.display="none"}},{passive:true})}}'
             . '})();</script>';
 
         $html .= '<div class="plp-sticky" id="plp-sticky">'
-            . '<div class="plp-sticky-txt">Limited to 5 projects · <b class="plp-mini-text" data-deadline="' . $e($deadlineIso) . '">Closes soon</b></div>'
-            . '<div class="plp-sticky-actions"><a class="plp-btn plp-btn-primary" href="' . $e($applyUrl) . '">Apply now</a><button type="button" class="plp-sticky-close" aria-label="Dismiss">&#10005;</button></div>'
+            . '<div class="plp-sticky-txt">' . $e($t['stickyPre']) . ' <b class="plp-mini-text" data-deadline="' . $e($deadlineIso) . '">' . $e($t['miniPre']) . '</b></div>'
+            . '<div class="plp-sticky-actions"><a class="plp-btn plp-btn-primary" href="' . $e($applyUrl) . '">' . $e($t['stickyCta']) . '</a><button type="button" class="plp-sticky-close" aria-label="' . $e($t['dismiss']) . '">&#10005;</button></div>'
             . '</div>';
 
         return $html;
