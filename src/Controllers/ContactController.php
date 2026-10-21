@@ -64,6 +64,41 @@ class ContactController
         $db->prepare("INSERT INTO wwi_leads (site_id, name, email, company, phone, service, message, source, ip_hash) VALUES (?,?,?,?,?,?,?,?,?)")
             ->execute([$siteId, $name, $email, $company, $phone, $service, $message, 'contact_form', $ipHash]);
 
+        try {
+            $notify = $this->setting('contact_notify_email', 'customer@intsolcom.com');
+            $notifyCo = $this->setting('contact_notify_email_co', 'cliente@intsolcom.com');
+            $mailer = new \App\Services\EmailService();
+            if ($notify !== '' && $mailer->configured()) {
+                $subject = 'New contact form lead — ' . $name;
+                $body = "New contact form submission\n\n"
+                    . "Name: $name\n"
+                    . "Email: $email\n"
+                    . "Company: $company\n"
+                    . "Phone: $phone\n"
+                    . "Service: $service\n"
+                    . "Message:\n$message\n\n"
+                    . "Date: " . date('Y-m-d H:i:s') . "\n";
+                $mailer->send($notify, $subject, $body);
+                if ($notifyCo !== '' && $notifyCo !== $notify) {
+                    $mailer->send($notifyCo, $subject, $body);
+                }
+            }
+        } catch (\Throwable $e) {
+            error_log('[INTSOLCOM] Contact notification failed: ' . $e->getMessage());
+        }
+
         Response::json(['ok' => true, 'message' => 'Thank you — we received your message.']);
+    }
+
+    private function setting(string $key, string $default): string
+    {
+        try {
+            $st = Database::instance()->prepare("SELECT `value` FROM settings WHERE site_id = @site_id AND `key` = ? LIMIT 1");
+            $st->execute([$key]);
+            $v = $st->fetchColumn();
+            if ($v !== false && $v !== null && trim((string)$v) !== '') return trim((string)$v);
+        } catch (\Throwable $e) {
+        }
+        return $default;
     }
 }
