@@ -51,10 +51,10 @@ $footer = [
     'copyright' => '© 2026 INTSOLCOM, LLC. All rights reserved.',
     'address_us' => '390 NE 191st St, STE 17284, Miami, FL 33179',
     'phone_us' => '+1 (786) 386-1515',
-    'email_us' => 'contact@intsolcom.com',
+    'email_us' => 'customer@intsolcom.com',
     'address_co' => 'Carrera 53 #79-01, Barranquilla, Colombia',
     'phone_co' => '',
-    'email_co' => 'clientes@intsolcom.com',
+    'email_co' => 'cliente@intsolcom.com',
     'solutions' => [
         ['name' => 'WONTIA IA Annotation Suite', 'url' => '/technology/wontia-ia-annotation-suite', 'status' => 'available'],
         ['name' => 'WONTIA AIP', 'url' => '/technology/wontia-aip', 'status' => 'available'],
@@ -214,14 +214,14 @@ insSection($db, $secCols, $id, 'hero', 'Contact', [
     'subtitle' => 'Partner with the Intsolcom ecosystem.',
     'cta_primary_text' => '', 'cta_primary_url' => '', 'cta_secondary_text' => '', 'cta_secondary_url' => '',
 ], 0);
-insSection($db, $secCols, $id, 'wwi-contact', 'Contact', [
-    'title' => 'Contact us',
-    'subtitle' => 'Partner with a technology holding that delivers. We respond the same day.',
-    'email' => 'contact@intsolcom.com', 'email_label' => 'Email',
-    'phone' => '+1 (786) 386-1515', 'phone_label' => 'USA Phone',
-    'whatsapp' => '', 'button_text' => '',
-    'address' => '390 NE 191st St, STE 17284, Miami, FL 33179 • Carrera 53 #79-01, Barranquilla, Colombia',
-    'address_label' => 'Offices (USA · Colombia)', 'map_embed' => '',
+insSection($db, $secCols, $id, 'contact-form', 'Contact Form', [
+    'title' => "Let's talk about your project",
+    'subtitle' => 'Tell us what you need. We reply within one business day.',
+    'email' => 'customer@intsolcom.com',
+    'email_co' => 'cliente@intsolcom.com',
+    'phone' => '+1 (786) 386-1515',
+    'address_us' => '390 NE 191st St, STE 17284, Miami, FL 33179',
+    'address_co' => 'Carrera 53 #79-01, Barranquilla, Colombia',
 ], 1);
 insSection($db, $secCols, $id, 'cta', '', ['title' => 'Ready to work with the Intsolcom ecosystem?', 'description' => 'Let\'s discuss how INTSOLCOM can accelerate your growth through technology and operational excellence.', 'button_text' => 'Start a Conversation', 'button_url' => '/contact'], 2);
 insSection($db, $secCols, $id, 'footer', '', $footer, 3);

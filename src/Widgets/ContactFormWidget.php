@@ -15,11 +15,11 @@ class ContactFormWidget extends Widget
         return [
             ['key' => 'title', 'label' => 'Title', 'type' => 'text', 'default' => 'Let\'s talk about your project'],
             ['key' => 'subtitle', 'label' => 'Subtitle', 'type' => 'textarea', 'default' => 'Tell us what you need. We reply within one business day.'],
-            ['key' => 'email', 'label' => 'Email', 'type' => 'text', 'default' => 'contact@intsolcom.com'],
+            ['key' => 'email', 'label' => 'Email', 'type' => 'text', 'default' => 'customer@intsolcom.com'],
             ['key' => 'phone', 'label' => 'USA phone', 'type' => 'text', 'default' => '+1 (786) 386-1515'],
             ['key' => 'address_us', 'label' => 'USA office', 'type' => 'text', 'default' => '390 NE 191st St, STE 17284, Miami, FL 33179'],
             ['key' => 'address_co', 'label' => 'Colombia office', 'type' => 'text', 'default' => 'Carrera 53 #79-01, Barranquilla, Colombia'],
-            ['key' => 'email_co', 'label' => 'Colombia email', 'type' => 'text', 'default' => 'clientes@intsolcom.com'],
+            ['key' => 'email_co', 'label' => 'Colombia email', 'type' => 'text', 'default' => 'cliente@intsolcom.com'],
         ];
     }
 
