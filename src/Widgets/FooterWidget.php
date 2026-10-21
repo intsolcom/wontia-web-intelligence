@@ -73,7 +73,7 @@ class FooterWidget extends Widget
       <span style="font-size:10px;color:#DCCFFF">|</span>
       <span style="font-size:11px;color:#9A9A9A">' . $this->esc($tr['through']) . ' <strong style="color:#2F2F2F">Nearshore Dev MarcasBPO</strong></span>
     </div>
-    <div style="font-size:11px;color:#9A9A9A">&copy; ' . $year . ' | ' . $this->esc($c['copyright']) . '</div>
+    <div style="font-size:11px;color:#9A9A9A">' . $this->esc($c['copyright']) . '</div>
   </div>
 </footer>
 <div style="padding:32px 40px;background:#F3F3EF;border-top:1px solid rgba(80,80,80,0.04)">
