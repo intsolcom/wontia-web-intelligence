@@ -1484,12 +1484,51 @@ W.renderAnalytics=async function(){
     var app=document.getElementById('wontia-app');
     var d=await W.api('/api/v1/admin/analytics');
     var a=d.data||{};
+    var p=await W.api('/api/v1/admin/program/analytics');
+    var g=p.data||{};
+    var kpi=function(v,l){return '<div class="w-stat-card"><div class="w-stat-value">'+v+'</div><div class="w-stat-label">'+l+'</div></div>'};
+    var tbl=function(title,rows,label,mapFn){
+        if(!rows||!rows.length)return '';
+        return '<div class="w-card"><h3>'+title+'</h3><table class="w-table"><thead><tr><th>'+label+'</th><th>Cantidad</th></tr></thead><tbody>'+rows.map(function(r){return '<tr><td>'+W.esc(mapFn?mapFn(r.k):(r.k||'-'))+'</td><td>'+r.c+'</td></tr>'}).join('')+'</tbody></table></div>';
+    };
+    var placementLabel=function(m){try{var j=JSON.parse(m||'{}');return (j.placement||'')+(j.href?' → '+j.href:'')}catch(e){return m||'-'}};
+    var recent='';
+    (g.recent||[]).forEach(function(r){
+        recent+='<tr><td><strong>'+W.esc(r.event)+'</strong></td><td style="font-size:11px">'+W.esc(r.page||'')+'</td><td style="font-size:11px">'+W.esc(r.section||'')+'</td><td>'+(r.seconds||0)+'s</td><td>'+(r.clicks||0)+'</td><td>'+(r.scroll_pct||0)+'%</td><td style="font-size:11px">'+W.esc(r.device||'')+' · '+W.esc(r.os||'')+' · '+W.esc(r.browser||'')+'</td><td>'+W.esc(r.country||'')+'</td><td style="font-size:10px">'+W.esc((r.created_at||'').slice(0,19))+'</td></tr>';
+    });
     app.innerHTML='<div class="w-stats">'+
-        '<div class="w-stat-card"><div class="w-stat-value">'+W.num(a.totals?.['views']||0)+'</div><div class="w-stat-label">Page Views</div></div>'+
-        '<div class="w-stat-card"><div class="w-stat-value">'+W.num(a.totals?.['unique_visitors']||0)+'</div><div class="w-stat-label">Unique Visitors</div></div>'+
+        kpi(W.num(a.totals?.['views']||0),'Page Views')+
+        kpi(W.num(a.totals?.['unique_visitors']||0),'Unique Visitors')+
         '</div>'+
         '<div class="w-card"><h3>Top Pages</h3><table class="w-table"><thead><tr><th>URL</th><th>Views</th></tr></thead><tbody>'+(a.top_pages||[]).map(function(p){return '<tr><td>'+W.esc(p.page_url)+'</td><td>'+p.views+'</td></tr>'}).join('')+'</tbody></table></div>'+
-        '<div class="w-card"><h3>GA4</h3><div class="w-flex w-gap-sm"><input class="w-input" id="ga4-id" value="'+W.esc(a.ga4_id||'')+'" placeholder="G-XXXXXXXXXX"/><button class="w-btn w-btn-primary" onclick="wontia.saveGa4()">Save</button></div></div>';
+        '<div class="w-card"><h3>GA4</h3><div class="w-flex w-gap-sm"><input class="w-input" id="ga4-id" value="'+W.esc(a.ga4_id||'')+'" placeholder="G-XXXXXXXXXX"/><button class="w-btn w-btn-primary" onclick="wontia.saveGa4()">Save</button></div></div>'+
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin:22px 0 10px"><div><div style="font-size:11px;color:var(--w-muted)">Seguimiento del programa</div><h3 style="margin:0">Programa de desarrollo de apps</h3></div><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.programExport()">⬇ Export CSV</button></div>'+
+        '<div class="w-stats">'+
+        kpi(W.num(g.visits||0),'Visitas al programa')+
+        kpi(W.num(g.sessions||0),'Sesiones únicas')+
+        kpi((g.avg_seconds||0)+'s','Tiempo promedio')+
+        kpi(W.num(g.apply_clicks||0),'Clicks a aplicar')+
+        kpi((g.conversion_pct||0)+'%','Conversión')+
+        kpi(W.num(g.page_clicks||0),'Clics en página')+
+        kpi((g.scroll_avg||0)+'%','Scroll promedio')+
+        '</div>'+
+        '<div class="w-grid-2">'+
+        tbl('CTA más usado',g.placements,'Ubicación',placementLabel)+
+        tbl('Secciones más vistas',g.sections,'Sección')+
+        tbl('Dispositivos',g.devices,'Dispositivo')+
+        tbl('Sistema operativo',g.os,'SO')+
+        tbl('Navegadores',g.browsers,'Navegador')+
+        tbl('Países',g.countries,'País')+
+        '</div>'+
+        (recent?'<div class="w-card"><h3>Últimos eventos</h3><div style="overflow-x:auto"><table class="w-table"><thead><tr><th>Evento</th><th>Página</th><th>Sección</th><th>Tiempo</th><th>Clicks</th><th>Scroll</th><th>Dispositivo</th><th>País</th><th>Fecha</th></tr></thead><tbody>'+recent+'</tbody></table></div></div>':'');
+};
+
+W.programExport=async function(){
+    try{
+        var r=await fetch('/api/v1/admin/program/export',{headers:W.token?{Authorization:'Bearer '+W.token}:{}});
+        if(!r.ok){W.notify('Export failed','error');return}
+        var b=await r.blob();var u=URL.createObjectURL(b);var a=document.createElement('a');a.href=u;a.download='program-analytics.csv';document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(u);
+    }catch(e){W.notify('Export failed','error')}
 };
 
 W.saveGa4=async function(){

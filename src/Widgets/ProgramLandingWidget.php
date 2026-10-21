@@ -196,7 +196,7 @@ class ProgramLandingWidget extends Widget
             'applyUrlLabel' => 'Apply',
         ];
 
-        $cta = fn(string $extraClass = '') => '<a class="plp-btn plp-btn-primary ' . $extraClass . '" href="' . $e($applyUrl) . '">' . $e($t['cta']) . ' <span aria-hidden="true">&#8594;</span></a>';
+        $cta = fn(string $extraClass = '', string $placement = 'hero') => '<a class="plp-btn plp-btn-primary ' . $extraClass . '" href="' . $e($applyUrl) . '" data-plp-apply data-placement="' . $e($placement) . '">' . $e($t['cta']) . ' <span aria-hidden="true">&#8594;</span></a>';
         $miniTimer = fn() => '<span class="plp-mini-timer" data-deadline="' . $e($deadlineIso) . '" data-pre="' . $e($t['miniPre']) . '" data-post="' . $e($t['miniPost']) . '" data-closed="' . $e($t['miniClosed']) . '" aria-hidden="true"><span class="plp-mini-dot"></span><span class="plp-mini-text">' . $e($t['miniPre']) . '</span></span>';
 
         $html = '<style>'
@@ -291,12 +291,12 @@ class ProgramLandingWidget extends Widget
 
         $html .= '<div class="plp">';
 
-        $html .= '<section class="plp-hero"><div class="plp-wrap"><div class="plp-hero-grid">';
+        $html .= '<section class="plp-hero" id="program-hero"><div class="plp-wrap"><div class="plp-hero-grid">';
         $html .= '<div><span class="plp-badge"><span class="plp-badge-dot"></span>' . $e($t['badge']) . '</span>';
         $html .= '<h1>' . $e($t['h1a']) . '<em>' . $e($t['h1b']) . '</em></h1>';
         $html .= '<p class="plp-hero-copy">' . $e($t['copy']) . '</p>';
         $html .= '<p class="plp-hero-micro">' . $e($t['micro']) . '</p>';
-        $html .= '<div class="plp-hero-actions"><span class="plp-cta-wrap">' . $cta() . $miniTimer() . '</span><a class="plp-btn plp-btn-ghost" href="#how-it-works">' . $e($t['how']) . '</a></div>';
+        $html .= '<div class="plp-hero-actions"><span class="plp-cta-wrap">' . $cta('', 'hero') . $miniTimer() . '</span><a class="plp-btn plp-btn-ghost" href="#how-it-works">' . $e($t['how']) . '</a></div>';
 
         $html .= '<div class="plp-countdown" aria-label="Program countdown and activity">';
         $html .= '<div class="plp-countdown-head"><span class="plp-countdown-title">' . $e($t['closeIn']) . '</span><span class="plp-countdown-deadline">' . $e($t['deadlineLbl']) . ' ' . $e($deadline) . '</span></div>';
@@ -324,7 +324,7 @@ class ProgramLandingWidget extends Widget
         $html .= '<div class="plp-visual-row"><span class="plp-visual-num">5</span><div><b>' . $e($t['row5t']) . '</b><span>' . $e($t['row5d']) . '</span></div></div>';
         $html .= '</div></div></div></section>';
 
-        $html .= '<section class="plp-section"><div class="plp-wrap">';
+        $html .= '<section class="plp-section" id="program-problem"><div class="plp-wrap">';
         $html .= '<span class="plp-kicker">' . $e($t['problemKicker']) . '</span>';
         $html .= '<h2 class="plp-h2">' . $e($t['problemTitle']) . '</h2>';
         $html .= '<p class="plp-lead">' . $e($t['problemLead']) . '</p>';
@@ -336,7 +336,7 @@ class ProgramLandingWidget extends Widget
         $html .= '<p class="plp-note">' . $e($t['problemNote']) . '</p>';
         $html .= '</div></section>';
 
-        $html .= '<section class="plp-section plp-section-alt"><div class="plp-wrap">';
+        $html .= '<section class="plp-section plp-section-alt" id="program-value"><div class="plp-wrap">';
         $html .= '<span class="plp-kicker">' . $e($t['valueKicker']) . '</span>';
         $html .= '<h2 class="plp-h2">' . $e($t['valueTitle']) . '</h2>';
         $html .= '<div class="plp-grid-3">';
@@ -356,7 +356,7 @@ class ProgramLandingWidget extends Widget
         $html .= '<p class="plp-note">' . $e($t['stepsNote']) . '</p>';
         $html .= '</div></section>';
 
-        $html .= '<section class="plp-section"><div class="plp-wrap">';
+        $html .= '<section class="plp-section" id="program-fit"><div class="plp-wrap">';
         $html .= '<span class="plp-kicker">' . $e($t['fitKicker']) . '</span>';
         $html .= '<h2 class="plp-h2">' . $e($t['fitTitle']) . '</h2>';
         $html .= '<div style="margin-top:30px;max-width:760px">';
@@ -367,16 +367,16 @@ class ProgramLandingWidget extends Widget
         $html .= '<p class="plp-note">' . $e($t['fitNote']) . '</p>';
         $html .= '</div></section>';
 
-        $html .= '<section class="plp-section plp-section-alt"><div class="plp-wrap">';
+        $html .= '<section class="plp-section plp-section-alt" id="program-deadline"><div class="plp-wrap">';
         $html .= '<div class="plp-deadline">';
         $html .= '<div class="plp-deadline-date"><b>' . $e($deadline) . '</b><span>' . $e($t['deadlineLbl']) . '</span></div>';
         $html .= '<div><h3>' . $e($t['deadlineTitle']) . '</h3><p>' . $e($t['deadlineCopy']) . '</p></div>';
         $html .= '</div></div></section>';
 
-        $html .= '<section class="plp-final"><div class="plp-wrap">';
+        $html .= '<section class="plp-final" id="program-final"><div class="plp-wrap">';
         $html .= '<h2>' . $e($t['finalTitle']) . '</h2>';
         $html .= '<p>' . $e($t['finalCopy']) . '</p>';
-        $html .= '<span class="plp-cta-wrap">' . $cta() . $miniTimer() . '</span>';
+        $html .= '<span class="plp-cta-wrap">' . $cta('', 'final') . $miniTimer() . '</span>';
         $html .= '<p class="plp-final-micro">' . $e($t['finalMicro']) . '</p>';
         $html .= '</div></section>';
 
@@ -415,8 +415,28 @@ class ProgramLandingWidget extends Widget
 
         $html .= '<div class="plp-sticky" id="plp-sticky">'
             . '<div class="plp-sticky-txt">' . $e($t['stickyPre']) . ' <b class="plp-mini-text" data-deadline="' . $e($deadlineIso) . '">' . $e($t['miniPre']) . '</b></div>'
-            . '<div class="plp-sticky-actions"><a class="plp-btn plp-btn-primary" href="' . $e($applyUrl) . '">' . $e($t['stickyCta']) . '</a><button type="button" class="plp-sticky-close" aria-label="' . $e($t['dismiss']) . '">&#10005;</button></div>'
+            . '<div class="plp-sticky-actions"><a class="plp-btn plp-btn-primary" href="' . $e($applyUrl) . '" data-plp-apply data-placement="sticky">' . $e($t['stickyCta']) . '</a><button type="button" class="plp-sticky-close" aria-label="' . $e($t['dismiss']) . '">&#10005;</button></div>'
             . '</div>';
+
+        $html .= '<script>(function(){'
+            . 'if(navigator.doNotTrack==="1"||window.doNotTrack==="1"||navigator.msDoNotTrack==="1")return;'
+            . 'var endpoint="/api/v1/public/program/track";'
+            . 'var sid=null;try{sid=localStorage.getItem("plp_sid")}catch(e){}'
+            . 'if(!sid){sid=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():"p"+Date.now().toString(36)+Math.random().toString(36).slice(2);try{localStorage.setItem("plp_sid",sid)}catch(e){}}'
+            . 'var page=location.pathname;'
+            . 'function send(payload){payload.session=sid;payload.page=page;try{if(navigator.sendBeacon){navigator.sendBeacon(endpoint,new Blob([JSON.stringify(payload)],{type:"application/json"}));return}}catch(e){}fetch(endpoint,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload),keepalive:true}).catch(function(){})}'
+            . 'send({event:"view",meta:{ref:document.referrer||"",lang:document.documentElement.lang||"",utm:location.search||""}});'
+            . 'var last=Date.now();'
+            . 'setInterval(function(){if(document.visibilityState==="hidden")return;send({event:"time",seconds:20})},20000);'
+            . 'function flushClicks(){if(flushed||clicks<=0)return;flushed=true;send({event:"clicks",clicks:clicks,scroll_pct:maxScroll})}'
+            . 'document.addEventListener("visibilitychange",function(){if(document.visibilityState==="hidden"){var s=Math.round((Date.now()-last)/1000);if(s>1)send({event:"time",seconds:s});flushClicks()}else{last=Date.now()}});'
+            . 'var maxScroll=0,milestones={25:0,50:0,75:0,100:0};'
+            . 'window.addEventListener("scroll",function(){var h=document.documentElement;var pct=Math.round(((h.scrollTop+window.innerHeight)/h.scrollHeight)*100);if(pct>maxScroll)maxScroll=pct;for(var m in milestones){if(!milestones[m]&&pct>=+m){milestones[m]=1;send({event:"scroll",scroll_pct:+m})}}},{passive:true});'
+            . 'var seen={};if("IntersectionObserver" in window){var io=new IntersectionObserver(function(es){es.forEach(function(en){if(!en.isIntersecting)return;var el=en.target;var key=el.id||"section";if(seen[key])return;seen[key]=1;send({event:"section_view",section:key})})},{threshold:.45});document.querySelectorAll(".plp section").forEach(function(s){if(s.id)io.observe(s)})}'
+            . 'var clicks=0;document.addEventListener("click",function(e){clicks++;var a=e.target.closest?e.target.closest("[data-plp-apply]"):null;if(a){send({event:"apply_click",meta:{placement:a.getAttribute("data-placement")||"",href:a.getAttribute("href")||""}})}},true);'
+            . 'var flushed=false;'
+            . 'window.addEventListener("pagehide",flushClicks);'
+            . '})();</script>';
 
         return $html;
     }

@@ -99,6 +99,7 @@ $router->get('/api/v1/public/settings', function () {    $siteId = (int)($_GET['
 });
 
 $router->post('/api/v1/public/contact', [\App\Controllers\ContactController::class, 'submit']);
+$router->post('/api/v1/public/program/track', [\App\Controllers\ProgramTrackingController::class, 'track']);
 
 $router->get('/api/v1/public/asset-version', function () {
     $js = ROOT_DIR . '/public/assets/js/admin.js';
@@ -610,6 +611,9 @@ $r->post('/nav/style', [\App\Controllers\Admin\NavController::class, 'saveStyle'
     $r->post('/users', [\App\Controllers\Admin\UserController::class, 'store']);
     $r->put('/users/{id}', [\App\Controllers\Admin\UserController::class, 'update']);
     $r->delete('/users/{id}', [\App\Controllers\Admin\UserController::class, 'destroy']);
+
+    $r->get('/program/analytics', [\App\Controllers\ProgramTrackingController::class, 'analytics']);
+    $r->get('/program/export', [\App\Controllers\ProgramTrackingController::class, 'export']);
 }, [AuthMiddleware::class]);
 
 $router->dispatch($method, $uri);
