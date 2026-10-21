@@ -45,9 +45,12 @@ class FooterWidget extends Widget
         $solHtml = '<div style="display:flex;flex-direction:column;gap:8px;min-width:240px">
       <div style="font-size:10px;font-weight:700;color:#9A9A9A;text-transform:uppercase">Soluciones</div>';
         foreach ($solutions as $s) {
-            $st = $solMap[$s['status'] ?? 'future'] ?? $solMap['future'];
+            $stKey = (string)($s['status'] ?? 'future');
+            $st = $solMap[$stKey] ?? null;
+            $stDot = $st['dot'] ?? '#0077C2';
+            $stLabel = $st['label'] ?? $stKey;
             $isChild = !empty($s['child']);
-            $solHtml .= '<a href="' . $this->esc($s['url'] ?? '#domain-arch') . '" style="font-size:' . ($isChild ? '11px' : '12px') . ';color:#4A4A4A;text-decoration:none;font-weight:' . ($isChild ? '400' : '600') . ';' . ($isChild ? 'padding-left:14px' : '') . '">' . $this->esc($s['name']) . ' <span style="color:' . $st['dot'] . ';font-size:8px;font-weight:700;letter-spacing:.04em">' . $st['label'] . '</span></a>';
+            $solHtml .= '<a href="' . $this->esc($s['url'] ?? '#domain-arch') . '" style="font-size:' . ($isChild ? '11px' : '12px') . ';color:#4A4A4A;text-decoration:none;font-weight:' . ($isChild ? '400' : '600') . ';' . ($isChild ? 'padding-left:14px' : '') . '">' . $this->esc($s['name']) . ' <span style="color:' . $stDot . ';font-size:8px;font-weight:700;letter-spacing:.04em">' . $this->esc($stLabel) . '</span></a>';
         }
         $solHtml .= '</div>';
         return '

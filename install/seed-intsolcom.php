@@ -56,8 +56,8 @@ $footer = [
     'phone_co' => '+57 3116020005',
     'email_co' => 'cliente@intsolcom.com',
     'solutions' => [
-        ['name' => 'WONTIA IA Annotation Suite', 'url' => '/technology/wontia-ia-annotation-suite', 'status' => 'available'],
-        ['name' => 'WONTIA AIP', 'url' => '/technology/wontia-aip', 'status' => 'available'],
+        ['name' => 'WONTIA IA Annotation Suite', 'url' => 'https://app.iannma.com/login', 'status' => 'Request DEMO'],
+        ['name' => 'WONTIA AIP', 'url' => 'https://aip.wontia.com/login', 'status' => 'Request DEMO'],
     ],
 ];
 
