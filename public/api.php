@@ -87,8 +87,7 @@ $router->get('/api/v1/public/page/{slug}', function ($request, $slug) {
     ]);
 });
 
-$router->get('/api/v1/public/settings', function () {
-    $siteId = (int)($_GET['site_id'] ?? 1);
+$router->get('/api/v1/public/settings', function () {    $siteId = (int)($_GET['site_id'] ?? 1);
     $db = Database::instance();
     $stmt = $db->prepare("SELECT `key`, `value` FROM settings WHERE site_id = :sid");
     $stmt->execute(['sid' => $siteId]);
@@ -98,6 +97,8 @@ $router->get('/api/v1/public/settings', function () {
     }
     Response::json(['ok' => true, 'data' => $settings]);
 });
+
+$router->post('/api/v1/public/contact', [\App\Controllers\ContactController::class, 'submit']);
 
 $router->get('/api/v1/public/asset-version', function () {
     $js = ROOT_DIR . '/public/assets/js/admin.js';

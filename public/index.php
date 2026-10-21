@@ -11,7 +11,11 @@ use App\Core\Database;
 use App\Core\Response;
 
 Config::load();
-\App\Core\Lang::init();
+$requestedLang = isset($_GET['lang']) ? strtolower(trim((string)$_GET['lang'])) : null;
+\App\Core\Lang::init($requestedLang);
+if ($requestedLang !== null && in_array($requestedLang, \App\Core\Lang::available(), true)) {
+    setcookie('wwi_lang', $requestedLang, ['expires' => time() + 31536000, 'path' => '/', 'samesite' => 'Lax']);
+}
 
 set_exception_handler(function (\Throwable $e) {
     $debug = Config::get('APP_DEBUG', 'false') === 'true';

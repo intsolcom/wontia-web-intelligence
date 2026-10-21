@@ -1,14 +1,17 @@
 <?php
 use App\Core\Config;
+use App\Core\Lang;
 use App\Services\SeoService;
 use App\Services\CookieConsentService;
 use App\Services\AnalyticsService;
+use App\Services\TranslationService;
 use App\Widgets\WidgetRegistry;
 
 require_once ROOT_DIR . '/templates/themes/_shared/brand.php';
 
 $page = $page ?? ['title' => Config::get('site_name', 'INTSOLCOM'), 'meta_title' => '', 'meta_description' => '', 'slug' => ''];
 $sections = $sections ?? [];
+$locale = Lang::current();
 $pageMeta = array_merge($page, ['meta_title' => $page['meta_title'] ?: $page['title']]);
 
 $brand = wwi_brand();
@@ -25,6 +28,11 @@ try {
         if (is_array($navJson) && !empty($navJson)) $navItems = $navJson;
     }
 } catch (\Throwable $e) {}
+
+foreach ($navItems as &$navIt) {
+    if (isset($navIt['text'])) $navIt['text'] = TranslationService::translateText((string)$navIt['text'], $locale);
+}
+unset($navIt);
 
 $navLinks = '';
 $navMobile = '';
@@ -45,7 +53,7 @@ $brandStmt->execute();
 $brandPrimary = $brandStmt->fetchColumn();
 if (!$brandPrimary || !preg_match('/^#[0-9a-fA-F]{6}$/', (string)$brandPrimary)) $brandPrimary = '#00C896';
 ?><!DOCTYPE html>
-<html lang="en">
+<html lang="<?= $locale ?>">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -127,8 +135,8 @@ if (!$brandPrimary || !preg_match('/^#[0-9a-fA-F]{6}$/', (string)$brandPrimary))
   </div>
   <div style="display:flex;align-items:center;gap:12px">
     <div class="lang-switch">
-      <a href="?lang=en" class="active">EN</a>
-      <a href="?lang=es">ES</a>
+      <a href="?lang=en" class="<?= $locale === 'en' ? 'active' : '' ?>" hreflang="en">EN</a>
+      <a href="?lang=es" class="<?= $locale === 'es' ? 'active' : '' ?>" hreflang="es">ES</a>
     </div>
     <button type="button" class="nav-hamburger" aria-label="Menu"><span></span><span></span><span></span></button>
   </div>
@@ -154,12 +162,17 @@ if (!$brandPrimary || !preg_match('/^#[0-9a-fA-F]{6}$/', (string)$brandPrimary))
     foreach ($sections as $section):
         $wwiSid = (int)($section['id'] ?? 0);
         $config = json_decode($section['config'] ?? '{}', true) ?: [];
+        if ($locale !== 'en') {
+            $config = TranslationService::translateConfig($config, $locale);
+        }
         $wwiHide = (!empty($config['_hide_mobile']) ? ' wwi-hide-mobile' : '') . (!empty($config['_hide_tablet']) ? ' wwi-hide-tablet' : '') . (!empty($config['_hide_desktop']) ? ' wwi-hide-desktop' : '');
         echo '<div class="wwi-section' . $wwiHide . '" data-sid="' . $wwiSid . '" data-widget="' . htmlspecialchars((string)($section['widget_type'] ?? '')) . '">';
         if (!empty($section['widget_type']) && WidgetRegistry::get($section['widget_type'])):
             echo WidgetRegistry::render($section['widget_type'], $config);
         elseif ($section['type'] === 'custom' || $section['type'] === 'html'):
-            echo '<section class="section" style="max-width:760px">' . ($section['content'] ?? '') . '</section>';
+            $secHtml = (string)($section['content'] ?? '');
+            if ($locale !== 'en' && $secHtml !== '') $secHtml = TranslationService::translateText($secHtml, $locale);
+            echo '<section class="section" style="max-width:760px">' . $secHtml . '</section>';
         else:
             if ($section['content']) echo '<section class="section">' . $section['content'] . '</section>';
         endif;
