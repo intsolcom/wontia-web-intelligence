@@ -3,6 +3,14 @@ namespace App\Widgets;
 
 class FooterWidget extends Widget
 {
+    private static function tr(): array
+    {
+        $es = \App\Core\Lang::current() === 'es';
+        return $es
+            ? ['solutions' => 'Soluciones', 'powered' => 'Desarrollado por', 'through' => 'A través de', 'by' => 'por']
+            : ['solutions' => 'Solutions', 'powered' => 'Powered by', 'through' => 'Through', 'by' => 'by'];
+    }
+
     public static function meta(): array { return ['id' => 'footer', 'name' => 'Footer', 'icon' => 'layout-bottom', 'category' => 'footer', 'version' => '1.0.0']; }
 
     public static function configSchema(): array
@@ -40,10 +48,11 @@ class FooterWidget extends Widget
     {
         $c = $this->mergeConfig($config);
         $year = date('Y');
+        $tr = self::tr();
         $solutions = $this->safeJson($c['solutions']);
         $solMap = ['available' => ['dot' => '#4A9E6E', 'label' => 'AVAILABLE'], 'development' => ['dot' => '#D4A54A', 'label' => 'IN DEVELOPMENT'], 'future' => ['dot' => '#7C3AED', 'label' => 'FUTURE']];
         $solHtml = '<div style="display:flex;flex-direction:column;gap:8px;min-width:240px">
-      <div style="font-size:10px;font-weight:700;color:#9A9A9A;text-transform:uppercase">Soluciones</div>';
+      <div style="font-size:10px;font-weight:700;color:#9A9A9A;text-transform:uppercase">' . $this->esc($tr['solutions']) . '</div>';
         foreach ($solutions as $s) {
             $stKey = (string)($s['status'] ?? 'future');
             $st = $solMap[$stKey] ?? null;
@@ -60,9 +69,9 @@ class FooterWidget extends Widget
       <div style="width:24px;height:24px;border-radius:8px;background:linear-gradient(135deg,#9B8CDE,#B89EFF);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#fff">W</div>
       <span style="font-size:12px;font-weight:600;color:#2F2F2F">' . $this->esc($c['brand_name']) . '</span>
       <span style="font-size:10px;color:#DCCFFF">|</span>
-      <span style="font-size:11px;color:#9A9A9A">Powered by <strong style="color:#2F2F2F">' . $this->esc($c['powered_by']) . '</strong></span>
+      <span style="font-size:11px;color:#9A9A9A">' . $this->esc($tr['powered']) . ' <strong style="color:#2F2F2F">' . $this->esc($c['powered_by']) . '</strong></span>
       <span style="font-size:10px;color:#DCCFFF">|</span>
-      <span style="font-size:11px;color:#9A9A9A">Through <strong style="color:#2F2F2F">Nearshore Dev MarcasBPO</strong></span>
+      <span style="font-size:11px;color:#9A9A9A">' . $this->esc($tr['through']) . ' <strong style="color:#2F2F2F">Nearshore Dev MarcasBPO</strong></span>
     </div>
     <div style="font-size:11px;color:#9A9A9A">&copy; ' . $year . ' | ' . $this->esc($c['copyright']) . '</div>
   </div>
@@ -83,10 +92,10 @@ class FooterWidget extends Widget
       <div style="font-size:12px;color:#4A4A4A">&#x2709; <a href="mailto:' . $this->esc($c['email_co']) . '" style="color:#4A4A4A;text-decoration:none">' . $this->esc($c['email_co']) . '</a></div>
     </div>
     <div style="display:flex;flex-direction:column;gap:8px;min-width:180px">
-      <div style="font-size:10px;font-weight:700;color:#9A9A9A;text-transform:uppercase">Powered by</div>
+      <div style="font-size:10px;font-weight:700;color:#9A9A9A;text-transform:uppercase">' . $this->esc($tr['powered']) . '</div>
       <div style="display:flex;align-items:center;gap:8px">
         <div style="width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#9B8CDE,#B89EFF);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#fff">W</div>
-        <div><div style="font-size:11px;font-weight:700;color:#2F2F2F">' . $this->esc($c['brand_name']) . '</div><div style="font-size:9px;color:#9A9A9A">by MarcasBPO</div></div>
+        <div><div style="font-size:11px;font-weight:700;color:#2F2F2F">' . $this->esc($c['brand_name']) . '</div><div style="font-size:9px;color:#9A9A9A">' . $this->esc($tr['by']) . ' MarcasBPO</div></div>
       </div>
     </div>
   </div>
