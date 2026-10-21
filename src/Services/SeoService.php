@@ -30,6 +30,11 @@ class SeoService
         if (!empty($page['no_index'])) {
             $html .= "    <meta name=\"robots\" content=\"noindex, nofollow\">\n";
         }
+        // SEO Tracking (visitas, links, CTA, formularios) — solo páginas públicas indexables.
+        if (empty($page['no_index'])) {
+            $v = rawurlencode(Config::get('APP_VERSION', '1'));
+            $html .= "    <script src=\"/assets/js/seo-track.js?v=$v\" defer></script>\n";
+        }
 
         return $html;
     }

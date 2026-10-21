@@ -181,6 +181,7 @@ $router->post('/api/v1/public/store/payments/wompi/webhook', [\App\Controllers\S
 $router->get('/api/v1/public/store/reviews', [\App\Controllers\StorePublicController::class, 'reviews']);
 $router->post('/api/v1/public/store/reviews/{id}/helpful', [\App\Controllers\StorePublicController::class, 'reviewHelpful']);
 $router->post('/api/v1/public/banner/event', [\App\Controllers\BannerEventController::class, 'event']);
+$router->post('/api/v1/public/seo/track', [\App\Controllers\SeoTrackingController::class, 'track']);
 $router->post('/api/v1/public/cart/validate', [\App\Controllers\CartController::class, 'validate']);
 $router->post('/api/v1/public/cart/coupon', [\App\Controllers\CartController::class, 'coupon']);
 $router->post('/api/v1/public/cart/sync', [\App\Controllers\CartController::class, 'sync']);
@@ -553,6 +554,7 @@ $r->delete('/media/{id}/purge', [\App\Controllers\Admin\MediaController::class, 
 
     $r->get('/seo', [\App\Controllers\Admin\SeoController::class, 'index']);
     $r->post('/seo/audit', [\App\Controllers\Admin\SeoController::class, 'audit']);
+    $r->get('/seo/tracking', [\App\Controllers\SeoTrackingController::class, 'stats']);
 
     // SEO Global Launch brick
     $r->get('/seo-global-launch', [\App\Controllers\Admin\SeoGlobalLaunchController::class, 'overview']);

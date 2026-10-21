@@ -1,0 +1,25 @@
+-- WWI SEO Tracking — eventos de visitantes, links, CTA, formularios (envíos efectivos)
+CREATE TABLE IF NOT EXISTS seo_tracking_events (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  site_id INT NOT NULL,
+  session_id VARCHAR(64) NOT NULL,
+  type VARCHAR(32) NOT NULL COMMENT 'page_view|page_leave|link_click|cta_click|form_submit|outbound',
+  page_url VARCHAR(500) NOT NULL DEFAULT '',
+  target VARCHAR(500) DEFAULT NULL,
+  label VARCHAR(255) DEFAULT NULL,
+  referrer VARCHAR(500) DEFAULT NULL,
+  utm JSON DEFAULT NULL,
+  duration_ms INT DEFAULT NULL,
+  scroll_pct TINYINT DEFAULT NULL,
+  device VARCHAR(16) DEFAULT NULL,
+  os VARCHAR(32) DEFAULT NULL,
+  browser VARCHAR(32) DEFAULT NULL,
+  country CHAR(2) DEFAULT NULL,
+  ip_hash CHAR(64) DEFAULT NULL,
+  is_bot TINYINT(1) NOT NULL DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_site_type (site_id, type),
+  INDEX idx_site_created (site_id, created_at),
+  INDEX idx_session (site_id, session_id),
+  INDEX idx_target (site_id, target(191))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
