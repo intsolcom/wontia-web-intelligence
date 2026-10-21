@@ -52,8 +52,8 @@ $footer = [
     'address_us' => '390 NE 191st St, STE 17284, Miami, FL 33179',
     'phone_us' => '+1 (786) 386-1515',
     'email_us' => 'customer@intsolcom.com',
-    'address_co' => 'Carrera 53 #79-01, Barranquilla, Colombia',
-    'phone_co' => '',
+    'address_co' => 'Cra 55 # 100 - 51 Piso 13, Centro Empresarial Blue Garden',
+    'phone_co' => '+57 3116020005',
     'email_co' => 'cliente@intsolcom.com',
     'solutions' => [
         ['name' => 'WONTIA IA Annotation Suite', 'url' => '/technology/wontia-ia-annotation-suite', 'status' => 'available'],
@@ -221,7 +221,7 @@ insSection($db, $secCols, $id, 'contact-form', 'Contact Form', [
     'email_co' => 'cliente@intsolcom.com',
     'phone' => '+1 (786) 386-1515',
     'address_us' => '390 NE 191st St, STE 17284, Miami, FL 33179',
-    'address_co' => 'Carrera 53 #79-01, Barranquilla, Colombia',
+    'address_co' => 'Cra 55 # 100 - 51 Piso 13, Centro Empresarial Blue Garden',
 ], 1);
 insSection($db, $secCols, $id, 'cta', '', ['title' => 'Ready to work with the Intsolcom ecosystem?', 'description' => 'Let\'s discuss how INTSOLCOM can accelerate your growth through technology and operational excellence.', 'button_text' => 'Start a Conversation', 'button_url' => '/contact'], 2);
 insSection($db, $secCols, $id, 'footer', '', $footer, 3);

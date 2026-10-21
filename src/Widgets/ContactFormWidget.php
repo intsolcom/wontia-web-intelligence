@@ -18,7 +18,7 @@ class ContactFormWidget extends Widget
             ['key' => 'email', 'label' => 'Email', 'type' => 'text', 'default' => 'customer@intsolcom.com'],
             ['key' => 'phone', 'label' => 'USA phone', 'type' => 'text', 'default' => '+1 (786) 386-1515'],
             ['key' => 'address_us', 'label' => 'USA office', 'type' => 'text', 'default' => '390 NE 191st St, STE 17284, Miami, FL 33179'],
-            ['key' => 'address_co', 'label' => 'Colombia office', 'type' => 'text', 'default' => 'Carrera 53 #79-01, Barranquilla, Colombia'],
+            ['key' => 'address_co', 'label' => 'Colombia office', 'type' => 'text', 'default' => 'Cra 55 # 100 - 51 Piso 13, Centro Empresarial Blue Garden'],
             ['key' => 'email_co', 'label' => 'Colombia email', 'type' => 'text', 'default' => 'cliente@intsolcom.com'],
         ];
     }
