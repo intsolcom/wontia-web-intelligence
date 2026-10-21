@@ -76,8 +76,9 @@ if (!$brandPrimary || !preg_match('/^#[0-9a-fA-F]{6}$/', (string)$brandPrimary))
         .grid-3{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:18px}
         .grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:22px}
         .footer{padding:48px 40px;border-top:1px solid rgba(15,23,42,.06);background:#0F172A;color:#94A3B8}
-        .footer a{color:#94A3B8;text-decoration:none}
-        .footer a:hover{color:<?= $brandPrimary ?>}
+        .footer,.footer *{color:#FFFFFF !important}
+        .footer a{color:#FFFFFF;text-decoration:none}
+        .footer a:hover{color:#00C896}
         .img-swap{position:relative;width:100%;height:150px;border-radius:12px;overflow:hidden;margin-bottom:18px;background:#F1F5F9}
         .img-swap .img-a,.img-swap .img-b{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:opacity .5s ease,transform .5s ease}
         .img-swap .img-b{opacity:0;transform:scale(1.03)}

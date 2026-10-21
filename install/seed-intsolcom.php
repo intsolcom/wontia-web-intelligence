@@ -54,11 +54,10 @@ $footer = [
     'email_us' => 'contact@intsolcom.com',
     'address_co' => 'Carrera 53 #79-01, Barranquilla, Colombia',
     'phone_co' => '',
-    'email_co' => '',
+    'email_co' => 'clientes@intsolcom.com',
     'solutions' => [
         ['name' => 'WONTIA IA Annotation Suite', 'url' => '/technology/wontia-ia-annotation-suite', 'status' => 'available'],
         ['name' => 'WONTIA AIP', 'url' => '/technology/wontia-aip', 'status' => 'available'],
-        ['name' => 'WONTIA Food Security', 'url' => '/technology/wontia-food-security', 'status' => 'available'],
     ],
 ];
 
