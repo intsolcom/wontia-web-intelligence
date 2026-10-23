@@ -219,6 +219,26 @@ class AffiliateService
         } catch (\Throwable $e) { return null; }
     }
 
+    public function statusLookup(string $email, string $doc): ?array
+    {
+        $email = strtolower(trim($email));
+        $doc = preg_replace('/\D/', '', $doc) ?? '';
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($doc) < 4) return null;
+        try {
+            $st = Database::instance()->prepare('SELECT full_name, artist_name, public_name, status, doc_number, created_at FROM affiliate_profiles WHERE email = :e AND site_id = @site_id LIMIT 1');
+            $st->execute(['e' => $email]);
+            $r = $st->fetch();
+            if (!$r) return null;
+            $docDb = preg_replace('/\D/', '', (string)($r['doc_number'] ?? ''));
+            if ($docDb === '' || substr($docDb, -4) !== substr($doc, -4)) return null;
+            return [
+                'name' => (string)(($r['artist_name'] ?: $r['public_name']) ?: $r['full_name']),
+                'status' => (string)$r['status'],
+                'created_at' => (string)$r['created_at'],
+            ];
+        } catch (\Throwable $e) { return null; }
+    }
+
     public function dashboard(int $affiliateId): array
     {
         $out = ['clicks' => 0, 'sales' => 0.0, 'commission_total' => 0.0, 'by_status' => [], 'recent' => []];

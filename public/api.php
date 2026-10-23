@@ -184,6 +184,7 @@ $router->post('/api/v1/public/store/reviews/{id}/helpful', [\App\Controllers\Sto
 $router->post('/api/v1/public/banner/event', [\App\Controllers\BannerEventController::class, 'event']);
 $router->post('/api/v1/public/seo/track', [\App\Controllers\SeoTrackingController::class, 'track']);
 $router->post('/api/v1/public/affiliates/register', [\App\Controllers\AffiliateController::class, 'register']);
+$router->post('/api/v1/public/affiliates/status', [\App\Controllers\AffiliateController::class, 'status']);
 $router->post('/api/v1/public/cart/validate', [\App\Controllers\CartController::class, 'validate']);
 $router->post('/api/v1/public/cart/coupon', [\App\Controllers\CartController::class, 'coupon']);
 $router->post('/api/v1/public/cart/sync', [\App\Controllers\CartController::class, 'sync']);

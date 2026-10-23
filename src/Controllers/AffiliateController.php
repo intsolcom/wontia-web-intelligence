@@ -16,6 +16,18 @@ class AffiliateController
         echo json_encode($r, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     }
 
+    /** POST /api/v1/public/affiliates/status — consulta de estado (correo + últimos 4 del doc). */
+    public function status($request)
+    {
+        $in = json_decode((string)file_get_contents('php://input'), true);
+        if (!is_array($in)) $in = $_POST;
+        $r = (new AffiliateService())->statusLookup((string)($in['email'] ?? ''), (string)($in['doc'] ?? ''));
+        header('Content-Type: application/json');
+        header('Cache-Control: no-store');
+        if (!$r) { echo json_encode(['ok' => false, 'message' => 'No encontramos una solicitud con esos datos.']); return; }
+        echo json_encode(['ok' => true, 'status' => $r['status'], 'name' => $r['name'], 'created_at' => $r['created_at']], JSON_UNESCAPED_UNICODE);
+    }
+
     /** GET /r/{code} — captura el clic, fija cookie de atribución (30d) y redirige. */
     public function click($request, $code)
     {
