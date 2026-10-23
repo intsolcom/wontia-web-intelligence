@@ -106,6 +106,15 @@ class AffiliateService
         catch (\Throwable $e) { return null; }
     }
 
+    public function collections(int $affiliateId): array
+    {
+        try {
+            $st = Database::instance()->prepare('SELECT * FROM affiliate_collections WHERE affiliate_id = :a AND site_id = @site_id ORDER BY sort_order, id');
+            $st->execute(['a' => $affiliateId]);
+            return $st->fetchAll();
+        } catch (\Throwable $e) { return []; }
+    }
+
     public function ensureLink(int $affiliateId): string
     {
         try {

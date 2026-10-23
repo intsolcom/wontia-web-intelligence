@@ -74,9 +74,25 @@ if ($__artSlug !== '' && !in_array($__artSlug, $__res2, true) && !(function_exis
         foreach ([$__instr, $__genre, $__level] as $__ch) { if ($__ch !== '') echo '<span class="ah-chip">' . sonika_esc($__ch) . '</span>'; }
         echo '</div></div><div class="ah-share"><button class="ah-btn" type="button" onclick="navigator.clipboard&&navigator.clipboard.writeText(\'' . sonika_esc($__affUrl) . '\');this.textContent=\'✅ Enlace copiado\'">Poner a Sonar</button><a class="ah-btn ghost" target="_blank" rel="noopener" href="https://wa.me/?text=' . rawurlencode('Escucha y apoya a ' . $__name . ' en SONIKA: ' . $__affUrl) . '">Compartir</a></div></div></section>';
         echo '<section class="ah-sec"><h2 class="ah-h">Mi Vitrina</h2>';
-        $__prods = array_slice(sonika_products(), 0, 8);
-        if (!empty($__prods)) { echo '<div class="ah-grid">'; foreach ($__prods as $__p) sonika_product_card($__p); echo '</div>'; }
-        else { echo '<div class="ah-empty">La selección de ' . sonika_esc($__name) . ' estará disponible pronto.</div>'; }
+        $__cols = $__affSvc->collections((int)$__affP['id']);
+        if (!empty($__cols)) {
+            foreach ($__cols as $__col) {
+                $__handles = json_decode((string)($__col['products'] ?? '[]'), true);
+                if (!is_array($__handles) || !$__handles) continue;
+                echo '<h3 class="ah-h" style="font-size:17px;margin:22px 0 10px">' . sonika_esc((string)$__col['name']) . '</h3><div class="ah-grid">';
+                $__n = 0;
+                foreach ($__handles as $__h) {
+                    $__p = sonika_find((string)$__h);
+                    if ($__p) { sonika_product_card($__p); $__n++; }
+                    if ($__n >= 8) break;
+                }
+                echo '</div>';
+            }
+        } else {
+            $__prods = array_slice(sonika_products(), 0, 8);
+            if (!empty($__prods)) { echo '<div class="ah-grid">'; foreach ($__prods as $__p) sonika_product_card($__p); echo '</div>'; }
+            else { echo '<div class="ah-empty">La selección de ' . sonika_esc($__name) . ' estará disponible pronto.</div>'; }
+        }
         echo '<p style="margin:16px 0 0"><a href="/tienda" style="color:#F20D16;font-weight:700">Ver todo el catálogo →</a></p></section>';
         echo '<section class="ah-cta"><div class="ah-cta__box"><div style="flex:1;min-width:240px"><h3>Contrátame</h3><p>¿Quieres a ' . sonika_esc($__name) . ' en tu evento o proyecto? Envía una solicitud y coordinamos disponibilidad y condiciones.</p></div><a class="ah-btn" href="mailto:?subject=' . rawurlencode('Contratación — ' . $__name) . '&body=' . rawurlencode('Hola, quiero contratar a ' . $__name . ' para un evento.') . '">Solicitar contratación</a></div></section>';
         sonika_site_footer();
