@@ -1,0 +1,23 @@
+{
+  "version": "1.0.0",
+  "locale_default": "co",
+  "note": "Diccionario SONIKA Vibe. Configurable sin tocar lógica comercial ni identificadores internos.",
+  "terms": {
+    "friend": { "expression": "Mi llave", "meaning": "Amigo de confianza", "context": "Saludo/comunidad", "neutral": "Colega", "informality": "alta", "status": "propuesto", "example": "Bienvenido, mi llave." },
+    "peer": { "expression": "Parce / Pana", "meaning": "Compañero de comunidad", "context": "Comunidad", "neutral": "Compañero", "informality": "alta", "status": "propuesto", "example": "Cuéntale a tus parces." },
+    "partner": { "expression": "Socio", "meaning": "Con quien se construye", "context": "Programa", "neutral": "Aliado", "informality": "media", "status": "propuesto", "example": "Bienvenido, socio." },
+    "great": { "expression": "Bacano / Bacanería", "meaning": "Algo excelente", "context": "Elogios", "neutral": "Excelente", "informality": "alta", "status": "propuesto", "example": "¡Qué bacanería de logro!" },
+    "space": { "expression": "Mi Parche", "meaning": "Espacio personal del artista", "context": "Panel", "neutral": "Mi espacio", "informality": "alta", "status": "propuesto", "example": "Este es tu parche." },
+    "sound": { "expression": "Mi Sonido", "meaning": "Perfil e identidad musical", "context": "Perfil", "neutral": "Mi perfil musical", "informality": "media", "status": "propuesto", "example": "Completa Mi Sonido." },
+    "store": { "expression": "Mi Vitrina", "meaning": "Tienda personalizada", "context": "Tienda artista", "neutral": "Mi tienda", "informality": "media", "status": "propuesto", "example": "Publica tu vitrina." },
+    "selection": { "expression": "Mi Setlist", "meaning": "Selección de productos", "context": "Colecciones", "neutral": "Mi selección", "informality": "media", "status": "propuesto", "example": "Arma tu setlist." },
+    "promote": { "expression": "Poner a Sonar", "meaning": "Compartir y promocionar", "context": "Campañas", "neutral": "Promocionar", "informality": "media", "status": "propuesto", "example": "Pon a sonar tu colección." },
+    "sales": { "expression": "Mis Ventas", "meaning": "Ventas atribuidas", "context": "Panel comercial", "neutral": "Mis ventas", "informality": "baja", "status": "aprobado" },
+    "earnings": { "expression": "Mis Ganancias", "meaning": "Comisiones con estados financieros exactos", "context": "Panel financiero", "neutral": "Mis comisiones", "informality": "baja", "status": "aprobado" },
+    "help": { "expression": "La Mano SONIKA", "meaning": "Centro de ayuda", "context": "Soporte", "neutral": "Centro de ayuda", "informality": "media", "status": "propuesto" },
+    "challenges": { "expression": "Mis Retos", "meaning": "Objetivos y actividades", "context": "Sound League", "neutral": "Mis objetivos", "informality": "media", "status": "propuesto" },
+    "league": { "expression": "Sound League", "meaning": "Clasificación musical", "context": "Ranking", "neutral": "Sound League", "informality": "baja", "status": "aprobado" },
+    "awards": { "expression": "Logros y Premios", "meaning": "Reconocimientos", "context": "Premios", "neutral": "Logros y premios", "informality": "baja", "status": "aprobado" }
+  },
+  "financial_states": ["Comisión estimada", "Pendiente de validación", "Aprobada", "Programada para pago", "Pagada", "Reversada"]
+}
