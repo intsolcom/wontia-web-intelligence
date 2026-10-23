@@ -16,6 +16,39 @@ class AffiliateController
         echo json_encode($r, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     }
 
+    /** POST /api/v1/public/affiliates/document — subida privada (email + últimos 4 del doc + archivo). */
+    public function uploadDocument($request)
+    {
+        header('Content-Type: application/json');
+        header('Cache-Control: no-store');
+        $email = strtolower(trim((string)($_POST['email'] ?? '')));
+        $doc = (string)($_POST['doc'] ?? '');
+        $kind = preg_replace('/[^a-z_]/', '', (string)($_POST['kind'] ?? 'id_front')) ?: 'id_front';
+        $svc = new AffiliateService();
+        $prof = $svc->statusLookup($email, $doc);
+        if (!$prof) { echo json_encode(['ok' => false, 'message' => 'Datos no válidos.']); return; }
+        if (empty($_FILES['file']) || !is_array($_FILES['file']) || ($_FILES['file']['error'] ?? 1) !== UPLOAD_ERR_OK) {
+            echo json_encode(['ok' => false, 'message' => 'Archivo no recibido.']); return;
+        }
+        $f = $_FILES['file'];
+        if ((int)$f['size'] > 8 * 1024 * 1024) { echo json_encode(['ok' => false, 'message' => 'Máximo 8 MB.']); return; }
+        $mime = function_exists('mime_content_type') ? (string)@mime_content_type($f['tmp_name']) : (string)($f['type'] ?? '');
+        $allow = ['application/pdf' => 'pdf', 'image/jpeg' => 'jpg', 'image/png' => 'png'];
+        if (!isset($allow[$mime])) { echo json_encode(['ok' => false, 'message' => 'Formato no permitido (PDF/JPG/PNG).']); return; }
+        $dir = '/app/public/assets/uploads/_private/affiliate_docs/' . (int)$prof['id'];
+        if (!is_dir($dir)) @mkdir($dir, 0775, true);
+        $name = bin2hex(random_bytes(10)) . '.' . $allow[$mime];
+        $dest = rtrim($dir, '/') . '/' . $name;
+        if (!@move_uploaded_file($f['tmp_name'], $dest)) { echo json_encode(['ok' => false, 'message' => 'No se pudo guardar.']); return; }
+        @chmod($dest, 0640);
+        $rel = '/assets/uploads/_private/affiliate_docs/' . (int)$prof['id'] . '/' . $name;
+        try {
+            \App\Core\Database::instance()->prepare('INSERT INTO affiliate_documents (site_id, affiliate_id, kind, path, status) VALUES (@site_id, :a, :k, :p, "pending")')
+                ->execute(['a' => (int)$prof['id'], 'k' => $kind, 'p' => $rel]);
+        } catch (\Throwable $e) { echo json_encode(['ok' => false, 'message' => 'Error de registro.']); return; }
+        echo json_encode(['ok' => true, 'message' => 'Documento recibido.']);
+    }
+
     /** POST /api/v1/public/affiliates/otp/send */
     public function sendOtp($request)
     {

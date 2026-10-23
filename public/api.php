@@ -187,6 +187,7 @@ $router->post('/api/v1/public/affiliates/register', [\App\Controllers\AffiliateC
 $router->post('/api/v1/public/affiliates/status', [\App\Controllers\AffiliateController::class, 'status']);
 $router->post('/api/v1/public/affiliates/otp/send', [\App\Controllers\AffiliateController::class, 'sendOtp']);
 $router->post('/api/v1/public/affiliates/otp/verify', [\App\Controllers\AffiliateController::class, 'verifyOtp']);
+$router->post('/api/v1/public/affiliates/document', [\App\Controllers\AffiliateController::class, 'uploadDocument']);
 $router->post('/api/v1/public/cart/validate', [\App\Controllers\CartController::class, 'validate']);
 $router->post('/api/v1/public/cart/coupon', [\App\Controllers\CartController::class, 'coupon']);
 $router->post('/api/v1/public/cart/sync', [\App\Controllers\CartController::class, 'sync']);

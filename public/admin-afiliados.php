@@ -13,6 +13,21 @@ $role = (string)Session::userRole();
 if (!in_array($role, ['superadmin', 'admin', 'editor'], true)) { http_response_code(403); echo 'Acceso denegado'; exit; }
 
 $svc = new AffiliateService();
+if (isset($_GET['doc'])) {
+    $docId = (int)$_GET['doc'];
+    $path = '';
+    try { $st = \App\Core\Database::instance()->prepare('SELECT path FROM affiliate_documents WHERE id = :id AND site_id = @site_id LIMIT 1'); $st->execute(['id' => $docId]); $path = (string)$st->fetchColumn(); } catch (\Throwable $e) {}
+    if ($path !== '' && is_file('/app/public' . $path)) {
+        header('Content-Type: application/octet-stream');
+        header('Content-Disposition: attachment; filename="documento-' . $docId . '.' . pathinfo($path, PATHINFO_EXTENSION) . '"');
+        header('X-Content-Type-Options: nosniff');
+        readfile('/app/public' . $path);
+        exit;
+    }
+    http_response_code(404);
+    echo 'Documento no encontrado.';
+    exit;
+}
 $msg = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id = (int)($_POST['id'] ?? 0);
@@ -59,7 +74,7 @@ button{padding:7px 12px;border:0;border-radius:8px;background:#0d9f72;color:#fff
 <?php elseif (!$profiles): ?><div class="tbl"><div class="empty">Aún no hay solicitudes.</div></div>
 <?php else: ?>
 <div class="tbl"><table>
-<thead><tr><th>#</th><th>Artista / Correo</th><th>Instrumento</th><th>Estado</th><th>Acción</th></tr></thead>
+<thead><tr><th>#</th><th>Artista / Correo</th><th>Instrumento</th><th>Estado</th><th>Documentos</th><th>Acción</th></tr></thead>
 <tbody>
 <?php foreach ($profiles as $p):
     $doc = preg_replace('/\D/', '', (string)($p['doc_number'] ?? ''));
@@ -71,6 +86,15 @@ button{padding:7px 12px;border:0;border-radius:8px;background:#0d9f72;color:#fff
   <td><b><?= htmlspecialchars($name) ?></b><br><small><?= htmlspecialchars((string)$p['email']) ?> · Doc <?= htmlspecialchars($docMask) ?></small></td>
   <td><?= htmlspecialchars((string)($p['music_instrument'] ?? '—')) ?></td>
   <td><span class="st <?= htmlspecialchars((string)$p['status']) ?>"><?= htmlspecialchars((string)$p['status']) ?></span></td>
+  <td><?php
+      try {
+          $ds = \App\Core\Database::instance()->prepare('SELECT id, kind FROM affiliate_documents WHERE affiliate_id = :a AND site_id = @site_id ORDER BY id');
+          $ds->execute(['a' => (int)$p['id']]);
+          $docs = $ds->fetchAll();
+      } catch (\Throwable $e) { $docs = []; }
+      if (!$docs) echo '<small>—</small>';
+      foreach ($docs as $d) echo '<a href="?doc=' . (int)$d['id'] . '" style="display:inline-block;margin:1px 4px 1px 0;font-size:11.5px;color:#155eeb">' . htmlspecialchars((string)$d['kind']) . '</a>';
+  ?></td>
   <td><form method="post"><input type="hidden" name="id" value="<?= (int)$p['id'] ?>" />
     <select name="status"><?php foreach (AffiliateService::STATUSES as $s): ?><option value="<?= $s ?>"<?= $s === $p['status'] ? ' selected' : '' ?>><?= $s ?></option><?php endforeach; ?></select>
     <button type="submit">Guardar</button></form></td>

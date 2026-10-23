@@ -229,13 +229,14 @@ class AffiliateService
         $doc = preg_replace('/\D/', '', $doc) ?? '';
         if (!filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($doc) < 4) return null;
         try {
-            $st = Database::instance()->prepare('SELECT full_name, artist_name, public_name, status, doc_number, created_at FROM affiliate_profiles WHERE email = :e AND site_id = @site_id LIMIT 1');
+            $st = Database::instance()->prepare('SELECT id, full_name, artist_name, public_name, status, doc_number, created_at FROM affiliate_profiles WHERE email = :e AND site_id = @site_id LIMIT 1');
             $st->execute(['e' => $email]);
             $r = $st->fetch();
             if (!$r) return null;
             $docDb = preg_replace('/\D/', '', (string)($r['doc_number'] ?? ''));
             if ($docDb === '' || substr($docDb, -4) !== substr($doc, -4)) return null;
             return [
+                'id' => (int)$r['id'],
                 'name' => (string)(($r['artist_name'] ?: $r['public_name']) ?: $r['full_name']),
                 'status' => (string)$r['status'],
                 'created_at' => (string)$r['created_at'],
