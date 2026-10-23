@@ -50,6 +50,40 @@ if (($segments[0] ?? '') === 'r' && !empty($segments[1])) {
     exit;
 }
 
+// SONIKA Artist Hub — página pública del artista (/artista/{slug} y vanity /{slug})
+$__artSlug = ($segments[0] ?? '') === 'artista' ? (string)($segments[1] ?? '') : (count($segments) === 1 ? (string)$segments[0] : '');
+$__res2 = ['producto','buscar','tienda','carrito','checkout','cuenta','categorias','marcas','contacto','soporte','ofertas','politicas','r','artista'];
+if ($__artSlug !== '' && !in_array($__artSlug, $__res2, true) && !(function_exists('sonika_category') && sonika_category($__artSlug))) {
+    $__affSvc = new \App\Services\AffiliateService();
+    $__affP = $__affSvc->getBySlug($__artSlug);
+    if ($__affP) {
+        $__name = trim(($__affP['artist_name'] ?: ($__affP['public_name'] ?: $__affP['full_name'])));
+        $__store = [];
+        try { $st = \App\Core\Database::instance()->prepare('SELECT * FROM affiliate_stores WHERE affiliate_id = :a AND site_id = @site_id LIMIT 1'); $st->execute(['a' => (int)$__affP['id']]); $__store = $st->fetch() ?: []; } catch (\Throwable $e) {}
+        $__bio = (string)($__store['bio'] ?? '');
+        $__img = (string)($__store['image'] ?? '');
+        $__code = $__affSvc->ensureLink((int)$__affP['id']);
+        $__origin = ((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? 'sonika.com.co');
+        $__affUrl = $__origin . '/r/' . $__code;
+        $__instr = (string)($__affP['music_instrument'] ?? '');
+        $__genre = (string)($__affP['music_genre'] ?? '');
+        $__level = (string)($__affP['music_level'] ?? '');
+        sonika_site_head($__name . ' — SONIKA ARTIST', $__bio ?: ('Descubre la selección musical de ' . $__name . ' en SONIKA.'));
+        echo '<style>.ah{--ah1:#F20D16;--ah2:#101d3a}.ah-hero{position:relative;overflow:hidden;background:radial-gradient(900px 400px at 80% -10%,#ffe9e9,transparent 60%),linear-gradient(135deg,#101d3a,#2a3550);color:#fff;padding:56px 0 40px}.ah-hero__in{max-width:1180px;margin:0 auto;padding:0 22px;display:flex;gap:24px;align-items:center;flex-wrap:wrap}.ah-ava{width:104px;height:104px;border-radius:24px;background:linear-gradient(135deg,#F20D16,#8b0a10);display:grid;place-items:center;font:800 40px/1 Sora,sans-serif;overflow:hidden;flex:none}.ah-ava img{width:100%;height:100%;object-fit:cover}.ah-kick{font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#ffb3b7}.ah-name{font:800 clamp(1.8rem,4vw,2.8rem)/1.05 Sora,sans-serif;margin:4px 0 6px}.ah-meta{color:#c9d2e0;font-size:14px}.ah-chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.ah-chip{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);border-radius:999px;padding:4px 11px;font-size:12px;font-weight:600}.ah-share{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}.ah-btn{display:inline-flex;align-items:center;gap:8px;background:var(--ah1);color:#fff;border:0;border-radius:12px;padding:11px 16px;font-weight:800;font-size:13.5px;cursor:pointer;text-decoration:none}.ah-btn.ghost{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22)}.ah-sec{max-width:1180px;margin:0 auto;padding:34px 22px}.ah-h{font:800 22px Sora,sans-serif;color:var(--ah2);margin:0 0 16px}.ah-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}.ah-empty{color:#78849a;background:#f6f9f7;border:1px dashed #dbe7e1;border-radius:14px;padding:22px;text-align:center;font-size:14px}.ah-cta{max-width:1180px;margin:0 auto;padding:0 22px 50px}.ah-cta__box{background:linear-gradient(135deg,#fff,#f6fbf9);border:1px solid #e9efec;border-radius:20px;padding:28px;display:flex;gap:18px;align-items:center;flex-wrap:wrap}.ah-cta__box h3{font:800 22px Sora,sans-serif;color:var(--ah2);margin:0 0 6px}.ah-cta__box p{margin:0;color:#51607a;font-size:14px}@media(max-width:900px){.ah-grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:560px){.ah-grid{grid-template-columns:1fr}.ah-share{margin-left:0;width:100%}}</style>';
+        echo '<section class="ah ah-hero"><div class="ah-hero__in"><div class="ah-ava">' . ($__img !== '' ? '<img src="' . sonika_esc($__img) . '" alt="">' : sonika_esc(mb_substr($__name, 0, 1))) . '</div><div><div class="ah-kick">SONIKA Artist</div><h1 class="ah-name">' . sonika_esc($__name) . '</h1><div class="ah-meta">' . sonika_esc($__bio ?: 'Artista del programa SONIKA Artist Partners') . '</div><div class="ah-chips">';
+        foreach ([$__instr, $__genre, $__level] as $__ch) { if ($__ch !== '') echo '<span class="ah-chip">' . sonika_esc($__ch) . '</span>'; }
+        echo '</div></div><div class="ah-share"><button class="ah-btn" type="button" onclick="navigator.clipboard&&navigator.clipboard.writeText(\'' . sonika_esc($__affUrl) . '\');this.textContent=\'✅ Enlace copiado\'">Poner a Sonar</button><a class="ah-btn ghost" target="_blank" rel="noopener" href="https://wa.me/?text=' . rawurlencode('Escucha y apoya a ' . $__name . ' en SONIKA: ' . $__affUrl) . '">Compartir</a></div></div></section>';
+        echo '<section class="ah-sec"><h2 class="ah-h">Mi Vitrina</h2>';
+        $__prods = array_slice(sonika_products(), 0, 8);
+        if (!empty($__prods)) { echo '<div class="ah-grid">'; foreach ($__prods as $__p) sonika_product_card($__p); echo '</div>'; }
+        else { echo '<div class="ah-empty">La selección de ' . sonika_esc($__name) . ' estará disponible pronto.</div>'; }
+        echo '<p style="margin:16px 0 0"><a href="/tienda" style="color:#F20D16;font-weight:700">Ver todo el catálogo →</a></p></section>';
+        echo '<section class="ah-cta"><div class="ah-cta__box"><div style="flex:1;min-width:240px"><h3>Contrátame</h3><p>¿Quieres a ' . sonika_esc($__name) . ' en tu evento o proyecto? Envía una solicitud y coordinamos disponibilidad y condiciones.</p></div><a class="ah-btn" href="mailto:?subject=' . rawurlencode('Contratación — ' . $__name) . '&body=' . rawurlencode('Hola, quiero contratar a ' . $__name . ' para un evento.') . '">Solicitar contratación</a></div></section>';
+        sonika_site_footer();
+        return true;
+    }
+}
+
 if (($segments[0] ?? '') === 'politicas') {
     $pol = [
         'pagos' => 'Política de pagos en línea',
