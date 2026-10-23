@@ -50,6 +50,15 @@ if (($segments[0] ?? '') === 'r' && !empty($segments[1])) {
     exit;
 }
 
+// SONIKA Artist Hub — landing pública del programa (/artistas)
+if (($segments[0] ?? '') === 'artistas' && count($segments) === 1) {
+    sonika_site_head('Programa de Artistas — SONIKA', 'Convierte tu música en ingresos con SONIKA Artist Partners y SONIKA Sound League.');
+    echo '<section style="background:#fff;border-bottom:1px solid #eef2f0"><div style="max-width:1100px;margin:0 auto;padding:18px 22px;display:flex;gap:12px;flex-wrap:wrap;justify-content:center"><a href="/artista/demo-artist" style="background:#101d3a;color:#fff;border-radius:12px;padding:12px 18px;font-weight:800;text-decoration:none">Ver página de ejemplo →</a><a href="/artista/demo-artist/panel" style="background:#F20D16;color:#fff;border-radius:12px;padding:12px 18px;font-weight:800;text-decoration:none">Ver panel del artista →</a></div></section>';
+    echo \App\Widgets\WidgetRegistry::render('sonika-affiliates', ['enabled' => true]);
+    sonika_site_footer();
+    return true;
+}
+
 // SONIKA Artist Hub — PANEL del artista (Mis Ventas / Mis Ganancias)
 if (($segments[0] ?? '') === 'artista' && ($segments[2] ?? '') === 'panel' && !empty($segments[1])) {
     $__svcP = new \App\Services\AffiliateService();
