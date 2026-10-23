@@ -523,6 +523,15 @@ class StoreService
 
             $db->commit();
 
+            // Atribución de afiliado (SONIKA Artist Partners) — nunca bloquea el pedido.
+            try {
+                $__aff = (string)($_COOKIE['sonika_aff'] ?? '');
+                if ($__aff !== '') {
+                    (new \App\Services\AffiliateService())->attributeOrder((string)$uuid, (float)$total / 100, null, $__aff);
+                }
+            } catch (\Throwable $e) {
+            }
+
             if ($couponId > 0) {
                 try {
                     (new StoreCouponService())->redeem($couponId);

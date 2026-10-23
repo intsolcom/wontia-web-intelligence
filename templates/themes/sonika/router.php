@@ -43,6 +43,13 @@ if (!function_exists('sonika_pager')) {
 $path = trim((string)$uri, '/');
 $segments = $path === '' ? [] : explode('/', $path);
 
+if (($segments[0] ?? '') === 'r' && !empty($segments[1])) {
+    $__aff = (new \App\Services\AffiliateService())->recordClick((string)$segments[1], (string)($_COOKIE['wwi_seo_sid'] ?? ''));
+    if ($__aff) setcookie('sonika_aff', (string)$__aff['code'], time() + 30 * 86400, '/', '', false, false);
+    header('Location: /', true, 302);
+    exit;
+}
+
 if (($segments[0] ?? '') === 'politicas') {
     $pol = [
         'pagos' => 'Política de pagos en línea',
