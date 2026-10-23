@@ -50,6 +50,47 @@ if (($segments[0] ?? '') === 'r' && !empty($segments[1])) {
     exit;
 }
 
+// SONIKA Artist Hub — PANEL del artista (Mis Ventas / Mis Ganancias)
+if (($segments[0] ?? '') === 'artista' && ($segments[2] ?? '') === 'panel' && !empty($segments[1])) {
+    $__svcP = new \App\Services\AffiliateService();
+    $__affPP = $__svcP->getBySlug((string)$segments[1]);
+    if ($__affPP) {
+        $__nameP = trim(($__affPP['artist_name'] ?: ($__affPP['public_name'] ?: $__affPP['full_name'])));
+        $__d = $__svcP->dashboard((int)$__affPP['id']);
+        $__states = ['ESTIMATED' => 'Comisión estimada', 'PENDING_VALIDATION' => 'Pendiente de validación', 'APPROVED' => 'Aprobada', 'PAYMENT_QUEUED' => 'Programada para pago', 'PAID' => 'Pagada', 'REJECTED' => 'Rechazada', 'REVERSED' => 'Reversada', 'ON_HOLD' => 'En espera'];
+        $__codeP = $__svcP->ensureLink((int)$__affPP['id']);
+        $__affUrlP = (((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? 'sonika.com.co')) . '/r/' . $__codeP;
+        $__money = function ($c) { return '$ ' . number_format((float)$c, 0, ',', '.'); };
+        sonika_site_head($__nameP . ' — Mis Ganancias', 'Panel del artista — SONIKA Artist Partners');
+        echo '<style>.ahp{max-width:1120px;margin:0 auto;padding:28px 22px 56px;font-family:Sora,system-ui,sans-serif;color:#17212b}.ahp-h{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:22px}.ahp-h h1{font-size:26px;margin:0}.ahp-h .badge{background:#e5f5ef;color:#0d7a58;border-radius:999px;padding:5px 12px;font-size:12px;font-weight:800}.ahp-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:26px}.ahp-c{background:#fff;border:1px solid #e9efec;border-radius:16px;padding:16px;box-shadow:0 8px 22px rgba(16,24,40,.05)}.ahp-c small{display:block;color:#64748b;font-size:12px;font-weight:600;margin-bottom:6px}.ahp-c b{font-size:22px;color:#101d3a}.ahp-sec h2{font-size:17px;margin:22px 0 10px}.ahp table{width:100%;border-collapse:collapse;font-size:13.5px;background:#fff;border:1px solid #eef2f0;border-radius:12px;overflow:hidden}.ahp th,.ahp td{padding:10px 12px;text-align:left;border-bottom:1px solid #f1f5f3}.ahp th{background:#f6fbf9;font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:.04em}.ahp td.n{text-align:right;font-weight:700}.ahp .st{display:inline-block;border-radius:999px;padding:2px 9px;font-size:11px;font-weight:800;background:#eef4fb;color:#155eeb}.ahp .st.PAID{background:#e5f5ef;color:#0d7a58}.ahp .st.REVERSED,.ahp .st.REJECTED{background:#fdecec;color:#b42318}.ahp .note{font-size:12px;color:#94a3b8;margin-top:12px}.ahp .link{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:#101d3a;color:#fff;border-radius:14px;padding:14px 16px;margin-top:22px;font-size:13px}.ahp .link code{background:rgba(255,255,255,.12);padding:6px 10px;border-radius:8px;word-break:break-all}@media(max-width:800px){.ahp-cards{grid-template-columns:repeat(2,1fr)}}@media(max-width:480px){.ahp-cards{grid-template-columns:1fr}}</style>';
+        echo '<section class="ahp"><div class="ahp-h"><h1>' . sonika_esc($__nameP) . '</h1><span class="badge">Mi Parche · Artist Partners</span></div>';
+        echo '<div class="ahp-cards">';
+        echo '<div class="ahp-c"><small>Clicks (atribución)</small><b>' . (int)$__d['clicks'] . '</b></div>';
+        echo '<div class="ahp-c"><small>Ventas atribuidas</small><b>' . $__money($__d['sales']) . '</b></div>';
+        echo '<div class="ahp-c"><small>Comisiones (total)</small><b>' . $__money($__d['commission_total']) . '</b></div>';
+        echo '<div class="ahp-c"><small>Estado financiero</small><b style="font-size:15px">' . (count($__d['by_status']) ? 'Con movimientos' : 'Sin movimientos') . '</b></div>';
+        echo '</div>';
+        echo '<div class="ahp-sec"><h2>Mis Ganancias — estados exactos</h2><table><thead><tr><th>Estado</th><th>Movimientos</th><th class="n">Monto</th></tr></thead><tbody>';
+        if (empty($__d['by_status'])) echo '<tr><td colspan="3" style="color:#94a3b8">Aún no hay comisiones. Comparte tu enlace para empezar.</td></tr>';
+        foreach ($__states as $__codeS => $__lblS) {
+            if (!isset($__d['by_status'][$__codeS])) continue;
+            $__b = $__d['by_status'][$__codeS];
+            echo '<tr><td><span class="st ' . sonika_esc($__codeS) . '">' . sonika_esc($__lblS) . '</span></td><td>' . (int)$__b['count'] . '</td><td class="n">' . $__money($__b['amount']) . '</td></tr>';
+        }
+        echo '</tbody></table><p class="note">Una comisión <b>estimada</b> no es un ingreso garantizado; requiere validación y aprobación. Modo simulación.</p></div>';
+        echo '<div class="ahp-sec"><h2>Pedidos atribuidos</h2><table><thead><tr><th>Pedido</th><th>Base</th><th>Tasa</th><th>Comisión</th><th>Estado</th><th>Fecha</th></tr></thead><tbody>';
+        if (empty($__d['recent'])) echo '<tr><td colspan="6" style="color:#94a3b8">Sin pedidos atribuidos todavía.</td></tr>';
+        foreach ($__d['recent'] as $__r) {
+            echo '<tr><td>' . sonika_esc((string)$__r['order_ref']) . '</td><td class="n">' . $__money($__r['base_amount']) . '</td><td class="n">' . number_format((float)$__r['tier_rate'] * 100, 2, ',', '.') . '%</td><td class="n">' . $__money($__r['amount']) . '</td><td><span class="st ' . sonika_esc((string)$__r['status']) . '">' . sonika_esc($__states[$__r['status']] ?? $__r['status']) . '</span></td><td>' . sonika_esc(substr((string)$__r['created_at'], 0, 10)) . '</td></tr>';
+        }
+        echo '</tbody></table></div>';
+        echo '<div class="link"><span>Tu enlace: </span><code>' . sonika_esc($__affUrlP) . '</code></div>';
+        echo '</section>';
+        sonika_site_footer();
+        return true;
+    }
+}
+
 // SONIKA Artist Hub — página pública del artista (/artista/{slug} y vanity /{slug})
 $__artSlug = ($segments[0] ?? '') === 'artista' ? (string)($segments[1] ?? '') : (count($segments) === 1 ? (string)$segments[0] : '');
 $__res2 = ['producto','buscar','tienda','carrito','checkout','cuenta','categorias','marcas','contacto','soporte','ofertas','politicas','r','artista'];

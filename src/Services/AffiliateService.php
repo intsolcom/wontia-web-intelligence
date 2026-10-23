@@ -219,6 +219,30 @@ class AffiliateService
         } catch (\Throwable $e) { return null; }
     }
 
+    public function dashboard(int $affiliateId): array
+    {
+        $out = ['clicks' => 0, 'sales' => 0.0, 'commission_total' => 0.0, 'by_status' => [], 'recent' => []];
+        try {
+            $db = Database::instance();
+            $st = $db->prepare('SELECT COUNT(*) FROM affiliate_clicks WHERE affiliate_id = :a AND site_id = @site_id AND is_bot = 0');
+            $st->execute(['a' => $affiliateId]);
+            $out['clicks'] = (int)$st->fetchColumn();
+            $st = $db->prepare('SELECT COUNT(*) c, COALESCE(SUM(base_amount),0) s, COALESCE(SUM(amount),0) t FROM affiliate_commissions WHERE affiliate_id = :a AND site_id = @site_id');
+            $st->execute(['a' => $affiliateId]);
+            $r = $st->fetch() ?: [];
+            $out['sales'] = (float)($r['s'] ?? 0);
+            $out['commission_total'] = (float)($r['t'] ?? 0);
+            $st = $db->prepare('SELECT status, COALESCE(SUM(amount),0) amt, COUNT(*) c FROM affiliate_commissions WHERE affiliate_id = :a AND site_id = @site_id GROUP BY status');
+            $st->execute(['a' => $affiliateId]);
+            foreach ($st->fetchAll() as $row) $out['by_status'][(string)$row['status']] = ['amount' => (float)$row['amt'], 'count' => (int)$row['c']];
+            $st = $db->prepare('SELECT order_ref, base_amount, tier_rate, amount, status, created_at FROM affiliate_commissions WHERE affiliate_id = :a AND site_id = @site_id ORDER BY id DESC LIMIT 10');
+            $st->execute(['a' => $affiliateId]);
+            $out['recent'] = $st->fetchAll();
+        } catch (\Throwable $e) {
+        }
+        return $out;
+    }
+
     public function statsFor(int $affiliateId): array
     {
         try {
