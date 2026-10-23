@@ -71,6 +71,10 @@ class AffiliateService
             ]);
             $id = (int)$db->lastInsertId();
             $this->log($id, 'profile_created', ['email' => $email]);
+            if (!empty($in['accept_contract'])) {
+                $c = $this->currentContract();
+                if ($c) $this->acceptContract($id, (int)$c['id']);
+            }
             return ['ok' => true, 'id' => $id, 'slug' => $slug];
         } catch (\Throwable $e) {
             return ['ok' => false, 'message' => 'No se pudo crear (¿correo ya registrado?).'];
@@ -261,6 +265,75 @@ class AffiliateService
         } catch (\Throwable $e) {
         }
         return $out;
+    }
+
+    private function profileByEmail(string $email): ?array
+    {
+        try { $st = Database::instance()->prepare('SELECT * FROM affiliate_profiles WHERE email = :e AND site_id = @site_id LIMIT 1'); $st->execute(['e' => $email]); return $st->fetch() ?: null; }
+        catch (\Throwable $e) { return null; }
+    }
+
+    public function currentContract(): ?array
+    {
+        try { $st = Database::instance()->query("SELECT * FROM affiliate_contracts WHERE site_id = @site_id AND code = 'artist_partners' AND status = 'published' ORDER BY id DESC LIMIT 1"); return $st->fetch() ?: null; }
+        catch (\Throwable $e) { return null; }
+    }
+
+    public function acceptContract(int $affiliateId, int $contractId): bool
+    {
+        try {
+            $db = Database::instance();
+            $st = $db->prepare('SELECT code, version FROM affiliate_contracts WHERE id = :id AND site_id = @site_id LIMIT 1');
+            $st->execute(['id' => $contractId]);
+            $c = $st->fetch();
+            if (!$c) return false;
+            $db->prepare('INSERT IGNORE INTO affiliate_acceptances (site_id, affiliate_id, contract_id, contract_code, contract_version, ip_hash, user_agent) VALUES (@site_id, :a, :c, :code, :ver, :ip, :ua)')
+                ->execute(['a' => $affiliateId, 'c' => $contractId, 'code' => $c['code'], 'ver' => $c['version'], 'ip' => hash('sha256', (string)($_SERVER['REMOTE_ADDR'] ?? '')), 'ua' => mb_substr((string)($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 300)]);
+            $db->prepare('UPDATE affiliate_profiles SET contract_version = :v WHERE id = :a AND site_id = @site_id')->execute(['v' => $c['version'], 'a' => $affiliateId]);
+            $this->log($affiliateId, 'contract_accepted', ['version' => $c['version']]);
+            return true;
+        } catch (\Throwable $e) { return false; }
+    }
+
+    public function sendOtp(string $email): array
+    {
+        $email = strtolower(trim($email));
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) return ['ok' => false, 'message' => 'Correo inválido.'];
+        $prof = $this->profileByEmail($email);
+        if (!$prof) return ['ok' => false, 'message' => 'No hay solicitud con ese correo.'];
+        $code = str_pad((string)random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+        try {
+            $sent = false;
+            Database::instance()->prepare('INSERT INTO affiliate_otps (site_id, email, code_hash, expires_at) VALUES (@site_id, :e, :h, DATE_ADD(NOW(), INTERVAL 10 MINUTE))')->execute(['e' => $email, 'h' => hash('sha256', $code)]);
+            if (class_exists('\\App\\Services\\EmailService')) {
+                try {
+                    $es = new \App\Services\EmailService();
+                    $sent = $es->sendHtml($email, 'Tu código de verificación — SONIKA Artist', '<div style="font-family:Arial,sans-serif"><p>Tu código de verificación es:</p><p style="font-size:28px;font-weight:800;letter-spacing:4px">' . $code . '</p><p>Vence en 10 minutos. Si no lo solicitaste, ignora este correo.</p></div>');
+                } catch (\Throwable $x) {}
+            }
+            return ['ok' => true, 'sent' => $sent];
+        } catch (\Throwable $e) { return ['ok' => false, 'message' => 'No se pudo generar el código.']; }
+    }
+
+    public function verifyOtp(string $email, string $code): array
+    {
+        $email = strtolower(trim($email));
+        $code = preg_replace('/\D/', '', $code) ?? '';
+        if ($code === '') return ['ok' => false, 'message' => 'Código inválido.'];
+        try {
+            $db = Database::instance();
+            $st = $db->prepare("SELECT id, code_hash FROM affiliate_otps WHERE email = :e AND site_id = @site_id AND used = 0 AND expires_at >= NOW() ORDER BY id DESC LIMIT 1");
+            $st->execute(['e' => $email]);
+            $o = $st->fetch();
+            if (!$o || !hash_equals((string)$o['code_hash'], hash('sha256', $code))) {
+                $db->prepare('UPDATE affiliate_otps SET attempts = attempts + 1 WHERE email = :e AND site_id = @site_id AND used = 0')->execute(['e' => $email]);
+                return ['ok' => false, 'message' => 'Código incorrecto o vencido.'];
+            }
+            $db->prepare('UPDATE affiliate_otps SET used = 1 WHERE id = :id')->execute(['id' => $o['id']]);
+            $prof = $this->profileByEmail($email);
+            if ($prof && in_array($prof['status'], ['DRAFT', 'EMAIL_PENDING'], true)) $this->setStatus((int)$prof['id'], 'REVIEW_REQUIRED');
+            return ['ok' => true, 'verified' => true];
+        } catch (\Throwable $e) { return ['ok' => false, 'message' => 'Error al verificar.']; }
     }
 
     public function statsFor(int $affiliateId): array

@@ -16,6 +16,26 @@ class AffiliateController
         echo json_encode($r, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     }
 
+    /** POST /api/v1/public/affiliates/otp/send */
+    public function sendOtp($request)
+    {
+        $in = json_decode((string)file_get_contents('php://input'), true);
+        if (!is_array($in)) $in = $_POST;
+        header('Content-Type: application/json');
+        header('Cache-Control: no-store');
+        echo json_encode((new AffiliateService())->sendOtp((string)($in['email'] ?? '')));
+    }
+
+    /** POST /api/v1/public/affiliates/otp/verify */
+    public function verifyOtp($request)
+    {
+        $in = json_decode((string)file_get_contents('php://input'), true);
+        if (!is_array($in)) $in = $_POST;
+        header('Content-Type: application/json');
+        header('Cache-Control: no-store');
+        echo json_encode((new AffiliateService())->verifyOtp((string)($in['email'] ?? ''), (string)($in['code'] ?? '')));
+    }
+
     /** POST /api/v1/public/affiliates/status — consulta de estado (correo + últimos 4 del doc). */
     public function status($request)
     {

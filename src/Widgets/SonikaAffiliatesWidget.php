@@ -65,6 +65,7 @@ class SonikaAffiliatesWidget extends Widget
             . '.ap__form input,.ap__form select{width:100%;padding:11px 12px;border:1px solid #dbe7e1;border-radius:11px;font:inherit;font-size:14px}'
             . '.ap__btn{grid-column:1/-1;padding:13px;border:0;border-radius:12px;background:var(--ap1);color:#fff;font-weight:800;font-size:15px;cursor:pointer}'
             . '.ap__btn:hover{filter:brightness(.95)}'
+            . '.ap__accept{grid-column:1/-1;display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:#51607a;line-height:1.4}.ap__accept input{margin-top:2px}'
             . '.ap__msg{grid-column:1/-1;font-size:13px;font-weight:600;min-height:18px}'
             . '.ap__note{max-width:900px;margin:26px auto 0;text-align:center;font-size:12px;color:#94a3b8;line-height:1.5}'
             . '@media(max-width:800px){.ap__grid{grid-template-columns:1fr}}'
@@ -97,6 +98,7 @@ class SonikaAffiliatesWidget extends Widget
                 . '<select name="music_instrument"><option value="">Instrumento principal</option><option>Guitarra eléctrica</option><option>Guitarra acústica</option><option>Bajo</option><option>Batería</option><option>Teclados</option><option>Voz</option><option>Otro</option></select>'
                 . '<select name="music_level"><option value="">Nivel</option><option>Principiante</option><option>Intermedio</option><option>Avanzado</option><option>Profesional</option></select>'
                 . '<input name="music_genre" placeholder="Género musical">'
+                . '<label class="ap__accept"><input type="checkbox" name="accept_contract" value="1" required> Acepto los términos y condiciones del programa (versión vigente) y la política de tratamiento de datos.</label>'
                 . '<button class="ap__btn" type="submit">Solicitar ingreso</button>'
                 . '<div class="ap__msg" id="' . $uid . '-msg"></div>'
                 . '</form></div>';
