@@ -337,6 +337,66 @@ class AffiliateService
         } catch (\Throwable $e) { return ['ok' => false, 'message' => 'Error al verificar.']; }
     }
 
+    public function createPayoutBatch(string $period = '', string $by = 'admin'): array
+    {
+        if (!$this->ready()) return ['ok' => false, 'message' => 'No inicializado.'];
+        $period = preg_match('/^\d{4}-\d{2}$/', $period) ? $period : date('Y-m');
+        try {
+            $db = Database::instance();
+            $st = $db->prepare("SELECT c.id, c.affiliate_id, c.amount FROM affiliate_commissions c LEFT JOIN affiliate_payout_items i ON i.commission_id = c.id AND i.site_id = c.site_id WHERE c.site_id = @site_id AND c.status = 'APPROVED' AND i.id IS NULL AND DATE_FORMAT(c.created_at, '%Y-%m') = :p");
+            $st->execute(['p' => $period]);
+            $rows = $st->fetchAll();
+            if (!$rows) return ['ok' => false, 'message' => 'No hay comisiones aprobadas pendientes para ' . $period . '.'];
+            $total = 0.0;
+            foreach ($rows as $r) $total += (float)$r['amount'];
+            $db->beginTransaction();
+            $db->prepare("INSERT INTO affiliate_payout_batches (site_id, period, total_amount, items_count, status, created_by, created_at) VALUES (@site_id, :p, :t, :n, 'PENDING_APPROVAL', :by, NOW())")
+                ->execute(['p' => $period, 't' => round($total, 2), 'n' => count($rows), 'by' => $by]);
+            $bid = (int)$db->lastInsertId();
+            $ins = $db->prepare('INSERT INTO affiliate_payout_items (site_id, batch_id, affiliate_id, commission_id, amount) VALUES (@site_id, :b, :a, :c, :amt)');
+            $upd = $db->prepare("UPDATE affiliate_commissions SET status = 'PAYMENT_QUEUED' WHERE id = :id AND site_id = @site_id");
+            foreach ($rows as $r) {
+                $ins->execute(['b' => $bid, 'a' => (int)$r['affiliate_id'], 'c' => (int)$r['id'], 'amt' => (float)$r['amount']]);
+                $upd->execute(['id' => (int)$r['id']]);
+            }
+            $db->commit();
+            $this->log(null, 'payout_batch_created', ['batch' => $bid, 'period' => $period, 'total' => $total, 'items' => count($rows), 'simulation' => true]);
+            return ['ok' => true, 'batch' => $bid, 'total' => round($total, 2), 'items' => count($rows)];
+        } catch (\Throwable $e) {
+            try { if (Database::instance()->inTransaction()) Database::instance()->rollBack(); } catch (\Throwable $x) {}
+            return ['ok' => false, 'message' => 'No se pudo crear el lote.'];
+        }
+    }
+
+    public function approvePayoutBatch(int $id, string $by = 'admin'): bool
+    {
+        try {
+            $st = Database::instance()->prepare("UPDATE affiliate_payout_batches SET status = 'APPROVED', approved_by = :by, approved_at = NOW() WHERE id = :id AND site_id = @site_id AND status = 'PENDING_APPROVAL'");
+            $st->execute(['by' => $by, 'id' => $id]);
+            if ($st->rowCount() > 0) { $this->log(null, 'payout_batch_approved', ['batch' => $id, 'simulation' => true]); return true; }
+            return false;
+        } catch (\Throwable $e) { return false; }
+    }
+
+    public function payPayoutBatch(int $id, string $by = 'admin'): bool
+    {
+        try {
+            $db = Database::instance();
+            $st = $db->prepare("UPDATE affiliate_payout_batches SET status = 'PAID', paid_by = :by, paid_at = NOW() WHERE id = :id AND site_id = @site_id AND status = 'APPROVED'");
+            $st->execute(['by' => $by, 'id' => $id]);
+            if ($st->rowCount() === 0) return false;
+            $db->prepare("UPDATE affiliate_commissions c JOIN affiliate_payout_items i ON i.commission_id = c.id AND i.site_id = c.site_id SET c.status = 'PAID' WHERE i.batch_id = :b AND c.site_id = @site_id")->execute(['b' => $id]);
+            $this->log(null, 'payout_batch_paid', ['batch' => $id, 'simulation' => true]);
+            return true;
+        } catch (\Throwable $e) { return false; }
+    }
+
+    public function listPayoutBatches(int $limit = 50): array
+    {
+        try { return Database::instance()->query('SELECT * FROM affiliate_payout_batches WHERE site_id = @site_id ORDER BY id DESC LIMIT ' . max(1, min(200, $limit)))->fetchAll(); }
+        catch (\Throwable $e) { return []; }
+    }
+
     public function statsFor(int $affiliateId): array
     {
         try {

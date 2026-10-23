@@ -30,12 +30,23 @@ if (isset($_GET['doc'])) {
 }
 $msg = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $id = (int)($_POST['id'] ?? 0);
-    $st = (string)($_POST['status'] ?? '');
-    if ($id > 0 && in_array($st, AffiliateService::STATUSES, true)) {
-        if ($svc->setStatus($id, $st)) {
-            if ($st === 'APPROVED') $svc->ensureLink($id);
-            $msg = 'Actualizado #' . $id . ' → ' . $st;
+    $action = (string)($_POST['action'] ?? '');
+    $by = (string)((Session::user()['name'] ?? 'admin'));
+    if ($action === 'create_batch') {
+        $r = $svc->createPayoutBatch(date('Y-m'), $by);
+        $msg = $r['ok'] ? ('Lote #' . $r['batch'] . ' creado · ' . $r['items'] . ' ítems · $ ' . number_format((float)$r['total'], 0, ',', '.')) : (string)$r['message'];
+    } elseif ($action === 'approve_batch') {
+        $msg = $svc->approvePayoutBatch((int)($_POST['batch'] ?? 0), $by) ? 'Lote aprobado.' : 'No se pudo aprobar (¿estado?).';
+    } elseif ($action === 'pay_batch') {
+        $msg = $svc->payPayoutBatch((int)($_POST['batch'] ?? 0), $by) ? 'Lote marcado como pagado (simulación).' : 'No se pudo marcar (¿aprobado?).';
+    } else {
+        $id = (int)($_POST['id'] ?? 0);
+        $st = (string)($_POST['status'] ?? '');
+        if ($id > 0 && in_array($st, AffiliateService::STATUSES, true)) {
+            if ($svc->setStatus($id, $st)) {
+                if ($st === 'APPROVED') $svc->ensureLink($id);
+                $msg = 'Actualizado #' . $id . ' → ' . $st;
+            }
         }
     }
 }
@@ -61,6 +72,7 @@ td small{color:#94a3b8}
 .st{display:inline-block;border-radius:999px;padding:3px 10px;font-size:11px;font-weight:800;background:#eef4fb;color:#155eeb}
 .st.APPROVED{background:#e5f5ef;color:#0d7a58}.st.REJECTED,.st.SUSPENDED,.st.TERMINATED{background:#fdecec;color:#b42318}
 .st.DRAFT,.st.REVIEW_REQUIRED,.st.EMAIL_PENDING,.st.PHONE_PENDING,.st.DOCUMENTS_PENDING{background:#fff3cd;color:#8a6d00}
+.st.PENDING_APPROVAL{background:#fff3cd;color:#8a6d00}.st.PAYMENT_QUEUED{background:#eef4fb;color:#155eeb}.st.PAID{background:#e5f5ef;color:#0d7a58}
 form{display:flex;gap:6px;align-items:center}
 select{padding:7px 9px;border:1px solid #dbe7e1;border-radius:8px;font:inherit;font-size:12.5px}
 button{padding:7px 12px;border:0;border-radius:8px;background:#0d9f72;color:#fff;font-weight:700;font-size:12.5px;cursor:pointer}
@@ -102,4 +114,34 @@ button{padding:7px 12px;border:0;border-radius:8px;background:#0d9f72;color:#fff
 <?php endforeach; ?>
 </tbody></table></div>
 <?php endif; ?>
+<?php $batches = $svc->listPayoutBatches(50); ?>
+<div class="head" style="margin-top:26px"><h1 style="font-size:18px">Liquidaciones por lote · simulación</h1></div>
+<div class="tbl" style="margin-bottom:12px;padding:12px 14px">
+  <form method="post" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+    <input type="hidden" name="action" value="create_batch" />
+    <span style="font-size:13px;color:#64748b">Periodo: <b><?= date('Y-m') ?></b> · reúne comisiones <b>aprobadas</b> sin liquidar.</span>
+    <button type="submit" style="margin-left:auto">Crear lote del mes</button>
+  </form>
+</div>
+<div class="tbl"><table>
+<thead><tr><th>#</th><th>Periodo</th><th>Ítems</th><th>Total</th><th>Estado</th><th>Acción</th></tr></thead>
+<tbody>
+<?php if (!$batches): ?><tr><td colspan="6" style="padding:22px;text-align:center;color:#94a3b8">Sin lotes todavía.</td></tr><?php endif; ?>
+<?php foreach ($batches as $b): ?>
+<tr>
+  <td>#<?= (int)$b['id'] ?></td>
+  <td><?= htmlspecialchars((string)$b['period']) ?></td>
+  <td><?= (int)$b['items_count'] ?></td>
+  <td>$ <?= number_format((float)$b['total_amount'], 0, ',', '.') ?></td>
+  <td><span class="st <?= htmlspecialchars((string)$b['status']) ?>"><?= htmlspecialchars((string)$b['status']) ?></span></td>
+  <td>
+  <?php if ($b['status'] === 'PENDING_APPROVAL'): ?>
+    <form method="post" style="display:inline"><input type="hidden" name="action" value="approve_batch" /><input type="hidden" name="batch" value="<?= (int)$b['id'] ?>" /><button type="submit">Aprobar</button></form>
+  <?php elseif ($b['status'] === 'APPROVED'): ?>
+    <form method="post" style="display:inline"><input type="hidden" name="action" value="pay_batch" /><input type="hidden" name="batch" value="<?= (int)$b['id'] ?>" /><button type="submit">Marcar pagado</button></form>
+  <?php else: ?><small>—</small><?php endif; ?>
+  </td>
+</tr>
+<?php endforeach; ?>
+</tbody></table></div>
 </body></html>
