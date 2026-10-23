@@ -265,6 +265,7 @@ class AffiliateService
             $out['recent'] = $st->fetchAll();
         } catch (\Throwable $e) {
         }
+        $out['league'] = $this->computeLeague($affiliateId);
         return $out;
     }
 
@@ -395,6 +396,42 @@ class AffiliateService
     {
         try { return Database::instance()->query('SELECT * FROM affiliate_payout_batches WHERE site_id = @site_id ORDER BY id DESC LIMIT ' . max(1, min(200, $limit)))->fetchAll(); }
         catch (\Throwable $e) { return []; }
+    }
+
+    public function leagueLevels(): array
+    {
+        try { return Database::instance()->query('SELECT code, name, min_amount FROM affiliate_levels WHERE site_id = @site_id ORDER BY sort_order, min_amount')->fetchAll(); }
+        catch (\Throwable $e) { return []; }
+    }
+
+    /** Nivel actual del Sound League según ventas elegibles del mes (progresión configurable). */
+    public function computeLeague(int $affiliateId): array
+    {
+        $levels = $this->leagueLevels();
+        $sales = $this->monthSales($affiliateId);
+        $clicks = 0;
+        try { $st = Database::instance()->prepare('SELECT COUNT(*) FROM affiliate_clicks WHERE affiliate_id = :a AND site_id = @site_id AND is_bot = 0'); $st->execute(['a' => $affiliateId]); $clicks = (int)$st->fetchColumn(); } catch (\Throwable $e) {}
+        if (!$levels) {
+            return ['level' => '—', 'code' => null, 'sales' => $sales, 'clicks' => $clicks, 'next' => null, 'next_min' => null, 'progress' => 0];
+        }
+        $cur = null; $next = null;
+        foreach ($levels as $l) {
+            if ($sales >= (float)$l['min_amount']) $cur = $l;
+            elseif ($next === null) $next = $l;
+        }
+        if ($cur === null) $cur = $levels[0];
+        $progress = 100;
+        if ($next !== null) {
+            $lo = (float)$cur['min_amount']; $hi = (float)$next['min_amount'];
+            $progress = $hi > $lo ? (int)max(0, min(100, round(($sales - $lo) / ($hi - $lo) * 100))) : 0;
+        }
+        return [
+            'level' => (string)$cur['name'], 'code' => (string)$cur['code'],
+            'sales' => $sales, 'clicks' => $clicks,
+            'next' => $next ? (string)$next['name'] : null,
+            'next_min' => $next ? (float)$next['min_amount'] : null,
+            'progress' => $progress,
+        ];
     }
 
     public function statsFor(int $affiliateId): array
