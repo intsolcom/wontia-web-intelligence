@@ -39,6 +39,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $msg = $svc->approvePayoutBatch((int)($_POST['batch'] ?? 0), $by) ? 'Lote aprobado.' : 'No se pudo aprobar (¿estado?).';
     } elseif ($action === 'pay_batch') {
         $msg = $svc->payPayoutBatch((int)($_POST['batch'] ?? 0), $by) ? 'Lote marcado como pagado (simulación).' : 'No se pudo marcar (¿aprobado?).';
+    } elseif ($action === 'pay_request') {
+        $msg = $svc->payPayoutRequest((int)($_POST['request'] ?? 0), $by) ? 'Retiro marcado como pagado.' : 'No se pudo marcar el retiro.';
     } else {
         $id = (int)($_POST['id'] ?? 0);
         $st = (string)($_POST['status'] ?? '');
@@ -139,6 +141,27 @@ button{padding:7px 12px;border:0;border-radius:8px;background:#0d9f72;color:#fff
     <form method="post" style="display:inline"><input type="hidden" name="action" value="approve_batch" /><input type="hidden" name="batch" value="<?= (int)$b['id'] ?>" /><button type="submit">Aprobar</button></form>
   <?php elseif ($b['status'] === 'APPROVED'): ?>
     <form method="post" style="display:inline"><input type="hidden" name="action" value="pay_batch" /><input type="hidden" name="batch" value="<?= (int)$b['id'] ?>" /><button type="submit">Marcar pagado</button></form>
+  <?php else: ?><small>—</small><?php endif; ?>
+  </td>
+</tr>
+<?php endforeach; ?>
+</tbody></table></div>
+<?php $reqs = $svc->listPayoutRequests(100); ?>
+<div class="head" style="margin-top:26px"><h1 style="font-size:18px">Solicitudes de retiro</h1></div>
+<div class="tbl"><table>
+<thead><tr><th>#</th><th>Artista</th><th>Monto</th><th>Estado</th><th>Fecha</th><th>Acción</th></tr></thead>
+<tbody>
+<?php if (!$reqs): ?><tr><td colspan="6" style="padding:22px;text-align:center;color:#94a3b8">Sin solicitudes de retiro.</td></tr><?php endif; ?>
+<?php foreach ($reqs as $q): $qname = $q['artist_name'] ?: ($q['public_name'] ?: ($q['full_name'] ?? ('#' . $q['affiliate_id']))); ?>
+<tr>
+  <td>#<?= (int)$q['id'] ?></td>
+  <td><?= htmlspecialchars((string)$qname) ?></td>
+  <td>$ <?= number_format((float)$q['amount'], 0, ',', '.') ?></td>
+  <td><span class="st <?= htmlspecialchars((string)$q['status']) ?>"><?= htmlspecialchars((string)$q['status']) ?></span></td>
+  <td><?= htmlspecialchars(substr((string)$q['created_at'], 0, 10)) ?></td>
+  <td>
+  <?php if ($q['status'] === 'requested'): ?>
+    <form method="post" style="display:inline"><input type="hidden" name="action" value="pay_request" /><input type="hidden" name="request" value="<?= (int)$q['id'] ?>" /><button type="submit">Marcar pagado</button></form>
   <?php else: ?><small>—</small><?php endif; ?>
   </td>
 </tr>

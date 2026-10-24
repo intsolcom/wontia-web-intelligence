@@ -100,6 +100,28 @@ class AffiliateService
         } catch (\Throwable $e) { return ['ok' => false, 'message' => 'No se pudo registrar el retiro.']; }
     }
 
+    public function listPayoutRequests(int $limit = 100): array
+    {
+        try {
+            return Database::instance()->query('SELECT r.*, p.artist_name, p.public_name, p.full_name FROM affiliate_payout_requests r LEFT JOIN affiliate_profiles p ON p.id = r.affiliate_id AND p.site_id = r.site_id WHERE r.site_id = @site_id ORDER BY r.id DESC LIMIT ' . max(1, min(300, $limit)))->fetchAll();
+        } catch (\Throwable $e) { return []; }
+    }
+
+    public function payPayoutRequest(int $id, string $by = 'admin'): bool
+    {
+        try {
+            $db = Database::instance();
+            $st = $db->prepare("SELECT affiliate_id, amount FROM affiliate_payout_requests WHERE id = :id AND site_id = @site_id AND status = 'requested' LIMIT 1");
+            $st->execute(['id' => $id]);
+            $r = $st->fetch();
+            if (!$r) return false;
+            $db->prepare("UPDATE affiliate_payout_requests SET status = 'paid', paid_at = NOW(), note = :n WHERE id = :id AND site_id = @site_id")->execute(['id' => $id, 'n' => 'pagado por ' . $by]);
+            $db->prepare("UPDATE affiliate_commissions SET status = 'PAID' WHERE affiliate_id = :a AND site_id = @site_id AND status = 'APPROVED'")->execute(['a' => (int)$r['affiliate_id']]);
+            $this->log((int)$r['affiliate_id'], 'payout_request_paid', ['request' => $id, 'amount' => $r['amount'], 'by' => $by]);
+            return true;
+        } catch (\Throwable $e) { return false; }
+    }
+
     public function login(string $email, string $password): array
     {
         $email = strtolower(trim($email));
