@@ -16,6 +16,18 @@ class AffiliateController
         echo json_encode($r, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     }
 
+    /** POST /api/v1/public/affiliates/tip — aporte de agradecimiento (público, simulado). */
+    public function tip($request)
+    {
+        $in = json_decode((string)file_get_contents('php://input'), true);
+        if (!is_array($in)) $in = $_POST;
+        header('Content-Type: application/json');
+        header('Cache-Control: no-store');
+        $aff = (new AffiliateService())->getBySlug((string)($in['artist'] ?? ''));
+        if (!$aff) { echo json_encode(['ok' => false, 'message' => 'Artista no encontrado.']); return; }
+        echo json_encode((new AffiliateService())->tipAdd((int)$aff['id'], $in), JSON_UNESCAPED_UNICODE);
+    }
+
     /** POST /api/v1/public/affiliates/contract — solicitud de contratación (público). */
     public function contract($request)
     {

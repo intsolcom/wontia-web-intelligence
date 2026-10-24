@@ -434,6 +434,36 @@ class AffiliateService
         ];
     }
 
+    public function tipAdd(int $affiliateId, array $in): array
+    {
+        $amount = (float)($in['amount'] ?? 0);
+        if ($amount <= 0 || $amount > 5000000) return ['ok' => false, 'message' => 'Monto inválido.'];
+        try {
+            Database::instance()->prepare('INSERT INTO affiliate_tips (site_id, affiliate_id, sender_name, sender_email, amount, message, status, created_at) VALUES (@site_id, :a, :n, :e, :amt, :m, "simulated", NOW())')
+                ->execute([
+                    'a' => $affiliateId,
+                    'n' => mb_substr((string)($in['name'] ?? ''), 0, 120),
+                    'e' => mb_substr((string)($in['email'] ?? ''), 0, 190),
+                    'amt' => round($amount, 2),
+                    'm' => mb_substr((string)($in['message'] ?? ''), 0, 500),
+                ]);
+            $this->log($affiliateId, 'tip_received', ['amount' => $amount, 'simulation' => true]);
+            return ['ok' => true, 'message' => '¡Gracias por tu aporte de agradecimiento! (simulación)'];
+        } catch (\Throwable $e) { return ['ok' => false, 'message' => 'No se pudo registrar el aporte.']; }
+    }
+
+    public function tipsFor(int $affiliateId): array
+    {
+        try { $st = Database::instance()->prepare('SELECT * FROM affiliate_tips WHERE affiliate_id = :a AND site_id = @site_id ORDER BY id DESC LIMIT 50'); $st->execute(['a' => $affiliateId]); return $st->fetchAll(); }
+        catch (\Throwable $e) { return []; }
+    }
+
+    public function tipsTotal(int $affiliateId): float
+    {
+        try { $st = Database::instance()->prepare("SELECT COALESCE(SUM(amount),0) FROM affiliate_tips WHERE affiliate_id = :a AND site_id = @site_id AND status <> 'rejected'"); $st->execute(['a' => $affiliateId]); return (float)$st->fetchColumn(); }
+        catch (\Throwable $e) { return 0.0; }
+    }
+
     public function contractRequestAdd(int $affiliateId, array $in): array
     {
         $name = trim((string)($in['name'] ?? ''));
