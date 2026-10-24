@@ -90,6 +90,22 @@ if (($segments[0] ?? '') === 'artista' && ($segments[2] ?? '') === 'panel' && !e
         echo '<div class="ahp-c"><small>Estado financiero</small><b style="font-size:15px">' . (count($__d['by_status']) ? 'Con movimientos' : 'Sin movimientos') . '</b></div>';
         echo '</div>';
         $__lg = is_array($__d['league'] ?? null) ? $__d['league'] : ['level' => '—', 'sales' => 0, 'progress' => 0, 'next' => null];
+        $__crAll = $__svcP->contractRequestsFor((int)$__affPP['id']);
+        $__crNew = 0;
+        foreach ($__crAll as $__cr0) { if (($__cr0['status'] ?? '') === 'new') $__crNew++; }
+        $__tipsTot = $__svcP->tipsTotal((int)$__affPP['id']);
+        $__postsAll = $__svcP->postsFor((int)$__affPP['id']);
+        $__lgP = is_array($__d['league'] ?? null) ? $__d['league'] : [];
+        $__sugg = [];
+        if ((int)($__d['clicks'] ?? 0) === 0) $__sugg[] = 'Pon a Sonar: comparte tu enlace para empezar a generar clics y comisiones.';
+        if ($__crNew > 0) $__sugg[] = 'Tienes ' . $__crNew . ' solicitud(es) de contratación sin responder.';
+        if ($__tipsTot > 0) $__sugg[] = 'Recibiste $ ' . number_format($__tipsTot, 0, ',', '.') . ' en aportes. ¡Agradece a tus fans!';
+        if (!empty($__lgP['next']) && isset($__lgP['next_min'])) { $__need = max(0, (float)$__lgP['next_min'] - (float)($__lgP['sales'] ?? 0)); $__sugg[] = 'Te faltan $ ' . number_format($__need, 0, ',', '.') . ' para llegar a ' . $__lgP['next'] . '.'; }
+        if (empty($__postsAll)) $__sugg[] = 'Publica en tu Muro para conectar con tus fans.';
+        if (empty($__sugg)) $__sugg[] = '¡Vas muy bien! Sigue compartiendo y respondiendo solicitudes.';
+        echo '<div class="ahp-sec" style="margin-top:0"><h2>Mi Pulso — acciones sugeridas</h2><div style="background:#101d3a;color:#fff;border-radius:14px;padding:16px"><ul style="margin:0;padding-left:18px;line-height:1.8;font-size:13.5px">';
+        foreach ($__sugg as $__s) echo '<li>' . sonika_esc($__s) . '</li>';
+        echo '</ul></div></div>';
         echo '<div class="ahp-sec"><h2>SONIKA Sound League</h2><div style="background:#fff;border:1px solid #eef2f0;border-radius:14px;padding:16px"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><div><span style="font-size:12px;color:#64748b">Tu nivel</span><div style="font-size:22px;font-weight:800;color:#101d3a">' . sonika_esc((string)($__lg['level'] ?? '—')) . '</div></div><div style="text-align:right;font-size:12px;color:#64748b">' . (!empty($__lg['next']) ? ('Próximo: <b>' . sonika_esc((string)$__lg['next']) . '</b>') : 'Nivel máximo') . '<br>Ventas del mes: <b>' . $__money($__lg['sales'] ?? 0) . '</b></div></div><div style="margin-top:12px;height:10px;background:#eef2f0;border-radius:999px;overflow:hidden"><div style="height:100%;width:' . (int)($__lg['progress'] ?? 0) . '%;background:linear-gradient(90deg,#0d9f72,#7c5cff)"></div></div><div style="font-size:11.5px;color:#94a3b8;margin-top:6px">Progreso al siguiente nivel: ' . (int)($__lg['progress'] ?? 0) . '%</div></div></div>';
         $__awards = $__svcP->awardsFor((int)$__affPP['id']);
         echo '<div class="ahp-sec"><h2>Logros y Premios</h2>';
