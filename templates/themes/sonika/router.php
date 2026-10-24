@@ -575,10 +575,10 @@ if ($__artSlug !== '' && !in_array($__artSlug, $__res2, true) && !(function_exis
         $__ytUrl = trim((string)($__mediaP['video_url'] ?? ''));
         $__msCss2 = <<<'CSS'
 .sonika-artist-page .ah-showcase{padding-top:10px}
-.sonika-artist-page .ah-showcase__grid{display:grid;grid-template-columns:1.45fr 1fr;gap:22px;align-items:stretch}
+.sonika-artist-page .ah-showcase__grid{display:grid;grid-template-columns:minmax(0,380px) minmax(0,1fr);gap:26px;max-width:1040px;margin:0 auto;align-items:stretch}
 @media(max-width:900px){.sonika-artist-page .ah-showcase__grid{grid-template-columns:1fr}}
 .sonika-artist-page .ah-stage{position:relative;display:flex;flex-direction:column}
-.sonika-artist-page .ah-stage__frame{position:relative;aspect-ratio:16/10;max-height:min(44vh,380px);border-radius:16px;overflow:hidden;background:linear-gradient(160deg,#0b1226,#131a33);border:1px solid rgba(124,92,255,.3);box-shadow:0 18px 44px rgba(0,0,0,.45)}
+.sonika-artist-page .ah-stage__frame{position:relative;width:min(100%,min(44vh,380px));aspect-ratio:1/1;height:auto;margin:0 auto;border-radius:16px;overflow:hidden;background:linear-gradient(160deg,#0b1226,#131a33);border:1px solid rgba(124,92,255,.3);box-shadow:0 18px 44px rgba(0,0,0,.45)}
 .sonika-artist-page .ah-stage__img{width:100%;height:100%;object-fit:cover;display:block;transition:opacity .22s ease,transform .5s ease}
 .sonika-artist-page .ah-stage__img.is-fade{opacity:0;transform:scale(1.03)}
 .sonika-artist-page .ah-stage__empty{position:absolute;inset:0;display:grid;place-items:center;text-align:center;color:#8ea0c9;font-size:13px;padding:20px}
@@ -590,7 +590,7 @@ if ($__artSlug !== '' && !in_array($__artSlug, $__res2, true) && !(function_exis
 .sonika-artist-page .ah-nav:hover{background:linear-gradient(135deg,#287bff,#7c5cff);border-color:transparent;transform:translateY(-50%) scale(1.09);box-shadow:0 12px 30px rgba(124,92,255,.6)}
 .sonika-artist-page .ah-nav:active{transform:translateY(-50%) scale(.96)}
 .sonika-artist-page .ah-stage__count{position:absolute;left:14px;bottom:14px;z-index:3;padding:4px 10px;border-radius:999px;background:rgba(6,10,24,.66);border:1px solid rgba(255,255,255,.18);font-size:11px;font-weight:800;color:#dbe6ff;letter-spacing:.04em}
-.sonika-artist-page .ah-thumbs{display:flex;gap:10px;margin-top:12px;overflow-x:auto;padding:4px 2px 6px;scrollbar-width:none}
+.sonika-artist-page .ah-thumbs{display:flex;justify-content:center;gap:10px;margin-top:12px;overflow-x:auto;padding:4px 2px 6px;scrollbar-width:none}
 .sonika-artist-page .ah-thumbs::-webkit-scrollbar{display:none}
 .sonika-artist-page .ah-thumb{flex:0 0 68px;height:48px;border-radius:9px;overflow:hidden;border:2px solid transparent;background:#0b1120;padding:0;cursor:pointer;opacity:.6;transition:opacity .2s,transform .2s,border-color .2s,box-shadow .2s;position:relative}
 .sonika-artist-page .ah-thumb img{width:100%;height:100%;object-fit:cover;display:block}
