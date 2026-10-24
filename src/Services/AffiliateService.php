@@ -668,8 +668,7 @@ class AffiliateService
 
     public function cvSave(int $affiliateId, array $in): array
     {
-        $bio = trim((string)preg_replace('/\s+/u', ' ', strip_tags((string)($in['bio'] ?? ''))));
-        $bio = function_exists('mb_substr') ? mb_substr($bio, 0, 700) : substr($bio, 0, 700);
+        $bio = $this->cvBioHtml((string)($in['bio'] ?? ''));
         $years = preg_replace('/[^0-9]/', '', trim((string)($in['experience_years'] ?? '')));
         $years = $years === '' ? '' : (string)min(60, (int)$years);
         $list = function ($v) {
@@ -690,6 +689,61 @@ class AffiliateService
             $this->log($affiliateId, 'cv_saved');
             return ['ok' => true, 'message' => 'Trayectoria guardada.', 'experience_years' => $years, 'bands' => $bands, 'achievements' => $ach];
         } catch (\Throwable $e) { return ['ok' => false, 'message' => 'No se pudo guardar la trayectoria.']; }
+    }
+
+    public function cvBioHtml(string $raw): string
+    {
+        $raw = trim($raw);
+        if ($raw === '') return '';
+        if (!preg_match('~<(p|div|br|strong|b|em|i|u|h[2-4]|ul|ol|li|blockquote|a)\b~i', $raw)) {
+            $raw = $this->markdownLite($raw);
+        }
+        return $this->sanitizeCvHtml($raw);
+    }
+
+    private function markdownLite(string $raw): string
+    {
+        $t = htmlspecialchars($raw, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+        $t = preg_replace('~\r\n?~', "\n", $t);
+        $out = ''; $list = ''; $para = [];
+        $flushPara = function () use (&$para, &$out) { if ($para) { $out .= '<p>' . implode('<br>', $para) . '</p>'; $para = []; } };
+        $closeList = function () use (&$list, &$out) { if ($list !== '') { $out .= '</' . $list . '>'; $list = ''; } };
+        foreach (explode("\n", $t) as $ln) {
+            $line = trim($ln);
+            $line = preg_replace('~\*\*(.+?)\*\*~u', '<strong>$1</strong>', $line);
+            $line = preg_replace('~(?<!\*)\*(?!\*)([^*]+?)(?<!\*)\*(?!\*)~u', '<em>$1</em>', $line);
+            if ($line === '') { $flushPara(); $closeList(); continue; }
+            if (preg_match('~^#{1,4}\s+(.+)$~u', $line, $m)) { $flushPara(); $closeList(); $out .= '<h3>' . $m[1] . '</h3>'; continue; }
+            if (preg_match('~^[-–•*]\s+(.+)$~u', $line, $m)) { $flushPara(); if ($list !== 'ul') { $closeList(); $out .= '<ul>'; $list = 'ul'; } $out .= '<li>' . $m[1] . '</li>'; continue; }
+            if (preg_match('~^\d+[.)]\s+(.+)$~u', $line, $m)) { $flushPara(); if ($list !== 'ol') { $closeList(); $out .= '<ol>'; $list = 'ol'; } $out .= '<li>' . $m[1] . '</li>'; continue; }
+            $closeList();
+            $para[] = $line;
+        }
+        $flushPara(); $closeList();
+        return $out;
+    }
+
+    private function sanitizeCvHtml(string $html): string
+    {
+        if ($html === '') return '';
+        $html = preg_replace('~<(script|style|iframe|object|embed)\b.*?</\1>~is', '', $html);
+        $html = preg_replace('~<!--.*?-->~s', '', (string)$html);
+        $allowed = '<p><br><strong><b><em><i><u><h2><h3><h4><ul><ol><li><blockquote><a><div><span>';
+        $html = strip_tags((string)$html, $allowed);
+        $html = preg_replace_callback('~<a\b[^>]*>~i', function ($m) {
+            if (preg_match('~href\s*=\s*["\']?([^"\'\s>]+)~i', $m[0], $h)) {
+                $u = trim($h[1]);
+                if (preg_match('~^(https?://|/)~i', $u)) {
+                    return '<a href="' . htmlspecialchars($u, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '" rel="nofollow noopener" target="_blank">';
+                }
+            }
+            return '<a>';
+        }, (string)$html);
+        $html = preg_replace('~<(p|br|strong|b|em|i|u|h2|h3|h4|ul|ol|li|blockquote|div|span)\b[^>]*>~i', '<$1>', (string)$html);
+        $html = preg_replace('~<br\s*/?>~i', '<br>', (string)$html);
+        $html = preg_replace('~(<br>\s*){3,}~i', '<br><br>', (string)$html);
+        $html = (string)$html;
+        return trim(function_exists('mb_substr') ? mb_substr($html, 0, 8000) : substr($html, 0, 8000));
     }
 
     public function tipAdd(int $affiliateId, array $in): array

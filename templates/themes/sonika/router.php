@@ -230,6 +230,7 @@ HTML;
         $__cvE = $__svcP->cvFor((int)$__affPP['id']) ?: [];
         $__cvEBands = json_decode((string)($__cvE['bands'] ?? '[]'), true); if (!is_array($__cvEBands)) $__cvEBands = [];
         $__cvEAch = json_decode((string)($__cvE['achievements'] ?? '[]'), true); if (!is_array($__cvEAch)) $__cvEAch = [];
+        $__cvBioHtml = $__svcP->cvBioHtml((string)($__cvE['bio'] ?? ''));
         $__trHtml = <<<'HTML'
 <div class="ahp-sec" data-tab="perfil"><style>
 .ahp-tr{max-width:960px;background:#fff;border:1px solid #eef2f0;border-radius:16px;padding:18px}
@@ -239,10 +240,31 @@ HTML;
 .ahp-tr .full{grid-column:1/-1}
 .ahp-tr label{display:block;font-size:11.5px;font-weight:700;color:#51607a;margin:0 0 5px}
 .ahp-tr label span{font-weight:600;color:#94a3b8}
-.ahp-tr textarea,.ahp-tr input{width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #e6eeea;border-radius:10px;font:inherit;font-size:13px;background:#fcfdfd;transition:border-color .2s,box-shadow .2s}
-.ahp-tr textarea:focus,.ahp-tr input:focus{outline:none;border-color:#7c5cff;box-shadow:0 0 0 3px rgba(124,92,255,.14);background:#fff}
-.ahp-tr textarea{resize:vertical;line-height:1.55}
+.ahp-tr > .grid > div > input[type=number]{width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #e6eeea;border-radius:10px;font:inherit;font-size:13px;background:#fcfdfd}
+.ahp-tr > .grid > div > input:focus{outline:none;border-color:#7c5cff;box-shadow:0 0 0 3px rgba(124,92,255,.14);background:#fff}
+.ahp-tr .rte{border:1px solid #e6eeea;border-radius:12px;background:#fff;overflow:hidden}
+.ahp-tr .rte__bar{display:flex;flex-wrap:wrap;gap:3px;padding:6px;border-bottom:1px solid #eef2f0;background:#fbfdfc;align-items:center}
+.ahp-tr .rte__bar button{min-width:26px;height:26px;border:1px solid transparent;background:transparent;border-radius:7px;font:inherit;font-size:11.5px;font-weight:800;color:#3b4a63;cursor:pointer;display:inline-grid;place-items:center;padding:0 5px}
+.ahp-tr .rte__bar button:hover{background:#eef4ff;border-color:#dbe4ff;color:#1d4ed8}
+.ahp-tr .rte__bar .sep{width:1px;height:16px;background:#e2eae6;margin:0 3px}
+.ahp-tr .rte__area{min-height:150px;max-height:280px;overflow:auto;padding:12px 14px;font-size:13px;line-height:1.65;color:#17212b;outline:none}
+.ahp-tr .rte__area:empty:before{content:attr(data-placeholder);color:#a7b2c4}
+.ahp-tr .rte__area h2{font-size:16px;margin:8px 0 4px}
+.ahp-tr .rte__area h3{font-size:14px;margin:8px 0 4px}
+.ahp-tr .rte__area ul,.ahp-tr .rte__area ol{margin:6px 0;padding-left:20px}
+.ahp-tr .rte__area a{color:#2563eb}
+.ahp-tr .rte__emoji{display:flex;flex-wrap:wrap;gap:2px;padding:6px;border-top:1px solid #eef2f0;background:#fbfdfc}
+.ahp-tr .rte__emoji button{border:0;background:transparent;font-size:16px;cursor:pointer;border-radius:6px;padding:2px 4px}
+.ahp-tr .rte__emoji button:hover{background:#eef4ff}
 .ahp-tr .count{font-size:11px;color:#94a3b8;text-align:right;margin-top:4px;font-weight:700}
+.ahp-tr .count.warn{color:#d97706}
+.ahp-tr .tags{display:flex;flex-wrap:wrap;gap:6px;padding:7px 8px;border:1px solid #e6eeea;border-radius:10px;background:#fcfdfd;min-height:42px;align-items:center;transition:border-color .2s,box-shadow .2s}
+.ahp-tr .tags:focus-within{border-color:#7c5cff;box-shadow:0 0 0 3px rgba(124,92,255,.14);background:#fff}
+.ahp-tr .tags input{border:0;background:transparent;outline:none;flex:1;min-width:110px;font:inherit;font-size:12.5px;padding:3px}
+.ahp-tr .tag{display:inline-flex;align-items:center;gap:5px;background:#eef4ff;border:1px solid #dbe4ff;color:#1e3a8a;border-radius:999px;padding:3px 5px 3px 10px;font-size:11.5px;font-weight:700}
+.ahp-tr .tag button{border:0;background:transparent;color:#64748b;cursor:pointer;font-size:13px;line-height:1;padding:0 3px}
+.ahp-tr .tag button:hover{color:#dc2626}
+.ahp-tr .hint2{font-size:10.5px;color:#94a3b8;margin-top:5px}
 .ahp-tr .save{margin-top:14px;background:#101d3a;color:#fff;border:0;border-radius:10px;padding:11px 20px;font-weight:800;font-size:12.5px;cursor:pointer;transition:.2s}
 .ahp-tr .save:hover{background:#1d2f57;transform:translateY(-1px)}
 .ahp-tr .msg{font-size:12.5px;margin-top:8px;min-height:16px}
@@ -250,25 +272,71 @@ HTML;
 @media(max-width:700px){.ahp-tr .grid{grid-template-columns:1fr}}
 </style>
 <form id="ah-cv" class="ahp-tr" novalidate>
-<h3>Trayectoria</h3><p class="hint">CuÃ©ntale a tus fans y clientes tu experiencia. Se muestra junto a tus fotos.</p>
+<h3>Trayectoria</h3><p class="hint">Edita con formato: lo que ves es lo que se publica. Puedes pegar desde Word, Docs o redes y se conserva el formato.</p>
 <div class="grid">
-<div class="full"><label for="ah-cv-bio">Historia / experiencia <span>(descripciÃ³n breve)</span></label><textarea id="ah-cv-bio" name="bio" maxlength="700" rows="4" placeholder="Ej: Guitarrista y productor con 8 aÃ±os en la escena...">{{BIO}}</textarea><div class="count" id="ah-cv-count">0 / 700</div></div>
-<div><label for="ah-cv-years">AÃ±os de experiencia</label><input id="ah-cv-years" name="experience_years" type="number" min="0" max="60" value="{{YEARS}}" placeholder="8"></div>
-<div><label>Bandas / proyectos <span>(una por lÃ­nea)</span></label><textarea name="bands" rows="3" placeholder="La Banda del Sur&#10;Sesiones en Vivo">{{BANDS}}</textarea></div>
-<div class="full"><label>Logros <span>(uno por lÃ­nea)</span></label><textarea name="achievements" rows="3" placeholder="3 EP publicados&#10;Gira nacional 2024">{{ACH}}</textarea></div>
+<div class="full"><label>Historia / experiencia</label>
+<div class="rte" data-rte>
+<div class="rte__bar" role="toolbar" aria-label="Formato de texto">
+<button type="button" data-cmd="bold" title="Negrita (Ctrl+B)"><b>B</b></button>
+<button type="button" data-cmd="italic" title="Cursiva (Ctrl+I)"><i>I</i></button>
+<button type="button" data-cmd="underline" title="Subrayado (Ctrl+U)"><u>U</u></button>
+<span class="sep"></span>
+<button type="button" data-block="h2" title="Título">H2</button>
+<button type="button" data-block="h3" title="Subtítulo">H3</button>
+<button type="button" data-block="p" title="Párrafo">¶</button>
+<span class="sep"></span>
+<button type="button" data-cmd="insertUnorderedList" title="Viñetas">•</button>
+<button type="button" data-cmd="insertOrderedList" title="Numeración">1.</button>
+<span class="sep"></span>
+<button type="button" data-cmd="justifyLeft" title="Alinear a la izquierda">⇤</button>
+<button type="button" data-cmd="justifyCenter" title="Centrar">↔</button>
+<button type="button" data-cmd="justifyRight" title="Alinear a la derecha">⇥</button>
+<span class="sep"></span>
+<button type="button" data-act="link" title="Insertar enlace">🔗</button>
+<button type="button" data-act="emoji" title="Emojis">😀</button>
+<button type="button" data-act="plain" title="El próximo pegado será texto plano">T</button>
+<button type="button" data-cmd="removeFormat" title="Quitar formato">⌫</button>
+</div>
+<div class="rte__area" contenteditable="true" role="textbox" aria-multiline="true" data-placeholder="Escribe o pega tu trayectoria: títulos, viñetas, emojis…">{{BIOHTML}}</div>
+<div class="rte__emoji" hidden></div>
+</div>
+<input type="hidden" name="bio" id="ah-cv-bio">
+<div class="count" id="ah-cv-count">0 / 8000</div></div>
+<div><label for="ah-cv-years">Años de experiencia</label><input id="ah-cv-years" name="experience_years" type="number" min="0" max="60" value="{{YEARS}}" placeholder="8"></div>
+<div><label>Bandas / artistas <span>(Enter o coma para agregar)</span></label><div class="tags" data-tags="bands" data-initial="{{BANDS_JSON}}"><input type="text" placeholder="Ej: Tierra Seca" aria-label="Agregar banda"></div><input type="hidden" name="bands" id="ah-cv-bands" value="{{BANDS_TEXT}}"><div class="hint2">Se publican como etiquetas enlazadas a la búsqueda del sitio (SEO).</div></div>
+<div class="full"><label>Logros <span>(Enter o coma para agregar)</span></label><div class="tags" data-tags="ach" data-initial="{{ACH_JSON}}"><input type="text" placeholder="Ej: Gira nacional 2024" aria-label="Agregar logro"></div><input type="hidden" name="achievements" id="ah-cv-ach" value="{{ACH_TEXT}}"></div>
 </div>
 <button type="submit" class="save">Guardar trayectoria</button>
 <div class="msg" id="ah-cv-msg"></div>
-<div class="note">Consejo: sÃ© concreto. â€œ8 aÃ±osâ€, â€œ3 girasâ€, â€œ#1 en radio localâ€ generan mÃ¡s confianza que frases genÃ©ricas.</div>
+<div class="note">Consejo SEO: usa títulos y viñetas, y agrega las bandas/artistas con los que has trabajado; se indexan como metadatos de tu perfil.</div>
 </form>
-<script>(function(){var f=document.getElementById('ah-cv');if(!f)return;var t=document.getElementById('ah-cv-bio'),c=document.getElementById('ah-cv-count'),m=document.getElementById('ah-cv-msg');function upd(){if(c&&t)c.textContent=t.value.length+' / 700';}if(t){t.addEventListener('input',upd);upd();}f.addEventListener('submit',function(e){e.preventDefault();var d={};new FormData(f).forEach(function(v,k){d[k]=v;});m.style.color='#51607a';m.textContent='Guardandoâ€¦';fetch('/api/v1/public/affiliates/cv',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)}).then(function(r){return r.json();}).then(function(j){m.style.color=j.ok?'#0d7a58':'#d64545';m.textContent=(j.ok?'âœ“ ':'')+(j.message||(j.ok?'Guardado':'Error'));}).catch(function(){m.style.color='#d64545';m.textContent='Error de conexiÃ³n.';});});})();</script>
+<script>(function(){
+var form=document.getElementById('ah-cv');if(!form)return;
+var rte=form.querySelector('[data-rte]'),area=rte.querySelector('.rte__area'),hidden=document.getElementById('ah-cv-bio'),count=document.getElementById('ah-cv-count'),emojiBox=rte.querySelector('.rte__emoji'),m=document.getElementById('ah-cv-msg');
+function sync(){hidden.value=area.innerHTML;var n=(area.textContent||'').length;if(count){count.textContent=n+' / 8000';count.classList.toggle('warn',n>7200);}}
+area.addEventListener('input',sync);
+function sanitize(html){var d=document.createElement('div');d.innerHTML=html;d.querySelectorAll('script,style,iframe,object,embed,meta,link').forEach(function(n){n.remove();});var ok={P:1,BR:1,STRONG:1,B:1,EM:1,I:1,U:1,H2:1,H3:1,H4:1,UL:1,OL:1,LI:1,BLOCKQUOTE:1,A:1,DIV:1,SPAN:1};function walk(node){[].slice.call(node.childNodes).forEach(function(ch){if(ch.nodeType!==1)return;if(!ok[ch.tagName]){var f=document.createDocumentFragment();while(ch.firstChild)f.appendChild(ch.firstChild);ch.parentNode.replaceChild(f,ch);walk(node);return;}[].slice.call(ch.attributes).forEach(function(a){if(!(ch.tagName==='A'&&a.name==='href'))ch.removeAttribute(a.name);});if(ch.tagName==='A'){ch.target='_blank';ch.rel='nofollow noopener';}walk(ch);});}walk(d);return d.innerHTML;}
+area.addEventListener('paste',function(e){var cd=e.clipboardData||window.clipboardData;if(!cd)return;if(area.dataset.plain==='1'){e.preventDefault();area.dataset.plain='0';document.execCommand('insertText',false,cd.getData('text/plain'));setTimeout(sync,0);return;}var html=cd.getData('text/html');if(html){e.preventDefault();document.execCommand('insertHTML',false,sanitize(html));setTimeout(sync,0);}else{var txt=cd.getData('text/plain');if(txt){e.preventDefault();var lines=txt.replace(/\r\n?/g,'\n').split('\n');var out=[];lines.forEach(function(ln){var s=ln.trim();if(!s){out.push('');return;}s=s.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');if(/^[-•]\s+/.test(s)){out.push('<ul><li>'+s.replace(/^[-•]\s+/,'')+'</li></ul>');}else if(/^\d+[.)]\s+/.test(s)){out.push('<ol><li>'+s.replace(/^\d+[.)]\s+/,'')+'</li></ol>');}else if(/^#{2,3}\s+/.test(s)){out.push('<h3>'+s.replace(/^#{2,3}\s+/,'')+'</h3>');}else{out.push('<p>'+s+'</p>');}});document.execCommand('insertHTML',false,sanitize(out.join('')));setTimeout(sync,0);}}});
+rte.querySelectorAll('.rte__bar [data-cmd]').forEach(function(b){b.addEventListener('click',function(){area.focus();document.execCommand(b.getAttribute('data-cmd'),false,null);sync();});});
+rte.querySelectorAll('.rte__bar [data-block]').forEach(function(b){b.addEventListener('click',function(){area.focus();document.execCommand('formatBlock',false,b.getAttribute('data-block'));sync();});});
+var linkBtn=rte.querySelector('[data-act=link]');if(linkBtn)linkBtn.addEventListener('click',function(){var u=prompt('URL del enlace (https://…)','https://');if(!u)return;if(!/^https?:\/\//i.test(u)){u='https://'+u;}area.focus();document.execCommand('createLink',false,u);var as=area.querySelectorAll('a');[].slice.call(as).forEach(function(a){a.target='_blank';a.rel='nofollow noopener';});sync();});
+var plainBtn=rte.querySelector('[data-act=plain]');if(plainBtn)plainBtn.addEventListener('click',function(){area.dataset.plain='1';area.focus();if(m){m.style.color='#51607a';m.textContent='Modo pegado limpio activado para el próximo Ctrl+V.';}});
+var emoBtn=rte.querySelector('[data-act=emoji]');if(emoBtn)emoBtn.addEventListener('click',function(){emojiBox.hidden=!emojiBox.hidden;});
+var EMOJIS=['🎶','🎸','🥁','🎤','🎹','🎺','🎷','🎧','🔥','🌟','⚡','💥','✨','🏆','🎬','📸','📍','🎵','🌎','💫','👏','🙌','🚀','❤️'];
+EMOJIS.forEach(function(em){var b=document.createElement('button');b.type='button';b.textContent=em;b.addEventListener('click',function(){area.focus();document.execCommand('insertText',false,em);sync();});emojiBox.appendChild(b);});
+form.querySelectorAll('[data-tags]').forEach(function(box){var key=box.getAttribute('data-tags'),hid=document.getElementById(key==='bands'?'ah-cv-bands':'ah-cv-ach'),input=box.querySelector('input'),items=[];try{items=JSON.parse(box.getAttribute('data-initial')||'[]');}catch(e){items=[];}if(!Array.isArray(items))items=[];function render(){[].slice.call(box.querySelectorAll('.tag')).forEach(function(n){n.remove();});items.forEach(function(v,i){var s=document.createElement('span');s.className='tag';var t=document.createElement('span');t.textContent=v;var x=document.createElement('button');x.type='button';x.innerHTML='&times;';x.setAttribute('aria-label','Quitar '+v);x.addEventListener('click',function(){items.splice(i,1);render();});s.appendChild(t);s.appendChild(x);box.insertBefore(s,input);});hid.value=items.join('\n');}function add(){var v=(input.value||'').replace(/\s+/g,' ').trim();if(!v)return;if(items.indexOf(v)<0&&items.length<12){items.push(v.slice(0,80));}input.value='';render();}input.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===','){e.preventDefault();add();}else if(e.key==='Backspace'&&!input.value&&items.length){items.pop();render();}});input.addEventListener('blur',add);render();});
+sync();
+form.addEventListener('submit',function(e){e.preventDefault();sync();var d={};new FormData(form).forEach(function(v,k){d[k]=v;});m.style.color='#51607a';m.textContent='Guardando…';fetch('/api/v1/public/affiliates/cv',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)}).then(function(r){return r.json();}).then(function(j){m.style.color=j.ok?'#0d7a58':'#d64545';m.textContent=(j.ok?'✓ ':'')+(j.message||(j.ok?'Guardado':'Error'));}).catch(function(){m.style.color='#d64545';m.textContent='Error de conexión.';});});
+})();</script>
 </div>
 HTML;
         $__trHtml = strtr($__trHtml, [
-            '{{BIO}}' => sonika_esc((string)($__cvE['bio'] ?? '')),
+            '{{BIOHTML}}' => $__cvBioHtml,
             '{{YEARS}}' => sonika_esc((string)($__cvE['experience_years'] ?? '')),
-            '{{BANDS}}' => sonika_esc(implode("\n", array_map('strval', $__cvEBands))),
-            '{{ACH}}' => sonika_esc(implode("\n", array_map('strval', $__cvEAch))),
+            '{{BANDS_JSON}}' => sonika_esc(json_encode($__cvEBands, JSON_UNESCAPED_UNICODE)),
+            '{{ACH_JSON}}' => sonika_esc(json_encode($__cvEAch, JSON_UNESCAPED_UNICODE)),
+            '{{BANDS_TEXT}}' => sonika_esc(implode("\n", array_map('strval', $__cvEBands))),
+            '{{ACH_TEXT}}' => sonika_esc(implode("\n", array_map('strval', $__cvEAch))),
         ]);
         echo $__trHtml;
         $__mCover = (string)($__media['cover'] ?? '');
@@ -538,7 +606,12 @@ if ($__artSlug !== '' && !in_array($__artSlug, $__res2, true) && !(function_exis
         $__instr = (string)($__affP['music_instrument'] ?? '');
         $__genre = (string)($__affP['music_genre'] ?? '');
         $__level = (string)($__affP['music_level'] ?? '');
-        sonika_site_head($__name . ' â€” SONIKA ARTIST', $__bio ?: ('Descubre la selecciÃ³n musical de ' . $__name . ' en SONIKA.'));
+        $__seoBio = '';
+        try { $__cvSeo = $__affSvc->cvFor((int)$__affP['id']); if ($__cvSeo) $__seoBio = (string)($__cvSeo['bio'] ?? ''); } catch (\Throwable $e) {}
+        if (trim($__seoBio) === '') $__seoBio = $__bio;
+        $__seoDesc = trim((string)preg_replace('/\s+/', ' ', strip_tags($__seoBio)));
+        if ($__seoDesc !== '') $__seoDesc = function_exists('mb_substr') ? mb_substr($__seoDesc, 0, 160) : substr($__seoDesc, 0, 160);
+        sonika_site_head($__name . ' — SONIKA ARTIST', $__seoDesc !== '' ? $__seoDesc : ('Descubre la selección musical de ' . $__name . ' en SONIKA.'));
         echo '<style>.ah{--ah1:#F20D16;--ah2:#101d3a}.ah-hero{position:relative;overflow:hidden;background:radial-gradient(900px 400px at 80% -10%,#ffe9e9,transparent 60%),linear-gradient(135deg,#101d3a,#2a3550);color:#fff;padding:56px 0 40px}.ah-hero__in{max-width:1180px;margin:0 auto;padding:0 22px;display:flex;gap:24px;align-items:center;flex-wrap:wrap}.ah-ava{width:104px;height:104px;border-radius:24px;background:linear-gradient(135deg,#F20D16,#8b0a10);display:grid;place-items:center;font:800 40px/1 Sora,sans-serif;overflow:hidden;flex:none}.ah-ava img{width:100%;height:100%;object-fit:cover}.ah-kick{font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#ffb3b7}.ah-name{font:800 clamp(1.8rem,4vw,2.8rem)/1.05 Sora,sans-serif;margin:4px 0 6px}.ah-meta{color:#c9d2e0;font-size:14px}.ah-chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.ah-chip{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);border-radius:999px;padding:4px 11px;font-size:12px;font-weight:600}.ah-share{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}.ah-btn{display:inline-flex;align-items:center;gap:8px;background:var(--ah1);color:#fff;border:0;border-radius:12px;padding:11px 16px;font-weight:800;font-size:13.5px;cursor:pointer;text-decoration:none}.ah-btn.ghost{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22)}.ah-sec{max-width:1180px;margin:0 auto;padding:34px 22px}.ah-h{font:800 22px Sora,sans-serif;color:var(--ah2);margin:0 0 16px}.ah-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}.ah-empty{color:#78849a;background:#f6f9f7;border:1px dashed #dbe7e1;border-radius:14px;padding:22px;text-align:center;font-size:14px}.ah-cta{max-width:1180px;margin:0 auto;padding:0 22px 50px}.ah-cta__box{background:linear-gradient(135deg,#fff,#f6fbf9);border:1px solid #e9efec;border-radius:20px;padding:28px;display:flex;gap:18px;align-items:center;flex-wrap:wrap}.ah-cta__box h3{font:800 22px Sora,sans-serif;color:var(--ah2);margin:0 0 6px}.ah-cta__box p{margin:0;color:#51607a;font-size:14px}.ah-tabs{max-width:1180px;margin:20px auto 0;padding:0 22px;display:grid;grid-template-columns:1fr 1fr;gap:10px}.ah-tab{display:block;text-align:center;padding:14px;border-radius:14px;border:1px solid #e6eeea;background:#fff;color:#334155;font-weight:800;font-size:15px;text-decoration:none;transition:.15s}.ah-tab.on{background:#101d3a;color:#fff;border-color:#101d3a}.ah-tab:hover{background:#f6fbf9}@media(max-width:900px){.ah-grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:560px){.ah-grid{grid-template-columns:1fr}.ah-share{margin-left:0;width:100%}}</style>';
         echo '<div class="sonika-artist-page"><style>.sonika-artist-page{background:radial-gradient(ellipse at 75% 5%,rgba(49,75,150,.16),transparent 42%),linear-gradient(180deg,#05080d,#080d15 48%,#05080d);color:#f5f7fb;padding-bottom:50px}.sonika-artist-page .ah-hero{background-color:#080b12 !important;border-radius:0 0 18px 18px;padding:0;position:relative;isolation:isolate;overflow:hidden}.sonika-artist-page .ah-hero::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;background:linear-gradient(0deg,rgba(3,5,10,.9),rgba(3,5,10,.15) 60%)}.sonika-artist-page .ah-hero__in{position:relative;z-index:1;display:flex;gap:22px;align-items:flex-end;flex-wrap:wrap;padding:110px 22px 22px;max-width:1180px;margin:0 auto}.sonika-artist-page .ah-ava{width:118px;height:118px;border-radius:50%;border:3px solid rgba(255,255,255,.85);position:relative}.sonika-artist-page .ah-verified{position:absolute;right:6px;bottom:6px;width:26px;height:26px;border-radius:50%;background:#1d9bf0;color:#fff;display:grid;place-items:center;font-size:14px;font-weight:800;border:2px solid #05080d}.sonika-artist-page .ah-hero__body{flex:1;min-width:260px}.sonika-artist-page .ah-hero__titlerow{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.sonika-artist-page .ah-badge2{display:inline-block;background:linear-gradient(135deg,#f7d488,#e0a438);color:#3a2a08;font-weight:800;font-size:11px;padding:4px 10px;border-radius:999px}.sonika-artist-page .ah-spec{font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#c9a7ff;margin-top:6px}.sonika-artist-page .ah-quote{font-style:italic;color:#dbe3ef;font-size:15px;line-height:1.5;margin:10px 0 0;max-width:560px}.sonika-artist-page .ah-social{display:flex;gap:8px;margin-top:12px}.sonika-artist-page .ah-social a{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.1);border:1px solid rgba(174,194,222,.24);display:grid;place-items:center;color:#fff;font-size:12px;font-weight:800;text-decoration:none}.sonika-artist-page .ah-actions{display:flex;gap:10px;margin-left:auto;flex-wrap:wrap}.sonika-artist-page .ah-anchors{display:flex;gap:6px;overflow-x:auto;max-width:1180px;margin:8px auto 0;padding:0 22px;scrollbar-width:none}.sonika-artist-page .ah-anchors::-webkit-scrollbar{display:none}.sonika-artist-page .ah-anchors a{white-space:nowrap;padding:9px 14px;border-radius:10px;font-size:13px;font-weight:700;color:#b5c0d0;text-decoration:none}.sonika-artist-page .ah-anchors a.on,.sonika-artist-page .ah-anchors a:hover{background:linear-gradient(135deg,#287bff,#6246ff);color:#fff}.sonika-artist-page .ah-kick{color:#c9a7ff}.sonika-artist-page .ah-name{color:#fff;text-shadow:0 2px 18px rgba(0,0,0,.5)}.sonika-artist-page .ah-meta{color:#b5c0d0}.sonika-artist-page .ah-chip{background:rgba(98,70,255,.22) !important;border-color:rgba(174,194,222,.24) !important;color:#eef1f8}.sonika-artist-page .ah-btn{background:linear-gradient(135deg,#287bff,#6246ff) !important;box-shadow:0 8px 22px rgba(98,70,255,.35)}.sonika-artist-page .ah-btn.ghost{background:rgba(255,255,255,.08) !important;border:1px solid rgba(174,194,222,.24) !important}.sonika-artist-page .ah-ava{background:linear-gradient(135deg,#287bff,#6246ff);border:2px solid rgba(255,255,255,.55)}.sonika-artist-page .ah-tabs{max-width:1180px;margin:16px auto 6px;padding:0 22px}.sonika-artist-page .ah-tab{background:rgba(10,16,25,.9);border-color:rgba(174,194,222,.2);color:#b5c0d0}.sonika-artist-page .ah-tab.on{background:linear-gradient(135deg,#287bff,#6246ff);color:#fff;border-color:transparent}.sonika-artist-page .ah-sec{color:#f5f7fb}.sonika-artist-page .ah-sec h2,.sonika-artist-page .ah-cta__box h3{color:#fff}.sonika-artist-page .ah-sec p,.sonika-artist-page .ah-sec td,.sonika-artist-page .ah-sec li,.sonika-artist-page .ah-cta__box p{color:#b5c0d0}.sonika-artist-page .ah-sec article{background:#0a1019 !important;border-color:rgba(174,194,222,.18) !important;color:#e8ecf5}.sonika-artist-page .ah-cta__box{background:rgba(10,16,25,.9) !important;border-color:rgba(174,194,222,.2) !important}.sonika-artist-page .ah-cta__box input,.sonika-artist-page .ah-cta__box select,.sonika-artist-page .ah-cta__box textarea{background:rgba(5,8,13,.85) !important;border-color:rgba(174,194,222,.22) !important;color:#f5f7fb !important}.sonika-artist-page .ah-cta__box button{background:linear-gradient(135deg,#287bff,#6246ff) !important;color:#fff}.sonika-artist-page .ah-grid a,.sonika-artist-page .ah-grid .card,.sonika-artist-page .ah-grid .prod-card{background:#0a1019;border-color:rgba(174,194,222,.18);color:#f5f7fb}.sonika-artist-page .ah-grid .price{color:#d9c2ff}.sonika-artist-page .ah-shop{background:#fff;color:#17212b;border-radius:0;padding:34px 0;margin:0;width:100vw;max-width:100vw;margin-left:calc(50% - 50vw);margin-right:calc(50% - 50vw);box-sizing:border-box}.sonika-artist-page .ah-shop>h2,.sonika-artist-page .ah-shop>h3,.sonika-artist-page .ah-shop>div,.sonika-artist-page .ah-shop>p{max-width:1180px;margin-left:auto;margin-right:auto;padding-left:22px;padding-right:22px;width:100%;box-sizing:border-box}.sonika-artist-page .ah-shop .ah-h{color:#101d3a}.sonika-artist-page .ah-shop>h3{margin-left:auto!important;margin-right:auto!important}.sonika-artist-page .ah-shop>p{margin-left:auto!important;margin-right:auto!important;text-align:center}.sonika-artist-page .ah-shop p,.sonika-artist-page .ah-shop a{color:#17212b}.sonika-artist-page .ah-shop .ah-grid a,.sonika-artist-page .ah-shop .ah-grid .card,.sonika-artist-page .ah-shop .ah-grid .prod-card{background:#fff !important;border-color:#e6eeea !important;color:#17212b !important}.sonika-artist-page .ah-shop .ah-grid .price{color:#F20D16}.sonika-artist-page .ah-shop .ah-grid .cta,.sonika-artist-page .ah-shop .ah-grid button{background:linear-gradient(135deg,#F20D16,#C70A12)}</style>';
         $__ava = (string)($__mHP['avatar'] ?? '');
@@ -609,6 +682,17 @@ if ($__artSlug !== '' && !in_array($__artSlug, $__res2, true) && !(function_exis
 .sonika-artist-page .ah-side__h:before{content:"";width:6px;height:20px;border-radius:3px;background:linear-gradient(180deg,#7c5cff,#37e8c8)}
 .sonika-artist-page .ah-side__kicker{font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#8ea0c9;margin:0 0 9px}
 .sonika-artist-page .ah-side__bio{font-size:12.6px;line-height:1.6;color:#c8d3e6;margin:0}
+.sonika-artist-page .ah-rich{max-height:186px;overflow:auto;padding-right:4px}
+.sonika-artist-page .ah-rich p{margin:0 0 7px}
+.sonika-artist-page .ah-rich h2,.sonika-artist-page .ah-rich h3{color:#fff;margin:9px 0 4px;line-height:1.3}
+.sonika-artist-page .ah-rich h2{font-size:14px}
+.sonika-artist-page .ah-rich h3{font-size:13px}
+.sonika-artist-page .ah-rich ul,.sonika-artist-page .ah-rich ol{margin:5px 0 8px;padding-left:17px}
+.sonika-artist-page .ah-rich li{margin:2px 0}
+.sonika-artist-page .ah-rich strong{color:#fff}
+.sonika-artist-page .ah-rich a{color:#8fe9ff}
+.sonika-artist-page .ah-tag{display:inline-block;font-size:11px;font-weight:700;color:#c9d6ff;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);border-radius:999px;padding:3px 10px;margin:0 6px 6px 0;text-decoration:none;transition:.18s}
+.sonika-artist-page .ah-tag:hover{background:rgba(124,92,255,.28);border-color:rgba(124,92,255,.6);color:#fff;transform:translateY(-1px)}
 .sonika-artist-page .ah-side__stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:11px}
 .sonika-artist-page .ah-stat{border-left:2px solid rgba(124,92,255,.65);padding:1px 0 1px 9px}
 .sonika-artist-page .ah-stat b{display:block;font-size:15px;color:#fff;line-height:1.2}
@@ -668,7 +752,10 @@ CSS;
         }
         echo '</div>';
         echo '<aside class="ah-side"><h2 class="ah-side__h">Trayectoria</h2><p class="ah-side__kicker">' . sonika_esc($__name) . ' Â· Historia musical</p>';
-        echo '<p class="ah-side__bio">' . ($__trBio !== '' ? nl2br(sonika_esc($__trBio)) : 'Este artista todavÃ­a estÃ¡ escribiendo su historia. Vuelve pronto para conocer mÃ¡s.') . '</p>';
+        $__trBioHtml = $__affSvc->cvBioHtml((string)($__cvP['bio'] ?? ''));
+        if ($__trBioHtml === '') $__trBioHtml = $__affSvc->cvBioHtml((string)$__bio);
+        if ($__trBioHtml === '') $__trBioHtml = '<p>Este artista todavía está escribiendo su historia. Vuelve pronto para conocer más.</p>';
+        echo '<div class="ah-side__bio ah-rich">' . $__trBioHtml . '</div>';
         $__stats = [];
         if ($__trYears !== '') $__stats[] = [$__trYears . ' aÃ±os', 'Experiencia'];
         if ($__trBands) $__stats[] = [count($__trBands) . '', 'Bandas / proyectos'];
@@ -678,14 +765,20 @@ CSS;
             foreach ($__stats as $__s) echo '<div class="ah-stat"><b>' . sonika_esc((string)$__s[0]) . '</b><span>' . sonika_esc((string)$__s[1]) . '</span></div>';
             echo '</div>';
         }
-        $__tags = [];
-        if ($__instr !== '') $__tags[] = $__instr;
-        if ($__genre !== '') $__tags[] = $__genre;
-        if ($__level !== '') $__tags[] = $__level;
-        if ($__trBands) foreach (array_slice($__trBands, 0, 4) as $__tb) $__tags[] = (string)$__tb;
-        if ($__tags) {
+        $__plainTags = [];
+        if ($__instr !== '') $__plainTags[] = $__instr;
+        if ($__genre !== '') $__plainTags[] = $__genre;
+        if ($__level !== '') $__plainTags[] = $__level;
+        if ($__plainTags) {
             echo '<div class="ah-side__tags">';
-            foreach (array_unique($__tags) as $__tg) echo '<i>' . sonika_esc($__tg) . '</i>';
+            foreach (array_unique($__plainTags) as $__tg) echo '<i>' . sonika_esc($__tg) . '</i>';
+            echo '</div>';
+        }
+        if ($__trBands) {
+            echo '<div class="ah-side__tags" aria-label="Bandas y artistas">';
+            foreach ($__trBands as $__tb) {
+                echo '<a class="ah-tag" rel="tag" href="/buscar?q=' . rawurlencode((string)$__tb) . '" title="Ver ' . sonika_esc((string)$__tb) . ' en SONIKA">' . sonika_esc((string)$__tb) . '</a>';
+            }
             echo '</div>';
         }
         if ($__trAch) echo '<p style="font-size:12px;color:#9fb0d8;line-height:1.6;margin:12px 0 0"><b style="color:#c9d6ff">Logros:</b> ' . sonika_esc(implode(' Â· ', array_map('strval', $__trAch))) . '</p>';
@@ -697,6 +790,16 @@ CSS;
             echo '</div></div>';
         }
         echo '</aside></div></section>';
+        $__ldDesc = trim((string)preg_replace('/\s+/', ' ', strip_tags($__trBioHtml)));
+        $__ld = ['@context' => 'https://schema.org', '@type' => 'Person', 'name' => $__name, 'jobTitle' => ($__genre !== '' ? $__genre : 'Músico'), 'description' => (function_exists('mb_substr') ? mb_substr($__ldDesc, 0, 300) : substr($__ldDesc, 0, 300)), 'url' => $__origin . '/artista/' . $__affP['slug']];
+        if ($__ava !== '') $__ld['image'] = (preg_match('~^https?://~i', $__ava) ? $__ava : $__origin . $__ava);
+        $__ldSame = array_values(array_filter([$__igUrl, $__ytUrl, $__ttUrl]));
+        if ($__ldSame) $__ld['sameAs'] = $__ldSame;
+        $__ldKnows = array_values(array_filter(array_merge([$__instr, $__genre], $__trBands)));
+        if ($__ldKnows) $__ld['knowsAbout'] = $__ldKnows;
+        if ($__trAch) $__ld['award'] = array_values(array_map('strval', $__trAch));
+        if ($__trBands) $__ld['memberOf'] = array_map(function ($b) { return ['@type' => 'MusicGroup', 'name' => (string)$b]; }, $__trBands);
+        echo '<script type="application/ld+json">' . json_encode($__ld, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . '</script>';
         echo '<script>(function(){var st=document.getElementById("ah-stage");if(!st)return;var th=[].slice.call(st.querySelectorAll(".ah-thumb"));var main=document.getElementById("ah-stage-img");var fr=document.getElementById("ah-frame");var vw=document.getElementById("ah-stage-video");var cnt=document.getElementById("ah-stage-count");var play=document.getElementById("ah-play");var i=0,t=null;function stopAuto(){if(t){clearInterval(t);t=null;}}function startAuto(){stopAuto();if(!th.length)return;if(th[i]&&th[i].getAttribute("data-video"))return;t=setInterval(function(){go(i+1);},6000);}function hideVideo(){if(!vw)return;vw.hidden=true;vw.innerHTML="";if(fr)fr.classList.remove("is-video");if(main)main.style.opacity="1";if(play)play.hidden=true;}function showVideo(id,auto){if(!vw)return;if(fr)fr.classList.add("is-video");vw.hidden=false;vw.innerHTML="<iframe src=\"https://www.youtube-nocookie.com/embed/"+id+"?rel=0&playsinline=1"+(auto?"&autoplay=1":"")+"\" title=\"Video\" allow=\"accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture\" allowfullscreen></iframe>";if(main)main.style.opacity="0";if(play)play.hidden=true;stopAuto();}function go(n){if(!th.length)return;i=(n+th.length)%th.length;var b=th[i];var vid=b.getAttribute("data-video");if(vid){showVideo(vid,true);}else{hideVideo();if(main){main.classList.add("is-fade");setTimeout(function(){main.src=b.getAttribute("data-src");main.classList.remove("is-fade");},150);}}th.forEach(function(x,k){x.classList.toggle("on",k===i);x.setAttribute("aria-selected",k===i?"true":"false");});if(cnt)cnt.textContent=(i+1)+" / "+th.length;if(!vid)startAuto();}var nx=st.querySelector(".ah-nav.next"),pv=st.querySelector(".ah-nav.prev");if(nx)nx.addEventListener("click",function(){go(i+1);});if(pv)pv.addEventListener("click",function(){go(i-1);});th.forEach(function(x,k){x.addEventListener("click",function(){go(k);});});if(play)play.addEventListener("click",function(){showVideo(play.getAttribute("data-video"),true);});st.addEventListener("mouseenter",stopAuto);st.addEventListener("mouseleave",function(){if(!(th[i]&&th[i].getAttribute("data-video")))startAuto();});var x0=null;st.addEventListener("touchstart",function(e){x0=e.touches[0].clientX;},{passive:true});st.addEventListener("touchend",function(e){if(x0===null)return;var dx=e.changedTouches[0].clientX-x0;if(Math.abs(dx)>40){go(dx<0?i+1:i-1);}x0=null;},{passive:true});startAuto();})();</script>';
         echo '<script>(function(){var z=document.getElementById("ah-zoom");if(!z)return;var zi=document.getElementById("ah-zoom-img");function close(){z.classList.remove("on");document.body.style.overflow="";}function open(s){zi.src=s;z.classList.add("on");document.body.style.overflow="hidden";}document.querySelectorAll("[data-zoom]").forEach(function(el){el.addEventListener("click",function(e){e.preventDefault();var s=el.getAttribute("data-zoom");if(s)open(s);});el.addEventListener("keydown",function(e){if(e.key==="Enter"||e.key===" "){e.preventDefault();var s=el.getAttribute("data-zoom");if(s)open(s);}});});z.addEventListener("click",function(e){if(e.target===z||e.target.classList.contains("ah-zoom__x"))close();});document.addEventListener("keydown",function(e){if(e.key==="Escape")close();});})();</script>';
         if ($__ava !== '') echo '<div class="ah-zoom" id="ah-zoom" role="dialog" aria-modal="true" aria-label="Foto de perfil ampliada"><button type="button" class="ah-zoom__x" aria-label="Cerrar">âœ•</button><img id="ah-zoom-img" alt="' . sonika_esc($__name) . '"></div>';
