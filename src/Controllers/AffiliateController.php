@@ -16,6 +16,20 @@ class AffiliateController
         echo json_encode($r, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     }
 
+    /** POST /api/v1/public/affiliates/contract — solicitud de contratación (público). */
+    public function contract($request)
+    {
+        $in = json_decode((string)file_get_contents('php://input'), true);
+        if (!is_array($in)) $in = $_POST;
+        header('Content-Type: application/json');
+        header('Cache-Control: no-store');
+        $slug = (string)($in['artist'] ?? '');
+        $svc = new AffiliateService();
+        $aff = $svc->getBySlug($slug);
+        if (!$aff) { echo json_encode(['ok' => false, 'message' => 'Artista no encontrado.']); return; }
+        echo json_encode($svc->contractRequestAdd((int)$aff['id'], $in), JSON_UNESCAPED_UNICODE);
+    }
+
     /** POST /api/v1/public/affiliates/document — subida privada (email + últimos 4 del doc + archivo). */
     public function uploadDocument($request)
     {

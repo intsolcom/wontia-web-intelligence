@@ -434,6 +434,33 @@ class AffiliateService
         ];
     }
 
+    public function contractRequestAdd(int $affiliateId, array $in): array
+    {
+        $name = trim((string)($in['name'] ?? ''));
+        $email = strtolower(trim((string)($in['email'] ?? '')));
+        if ($name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) return ['ok' => false, 'message' => 'Nombre y correo válidos son obligatorios.'];
+        try {
+            Database::instance()->prepare('INSERT INTO affiliate_contract_requests (site_id, affiliate_id, name, email, phone, event_type, event_date, place, budget, message, status, created_at) VALUES (@site_id, :a, :n, :e, :p, :t, :d, :pl, :b, :m, "new", NOW())')
+                ->execute([
+                    'a' => $affiliateId, 'n' => mb_substr($name, 0, 120), 'e' => mb_substr($email, 0, 190),
+                    'p' => mb_substr((string)($in['phone'] ?? ''), 0, 40),
+                    't' => mb_substr((string)($in['event_type'] ?? ''), 0, 40),
+                    'd' => preg_match('/^\d{4}-\d{2}-\d{2}$/', (string)($in['event_date'] ?? '')) ? (string)$in['event_date'] : null,
+                    'pl' => mb_substr((string)($in['place'] ?? ''), 0, 190),
+                    'b' => mb_substr((string)($in['budget'] ?? ''), 0, 40),
+                    'm' => mb_substr((string)($in['message'] ?? ''), 0, 2000),
+                ]);
+            $this->log($affiliateId, 'contract_request', ['from' => $email]);
+            return ['ok' => true, 'message' => 'Solicitud enviada. El artista te contactará.'];
+        } catch (\Throwable $e) { return ['ok' => false, 'message' => 'No se pudo enviar la solicitud.']; }
+    }
+
+    public function contractRequestsFor(int $affiliateId): array
+    {
+        try { $st = Database::instance()->prepare('SELECT * FROM affiliate_contract_requests WHERE affiliate_id = :a AND site_id = @site_id ORDER BY id DESC LIMIT 50'); $st->execute(['a' => $affiliateId]); return $st->fetchAll(); }
+        catch (\Throwable $e) { return []; }
+    }
+
     public function awardsFor(int $affiliateId): array
     {
         try {

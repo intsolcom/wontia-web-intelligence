@@ -103,6 +103,18 @@ if (($segments[0] ?? '') === 'artista' && ($segments[2] ?? '') === 'panel' && !e
             echo '</div>';
         }
         echo '</div>';
+        $__creqs = $__svcP->contractRequestsFor((int)$__affPP['id']);
+        echo '<div class="ahp-sec"><h2>Solicitudes de contratación</h2>';
+        if (!$__creqs) {
+            echo '<div style="background:#fff;border:1px dashed #dbe7e1;border-radius:12px;padding:16px;color:#94a3b8;font-size:13px">Sin solicitudes todavía.</div>';
+        } else {
+            echo '<table><thead><tr><th>De</th><th>Tipo</th><th>Fecha</th><th>Lugar</th><th>Contacto</th><th>Estado</th></tr></thead><tbody>';
+            foreach ($__creqs as $__cr) {
+                echo '<tr><td>' . sonika_esc((string)$__cr['name']) . '</td><td>' . sonika_esc((string)($__cr['event_type'] ?? '—')) . '</td><td>' . sonika_esc((string)($__cr['event_date'] ?? '—')) . '</td><td>' . sonika_esc((string)($__cr['place'] ?? '—')) . '</td><td><a href="mailto:' . sonika_esc((string)$__cr['email']) . '">' . sonika_esc((string)$__cr['email']) . '</a></td><td>' . sonika_esc((string)$__cr['status']) . '</td></tr>';
+            }
+            echo '</tbody></table>';
+        }
+        echo '</div>';
         echo '<div class="ahp-sec"><h2>Mis Ganancias — estados exactos</h2><table><thead><tr><th>Estado</th><th>Movimientos</th><th class="n">Monto</th></tr></thead><tbody>';
         if (empty($__d['by_status'])) echo '<tr><td colspan="3" style="color:#94a3b8">Aún no hay comisiones. Comparte tu enlace para empezar.</td></tr>';
         foreach ($__states as $__codeS => $__lblS) {
@@ -168,7 +180,7 @@ if ($__artSlug !== '' && !in_array($__artSlug, $__res2, true) && !(function_exis
             else { echo '<div class="ah-empty">La selección de ' . sonika_esc($__name) . ' estará disponible pronto.</div>'; }
         }
         echo '<p style="margin:16px 0 0"><a href="/tienda" style="color:#F20D16;font-weight:700">Ver todo el catálogo →</a></p></section>';
-        echo '<section class="ah-cta"><div class="ah-cta__box"><div style="flex:1;min-width:240px"><h3>Contrátame</h3><p>¿Quieres a ' . sonika_esc($__name) . ' en tu evento o proyecto? Envía una solicitud y coordinamos disponibilidad y condiciones.</p></div><a class="ah-btn" href="mailto:?subject=' . rawurlencode('Contratación — ' . $__name) . '&body=' . rawurlencode('Hola, quiero contratar a ' . $__name . ' para un evento.') . '">Solicitar contratación</a></div></section>';
+        echo '<section class="ah-cta"><div class="ah-cta__box"><div style="flex:1;min-width:240px"><h3>Contrátame</h3><p>¿Quieres a ' . sonika_esc($__name) . ' en tu evento o proyecto? Envía una solicitud y coordinamos disponibilidad y condiciones.</p></div><form id="ah-contract" style="display:grid;gap:8px;min-width:280px;flex:1"><input type="hidden" name="artist" value="<?= sonika_esc($__artSlug) ?>"><input name="name" placeholder="Tu nombre" required style="padding:10px;border:1px solid #dbe7e1;border-radius:10px;font:inherit"><input name="email" type="email" placeholder="Correo" required style="padding:10px;border:1px solid #dbe7e1;border-radius:10px;font:inherit"><input name="phone" placeholder="Teléfono" style="padding:10px;border:1px solid #dbe7e1;border-radius:10px;font:inherit"><div style="display:flex;gap:8px"><select name="event_type" style="flex:1;padding:10px;border:1px solid #dbe7e1;border-radius:10px;font:inherit"><option value="">Tipo de evento</option><option>Concierto</option><option>Evento privado</option><option>Sesión/estudio</option><option>Otro</option></select><input name="event_date" type="date" style="flex:1;padding:10px;border:1px solid #dbe7e1;border-radius:10px;font:inherit"></div><input name="place" placeholder="Ciudad / lugar" style="padding:10px;border:1px solid #dbe7e1;border-radius:10px;font:inherit"><textarea name="message" placeholder="Cuéntale del evento" rows="2" style="padding:10px;border:1px solid #dbe7e1;border-radius:10px;font:inherit"></textarea><button class="ah-btn" type="submit">Enviar solicitud</button><div id="ah-contract-msg" style="font-size:12.5px;min-height:16px"></div></form><script>(function(){var f=document.getElementById("ah-contract");if(!f)return;var o=document.getElementById("ah-contract-msg");f.addEventListener("submit",function(e){e.preventDefault();var d={};new FormData(f).forEach(function(v,k){d[k]=v;});o.style.color="#51607a";o.textContent="Enviando…";fetch("/api/v1/public/affiliates/contract",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(d)}).then(function(r){return r.json();}).then(function(j){o.style.color=j.ok?"#0d7a58":"#d64545";o.textContent=j.message||(j.ok?"Enviado":"Error");if(j.ok)f.reset();}).catch(function(){o.style.color="#d64545";o.textContent="Error de conexión.";});});})();</script></div></section>';
         sonika_site_footer();
         return true;
     }
