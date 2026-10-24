@@ -260,6 +260,7 @@ if ($__artSlug !== '' && !in_array($__artSlug, $__res2, true) && !(function_exis
         try { $st = \App\Core\Database::instance()->prepare('SELECT * FROM affiliate_stores WHERE affiliate_id = :a AND site_id = @site_id LIMIT 1'); $st->execute(['a' => (int)$__affP['id']]); $__store = $st->fetch() ?: []; } catch (\Throwable $e) {}
         $__bio = (string)($__store['bio'] ?? '');
         $__img = (string)($__store['image'] ?? '');
+        try { $__mHP = $__affSvc->mediaFor((int)$__affP['id']); if (!empty($__mHP['cover'])) $__img = (string)$__mHP['cover']; } catch (\Throwable $e) {}
         $__code = $__affSvc->ensureLink((int)$__affP['id']);
         $__origin = ((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? 'sonika.com.co');
         $__affUrl = $__origin . '/r/' . $__code;
@@ -284,6 +285,7 @@ if ($__artSlug !== '' && !in_array($__artSlug, $__res2, true) && !(function_exis
             $__gs = ($__yt !== '') ? 0 : 1;
             for ($__gi = $__gs; $__gi < min(count($__galP), 3); $__gi++) echo '<img src="' . sonika_esc((string)$__galP[$__gi]) . '" alt="" loading="lazy" style="width:100%;height:110px;object-fit:cover;border-radius:10px">';
             if (!empty($__mediaP['instagram'])) echo '<a href="https://instagram.com/' . sonika_esc((string)$__mediaP['instagram']) . '" target="_blank" rel="noopener" style="display:grid;place-items:center;height:110px;border-radius:10px;background:linear-gradient(135deg,#833ab4,#fd1d1d,#fcb045);color:#fff;font-weight:800;text-decoration:none;font-size:14px">Instagram ↗</a>';
+            if (!empty($__mediaP['tiktok'])) echo '<a href="' . sonika_esc((string)$__mediaP['tiktok']) . '" target="_blank" rel="noopener" style="display:grid;place-items:center;height:110px;border-radius:10px;background:#111;color:#fff;font-weight:800;text-decoration:none;font-size:14px;border:1px solid rgba(255,255,255,.25)">TikTok ↗</a>';
             echo '</div></div>';
             if (!empty($__mediaP['instagram'])) echo '<div style="margin-top:16px;max-width:560px"><iframe src="https://www.instagram.com/' . sonika_esc((string)$__mediaP['instagram']) . '/embed/" style="width:100%;height:460px;border:0;border-radius:12px" loading="lazy" title="Instagram de ' . sonika_esc($__name) . '"></iframe></div>';
             echo '</section>';
