@@ -152,8 +152,81 @@ if (($segments[0] ?? '') === 'artista' && ($segments[2] ?? '') === 'panel' && !e
         $__media = $__svcP->mediaFor((int)$__affPP['id']);
         $__galM = json_decode((string)($__media['gallery'] ?? '[]'), true);
         if (!is_array($__galM)) $__galM = [];
-        echo '<div class="ahp-sec" data-tab="perfil"><h2>Medios (Mi Página)</h2><form id="ah-media" style="display:grid;gap:10px;max-width:680px;background:#fff;border:1px solid #eef2f0;border-radius:14px;padding:16px"><label style="font-size:12.5px;color:#64748b">Video (YouTube URL)</label><input name="video_url" value="' . sonika_esc((string)($__media['video_url'] ?? '')) . '" placeholder="https://youtu.be/..." style="padding:10px;border:1px solid #dbe7e1;border-radius:10px;font:inherit"><label style="font-size:12.5px;color:#64748b">Instagram (usuario)</label><input name="instagram" value="' . sonika_esc((string)($__media['instagram'] ?? '')) . '" placeholder="@usuario (sin @)" style="padding:10px;border:1px solid #dbe7e1;border-radius:10px;font:inherit"><label style="font-size:12.5px;color:#64748b">Portada (URL)</label><input name="cover" value="' . sonika_esc((string)($__media['cover'] ?? '')) . '" placeholder="URL de la imagen de portada" style="padding:10px;border:1px solid #dbe7e1;border-radius:10px;font:inherit"><label style="font-size:12.5px;color:#64748b">Galería (3 URLs)</label><input name="gallery0" value="' . sonika_esc((string)($__galM[0] ?? '')) . '" placeholder="Foto 1" style="padding:10px;border:1px solid #dbe7e1;border-radius:10px;font:inherit"><input name="gallery1" value="' . sonika_esc((string)($__galM[1] ?? '')) . '" placeholder="Foto 2" style="padding:10px;border:1px solid #dbe7e1;border-radius:10px;font:inherit"><input name="gallery2" value="' . sonika_esc((string)($__galM[2] ?? '')) . '" placeholder="Foto 3" style="padding:10px;border:1px solid #dbe7e1;border-radius:10px;font:inherit"><button type="submit" style="background:linear-gradient(135deg,#287bff,#6246ff);color:#fff;border:0;border-radius:11px;padding:12px;font-weight:800;cursor:pointer">Guardar medios</button><div id="ah-media-msg" style="font-size:12.5px"></div></form></div>';
-        echo '<script>(function(){var f=document.getElementById("ah-media");if(!f)return;var m=document.getElementById("ah-media-msg");f.addEventListener("submit",function(e){e.preventDefault();var d={};new FormData(f).forEach(function(v,k){d[k]=v;});m.style.color="#51607a";m.textContent="Guardando…";fetch("/api/v1/public/affiliates/media",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(d)}).then(function(r){return r.json();}).then(function(j){m.style.color=j.ok?"#0d7a58":"#d64545";m.textContent=j.message||(j.ok?"Guardado":"Error");}).catch(function(){m.style.color="#d64545";m.textContent="Error de conexión.";});});})();</script>';
+        $__bioCur = '';
+        try { $__stB = \App\Core\Database::instance()->prepare('SELECT bio FROM affiliate_stores WHERE affiliate_id = :a AND site_id = @site_id LIMIT 1'); $__stB->execute(['a' => (int)$__affPP['id']]); $__bioCur = (string)($__stB->fetchColumn() ?: ''); } catch (\Throwable $e) {}
+        $__pubHtml = <<<'HTML'
+<div class="ahp-sec" data-tab="perfil"><style>
+.ahp-pub{display:grid;grid-template-columns:1.15fr .85fr;gap:16px;max-width:960px}
+@media(max-width:820px){.ahp-pub{grid-template-columns:1fr}}
+.ahp-pub-card{background:#fff;border:1px solid #eef2f0;border-radius:16px;padding:16px;box-shadow:0 10px 26px rgba(16,24,40,.05)}
+.ahp-pub-card h3{margin:0 0 3px;font-size:15px;color:#101d3a}
+.ahp-pub-card .hint{margin:0 0 12px;font-size:12px;color:#64748b}
+.ahp-pub label{display:block;font-size:12px;font-weight:700;color:#51607a;margin:12px 0 5px}
+.ahp-pub input,.ahp-pub textarea{width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #dbe7e1;border-radius:10px;font:inherit;font-size:13px;background:#fbfdfc;transition:border-color .2s,box-shadow .2s}
+.ahp-pub input:focus,.ahp-pub textarea:focus{outline:none;border-color:#7c5cff;box-shadow:0 0 0 3px rgba(124,92,255,.16);background:#fff}
+.ahp-pub textarea{min-height:98px;resize:vertical;line-height:1.55}
+.ahp-pub .count{font-size:11px;color:#94a3b8;text-align:right;margin-top:4px;font-weight:700}
+.ahp-pub .count.warn{color:#d97706}
+.ahp-pub .chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.ahp-pub .chip{font-size:11px;font-weight:700;color:#3b4a63;background:#f1f5ff;border:1px solid #dbe4ff;border-radius:999px;padding:4px 10px;cursor:pointer;transition:.18s;user-select:none}
+.ahp-pub .chip:hover{background:#e6edff;transform:translateY(-1px)}
+.ahp-pub .namebox{display:flex;align-items:center;gap:10px;background:#f6fbf9;border:1px dashed #cfe6dd;border-radius:12px;padding:10px 12px}
+.ahp-pub .namebox b{color:#101d3a;font-size:14px}
+.ahp-pub .namebox small{color:#0d7a58;font-weight:700;font-size:11px}
+.ahp-pub .preview{position:relative;border-radius:16px;padding:18px;background:radial-gradient(400px 200px at 80% 0%,rgba(124,92,255,.35),transparent 60%),linear-gradient(160deg,#0b1226,#1a1240);color:#fff;overflow:hidden;box-shadow:0 16px 36px rgba(11,18,38,.28)}
+.ahp-pub .preview small{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#a9bbff;font-weight:800}
+.ahp-pub .preview .q{font-style:italic;font-size:14px;line-height:1.6;color:#e6ecff;margin:8px 0 0;min-height:48px}
+.ahp-pub .preview .q.empty{color:#7f8db3;font-style:normal}
+.ahp-pub .preview .meta{font-size:11px;color:#9fb0d8;margin-top:10px}
+.ahp-pub .save{width:100%;margin-top:14px;background:linear-gradient(135deg,#287bff,#7c5cff);color:#fff;border:0;border-radius:11px;padding:12px;font-weight:800;font-size:13px;cursor:pointer;transition:transform .2s,box-shadow .2s}
+.ahp-pub .save:hover{transform:translateY(-1px);box-shadow:0 12px 26px rgba(124,92,255,.4)}
+.ahp-pub .msg{font-size:12.5px;margin-top:8px;min-height:16px}
+.ahp-pub details{margin-top:12px;border-top:1px solid #eef2f0;padding-top:10px}
+.ahp-pub summary{cursor:pointer;font-size:12px;font-weight:800;color:#51607a;list-style:none}
+.ahp-pub summary::-webkit-details-marker{display:none}
+.ahp-pub summary:before{content:"＋ ";color:#7c5cff}
+.ahp-pub details[open] summary:before{content:"− "}
+</style>
+<form id="ah-media" class="ahp-pub" novalidate>
+<div class="ahp-pub-card">
+<h3>Perfil público</h3><p class="hint">Así te presentas en tu página de artista. Todo se actualiza al instante.</p>
+<div class="namebox"><span style="font-size:18px">👤</span><div><b>{{NAME}}</b><br><small>✓ Nombre tomado de tu registro</small></div></div>
+<label for="ahp-bio">Descripción breve</label>
+<textarea id="ahp-bio" name="bio" maxlength="220" placeholder="Ej: Guitarrista de rock. Recomiendo guitarras eléctricas, pedales y accesorios para sonar con todo.">{{BIO}}</textarea>
+<div class="count" id="ahp-bio-count">0 / 220</div>
+<div class="chips" id="ahp-bio-chips"><span class="chip" data-t="Guitarrista de rock. Recomiendo guitarras eléctricas, pedales y accesorios para sonar con todo.">Guitarrista rock</span><span class="chip" data-t="Músico versátil: estudio, tarima y producción. Te ayudo a encontrar tu sonido.">Versátil</span><span class="chip" data-t="Amante del blues y el rock clásico. Equipos y accesorios probados en vivo.">Blues &amp; rock</span></div>
+<details><summary>Redes sociales y video</summary>
+<label>Instagram (usuario o URL)</label><input name="instagram" value="{{INSTA}}" placeholder="@usuario" autocomplete="off">
+<label>TikTok (usuario o URL)</label><input name="tiktok" value="{{TIKTOK}}" placeholder="https://tiktok.com/@usuario" autocomplete="off">
+<label>YouTube (URL del video)</label><input name="video_url" value="{{VIDEO}}" placeholder="https://youtu.be/..." autocomplete="off">
+</details>
+<details><summary>Imágenes por URL (opcional)</summary>
+<label>Portada</label><input name="cover" value="{{COVER}}" autocomplete="off">
+<label>Galería 1</label><input name="gallery0" value="{{G0}}" autocomplete="off">
+<label>Galería 2</label><input name="gallery1" value="{{G1}}" autocomplete="off">
+<label>Galería 3</label><input name="gallery2" value="{{G2}}" autocomplete="off">
+</details>
+<button type="submit" class="save">Guardar perfil</button>
+<div class="msg" id="ah-media-msg"></div>
+</div>
+<div class="ahp-pub-card preview"><small>Vista previa · Hero de tu página</small><div class="q" id="ahp-bio-prev">{{BIO_PREV}}</div><div class="meta">{{NAME}} · Artista SONIKA</div><div class="meta" style="margin-top:6px">Los botones de Instagram / YouTube / TikTok aparecen solo si están configurados.</div></div>
+</form>
+<script>(function(){var f=document.getElementById('ah-media');if(!f)return;var t=f.querySelector('textarea[name=bio]'),c=document.getElementById('ahp-bio-count'),p=document.getElementById('ahp-bio-prev'),m=document.getElementById('ah-media-msg'),MAX=220;function upd(){if(!t)return;var v=t.value.trim();if(c){c.textContent=t.value.length+' / '+MAX;c.classList.toggle('warn',t.value.length>MAX-30);}if(p){p.textContent=v||'Aún sin descripción. Escribe una frase que te presente.';p.classList.toggle('empty',!v);}}if(t){t.addEventListener('input',upd);upd();}f.querySelectorAll('#ahp-bio-chips .chip').forEach(function(ch){ch.addEventListener('click',function(){if(!t)return;t.value=ch.getAttribute('data-t')||'';upd();t.focus();});});f.addEventListener('submit',function(e){e.preventDefault();var d={};new FormData(f).forEach(function(v,k){d[k]=v;});m.style.color='#51607a';m.textContent='Guardando…';fetch('/api/v1/public/affiliates/media',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)}).then(function(r){return r.json();}).then(function(j){m.style.color=j.ok?'#0d7a58':'#d64545';m.textContent=(j.ok?'✓ ':'')+(j.message||(j.ok?'Guardado':'Error'));}).catch(function(){m.style.color='#d64545';m.textContent='Error de conexión.';});});})();</script>
+</div>
+HTML;
+        $__pubHtml = strtr($__pubHtml, [
+            '{{NAME}}' => sonika_esc((string)$__nameP),
+            '{{BIO}}' => sonika_esc($__bioCur),
+            '{{BIO_PREV}}' => sonika_esc($__bioCur !== '' ? $__bioCur : 'Aún sin descripción. Escribe una frase que te presente.'),
+            '{{VIDEO}}' => sonika_esc((string)($__media['video_url'] ?? '')),
+            '{{INSTA}}' => sonika_esc((string)($__media['instagram'] ?? '')),
+            '{{TIKTOK}}' => sonika_esc((string)($__media['tiktok'] ?? '')),
+            '{{COVER}}' => sonika_esc((string)($__media['cover'] ?? '')),
+            '{{G0}}' => sonika_esc((string)($__galM[0] ?? '')),
+            '{{G1}}' => sonika_esc((string)($__galM[1] ?? '')),
+            '{{G2}}' => sonika_esc((string)($__galM[2] ?? '')),
+        ]);
+        echo $__pubHtml;
         $__mCover = (string)($__media['cover'] ?? '');
         $__mAvatar = (string)($__media['avatar'] ?? '');
         $__usedM = 0;

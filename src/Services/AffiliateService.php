@@ -74,21 +74,51 @@ class AffiliateService
     public function mediaSave(int $affiliateId, array $in): array
     {
         $url = function ($v) { $v = trim((string)$v); return ($v !== '' && preg_match('~^(https?://|/)~i', $v)) ? $v : ''; };
-        $cover = $url($in['cover'] ?? '');
-        $avatar = $url($in['avatar'] ?? '');
-        $video = $url($in['video_url'] ?? '');
-        $tiktok = $url($in['tiktok'] ?? '');
-        $insta = preg_replace('/[^A-Za-z0-9_.]/', '', (string)($in['instagram'] ?? ''));
-        $gallery = [];
-        for ($i = 0; $i < 3; $i++) { $g = $url($in['gallery' . $i] ?? ''); if ($g !== '') $gallery[] = $g; }
+        $cur = $this->mediaFor($affiliateId);
+        $has = function ($k) use ($in) { return array_key_exists($k, $in); };
+        $str = function ($k, $d = '') use ($in, $cur) { return array_key_exists($k, $in) ? (string)$in[$k] : (string)($cur[$k] ?? $d); };
+        $cover = $url($str('cover'));
+        $avatar = $url($str('avatar'));
+        $video = $url($str('video_url'));
+        $tiktok = $url($str('tiktok'));
+        $insta = preg_replace('/[^A-Za-z0-9_.]/', '', $str('instagram'));
+        $hasGal = ($has('gallery0') || $has('gallery1') || $has('gallery2'));
+        if ($hasGal) {
+            $gallery = [];
+            for ($i = 0; $i < 3; $i++) { $g = $url((string)($in['gallery' . $i] ?? '')); if ($g !== '') $gallery[] = $g; }
+        } else {
+            $gallery = json_decode((string)($cur['gallery'] ?? '[]'), true);
+            if (!is_array($gallery)) $gallery = [];
+            $gallery = array_slice(array_values(array_filter($gallery)), 0, 3);
+        }
+        $hasBio = array_key_exists('bio', $in);
+        $bio = '';
+        if ($hasBio) {
+            $bio = strip_tags((string)$in['bio']);
+            $bio = trim((string)preg_replace('/\s+/u', ' ', $bio));
+            $bio = function_exists('mb_substr') ? mb_substr($bio, 0, 220) : substr($bio, 0, 220);
+        }
         try {
-            Database::instance()->prepare('INSERT INTO affiliate_media (site_id, affiliate_id, cover, avatar, gallery, video_url, instagram, tiktok, updated_at) VALUES (@site_id, :a, :cover, :avatar, :gallery, :video, :insta, :tiktok, NOW()) ON DUPLICATE KEY UPDATE cover = VALUES(cover), avatar = VALUES(avatar), gallery = VALUES(gallery), video_url = VALUES(video_url), instagram = VALUES(instagram), tiktok = VALUES(tiktok)')
+            $db = Database::instance();
+            $db->prepare('INSERT INTO affiliate_media (site_id, affiliate_id, cover, avatar, gallery, video_url, instagram, tiktok, updated_at) VALUES (@site_id, :a, :cover, :avatar, :gallery, :video, :insta, :tiktok, NOW()) ON DUPLICATE KEY UPDATE cover = VALUES(cover), avatar = VALUES(avatar), gallery = VALUES(gallery), video_url = VALUES(video_url), instagram = VALUES(instagram), tiktok = VALUES(tiktok)')
                 ->execute(['a' => $affiliateId, 'cover' => $cover, 'avatar' => $avatar, 'gallery' => json_encode($gallery), 'video' => $video, 'insta' => strtolower((string)$insta), 'tiktok' => $tiktok]);
+            if ($hasBio) {
+                $st = $db->prepare('SELECT id FROM affiliate_stores WHERE affiliate_id = :a AND site_id = @site_id LIMIT 1');
+                $st->execute(['a' => $affiliateId]);
+                $sid = (int)($st->fetchColumn() ?: 0);
+                if ($sid > 0) {
+                    $db->prepare('UPDATE affiliate_stores SET bio = :bio WHERE id = :id')->execute(['bio' => $bio, 'id' => $sid]);
+                } else {
+                    $sg = $db->prepare('SELECT slug FROM affiliate_profiles WHERE id = :a AND site_id = @site_id LIMIT 1');
+                    $sg->execute(['a' => $affiliateId]);
+                    $slug = (string)($sg->fetchColumn() ?: ('artista-' . $affiliateId));
+                    $db->prepare('INSERT INTO affiliate_stores (site_id, affiliate_id, slug, bio, is_active) VALUES (@site_id, :a, :slug, :bio, 1)')->execute(['a' => $affiliateId, 'slug' => $slug, 'bio' => $bio]);
+                }
+            }
             $this->log($affiliateId, 'media_saved');
-            return ['ok' => true, 'message' => 'Medios guardados.'];
+            return ['ok' => true, 'message' => ($hasBio ? 'Perfil y medios guardados.' : 'Medios guardados.')];
         } catch (\Throwable $e) { return ['ok' => false, 'message' => 'No se pudieron guardar los medios.']; }
     }
-
     private function affLocal(string $p): string
     {
         if ($p === '' || strpos($p, '/assets/uploads/_artist/') !== 0) return '';
