@@ -96,7 +96,7 @@ class AffiliateService
                 'pn' => substr((string)($in['public_name'] ?? $name), 0, 120),
                 'an' => substr((string)($in['artist_name'] ?? ''), 0, 120),
                 'slug' => $slug,
-                'status' => 'DRAFT',
+                'status' => 'EMAIL_PENDING',
                 'me' => $in['music_experience'] ?? null, 'mi' => $in['music_instrument'] ?? null,
                 'ml' => $in['music_level'] ?? null, 'mg' => $in['music_genre'] ?? null,
                 'md' => $in['music_desired'] ?? null, 'mr' => $in['music_role'] ?? null,
@@ -108,6 +108,8 @@ class AffiliateService
                 $c = $this->currentContract();
                 if ($c) $this->acceptContract($id, (int)$c['id']);
             }
+            // Confirmación de correo obligatoria por OTP al registrarse.
+            $this->sendOtp($email);
             return ['ok' => true, 'id' => $id, 'slug' => $slug];
         } catch (\Throwable $e) {
             return ['ok' => false, 'message' => 'No se pudo crear (¿correo ya registrado?).'];
