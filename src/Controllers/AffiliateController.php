@@ -28,6 +28,29 @@ class AffiliateController
         echo json_encode((new AffiliateService())->tipAdd((int)$aff['id'], $in), JSON_UNESCAPED_UNICODE);
     }
 
+    /** POST /api/v1/public/affiliates/login — correo + contraseña. */
+    public function login($request)
+    {
+        $in = json_decode((string)file_get_contents('php://input'), true);
+        if (!is_array($in)) $in = $_POST;
+        header('Content-Type: application/json');
+        header('Cache-Control: no-store');
+        \App\Core\Session::start();
+        $r = (new AffiliateService())->login((string)($in['email'] ?? ''), (string)($in['password'] ?? ''));
+        if (!$r) { echo json_encode(['ok' => false, 'message' => 'Correo o contraseña incorrectos.']); return; }
+        $_SESSION['ff_affiliate_id'] = $r['id'];
+        echo json_encode(['ok' => true, 'slug' => $r['slug'], 'name' => $r['name']]);
+    }
+
+    /** POST /api/v1/public/affiliates/logout */
+    public function logout($request)
+    {
+        \App\Core\Session::start();
+        unset($_SESSION['ff_affiliate_id']);
+        header('Content-Type: application/json');
+        echo json_encode(['ok' => true]);
+    }
+
     /** POST /api/v1/public/affiliates/contract — solicitud de contratación (público). */
     public function contract($request)
     {

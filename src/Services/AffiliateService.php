@@ -44,6 +44,24 @@ class AffiliateService
         } catch (\Throwable $e) {}
     }
 
+    public function login(string $email, string $password): ?array
+    {
+        $email = strtolower(trim($email));
+        if ($email === '' || $password === '') return null;
+        $prof = $this->profileByEmail($email);
+        if (!$prof || empty($prof['password_hash']) || !password_verify($password, (string)$prof['password_hash'])) return null;
+        try { Database::instance()->prepare('UPDATE affiliate_profiles SET last_login_at = NOW() WHERE id = :id AND site_id = @site_id')->execute(['id' => (int)$prof['id']]); } catch (\Throwable $e) {}
+        $name = trim((string)(($prof['artist_name'] ?: $prof['public_name']) ?: $prof['full_name']));
+        return ['id' => (int)$prof['id'], 'slug' => (string)$prof['slug'], 'name' => $name, 'status' => (string)$prof['status']];
+    }
+
+    public function setPassword(int $affiliateId, string $password): bool
+    {
+        if (strlen($password) < 8) return false;
+        try { Database::instance()->prepare('UPDATE affiliate_profiles SET password_hash = :h WHERE id = :id AND site_id = @site_id')->execute(['h' => password_hash($password, PASSWORD_DEFAULT), 'id' => $affiliateId]); $this->log($affiliateId, 'password_set'); return true; }
+        catch (\Throwable $e) { return false; }
+    }
+
     public function createProfile(array $in): array
     {
         if (!$this->ready()) return ['ok' => false, 'message' => 'Tablas de afiliados no inicializadas.'];
@@ -51,13 +69,15 @@ class AffiliateService
         $name = trim((string)($in['full_name'] ?? ''));
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) return ['ok' => false, 'message' => 'Correo inválido.'];
         if ($name === '') return ['ok' => false, 'message' => 'Nombre obligatorio.'];
+        $pass = (string)($in['password'] ?? '');
+        if ($pass !== '' && strlen($pass) < 8) return ['ok' => false, 'message' => 'La contraseña debe tener al menos 8 caracteres.'];
         $slug = $this->slugify((string)($in['artist_name'] ?? $in['public_name'] ?? $name));
         try {
             $db = Database::instance();
-            $st = $db->prepare('INSERT INTO affiliate_profiles (site_id, email, full_name, doc_type, doc_number, public_name, artist_name, slug, status, music_experience, music_instrument, music_level, music_genre, music_desired, music_role, socials, created_at)
-                VALUES (@site_id, :email, :name, :dt, :dn, :pn, :an, :slug, :status, :me, :mi, :ml, :mg, :md, :mr, :soc, NOW())');
+            $st = $db->prepare('INSERT INTO affiliate_profiles (site_id, email, password_hash, full_name, doc_type, doc_number, public_name, artist_name, slug, status, music_experience, music_instrument, music_level, music_genre, music_desired, music_role, socials, created_at)
+                VALUES (@site_id, :email, :ph, :name, :dt, :dn, :pn, :an, :slug, :status, :me, :mi, :ml, :mg, :md, :mr, :soc, NOW())');
             $st->execute([
-                'email' => $email, 'name' => $name,
+                'email' => $email, 'ph' => $pass !== '' ? password_hash($pass, PASSWORD_DEFAULT) : null, 'name' => $name,
                 'dt' => substr((string)($in['doc_type'] ?? ''), 0, 16),
                 'dn' => substr((string)($in['doc_number'] ?? ''), 0, 60),
                 'pn' => substr((string)($in['public_name'] ?? $name), 0, 120),

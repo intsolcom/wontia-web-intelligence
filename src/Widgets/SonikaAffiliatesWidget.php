@@ -98,6 +98,7 @@ class SonikaAffiliatesWidget extends Widget
                 . '<select name="music_instrument"><option value="">Instrumento principal</option><option>Guitarra eléctrica</option><option>Guitarra acústica</option><option>Bajo</option><option>Batería</option><option>Teclados</option><option>Voz</option><option>Otro</option></select>'
                 . '<select name="music_level"><option value="">Nivel</option><option>Principiante</option><option>Intermedio</option><option>Avanzado</option><option>Profesional</option></select>'
                 . '<input name="music_genre" placeholder="Género musical">'
+                . '<input name="password" type="password" minlength="8" placeholder="Contraseña (mín. 8)" required autocomplete="new-password">'
                 . '<label class="ap__accept"><input type="checkbox" name="accept_contract" value="1" required> Acepto los términos y condiciones del programa (versión vigente) y la política de tratamiento de datos.</label>'
                 . '<button class="ap__btn" type="submit">Solicitar ingreso</button>'
                 . '<div class="ap__msg" id="' . $uid . '-msg"></div>'
