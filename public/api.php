@@ -12,6 +12,7 @@ use App\Middleware\AuthMiddleware;
 use App\Widgets\WidgetRegistry;
 
 Config::load();
+Session::start();
 
 header('Content-Type: application/json; charset=utf-8');
 $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
