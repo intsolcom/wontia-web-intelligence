@@ -100,12 +100,19 @@ if (($segments[0] ?? '') === 'artista' && ($segments[2] ?? '') === 'panel' && !e
         $__money = function ($c) { return '$ ' . number_format((float)$c, 0, ',', '.'); };
         sonika_site_head($__nameP . ' — Mis Ganancias', 'Panel del artista — SONIKA Artist Partners');
         echo '<style>.ahp{max-width:1120px;margin:0 auto;padding:28px 22px 56px;font-family:Sora,system-ui,sans-serif;color:#17212b}.ahp-h{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:22px}.ahp-h h1{font-size:26px;margin:0}.ahp-h .badge{background:#e5f5ef;color:#0d7a58;border-radius:999px;padding:5px 12px;font-size:12px;font-weight:800}.ahp-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:26px}.ahp-c{background:#fff;border:1px solid #e9efec;border-radius:16px;padding:16px;box-shadow:0 8px 22px rgba(16,24,40,.05)}.ahp-c small{display:block;color:#64748b;font-size:12px;font-weight:600;margin-bottom:6px}.ahp-c b{font-size:22px;color:#101d3a}.ahp-sec h2{font-size:17px;margin:22px 0 10px}.ahp table{width:100%;border-collapse:collapse;font-size:13.5px;background:#fff;border:1px solid #eef2f0;border-radius:12px;overflow:hidden}.ahp th,.ahp td{padding:10px 12px;text-align:left;border-bottom:1px solid #f1f5f3}.ahp th{background:#f6fbf9;font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:.04em}.ahp td.n{text-align:right;font-weight:700}.ahp .st{display:inline-block;border-radius:999px;padding:2px 9px;font-size:11px;font-weight:800;background:#eef4fb;color:#155eeb}.ahp .st.PAID{background:#e5f5ef;color:#0d7a58}.ahp .st.REVERSED,.ahp .st.REJECTED{background:#fdecec;color:#b42318}.ahp .note{font-size:12px;color:#94a3b8;margin-top:12px}.ahp .link{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:#101d3a;color:#fff;border-radius:14px;padding:14px 16px;margin-top:22px;font-size:13px}.ahp .link code{background:rgba(255,255,255,.12);padding:6px 10px;border-radius:8px;word-break:break-all}@media(max-width:800px){.ahp-cards{grid-template-columns:repeat(2,1fr)}}@media(max-width:480px){.ahp-cards{grid-template-columns:1fr}}</style>';
-        echo '<section class="ahp"><div class="ahp-h"><h1>Mi Antro</h1><span class="badge">Panel de control · ' . sonika_esc($__nameP) . '</span><a href="/artista/' . sonika_esc($__affPP['slug']) . '" style="margin-left:auto;font-size:12.5px;color:#64748b;text-decoration:none">Ver mi página ↗</a></div>';
+        $__lg0 = is_array($__d['league'] ?? null) ? $__d['league'] : [];
+        $__lgIcons = ['semicorchea' => '♬', 'corchea' => '♪', 'negra' => '♩', 'blanca' => '𝅗𝅥', 'redonda' => '𝅝'];
+        $__rangoIcon = $__lgIcons[$__lg0['code'] ?? ''] ?? '♫';
+        echo '<section class="ahp"><div class="ahp-h"><h1>Mi Antro</h1><span class="badge">Hola, ' . sonika_esc($__nameP) . '</span><span class="badge" style="background:#101d3a;color:#fff">Tu rango: ' . $__rangoIcon . ' ' . sonika_esc((string)($__lg0['level'] ?? '—')) . '</span><a href="/artista/' . sonika_esc($__affPP['slug']) . '" style="margin-left:auto;font-size:12.5px;color:#64748b;text-decoration:none">Ver mi página ↗</a></div>';
+        $__pendingStates = ['ESTIMATED', 'PENDING_VALIDATION', 'ON_HOLD', 'PAYMENT_QUEUED'];
+        $__pending = 0.0;
+        foreach ($__pendingStates as $__ps) { if (isset($__d['by_status'][$__ps])) $__pending += (float)$__d['by_status'][$__ps]['amount']; }
+        $__nextCutTxt = date('d/m/Y', strtotime('first day of next month'));
         echo '<div class="ahp-cards">';
         echo '<div class="ahp-c"><small>Clicks (atribución)</small><b>' . (int)$__d['clicks'] . '</b></div>';
-        echo '<div class="ahp-c"><small>Ventas atribuidas</small><b>' . $__money($__d['sales']) . '</b></div>';
+        echo '<div class="ahp-c"><small>Billete Ganado (ventas atribuidas)</small><b>' . $__money($__d['sales']) . '</b></div>';
         echo '<div class="ahp-c"><small>Comisiones (total)</small><b>' . $__money($__d['commission_total']) . '</b></div>';
-        echo '<div class="ahp-c"><small>Estado financiero</small><b style="font-size:15px">' . (count($__d['by_status']) ? 'Con movimientos' : 'Sin movimientos') . '</b></div>';
+        echo '<div class="ahp-c"><small>Billete pendiente por entrar</small><b>' . $__money($__pending) . '</b><small style="margin-top:4px;color:#94a3b8;font-weight:400;font-size:11px">Próximo corte: ' . $__nextCutTxt . '</small></div>';
         echo '</div>';
         $__lg = is_array($__d['league'] ?? null) ? $__d['league'] : ['level' => '—', 'sales' => 0, 'progress' => 0, 'next' => null];
         $__crAll = $__svcP->contractRequestsFor((int)$__affPP['id']);
@@ -116,9 +123,9 @@ if (($segments[0] ?? '') === 'artista' && ($segments[2] ?? '') === 'panel' && !e
         $__lgP = is_array($__d['league'] ?? null) ? $__d['league'] : [];
         $__sugg = [];
         if ((int)($__d['clicks'] ?? 0) === 0) $__sugg[] = 'Pon a Sonar: comparte tu enlace para empezar a generar clics y comisiones.';
-        if ($__crNew > 0) $__sugg[] = 'Tienes ' . $__crNew . ' solicitud(es) de contratación sin responder.';
+        if ($__crNew > 0) $__sugg[] = 'Tienes ' . $__crNew . ' invitación(es) a unirte a una moña (solicitud(es) de contratación sin responder).';
         if ($__tipsTot > 0) $__sugg[] = 'Recibiste $ ' . number_format($__tipsTot, 0, ',', '.') . ' en aportes. ¡Agradece a tus fans!';
-        if (!empty($__lgP['next']) && isset($__lgP['next_min'])) { $__need = max(0, (float)$__lgP['next_min'] - (float)($__lgP['sales'] ?? 0)); $__sugg[] = 'Te faltan $ ' . number_format($__need, 0, ',', '.') . ' para llegar a ' . $__lgP['next'] . '.'; }
+        if (!empty($__lgP['next']) && isset($__lgP['next_min'])) { $__need = max(0, (float)$__lgP['next_min'] - (float)($__lgP['sales'] ?? 0)); $__nextIcon = $__lgIcons[strtolower((string)$__lgP['next'])] ?? '♫'; $__sugg[] = 'Te faltan $ ' . number_format($__need, 0, ',', '.') . ' para llegar al Rango ' . $__nextIcon . ' ' . $__lgP['next'] . '.'; }
         if (empty($__postsAll)) $__sugg[] = 'Publica en tu Muro para conectar con tus fans.';
         if (empty($__sugg)) $__sugg[] = '¡Vas muy bien! Sigue compartiendo y respondiendo solicitudes.';
         echo '<div class="ahp-sec" style="margin-top:0"><h2>Mi Pulso — acciones sugeridas</h2><div style="background:#101d3a;color:#fff;border-radius:14px;padding:16px"><ul style="margin:0;padding-left:18px;line-height:1.8;font-size:13.5px">';
