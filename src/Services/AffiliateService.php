@@ -666,6 +666,32 @@ class AffiliateService
         catch (\Throwable $e) { return null; }
     }
 
+    public function cvSave(int $affiliateId, array $in): array
+    {
+        $bio = trim((string)preg_replace('/\s+/u', ' ', strip_tags((string)($in['bio'] ?? ''))));
+        $bio = function_exists('mb_substr') ? mb_substr($bio, 0, 700) : substr($bio, 0, 700);
+        $years = preg_replace('/[^0-9]/', '', trim((string)($in['experience_years'] ?? '')));
+        $years = $years === '' ? '' : (string)min(60, (int)$years);
+        $list = function ($v) {
+            $items = is_array($v) ? $v : (preg_split('/\r\n|\r|\n|·/', (string)$v) ?: []);
+            $out = [];
+            foreach ($items as $it) {
+                $it = trim((string)preg_replace('/\s+/u', ' ', strip_tags((string)$it)));
+                if ($it === '') continue;
+                $out[] = function_exists('mb_substr') ? mb_substr($it, 0, 80) : substr($it, 0, 80);
+            }
+            return array_slice(array_values(array_unique($out)), 0, 8);
+        };
+        $bands = $list($in['bands'] ?? []);
+        $ach = $list($in['achievements'] ?? []);
+        try {
+            Database::instance()->prepare('INSERT INTO affiliate_cv (site_id, affiliate_id, bio, experience_years, bands, achievements, updated_at) VALUES (@site_id, :a, :bio, :y, :b, :ach, NOW()) ON DUPLICATE KEY UPDATE bio = VALUES(bio), experience_years = VALUES(experience_years), bands = VALUES(bands), achievements = VALUES(achievements)')
+                ->execute(['a' => $affiliateId, 'bio' => $bio, 'y' => $years, 'b' => json_encode($bands), 'ach' => json_encode($ach)]);
+            $this->log($affiliateId, 'cv_saved');
+            return ['ok' => true, 'message' => 'Trayectoria guardada.', 'experience_years' => $years, 'bands' => $bands, 'achievements' => $ach];
+        } catch (\Throwable $e) { return ['ok' => false, 'message' => 'No se pudo guardar la trayectoria.']; }
+    }
+
     public function tipAdd(int $affiliateId, array $in): array
     {
         $amount = (float)($in['amount'] ?? 0);

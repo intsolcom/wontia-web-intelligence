@@ -50,6 +50,18 @@ class AffiliateController
         echo json_encode((new AffiliateService())->mediaSave((int)$_SESSION['ff_affiliate_id'], $in), JSON_UNESCAPED_UNICODE);
     }
 
+    /** POST /api/v1/public/affiliates/cv — guarda la trayectoria del artista. */
+    public function cvSave($request)
+    {
+        $in = json_decode((string)file_get_contents('php://input'), true);
+        if (!is_array($in)) $in = $_POST;
+        header('Content-Type: application/json');
+        header('Cache-Control: no-store');
+        \App\Core\Session::start();
+        if (empty($_SESSION['ff_affiliate_id'])) { echo json_encode(['ok' => false, 'message' => 'Sesión requerida.']); return; }
+        echo json_encode((new AffiliateService())->cvSave((int)$_SESSION['ff_affiliate_id'], is_array($in) ? $in : []), JSON_UNESCAPED_UNICODE);
+    }
+
     /** POST /api/v1/public/affiliates/payout/request — paso 1: envía OTP para solicitar retiro. */
     public function payoutRequest($request)
     {
