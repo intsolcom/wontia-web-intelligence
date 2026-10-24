@@ -434,6 +434,12 @@ class AffiliateService
         ];
     }
 
+    public function cvFor(int $affiliateId): ?array
+    {
+        try { $st = Database::instance()->prepare('SELECT * FROM affiliate_cv WHERE affiliate_id = :a AND site_id = @site_id LIMIT 1'); $st->execute(['a' => $affiliateId]); return $st->fetch() ?: null; }
+        catch (\Throwable $e) { return null; }
+    }
+
     public function tipAdd(int $affiliateId, array $in): array
     {
         $amount = (float)($in['amount'] ?? 0);
