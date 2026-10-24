@@ -99,7 +99,7 @@ if (($segments[0] ?? '') === 'artista' && ($segments[2] ?? '') === 'panel' && !e
         $__affUrlP = (((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? 'sonika.com.co')) . '/r/' . $__codeP;
         $__money = function ($c) { return '$ ' . number_format((float)$c, 0, ',', '.'); };
         sonika_site_head($__nameP . ' — Mis Ganancias', 'Panel del artista — SONIKA Artist Partners');
-        echo '<style>.ahp{max-width:1120px;margin:0 auto;padding:28px 22px 56px;font-family:Sora,system-ui,sans-serif;color:#17212b}.ahp-h{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:22px}.ahp-h h1{font-size:26px;margin:0}.ahp-h .badge{background:#e5f5ef;color:#0d7a58;border-radius:999px;padding:5px 12px;font-size:12px;font-weight:800}.ahp-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:26px}.ahp-c{background:#fff;border:1px solid #e9efec;border-radius:16px;padding:16px;box-shadow:0 8px 22px rgba(16,24,40,.05)}.ahp-c small{display:block;color:#64748b;font-size:12px;font-weight:600;margin-bottom:6px}.ahp-c b{font-size:22px;color:#101d3a}.ahp-sec h2{font-size:17px;margin:22px 0 10px}.ahp table{width:100%;border-collapse:collapse;font-size:13.5px;background:#fff;border:1px solid #eef2f0;border-radius:12px;overflow:hidden}.ahp th,.ahp td{padding:10px 12px;text-align:left;border-bottom:1px solid #f1f5f3}.ahp th{background:#f6fbf9;font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:.04em}.ahp td.n{text-align:right;font-weight:700}.ahp .st{display:inline-block;border-radius:999px;padding:2px 9px;font-size:11px;font-weight:800;background:#eef4fb;color:#155eeb}.ahp .st.PAID{background:#e5f5ef;color:#0d7a58}.ahp .st.REVERSED,.ahp .st.REJECTED{background:#fdecec;color:#b42318}.ahp .note{font-size:12px;color:#94a3b8;margin-top:12px}.ahp .link{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:#101d3a;color:#fff;border-radius:14px;padding:14px 16px;margin-top:22px;font-size:13px}.ahp .link code{background:rgba(255,255,255,.12);padding:6px 10px;border-radius:8px;word-break:break-all}@media(max-width:800px){.ahp-cards{grid-template-columns:repeat(2,1fr)}}@media(max-width:480px){.ahp-cards{grid-template-columns:1fr}}</style>';
+        echo '<style>.ahp{max-width:1120px;margin:0 auto;padding:28px 22px 56px;font-family:Sora,system-ui,sans-serif;color:#17212b}.ahp-h{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:22px}.ahp-h h1{font-size:26px;margin:0}.ahp-h .badge{background:#e5f5ef;color:#0d7a58;border-radius:999px;padding:5px 12px;font-size:12px;font-weight:800}.ahp-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:26px}.ahp-c{background:#fff;border:1px solid #e9efec;border-radius:16px;padding:16px;box-shadow:0 8px 22px rgba(16,24,40,.05)}.ahp-c small{display:block;color:#64748b;font-size:12px;font-weight:600;margin-bottom:6px}.ahp-c b{font-size:22px;color:#101d3a}.ahp-sec h2{font-size:17px;margin:22px 0 10px}.ahp table{width:100%;border-collapse:collapse;font-size:13.5px;background:#fff;border:1px solid #eef2f0;border-radius:12px;overflow:hidden}.ahp th,.ahp td{padding:10px 12px;text-align:left;border-bottom:1px solid #f1f5f3}.ahp th{background:#f6fbf9;font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:.04em}.ahp td.n{text-align:right;font-weight:700}.ahp .st{display:inline-block;border-radius:999px;padding:2px 9px;font-size:11px;font-weight:800;background:#eef4fb;color:#155eeb}.ahp .st.PAID{background:#e5f5ef;color:#0d7a58}.ahp .st.REVERSED,.ahp .st.REJECTED{background:#fdecec;color:#b42318}.ahp .note{font-size:12px;color:#94a3b8;margin-top:12px}.ahp .link{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:#101d3a;color:#fff;border-radius:14px;padding:14px 16px;margin-top:22px;font-size:13px}.ahp .link code{background:rgba(255,255,255,.12);padding:6px 10px;border-radius:8px;word-break:break-all}.ahp-tabs{display:flex;gap:8px;overflow-x:auto;margin:4px 0 18px;padding-bottom:4px;scrollbar-width:none}.ahp-tabs::-webkit-scrollbar{display:none}.ahp-tab{flex:1;min-width:112px;padding:11px 14px;border:1px solid #e6eeea;background:#fff;border-radius:12px;font:inherit;font-weight:800;font-size:13.5px;color:#334155;cursor:pointer;white-space:nowrap}.ahp-tab.on{background:#101d3a;color:#fff;border-color:#101d3a}@media(max-width:800px){.ahp-cards{grid-template-columns:repeat(2,1fr)}}@media(max-width:480px){.ahp-cards{grid-template-columns:1fr}}</style>';
         $__lg0 = is_array($__d['league'] ?? null) ? $__d['league'] : [];
         $__lgIcons = ['semicorchea' => '♬', 'corchea' => '♪', 'negra' => '♩', 'blanca' => '𝅗𝅥', 'redonda' => '𝅝'];
         $__rangoIcon = $__lgIcons[$__lg0['code'] ?? ''] ?? '♫';
@@ -131,9 +131,14 @@ if (($segments[0] ?? '') === 'artista' && ($segments[2] ?? '') === 'panel' && !e
         echo '<div class="ahp-sec" style="margin-top:0"><h2>Mi Pulso — acciones sugeridas</h2><div style="background:#101d3a;color:#fff;border-radius:14px;padding:16px"><ul style="margin:0;padding-left:18px;line-height:1.8;font-size:13.5px">';
         foreach ($__sugg as $__s) echo '<li>' . sonika_esc($__s) . '</li>';
         echo '</ul></div></div>';
-        echo '<div class="ahp-sec"><h2>SONIKA Sound League</h2><div style="background:#fff;border:1px solid #eef2f0;border-radius:14px;padding:16px"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><div><span style="font-size:12px;color:#64748b">Tu nivel</span><div style="font-size:22px;font-weight:800;color:#101d3a">' . sonika_esc((string)($__lg['level'] ?? '—')) . '</div></div><div style="text-align:right;font-size:12px;color:#64748b">' . (!empty($__lg['next']) ? ('Próximo: <b>' . sonika_esc((string)$__lg['next']) . '</b>') : 'Nivel máximo') . '<br>Ventas del mes: <b>' . $__money($__lg['sales'] ?? 0) . '</b></div></div><div style="margin-top:12px;height:10px;background:#eef2f0;border-radius:999px;overflow:hidden"><div style="height:100%;width:' . (int)($__lg['progress'] ?? 0) . '%;background:linear-gradient(90deg,#0d9f72,#7c5cff)"></div></div><div style="font-size:11.5px;color:#94a3b8;margin-top:6px">Progreso al siguiente nivel: ' . (int)($__lg['progress'] ?? 0) . '%</div></div></div>';
+        echo '<nav class="ahp-tabs" role="tablist" aria-label="Secciones de Mi Antro">';
+        foreach (['ventas' => 'Ventas', 'ganancias' => 'Ganancias', 'tienda' => 'Mi Tienda', 'comunidad' => 'Comunidad', 'perfil' => 'Mi Perfil'] as $__tk => $__tl) {
+            echo '<button type="button" class="ahp-tab' . ($__tk === 'ventas' ? ' on' : '') . '" data-tab="' . $__tk . '" role="tab">' . sonika_esc($__tl) . '</button>';
+        }
+        echo '</nav>';
+        echo '<div class="ahp-sec" data-tab="perfil"><h2>SONIKA Sound League</h2><div style="background:#fff;border:1px solid #eef2f0;border-radius:14px;padding:16px"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><div><span style="font-size:12px;color:#64748b">Tu nivel</span><div style="font-size:22px;font-weight:800;color:#101d3a">' . sonika_esc((string)($__lg['level'] ?? '—')) . '</div></div><div style="text-align:right;font-size:12px;color:#64748b">' . (!empty($__lg['next']) ? ('Próximo: <b>' . sonika_esc((string)$__lg['next']) . '</b>') : 'Nivel máximo') . '<br>Ventas del mes: <b>' . $__money($__lg['sales'] ?? 0) . '</b></div></div><div style="margin-top:12px;height:10px;background:#eef2f0;border-radius:999px;overflow:hidden"><div style="height:100%;width:' . (int)($__lg['progress'] ?? 0) . '%;background:linear-gradient(90deg,#0d9f72,#7c5cff)"></div></div><div style="font-size:11.5px;color:#94a3b8;margin-top:6px">Progreso al siguiente nivel: ' . (int)($__lg['progress'] ?? 0) . '%</div></div></div>';
         $__awards = $__svcP->awardsFor((int)$__affPP['id']);
-        echo '<div class="ahp-sec"><h2>Logros y Premios</h2>';
+        echo '<div class="ahp-sec" data-tab="perfil"><h2>Logros y Premios</h2>';
         if (!$__awards) {
             echo '<div style="background:#fff;border:1px dashed #dbe7e1;border-radius:12px;padding:16px;color:#94a3b8;font-size:13px">Aún sin logros. ¡A vender y subir de nivel!</div>';
         } else {
@@ -145,7 +150,7 @@ if (($segments[0] ?? '') === 'artista' && ($segments[2] ?? '') === 'panel' && !e
         }
         echo '</div>';
         $__creqs = $__svcP->contractRequestsFor((int)$__affPP['id']);
-        echo '<div class="ahp-sec"><h2>Solicitudes de contratación</h2>';
+        echo '<div class="ahp-sec" data-tab="comunidad"><h2>Solicitudes de contratación</h2>';
         if (!$__creqs) {
             echo '<div style="background:#fff;border:1px dashed #dbe7e1;border-radius:12px;padding:16px;color:#94a3b8;font-size:13px">Sin solicitudes todavía.</div>';
         } else {
@@ -158,7 +163,7 @@ if (($segments[0] ?? '') === 'artista' && ($segments[2] ?? '') === 'panel' && !e
         echo '</div>';
         $__tips = $__svcP->tipsFor((int)$__affPP['id']);
         $__tipsTotal = $__svcP->tipsTotal((int)$__affPP['id']);
-        echo '<div class="ahp-sec"><h2>Aportes de agradecimiento · ' . sonika_esc('$ ' . number_format($__tipsTotal, 0, ',', '.')) . '</h2>';
+        echo '<div class="ahp-sec" data-tab="comunidad"><h2>Aportes de agradecimiento · ' . sonika_esc('$ ' . number_format($__tipsTotal, 0, ',', '.')) . '</h2>';
         if (!$__tips) {
             echo '<div style="background:#fff;border:1px dashed #dbe7e1;border-radius:12px;padding:16px;color:#94a3b8;font-size:13px">Sin aportes todavía.</div>';
         } else {
@@ -169,7 +174,7 @@ if (($segments[0] ?? '') === 'artista' && ($segments[2] ?? '') === 'panel' && !e
             echo '</tbody></table>';
         }
         echo '</div>';
-        echo '<div class="ahp-sec"><h2>Mis Ganancias — estados exactos</h2><table><thead><tr><th>Estado</th><th>Movimientos</th><th class="n">Monto</th></tr></thead><tbody>';
+        echo '<div class="ahp-sec" data-tab="ganancias"><h2>Mis Ganancias — estados exactos</h2><table><thead><tr><th>Estado</th><th>Movimientos</th><th class="n">Monto</th></tr></thead><tbody>';
         if (empty($__d['by_status'])) echo '<tr><td colspan="3" style="color:#94a3b8">Aún no hay comisiones. Comparte tu enlace para empezar.</td></tr>';
         foreach ($__states as $__codeS => $__lblS) {
             if (!isset($__d['by_status'][$__codeS])) continue;
@@ -177,13 +182,14 @@ if (($segments[0] ?? '') === 'artista' && ($segments[2] ?? '') === 'panel' && !e
             echo '<tr><td><span class="st ' . sonika_esc($__codeS) . '">' . sonika_esc($__lblS) . '</span></td><td>' . (int)$__b['count'] . '</td><td class="n">' . $__money($__b['amount']) . '</td></tr>';
         }
         echo '</tbody></table><p class="note">Una comisión <b>estimada</b> no es un ingreso garantizado; requiere validación y aprobación. Modo simulación.</p></div>';
-        echo '<div class="ahp-sec"><h2>Pedidos atribuidos</h2><table><thead><tr><th>Pedido</th><th>Base</th><th>Tasa</th><th>Comisión</th><th>Estado</th><th>Fecha</th></tr></thead><tbody>';
+        echo '<div class="ahp-sec" data-tab="ventas"><h2>Pedidos atribuidos</h2><table><thead><tr><th>Pedido</th><th>Base</th><th>Tasa</th><th>Comisión</th><th>Estado</th><th>Fecha</th></tr></thead><tbody>';
         if (empty($__d['recent'])) echo '<tr><td colspan="6" style="color:#94a3b8">Sin pedidos atribuidos todavía.</td></tr>';
         foreach ($__d['recent'] as $__r) {
             echo '<tr><td>' . sonika_esc((string)$__r['order_ref']) . '</td><td class="n">' . $__money($__r['base_amount']) . '</td><td class="n">' . number_format((float)$__r['tier_rate'] * 100, 2, ',', '.') . '%</td><td class="n">' . $__money($__r['amount']) . '</td><td><span class="st ' . sonika_esc((string)$__r['status']) . '">' . sonika_esc($__states[$__r['status']] ?? $__r['status']) . '</span></td><td>' . sonika_esc(substr((string)$__r['created_at'], 0, 10)) . '</td></tr>';
         }
         echo '</tbody></table></div>';
-        echo '<div class="link"><span>Tu enlace: </span><code>' . sonika_esc($__affUrlP) . '</code></div>';
+        echo '<div class="link" data-tab="tienda"><span>Tu enlace: </span><code>' . sonika_esc($__affUrlP) . '</code></div>';
+        echo '<script>(function(){var bar=document.querySelector(".ahp-tabs");if(!bar)return;var tabs=bar.querySelectorAll(".ahp-tab"),secs=document.querySelectorAll(".ahp [data-tab]");function go(t){tabs.forEach(function(b){b.classList.toggle("on",b.getAttribute("data-tab")===t)});secs.forEach(function(s){if(s.classList.contains("ahp-tab"))return;s.hidden=(s.getAttribute("data-tab")!==t)});}tabs.forEach(function(b){b.addEventListener("click",function(){go(b.getAttribute("data-tab"))})});var init="ventas";try{init=new URLSearchParams(location.search).get("tab")||"ventas";}catch(e){}go(init);})();</script>';
         echo '</section>';
         sonika_site_footer();
         return true;
