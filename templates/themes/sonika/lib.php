@@ -682,6 +682,11 @@ if (!function_exists('sonika_logo_tag')) {
 }
 if (!function_exists('sonika_site_head')) {
     function sonika_site_head(string $title, string $desc = ''): void {
+        if (!empty($_GET['ref']) && preg_match('/^[a-zA-Z0-9_-]{4,64}$/', (string)$_GET['ref'])) {
+            $__rc = (string)$_GET['ref'];
+            @setcookie('sonika_aff', $__rc, ['expires' => time() + 30 * 86400, 'path' => '/', 'samesite' => 'Lax']);
+            $_COOKIE['sonika_aff'] = $__rc;
+        }
         $pageMeta = [
             'title' => $title,
             'meta_title' => $title,
@@ -1033,6 +1038,7 @@ CSS;
 if (!function_exists('sonika_js')) {
     function sonika_js(): string {
         return 'window.SONIKA_WA=' . json_encode(sonika_whatsapp()) . ';window.SONIKA_CARTKEY="sonika_cart";window.SONIKA_STORE="SONIKA";' . <<<'JS'
+(function(){function gc(n){var m=document.cookie.match(new RegExp('(?:^|; )'+n+'=([^;]*)'));return m?decodeURIComponent(m[1]):''}var rf=gc('sonika_aff');if(rf){var sk=/^\/(api|assets|admin|r|_)/;document.querySelectorAll('a[href^="/"]').forEach(function(a){var h=a.getAttribute('href');if(sk.test(h)||/[?&]ref=/.test(h))return;a.setAttribute('href',h+(h.indexOf('?')>=0?'&':'?')+'ref='+encodeURIComponent(rf))})}})();
 (function(){
   var SEARCH=document.getElementById('skSearch'), SUG=document.getElementById('skSug'), sTimer=null, sIdx=-1, sData=[];
   function sClose(){if(SUG){SUG.hidden=true;SUG.innerHTML='';}sIdx=-1;sData=[]}
