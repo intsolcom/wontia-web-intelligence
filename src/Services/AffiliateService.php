@@ -434,6 +434,15 @@ class AffiliateService
         ];
     }
 
+    public function postsFor(int $affiliateId): array
+    {
+        try {
+            $st = Database::instance()->prepare("SELECT * FROM affiliate_posts WHERE affiliate_id = :a AND site_id = @site_id AND status = 'published' ORDER BY id DESC LIMIT 12");
+            $st->execute(['a' => $affiliateId]);
+            return $st->fetchAll();
+        } catch (\Throwable $e) { return []; }
+    }
+
     public function cvFor(int $affiliateId): ?array
     {
         try { $st = Database::instance()->prepare('SELECT * FROM affiliate_cv WHERE affiliate_id = :a AND site_id = @site_id LIMIT 1'); $st->execute(['a' => $affiliateId]); return $st->fetch() ?: null; }
