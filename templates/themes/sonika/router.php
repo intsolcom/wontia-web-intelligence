@@ -107,7 +107,10 @@ if (($segments[0] ?? '') === 'artista' && ($segments[2] ?? '') === 'panel' && !e
         $__pendingStates = ['ESTIMATED', 'PENDING_VALIDATION', 'ON_HOLD', 'PAYMENT_QUEUED'];
         $__pending = 0.0;
         foreach ($__pendingStates as $__ps) { if (isset($__d['by_status'][$__ps])) $__pending += (float)$__d['by_status'][$__ps]['amount']; }
-        $__nextCutTxt = date('d/m/Y', strtotime('first day of next month'));
+        $__cutDay = max(1, min(28, (int)wwi_setting('affiliate_payout_day', 1)));
+        $__cutDt = new DateTime(date('Y-m-') . str_pad((string)$__cutDay, 2, '0', STR_PAD_LEFT));
+        if ($__cutDt < new DateTime('today')) $__cutDt->modify('+1 month');
+        $__nextCutTxt = $__cutDt->format('d/m/Y');
         echo '<div class="ahp-cards">';
         echo '<div class="ahp-c"><small>Clicks (atribución)</small><b>' . (int)$__d['clicks'] . '</b></div>';
         echo '<div class="ahp-c"><small>Billete Ganado (ventas atribuidas)</small><b>' . $__money($__d['sales']) . '</b></div>';
@@ -197,7 +200,15 @@ if (($segments[0] ?? '') === 'artista' && ($segments[2] ?? '') === 'panel' && !e
         echo '<h2 style="font-size:15px;margin:18px 0 8px">Productos que visitaron tus seguidores</h2>';
         if (!empty($__ss['top_viewed'])) {
             echo '<ul style="margin:0;padding-left:18px;line-height:1.9;font-size:13.5px;color:#334155">';
-            foreach ($__ss['top_viewed'] as $__pv) echo '<li>' . sonika_esc((string)$__pv['page_url']) . ' <b>(' . (int)$__pv['v'] . ')</b></li>';
+            foreach ($__ss['top_viewed'] as $__pv) {
+                $__pvUrl = (string)$__pv['page_url'];
+                $__pvLbl = $__pvUrl;
+                if (preg_match('~^/producto/([^/?#]+)~', $__pvUrl, $__mm)) {
+                    $__pvP = sonika_find(urldecode($__mm[1]));
+                    if ($__pvP) $__pvLbl = (string)($__pvP['title'] ?? $__pvUrl);
+                }
+                echo '<li>' . sonika_esc($__pvLbl) . ' <b>(' . (int)$__pv['v'] . ')</b></li>';
+            }
             echo '</ul>';
         } else {
             echo '<div style="color:#94a3b8;font-size:13px">Aún sin visitas a productos de tus seguidores.</div>';
