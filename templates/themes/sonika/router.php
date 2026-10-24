@@ -154,8 +154,164 @@ if (($segments[0] ?? '') === 'artista' && ($segments[2] ?? '') === 'panel' && !e
         if (!is_array($__galM)) $__galM = [];
         echo '<div class="ahp-sec" data-tab="perfil"><h2>Medios (Mi Página)</h2><form id="ah-media" style="display:grid;gap:10px;max-width:680px;background:#fff;border:1px solid #eef2f0;border-radius:14px;padding:16px"><label style="font-size:12.5px;color:#64748b">Video (YouTube URL)</label><input name="video_url" value="' . sonika_esc((string)($__media['video_url'] ?? '')) . '" placeholder="https://youtu.be/..." style="padding:10px;border:1px solid #dbe7e1;border-radius:10px;font:inherit"><label style="font-size:12.5px;color:#64748b">Instagram (usuario)</label><input name="instagram" value="' . sonika_esc((string)($__media['instagram'] ?? '')) . '" placeholder="@usuario (sin @)" style="padding:10px;border:1px solid #dbe7e1;border-radius:10px;font:inherit"><label style="font-size:12.5px;color:#64748b">Portada (URL)</label><input name="cover" value="' . sonika_esc((string)($__media['cover'] ?? '')) . '" placeholder="URL de la imagen de portada" style="padding:10px;border:1px solid #dbe7e1;border-radius:10px;font:inherit"><label style="font-size:12.5px;color:#64748b">Galería (3 URLs)</label><input name="gallery0" value="' . sonika_esc((string)($__galM[0] ?? '')) . '" placeholder="Foto 1" style="padding:10px;border:1px solid #dbe7e1;border-radius:10px;font:inherit"><input name="gallery1" value="' . sonika_esc((string)($__galM[1] ?? '')) . '" placeholder="Foto 2" style="padding:10px;border:1px solid #dbe7e1;border-radius:10px;font:inherit"><input name="gallery2" value="' . sonika_esc((string)($__galM[2] ?? '')) . '" placeholder="Foto 3" style="padding:10px;border:1px solid #dbe7e1;border-radius:10px;font:inherit"><button type="submit" style="background:linear-gradient(135deg,#287bff,#6246ff);color:#fff;border:0;border-radius:11px;padding:12px;font-weight:800;cursor:pointer">Guardar medios</button><div id="ah-media-msg" style="font-size:12.5px"></div></form></div>';
         echo '<script>(function(){var f=document.getElementById("ah-media");if(!f)return;var m=document.getElementById("ah-media-msg");f.addEventListener("submit",function(e){e.preventDefault();var d={};new FormData(f).forEach(function(v,k){d[k]=v;});m.style.color="#51607a";m.textContent="Guardando…";fetch("/api/v1/public/affiliates/media",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(d)}).then(function(r){return r.json();}).then(function(j){m.style.color=j.ok?"#0d7a58":"#d64545";m.textContent=j.message||(j.ok?"Guardado":"Error");}).catch(function(){m.style.color="#d64545";m.textContent="Error de conexión.";});});})();</script>';
-        echo '<div class="ahp-sec" data-tab="perfil"><h2>Subir fotos (optimizadas a WebP · cuota 5 MB)</h2><form id="ah-media-up" enctype="multipart/form-data" style="display:grid;gap:10px;max-width:520px;background:#fff;border:1px solid #eef2f0;border-radius:14px;padding:16px"><label style="font-size:12.5px;color:#64748b">Foto de portada</label><input type="file" name="cover" accept="image/*" style="font-size:13px"><label style="font-size:12.5px;color:#64748b">Foto de perfil</label><input type="file" name="avatar" accept="image/*" style="font-size:13px"><label style="font-size:12.5px;color:#64748b">Galería (hasta 3)</label><input type="file" name="gallery0" accept="image/*" style="font-size:13px"><input type="file" name="gallery1" accept="image/*" style="font-size:13px"><input type="file" name="gallery2" accept="image/*" style="font-size:13px"><button type="submit" style="background:linear-gradient(135deg,#287bff,#6246ff);color:#fff;border:0;border-radius:11px;padding:12px;font-weight:800;cursor:pointer">Subir y guardar</button><div id="ah-media-up-msg" style="font-size:12.5px;min-height:16px"></div></form></div>';
-        echo '<script>(function(){var f=document.getElementById("ah-media-up");if(!f)return;var m=document.getElementById("ah-media-up-msg");f.addEventListener("submit",function(e){e.preventDefault();var fd=new FormData(f);m.style.color="#51607a";m.textContent="Subiendo…";fetch("/api/v1/public/affiliates/media/upload",{method:"POST",body:fd}).then(function(r){return r.json();}).then(function(j){m.style.color=j.ok?"#0d7a58":"#d64545";m.textContent=j.message||(j.ok?"Guardado":"Error");}).catch(function(){m.style.color="#d64545";m.textContent="Error de conexión.";});});})();</script>';
+        $__mCover = (string)($__media['cover'] ?? '');
+        $__mAvatar = (string)($__media['avatar'] ?? '');
+        $__usedM = 0;
+        foreach (['cover', 'avatar'] as $__mk) { $__mp = '/app/public' . (string)($__media[$__mk] ?? ''); if ($__mp !== '/app/public' && is_file($__mp)) $__usedM += (int)filesize($__mp); }
+        foreach ($__galM as $__mg) { $__mp = '/app/public' . (string)$__mg; if ($__mp !== '/app/public' && is_file($__mp)) $__usedM += (int)filesize($__mp); }
+        $__msCards = [
+            ['slot' => 'cover', 'label' => 'Portada', 'icon' => '🎬', 'src' => $__mCover, 'title' => 'Foto de portada', 'em' => 'Es el fondo de tu hero y la miniatura que se ve cuando comparten tu perfil.', 'specs' => ['Ideal: <b>1600 × 900 px</b> (16:9 horizontal).', 'Calidad: JPG, PNG o WebP · mínimo <b>1200 px</b> de ancho.', 'Peso: hasta <b>5 MB</b> (se optimiza a WebP automáticamente).', 'Consejo: buena luz, tú o tu banda en escena, sin texto en los bordes.'], 'gain' => 'Una portada profesional puede aumentar hasta <b>+40%</b> los clics a tu perfil.'],
+            ['slot' => 'avatar', 'label' => 'Perfil', 'icon' => '🎤', 'src' => $__mAvatar, 'title' => 'Foto de perfil', 'em' => 'Es tu cara en el círculo del hero, en “Mi equipo SONIKA” y en tus comentarios.', 'specs' => ['Ideal: <b>800 × 800 px</b> (1:1, cuadrado).', 'Calidad: rostro centrado, nítido y con fondo simple.', 'Peso: hasta <b>5 MB</b>.', 'Se recorta en círculo: deja aire alrededor de la cara.'], 'gain' => 'Un rostro claro y nítido genera confianza y más <b>solicitudes de contratación</b>.'],
+            ['slot' => 'gallery0', 'label' => 'Galería 1', 'icon' => '📸', 'src' => (string)($__galM[0] ?? ''), 'title' => 'Galería — foto 1', 'em' => 'Se muestra en el carrusel y la galería de tu página pública.', 'specs' => ['Ideal: <b>1200 × 1500 px</b> (vertical) o 1200 × 1200 px.', 'Calidad: JPG, PNG o WebP · mínimo <b>800 px</b> de ancho.', 'Peso: hasta <b>5 MB</b> por foto.', 'Consejo: escenario, instrumentos y momentos reales.'], 'gain' => 'Más fotos = más tiempo en tu página y más probabilidad de que te <b>contraten</b>.'],
+            ['slot' => 'gallery1', 'label' => 'Galería 2', 'icon' => '🎶', 'src' => (string)($__galM[1] ?? ''), 'title' => 'Galería — foto 2', 'em' => 'Segunda imagen del carrusel de tu página pública.', 'specs' => ['Ideal: <b>1200 × 1500 px</b> (vertical) o 1200 × 1200 px.', 'Calidad: JPG, PNG o WebP · mínimo <b>800 px</b> de ancho.', 'Peso: hasta <b>5 MB</b> por foto.', 'Consejo: muestra tu energía en vivo.'], 'gain' => 'Una galería completa hace que tu perfil se vea <b>profesional y activo</b>.'],
+            ['slot' => 'gallery2', 'label' => 'Galería 3', 'icon' => '⚡', 'src' => (string)($__galM[2] ?? ''), 'title' => 'Galería — foto 3', 'em' => 'Tercera imagen del carrusel de tu página pública.', 'specs' => ['Ideal: <b>1200 × 1500 px</b> (vertical) o 1200 × 1200 px.', 'Calidad: JPG, PNG o WebP · mínimo <b>800 px</b> de ancho.', 'Peso: hasta <b>5 MB</b> por foto.', 'Consejo: cierra con tu mejor foto de show.'], 'gain' => 'Cerrar con una gran foto deja una <b>impresión memorable</b> en quien te descubre.'],
+        ];
+        $__msCss = <<<'CSS'
+.ahp-ms{position:relative;border-radius:22px;padding:22px;background:radial-gradient(1200px 420px at 8% -12%,#2a1b6b 0%,transparent 60%),radial-gradient(900px 420px at 100% 0%,#0b4a6f 0%,transparent 55%),linear-gradient(160deg,#080d1c,#101a35 55%,#0b1226);border:1px solid rgba(124,92,255,.35);box-shadow:0 24px 60px rgba(11,18,38,.28);color:#e6ecff;overflow:hidden;font-family:Sora,system-ui,sans-serif}
+.ahp-ms:before{content:"";position:absolute;inset:0;background-image:linear-gradient(90deg,rgba(124,92,255,.10) 1px,transparent 1px),linear-gradient(0deg,rgba(124,92,255,.10) 1px,transparent 1px);background-size:44px 44px;-webkit-mask-image:radial-gradient(circle at 50% 0%,#000 0%,transparent 72%);mask-image:radial-gradient(circle at 50% 0%,#000 0%,transparent 72%);pointer-events:none}
+.ahp-ms-head{position:relative;z-index:1;display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:16px}
+.ahp-ms-title{display:flex;gap:12px;align-items:center}
+.ahp-ms-title h2{margin:0;font-size:19px;letter-spacing:.01em;background:linear-gradient(90deg,#c9d6ff,#7ce8ff 55%,#b39bff);-webkit-background-clip:text;background-clip:text;color:transparent}
+.ahp-ms-title p{margin:3px 0 0;font-size:12px;color:#93a4c9}
+.ahp-ms-eq{display:inline-flex;gap:3px;align-items:flex-end;height:26px}
+.ahp-ms-eq i{width:4px;border-radius:2px;background:linear-gradient(180deg,#7c5cff,#37e8c8);height:8px;animation:ahpEq 1.15s ease-in-out infinite}
+.ahp-ms-eq i:nth-child(2){animation-delay:.14s}.ahp-ms-eq i:nth-child(3){animation-delay:.28s}.ahp-ms-eq i:nth-child(4){animation-delay:.42s}.ahp-ms-eq i:nth-child(5){animation-delay:.56s}
+@keyframes ahpEq{0%,100%{height:7px;opacity:.6}50%{height:26px;opacity:1}}
+.ahp-ms-quota{min-width:180px;flex:0 0 auto}
+.ahp-ms-quota-bar{height:8px;border-radius:999px;background:rgba(255,255,255,.12);overflow:hidden}
+.ahp-ms-quota-bar span{display:block;height:100%;width:0;border-radius:999px;background:linear-gradient(90deg,#37e8c8,#7c5cff);transition:width .45s ease}
+.ahp-ms-quota-txt{font-size:11px;color:#93a4c9;margin-top:5px;text-align:right}
+.ahp-ms-quota-txt b{color:#dbe6ff}
+.ahp-ms-grid{position:relative;z-index:1;display:grid;grid-template-columns:repeat(auto-fill,minmax(212px,1fr));gap:14px}
+.ahp-ms-card{display:flex;flex-direction:column;gap:9px;padding:12px;border-radius:16px;background:linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.028));border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(6px);transition:transform .25s,border-color .25s,box-shadow .25s}
+.ahp-ms-card:hover{transform:translateY(-3px);border-color:rgba(124,92,255,.55);box-shadow:0 14px 34px rgba(124,92,255,.22)}
+.ahp-ms-card.is-done{border-color:rgba(55,232,200,.5)}
+.ahp-ms-card-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.ahp-ms-badge{font-size:10.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:#a9bbff}
+.ahp-ms-info{position:relative;flex:0 0 auto;width:22px;height:22px;border-radius:50%;border:1px solid rgba(255,255,255,.28);background:rgba(255,255,255,.07);color:#c9d6ff;font-weight:800;font-size:12px;line-height:1;display:grid;place-items:center;cursor:help;padding:0}
+.ahp-ms-info:hover,.ahp-ms-info:focus{background:rgba(124,92,255,.35);outline:none}
+.ahp-ms-tip{position:absolute;top:140%;right:-6px;width:252px;padding:11px 13px;border-radius:12px;background:#090f22;border:1px solid rgba(124,92,255,.5);box-shadow:0 20px 44px rgba(0,0,0,.55);color:#c9d6ff;font-size:11.5px;line-height:1.5;text-align:left;opacity:0;visibility:hidden;transform:translateY(-5px);transition:.18s;z-index:30;pointer-events:none}
+.ahp-ms-info:hover .ahp-ms-tip,.ahp-ms-info:focus .ahp-ms-tip{opacity:1;visibility:visible;transform:none}
+.ahp-ms-tip b{display:block;color:#fff;font-size:12.5px;margin-bottom:3px}
+.ahp-ms-tip em{display:block;font-style:normal;color:#9fb0d8;margin-bottom:7px}
+.ahp-ms-tip ul{margin:0 0 7px;padding-left:15px}
+.ahp-ms-tip li{margin:2px 0}
+.ahp-ms-tip li b{display:inline;font-size:11.5px;color:#8fe9ff}
+.ahp-ms-gain{display:block;padding-top:7px;border-top:1px dashed rgba(255,255,255,.16);color:#7cf0cf;font-size:11px;line-height:1.45}
+.ahp-ms-drop{position:relative;aspect-ratio:4/3;border-radius:12px;border:1.5px dashed rgba(160,180,255,.35);background:rgba(6,10,24,.55);display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;transition:border-color .2s,background .2s}
+.ahp-ms-drop:focus-visible{outline:2px solid #37e8c8;outline-offset:2px}
+.ahp-ms-drop.is-over{border-color:#37e8c8;background:rgba(55,232,200,.09)}
+.ahp-ms-empty{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;padding:10px;transition:opacity .25s,transform .25s}
+.ahp-ms-empty p{margin:0;font-size:11.5px;color:#9fb0d8}
+.ahp-ms-empty small{font-size:10px;color:#6f80a8;letter-spacing:.05em}
+.ahp-ms-icon{font-size:24px;filter:drop-shadow(0 4px 10px rgba(124,92,255,.55))}
+.ahp-ms-file{position:relative;overflow:hidden;border-radius:10px;padding:9px 15px;font-weight:800;font-size:12px;color:#fff;background:linear-gradient(135deg,#287bff,#7c5cff);box-shadow:0 8px 20px rgba(80,80,255,.35);transition:transform .22s,box-shadow .22s,filter .22s;display:inline-block}
+.ahp-ms-file:after{content:"";position:absolute;top:0;left:-70%;width:45%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.6),transparent);transform:skewX(-22deg);transition:left .55s}
+.ahp-ms-drop:hover .ahp-ms-file{transform:translateY(-2px);box-shadow:0 12px 28px rgba(124,92,255,.6);filter:brightness(1.09)}
+.ahp-ms-drop:hover .ahp-ms-file:after{left:125%}
+.ahp-ms-preview{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transform:scale(1.08);transition:opacity .45s,transform .6s}
+.ahp-ms-card.is-preview .ahp-ms-empty,.ahp-ms-card.is-done .ahp-ms-empty{opacity:0;visibility:hidden;transform:scale(.95)}
+.ahp-ms-card.is-preview .ahp-ms-preview,.ahp-ms-card.is-done .ahp-ms-preview{opacity:1;transform:none}
+.ahp-ms-progress{position:absolute;left:10px;right:10px;bottom:10px;height:7px;border-radius:999px;background:rgba(255,255,255,.16);overflow:hidden}
+.ahp-ms-progress span{display:block;height:100%;width:0;border-radius:999px;background:linear-gradient(90deg,#37e8c8,#7c5cff,#287bff);transition:width .18s linear}
+.ahp-ms-pct{position:absolute;top:8px;right:8px;padding:3px 8px;border-radius:999px;background:rgba(6,10,24,.78);border:1px solid rgba(255,255,255,.2);font-size:10.5px;font-weight:800;color:#dbe6ff}
+.ahp-ms-status{font-size:11.5px;line-height:1.45;color:#9fb0d8;min-height:32px}
+.ahp-ms-status.ok{color:#5ff0cc}
+.ahp-ms-status.err{color:#ff9a9a}
+.ahp-ms-retry{margin-left:6px;border:1px solid rgba(255,154,154,.5);background:transparent;color:#ff9a9a;border-radius:8px;padding:2px 8px;font:inherit;font-size:11px;font-weight:800;cursor:pointer}
+.ahp-ms-foot{position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,.1)}
+#ahp-ms-summary{font-size:12px;color:#9fb0d8}
+#ahp-ms-summary b{color:#7cf0cf}
+.ahp-ms-cta{display:inline-flex;align-items:center;gap:7px;padding:9px 15px;border-radius:10px;border:1px solid rgba(124,92,255,.6);background:rgba(124,92,255,.16);color:#dbe6ff;text-decoration:none;font-weight:800;font-size:12px;transition:.22s}
+.ahp-ms-cta:hover{background:rgba(124,92,255,.34);transform:translateY(-1px);box-shadow:0 10px 24px rgba(124,92,255,.3)}
+.ahp-ms-hint{position:relative;z-index:1;margin-top:12px;font-size:11.5px;color:#8ea0c9;background:rgba(55,232,200,.07);border:1px dashed rgba(55,232,200,.35);border-radius:10px;padding:9px 12px}
+@media (max-width:640px){.ahp-ms{padding:16px;border-radius:18px}.ahp-ms-tip{right:auto;left:0;width:230px}.ahp-ms-quota{min-width:140px}}
+CSS;
+        echo '<div class="ahp-sec ahp-media-studio" data-tab="perfil"><div class="ahp-ms"><style>' . $__msCss . '</style>';
+        echo '<div class="ahp-ms-head"><div class="ahp-ms-title"><span class="ahp-ms-eq" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><div><h2>Estudio Visual</h2><p>Sube tus fotos: SONIKA las optimiza a WebP automáticamente.</p></div></div><div class="ahp-ms-quota"><div class="ahp-ms-quota-bar"><span id="ahp-ms-quota-fill"></span></div><div class="ahp-ms-quota-txt"><b id="ahp-ms-quota-used">0.0 MB</b> de 5 MB usados</div></div></div>';
+        echo '<div class="ahp-ms-grid">';
+        foreach ($__msCards as $__c) {
+            $__src = (string)$__c['src'];
+            $__has = $__src !== '';
+            echo '<article class="ahp-ms-card' . ($__has ? ' is-done' : '') . '" data-slot="' . sonika_esc($__c['slot']) . '">';
+            echo '<div class="ahp-ms-card-top"><span class="ahp-ms-badge">' . sonika_esc($__c['label']) . '</span><button type="button" class="ahp-ms-info" aria-label="Qué subir en ' . sonika_esc($__c['label']) . '">i<span class="ahp-ms-tip" role="tooltip"><b>' . sonika_esc($__c['title']) . '</b><em>' . $__c['em'] . '</em><ul>';
+            foreach ($__c['specs'] as $__s) echo '<li>' . $__s . '</li>';
+            echo '</ul><span class="ahp-ms-gain">🚀 ' . $__c['gain'] . '</span></span></button></div>';
+            echo '<div class="ahp-ms-drop" role="button" tabindex="0" aria-label="Subir ' . sonika_esc($__c['label']) . '"><input type="file" accept="image/jpeg,image/png,image/webp" hidden><img class="ahp-ms-preview" alt="' . sonika_esc($__c['label']) . '"' . ($__has ? ' src="' . sonika_esc($__src) . '"' : '') . '><div class="ahp-ms-empty"><div class="ahp-ms-icon">' . $__c['icon'] . '</div><p>Arrastra o elige tu foto</p><span class="ahp-ms-file">Cargar archivo</span><small>JPG · PNG · WebP</small></div><div class="ahp-ms-progress" hidden><span></span></div><div class="ahp-ms-pct" hidden>0%</div></div>';
+            echo '<div class="ahp-ms-status" aria-live="polite">' . ($__has ? '✓ Ya publicada en tu página' : 'Aún sin foto') . '</div>';
+            echo '</article>';
+        }
+        echo '</div>';
+        echo '<div class="ahp-ms-foot"><div id="ahp-ms-summary"></div><a class="ahp-ms-cta" href="/artista/' . sonika_esc((string)$__affPP['slug']) . '" target="_blank" rel="noopener">Ver mi página ↗</a></div>';
+        echo '<div class="ahp-ms-hint">💡 Consejo pro: usa fotos con tus instrumentos y luces de escenario. Las fotos nítidas y bien iluminadas venden tu show antes de que te escuchen.</div>';
+        echo '</div></div>';
+        $__msJs = <<<'JS'
+(function(){
+  var endpoint='/api/v1/public/affiliates/media/upload';
+  var QUOTA=5*1024*1024;
+  var PHRASES=['¡Portada lista! Tu página se ve increíble 🔥','¡Guardada y optimizada a WebP! Se nota el flow 🎧','¡Nivel subido! Tu perfil suena mejor ⚡','¡Perfecto! Cada foto suma a tu marca 🎸','¡Listo! Tus fans lo van a notar ✨'];
+  var cards=[].slice.call(document.querySelectorAll('.ahp-ms-card'));
+  var sum=document.getElementById('ahp-ms-summary');
+  var usedTxt=document.getElementById('ahp-ms-quota-used');
+  var fill=document.getElementById('ahp-ms-quota-fill');
+  function human(b){return b>=1048576?(b/1048576).toFixed(1)+' MB':Math.max(1,Math.round(b/1024))+' KB';}
+  function setQuota(used){var p=Math.min(100,used/QUOTA*100);if(fill)fill.style.width=p+'%';if(usedTxt)usedTxt.textContent=human(used);}
+  function refresh(){
+    var done=cards.filter(function(c){return c.classList.contains('is-done');}).length;
+    if(sum){sum.innerHTML=done===cards.length?'<b>¡Todo listo!</b> Tus '+done+' fotos están publicadas 🎉':(done+' de '+cards.length+' fotos listas · las demás se guardan al subirlas');}
+  }
+  setQuota(window.__MS_USED||0);refresh();
+  cards.forEach(function(card){
+    var input=card.querySelector('input[type=file]');
+    var drop=card.querySelector('.ahp-ms-drop');
+    var img=card.querySelector('.ahp-ms-preview');
+    var status=card.querySelector('.ahp-ms-status');
+    var bar=card.querySelector('.ahp-ms-progress span');
+    var pw=card.querySelector('.ahp-ms-progress');
+    var pct=card.querySelector('.ahp-ms-pct');
+    var last=null;
+    function say(t,cls){status.className='ahp-ms-status'+(cls?' '+cls:'');status.textContent=t;}
+    function pick(f){
+      if(!f)return;
+      if(!/^image\/(jpeg|png|webp)$/.test(f.type)){say('Formato no válido. Usa JPG, PNG o WebP.','err');return;}
+      if(f.size>5*1024*1024){say('La imagen pesa '+human(f.size)+'. El máximo es 5 MB.','err');return;}
+      last=f;
+      card.classList.add('is-preview');
+      img.src=URL.createObjectURL(f);
+      var probe=new Image();probe.onload=function(){var w=probe.naturalWidth;if(w&&w<800){say('⚠️ Solo '+w+' px de ancho: puede verse borrosa en pantallas grandes.','');}else{say('Lista: '+human(f.size)+' · optimizando…','');}};probe.src=img.src;
+      send(f);
+    }
+    function send(f){
+      var xhr=new XMLHttpRequest();
+      pw.hidden=false;pct.hidden=false;bar.style.width='0%';pct.textContent='0%';
+      xhr.upload.onprogress=function(e){if(e.lengthComputable){var p=Math.round(e.loaded/e.total*100);bar.style.width=p+'%';pct.textContent=p+'%';}};
+      xhr.onload=function(){
+        var j=null;try{j=JSON.parse(xhr.responseText);}catch(e){}
+        pw.hidden=true;pct.hidden=true;
+        if(j&&j.ok){
+          card.classList.add('is-done');card.classList.remove('is-preview');
+          say('✓ '+PHRASES[Math.floor(Math.random()*PHRASES.length)],'ok');
+          if(typeof j.used==='number')setQuota(j.used);
+          refresh();
+        }else{
+          card.classList.remove('is-done');
+          say((j&&j.message)||'No se pudo guardar.','err');
+          if(!status.querySelector('.ahp-ms-retry')){var b=document.createElement('button');b.type='button';b.className='ahp-ms-retry';b.textContent='Reintentar';b.onclick=function(){if(last)send(last);};status.appendChild(b);}
+        }
+      };
+      xhr.onerror=function(){pw.hidden=true;pct.hidden=true;say('Error de conexión. Revisa tu red e inténtalo otra vez.','err');};
+      var fd=new FormData();fd.append(card.getAttribute('data-slot'),f);xhr.send(fd);
+    }
+    drop.addEventListener('click',function(e){if(e.target.closest('.ahp-ms-info'))return;input.click();});
+    drop.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();input.click();}});
+    input.addEventListener('change',function(){pick(input.files&&input.files[0]);});
+    ['dragenter','dragover'].forEach(function(ev){drop.addEventListener(ev,function(e){e.preventDefault();drop.classList.add('is-over');});});
+    ['dragleave','drop'].forEach(function(ev){drop.addEventListener(ev,function(e){e.preventDefault();drop.classList.remove('is-over');});});
+    drop.addEventListener('drop',function(e){if(e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0])pick(e.dataTransfer.files[0]);});
+  });
+})();
+JS;
+        echo '<script>window.__MS_USED=' . (int)$__usedM . ';</script><script>' . $__msJs . '</script>';
         echo '<div class="ahp-sec" data-tab="perfil"><h2>SONIKA Sound League</h2><div style="background:#fff;border:1px solid #eef2f0;border-radius:14px;padding:16px"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><div><span style="font-size:12px;color:#64748b">Tu nivel</span><div style="font-size:22px;font-weight:800;color:#101d3a">' . sonika_esc((string)($__lg['level'] ?? '—')) . '</div></div><div style="text-align:right;font-size:12px;color:#64748b">' . (!empty($__lg['next']) ? ('Próximo: <b>' . sonika_esc((string)$__lg['next']) . '</b>') : 'Nivel máximo') . '<br>Ventas del mes: <b>' . $__money($__lg['sales'] ?? 0) . '</b></div></div><div style="margin-top:12px;height:10px;background:#eef2f0;border-radius:999px;overflow:hidden"><div style="height:100%;width:' . (int)($__lg['progress'] ?? 0) . '%;background:linear-gradient(90deg,#0d9f72,#7c5cff)"></div></div><div style="font-size:11.5px;color:#94a3b8;margin-top:6px">Progreso al siguiente nivel: ' . (int)($__lg['progress'] ?? 0) . '%</div></div></div>';
         $__awards = $__svcP->awardsFor((int)$__affPP['id']);
         echo '<div class="ahp-sec" data-tab="perfil"><h2>Logros y Premios</h2>';

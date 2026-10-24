@@ -136,7 +136,7 @@ class AffiliateService
             'gallery0' => $out['gallery'][0] ?? '', 'gallery1' => $out['gallery'][1] ?? '', 'gallery2' => $out['gallery'][2] ?? '',
         ]);
         if (!$r['ok']) return $r;
-        return ['ok' => true, 'message' => $okImg ? 'Medios e imágenes guardados (optimizadas a WebP).' : 'Datos guardados.'];
+        return ['ok' => true, 'message' => $okImg ? 'Medios e imagenes guardados (optimizadas a WebP).' : 'Datos guardados.', 'used' => (int)$used, 'quota' => (int)$quota, 'media' => ['cover' => (string)$out['cover'], 'avatar' => (string)$out['avatar'], 'gallery' => array_values(array_filter($out['gallery']))]];
     }
 
     public function availableBalance(int $affiliateId): float
