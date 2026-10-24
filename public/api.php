@@ -197,6 +197,7 @@ $router->post('/api/v1/public/affiliates/recover/confirm', [\App\Controllers\Aff
 $router->post('/api/v1/public/affiliates/payout/request', [\App\Controllers\AffiliateController::class, 'payoutRequest']);
 $router->post('/api/v1/public/affiliates/payout/confirm', [\App\Controllers\AffiliateController::class, 'payoutConfirm']);
 $router->post('/api/v1/public/affiliates/media', [\App\Controllers\AffiliateController::class, 'mediaSave']);
+$router->post('/api/v1/public/affiliates/media/upload', [\App\Controllers\AffiliateController::class, 'mediaUpload']);
 $router->post('/api/v1/public/affiliates/logout', [\App\Controllers\AffiliateController::class, 'logout']);
 $router->post('/api/v1/public/cart/validate', [\App\Controllers\CartController::class, 'validate']);
 $router->post('/api/v1/public/cart/coupon', [\App\Controllers\CartController::class, 'coupon']);

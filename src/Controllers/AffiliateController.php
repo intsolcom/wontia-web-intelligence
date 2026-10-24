@@ -28,6 +28,16 @@ class AffiliateController
         echo json_encode((new AffiliateService())->tipAdd((int)$aff['id'], $in), JSON_UNESCAPED_UNICODE);
     }
 
+    /** POST /api/v1/public/affiliates/media/upload — sube portada/avatar/galería (WebP + cuota). */
+    public function mediaUpload($request)
+    {
+        header('Content-Type: application/json');
+        header('Cache-Control: no-store');
+        \App\Core\Session::start();
+        if (empty($_SESSION['ff_affiliate_id'])) { echo json_encode(['ok' => false, 'message' => 'Sesión requerida.']); return; }
+        echo json_encode((new AffiliateService())->mediaUpload((int)$_SESSION['ff_affiliate_id'], $_FILES, $_POST), JSON_UNESCAPED_UNICODE);
+    }
+
     /** POST /api/v1/public/affiliates/media — guarda medios (cover/gallery/YouTube/Instagram). */
     public function mediaSave($request)
     {

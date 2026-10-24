@@ -89,6 +89,56 @@ class AffiliateService
         } catch (\Throwable $e) { return ['ok' => false, 'message' => 'No se pudieron guardar los medios.']; }
     }
 
+    private function affLocal(string $p): string
+    {
+        if ($p === '' || strpos($p, '/assets/uploads/_artist/') !== 0) return '';
+        return '/app/public' . $p;
+    }
+
+    public function mediaUpload(int $affiliateId, array $files, array $in): array
+    {
+        $quota = 5 * 1024 * 1024;
+        $dir = '/app/public/assets/uploads/_artist/' . $affiliateId;
+        if (!is_dir($dir)) @mkdir($dir, 0775, true);
+        $cur = $this->mediaFor($affiliateId);
+        $used = 0;
+        foreach (['cover', 'avatar'] as $k) { $lp = $this->affLocal((string)($cur[$k] ?? '')); if ($lp !== '' && is_file($lp)) $used += filesize($lp); }
+        $gal = json_decode((string)($cur['gallery'] ?? '[]'), true);
+        if (!is_array($gal)) $gal = [];
+        foreach ($gal as $g) { $lp = $this->affLocal((string)$g); if ($lp !== '' && is_file($lp)) $used += filesize($lp); }
+        $out = ['cover' => (string)($cur['cover'] ?? ''), 'avatar' => (string)($cur['avatar'] ?? ''), 'gallery' => $gal];
+        $keys = ['cover' => 'cover', 'avatar' => 'avatar', 'gallery0' => 0, 'gallery1' => 1, 'gallery2' => 2];
+        $okImg = false;
+        foreach ($keys as $fk => $slot) {
+            if (empty($files[$fk]) || !is_array($files[$fk]) || ($files[$fk]['error'] ?? 1) !== UPLOAD_ERR_OK) continue;
+            $tmp = $files[$fk]['tmp_name'];
+            $mime = function_exists('mime_content_type') ? (string)@mime_content_type($tmp) : '';
+            if (!in_array($mime, ['image/jpeg', 'image/png', 'image/webp'], true)) continue;
+            $im = @imagecreatefromstring((string)@file_get_contents($tmp));
+            if (!$im) continue;
+            $w = imagesx($im); $h = imagesy($im); $max = 1600;
+            if ($w > $max && $w > 0) { $nw = $max; $nh = (int)round($h * $nw / $w); $d = imagecreatetruecolor($nw, $nh); imagecopyresampled($d, $im, 0, 0, 0, 0, $nw, $nh, $w, $h); $im = $d; }
+            $name = 'm' . bin2hex(random_bytes(6)) . '.webp';
+            $dest = rtrim($dir, '/') . '/' . $name;
+            @imagewebp($im, $dest, 82);
+            $sz = is_file($dest) ? filesize($dest) : 0;
+            if ($sz === 0 || $used + $sz > $quota) { @unlink($dest); continue; }
+            $used += $sz;
+            $okImg = true;
+            $rel = '/assets/uploads/_artist/' . $affiliateId . '/' . $name;
+            if ($slot === 'cover' || $slot === 'avatar') $out[$slot] = $rel;
+            else $out['gallery'][(int)$slot] = $rel;
+        }
+        $out['gallery'] = array_values(array_filter($out['gallery']));
+        $r = $this->mediaSave($affiliateId, [
+            'video_url' => (string)($cur['video_url'] ?? ''), 'instagram' => (string)($cur['instagram'] ?? ''),
+            'cover' => $out['cover'], 'avatar' => $out['avatar'],
+            'gallery0' => $out['gallery'][0] ?? '', 'gallery1' => $out['gallery'][1] ?? '', 'gallery2' => $out['gallery'][2] ?? '',
+        ]);
+        if (!$r['ok']) return $r;
+        return ['ok' => true, 'message' => $okImg ? 'Medios e imágenes guardados (optimizadas a WebP).' : 'Datos guardados.'];
+    }
+
     public function availableBalance(int $affiliateId): float
     {
         try {
