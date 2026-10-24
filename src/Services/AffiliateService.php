@@ -434,6 +434,15 @@ class AffiliateService
         ];
     }
 
+    public function awardsFor(int $affiliateId): array
+    {
+        try {
+            $st = Database::instance()->prepare("SELECT * FROM affiliate_awards WHERE affiliate_id = :a AND site_id = @site_id AND status = 'granted' ORDER BY id DESC");
+            $st->execute(['a' => $affiliateId]);
+            return $st->fetchAll();
+        } catch (\Throwable $e) { return []; }
+    }
+
     public function statsFor(int $affiliateId): array
     {
         try {

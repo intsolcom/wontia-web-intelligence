@@ -91,6 +91,18 @@ if (($segments[0] ?? '') === 'artista' && ($segments[2] ?? '') === 'panel' && !e
         echo '</div>';
         $__lg = is_array($__d['league'] ?? null) ? $__d['league'] : ['level' => '—', 'sales' => 0, 'progress' => 0, 'next' => null];
         echo '<div class="ahp-sec"><h2>SONIKA Sound League</h2><div style="background:#fff;border:1px solid #eef2f0;border-radius:14px;padding:16px"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><div><span style="font-size:12px;color:#64748b">Tu nivel</span><div style="font-size:22px;font-weight:800;color:#101d3a">' . sonika_esc((string)($__lg['level'] ?? '—')) . '</div></div><div style="text-align:right;font-size:12px;color:#64748b">' . (!empty($__lg['next']) ? ('Próximo: <b>' . sonika_esc((string)$__lg['next']) . '</b>') : 'Nivel máximo') . '<br>Ventas del mes: <b>' . $__money($__lg['sales'] ?? 0) . '</b></div></div><div style="margin-top:12px;height:10px;background:#eef2f0;border-radius:999px;overflow:hidden"><div style="height:100%;width:' . (int)($__lg['progress'] ?? 0) . '%;background:linear-gradient(90deg,#0d9f72,#7c5cff)"></div></div><div style="font-size:11.5px;color:#94a3b8;margin-top:6px">Progreso al siguiente nivel: ' . (int)($__lg['progress'] ?? 0) . '%</div></div></div>';
+        $__awards = $__svcP->awardsFor((int)$__affPP['id']);
+        echo '<div class="ahp-sec"><h2>Logros y Premios</h2>';
+        if (!$__awards) {
+            echo '<div style="background:#fff;border:1px dashed #dbe7e1;border-radius:12px;padding:16px;color:#94a3b8;font-size:13px">Aún sin logros. ¡A vender y subir de nivel!</div>';
+        } else {
+            echo '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px">';
+            foreach ($__awards as $__aw) {
+                echo '<div style="background:#fff;border:1px solid #eef2f0;border-radius:14px;padding:14px"><div style="font-size:11px;color:#b7791f;font-weight:800;letter-spacing:.05em;text-transform:uppercase">' . sonika_esc((string)$__aw['kind']) . '</div><div style="font-weight:800;color:#101d3a;margin:4px 0 2px">' . sonika_esc((string)$__aw['title']) . '</div>' . (!empty($__aw['description']) ? '<div style="font-size:12.5px;color:#64748b">' . sonika_esc((string)$__aw['description']) . '</div>' : '') . '<div style="font-size:11px;color:#94a3b8;margin-top:6px">' . sonika_esc(substr((string)$__aw['created_at'], 0, 10)) . '</div></div>';
+            }
+            echo '</div>';
+        }
+        echo '</div>';
         echo '<div class="ahp-sec"><h2>Mis Ganancias — estados exactos</h2><table><thead><tr><th>Estado</th><th>Movimientos</th><th class="n">Monto</th></tr></thead><tbody>';
         if (empty($__d['by_status'])) echo '<tr><td colspan="3" style="color:#94a3b8">Aún no hay comisiones. Comparte tu enlace para empezar.</td></tr>';
         foreach ($__states as $__codeS => $__lblS) {
