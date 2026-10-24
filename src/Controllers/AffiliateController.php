@@ -125,7 +125,30 @@ class AffiliateController
         $p = (new AffiliateService())->loginVerify((string)($in['email'] ?? ''), (string)($in['code'] ?? ''));
         if (!$p) { echo json_encode(['ok' => false, 'message' => 'Código incorrecto o vencido.']); return; }
         $_SESSION['ff_affiliate_id'] = $p['id'];
+        $_SESSION['ff_started_at'] = time();
         echo json_encode(['ok' => true, 'slug' => $p['slug'], 'name' => $p['name']], JSON_UNESCAPED_UNICODE);
+    }
+
+    /** GET /api/v1/public/affiliates/session — segundos restantes de la sesión (60 min). */
+    public function sessionInfo($request)
+    {
+        header('Content-Type: application/json');
+        header('Cache-Control: no-store');
+        \App\Core\Session::start();
+        if (empty($_SESSION['ff_affiliate_id'])) { echo json_encode(['ok' => false, 'message' => 'Sesión no iniciada.']); return; }
+        $started = (int)($_SESSION['ff_started_at'] ?? time());
+        echo json_encode(['ok' => true, 'expires_in' => max(0, 3600 - (time() - $started))], JSON_UNESCAPED_UNICODE);
+    }
+
+    /** POST /api/v1/public/affiliates/session/extend — renueva la sesión por 60 min más. */
+    public function sessionExtend($request)
+    {
+        header('Content-Type: application/json');
+        header('Cache-Control: no-store');
+        \App\Core\Session::start();
+        if (empty($_SESSION['ff_affiliate_id'])) { echo json_encode(['ok' => false, 'message' => 'Sesión no iniciada.']); return; }
+        $_SESSION['ff_started_at'] = time();
+        echo json_encode(['ok' => true, 'expires_in' => 3600], JSON_UNESCAPED_UNICODE);
     }
 
     /** POST /api/v1/public/affiliates/logout */

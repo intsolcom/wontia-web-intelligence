@@ -10,8 +10,9 @@ class Session
         if (self::$started) return;
         if (session_status() === PHP_SESSION_NONE) {
             $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+            ini_set('session.gc_maxlifetime', '3600');
             session_set_cookie_params([
-                'lifetime' => 0,
+                'lifetime' => 3600,
                 'path' => '/',
                 'secure' => $secure,
                 'httponly' => true,

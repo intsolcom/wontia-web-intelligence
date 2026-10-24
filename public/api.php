@@ -200,6 +200,8 @@ $router->post('/api/v1/public/affiliates/payout/confirm', [\App\Controllers\Affi
 $router->post('/api/v1/public/affiliates/media', [\App\Controllers\AffiliateController::class, 'mediaSave']);
 $router->post('/api/v1/public/affiliates/media/upload', [\App\Controllers\AffiliateController::class, 'mediaUpload']);
 $router->post('/api/v1/public/affiliates/cv', [\App\Controllers\AffiliateController::class, 'cvSave']);
+$router->get('/api/v1/public/affiliates/session', [\App\Controllers\AffiliateController::class, 'sessionInfo']);
+$router->post('/api/v1/public/affiliates/session/extend', [\App\Controllers\AffiliateController::class, 'sessionExtend']);
 $router->post('/api/v1/public/affiliates/logout', [\App\Controllers\AffiliateController::class, 'logout']);
 $router->post('/api/v1/public/cart/validate', [\App\Controllers\CartController::class, 'validate']);
 $router->post('/api/v1/public/cart/coupon', [\App\Controllers\CartController::class, 'coupon']);
