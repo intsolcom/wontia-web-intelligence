@@ -182,6 +182,27 @@ if (($segments[0] ?? '') === 'artista' && ($segments[2] ?? '') === 'panel' && !e
             echo '<tr><td><span class="st ' . sonika_esc($__codeS) . '">' . sonika_esc($__lblS) . '</span></td><td>' . (int)$__b['count'] . '</td><td class="n">' . $__money($__b['amount']) . '</td></tr>';
         }
         echo '</tbody></table><p class="note">Una comisión <b>estimada</b> no es un ingreso garantizado; requiere validación y aprobación. Modo simulación.</p></div>';
+        $__ss = $__svcP->salesStats((int)$__affPP['id']);
+        echo '<div class="ahp-sec" data-tab="ventas"><h2>Estadísticas de ventas</h2>';
+        echo '<div class="ahp-cards" style="margin-bottom:16px"><div class="ahp-c"><small>Conversión (clics → pedidos)</small><b>' . $__ss['conversion'] . '%</b></div><div class="ahp-c"><small>Ticket promedio</small><b>' . $__money($__ss['avg_ticket']) . '</b></div><div class="ahp-c"><small>Pedidos atribuidos</small><b>' . (int)$__ss['orders'] . '</b></div><div class="ahp-c"><small>Clicks</small><b>' . (int)$__ss['clicks'] . '</b></div></div>';
+        if (!empty($__ss['top_sold'])) {
+            $__best = $__ss['top_sold'][0];
+            echo '<div style="background:linear-gradient(135deg,#fff,#f6fbf9);border:1px solid #e9efec;border-radius:14px;padding:14px;margin-bottom:14px"><small style="font-size:12px;color:#64748b">⭐ Producto más vendido</small><div style="font-weight:800;color:#101d3a;margin-top:4px">' . sonika_esc((string)$__best['name']) . '</div><div style="font-size:12px;color:#0d7a58;font-weight:700">' . (int)$__best['qty'] . ' unidades · $ ' . number_format((float)$__best['amt'], 0, ',', '.') . '</div></div>';
+            echo '<table><thead><tr><th>Producto</th><th>Unidades</th><th>Ingresos</th></tr></thead><tbody>';
+            foreach (array_slice($__ss['top_sold'], 0, 8) as $__ps2) echo '<tr><td>' . sonika_esc((string)$__ps2['name']) . '</td><td>' . (int)$__ps2['qty'] . '</td><td>$ ' . number_format((float)$__ps2['amt'], 0, ',', '.') . '</td></tr>';
+            echo '</tbody></table>';
+        } else {
+            echo '<div style="background:#fff;border:1px dashed #dbe7e1;border-radius:12px;padding:16px;color:#94a3b8;font-size:13px">Aún sin ventas atribuidas para mostrar productos.</div>';
+        }
+        echo '<h2 style="font-size:15px;margin:18px 0 8px">Productos que visitaron tus seguidores</h2>';
+        if (!empty($__ss['top_viewed'])) {
+            echo '<ul style="margin:0;padding-left:18px;line-height:1.9;font-size:13.5px;color:#334155">';
+            foreach ($__ss['top_viewed'] as $__pv) echo '<li>' . sonika_esc((string)$__pv['page_url']) . ' <b>(' . (int)$__pv['v'] . ')</b></li>';
+            echo '</ul>';
+        } else {
+            echo '<div style="color:#94a3b8;font-size:13px">Aún sin visitas a productos de tus seguidores.</div>';
+        }
+        echo '</div>';
         echo '<div class="ahp-sec" data-tab="ventas"><h2>Pedidos atribuidos</h2><table><thead><tr><th>Pedido</th><th>Base</th><th>Tasa</th><th>Comisión</th><th>Estado</th><th>Fecha</th></tr></thead><tbody>';
         if (empty($__d['recent'])) echo '<tr><td colspan="6" style="color:#94a3b8">Sin pedidos atribuidos todavía.</td></tr>';
         foreach ($__d['recent'] as $__r) {

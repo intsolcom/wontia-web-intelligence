@@ -550,6 +550,36 @@ class AffiliateService
         } catch (\Throwable $e) { return []; }
     }
 
+    public function salesStats(int $affiliateId): array
+    {
+        $out = ['orders' => 0, 'clicks' => 0, 'conversion' => 0.0, 'avg_ticket' => 0.0, 'top_sold' => [], 'top_viewed' => []];
+        try {
+            $db = Database::instance();
+            $st = $db->prepare('SELECT COUNT(*) FROM affiliate_order_attributions WHERE affiliate_id = :a AND site_id = @site_id');
+            $st->execute(['a' => $affiliateId]);
+            $out['orders'] = (int)$st->fetchColumn();
+            $st = $db->prepare('SELECT COUNT(*) FROM affiliate_clicks WHERE affiliate_id = :a AND site_id = @site_id AND is_bot = 0');
+            $st->execute(['a' => $affiliateId]);
+            $out['clicks'] = (int)$st->fetchColumn();
+            $out['conversion'] = $out['clicks'] > 0 ? round($out['orders'] / $out['clicks'] * 100, 1) : 0.0;
+            $st = $db->prepare('SELECT COALESCE(SUM(base_amount),0) FROM affiliate_commissions WHERE affiliate_id = :a AND site_id = @site_id AND status <> "REVERSED"');
+            $st->execute(['a' => $affiliateId]);
+            $sales = (float)$st->fetchColumn();
+            $out['avg_ticket'] = $out['orders'] > 0 ? round($sales / $out['orders'], 0) : 0.0;
+            try {
+                $st = $db->prepare('SELECT i.name, SUM(i.qty) qty, SUM(i.subtotal_cents)/100 amt FROM affiliate_order_attributions a JOIN store_orders o ON o.uuid = a.order_ref AND o.site_id = a.site_id JOIN store_order_items i ON i.order_id = o.id AND i.site_id = o.site_id WHERE a.affiliate_id = :a AND a.site_id = @site_id GROUP BY i.name ORDER BY qty DESC LIMIT 10');
+                $st->execute(['a' => $affiliateId]);
+                $out['top_sold'] = $st->fetchAll();
+            } catch (\Throwable $e) {}
+            try {
+                $st = $db->prepare('SELECT e.page_url, COUNT(*) v FROM seo_tracking_events e WHERE e.site_id = @site_id AND e.type = "page_view" AND e.page_url LIKE "/producto/%" AND e.session_id IN (SELECT session_id FROM affiliate_clicks WHERE affiliate_id = :a AND site_id = @site_id AND session_id <> "") GROUP BY e.page_url ORDER BY v DESC LIMIT 10');
+                $st->execute(['a' => $affiliateId]);
+                $out['top_viewed'] = $st->fetchAll();
+            } catch (\Throwable $e) {}
+        } catch (\Throwable $e) {}
+        return $out;
+    }
+
     public function statsFor(int $affiliateId): array
     {
         try {
