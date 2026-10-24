@@ -65,6 +65,30 @@ class AffiliateService
         return ['ok' => true, 'message' => 'Contraseña actualizada. Ya puedes iniciar sesión.'];
     }
 
+    public function mediaFor(int $affiliateId): array
+    {
+        try { $st = Database::instance()->prepare('SELECT * FROM affiliate_media WHERE affiliate_id = :a AND site_id = @site_id LIMIT 1'); $st->execute(['a' => $affiliateId]); return $st->fetch() ?: []; }
+        catch (\Throwable $e) { return []; }
+    }
+
+    public function mediaSave(int $affiliateId, array $in): array
+    {
+        $url = function ($v) { $v = trim((string)$v); return ($v !== '' && preg_match('~^(https?://|/)~i', $v)) ? $v : ''; };
+        $cover = $url($in['cover'] ?? '');
+        $avatar = $url($in['avatar'] ?? '');
+        $video = $url($in['video_url'] ?? '');
+        $tiktok = $url($in['tiktok'] ?? '');
+        $insta = preg_replace('/[^A-Za-z0-9_.]/', '', (string)($in['instagram'] ?? ''));
+        $gallery = [];
+        for ($i = 0; $i < 3; $i++) { $g = $url($in['gallery' . $i] ?? ''); if ($g !== '') $gallery[] = $g; }
+        try {
+            Database::instance()->prepare('INSERT INTO affiliate_media (site_id, affiliate_id, cover, avatar, gallery, video_url, instagram, tiktok, updated_at) VALUES (@site_id, :a, :cover, :avatar, :gallery, :video, :insta, :tiktok, NOW()) ON DUPLICATE KEY UPDATE cover = VALUES(cover), avatar = VALUES(avatar), gallery = VALUES(gallery), video_url = VALUES(video_url), instagram = VALUES(instagram), tiktok = VALUES(tiktok)')
+                ->execute(['a' => $affiliateId, 'cover' => $cover, 'avatar' => $avatar, 'gallery' => json_encode($gallery), 'video' => $video, 'insta' => strtolower((string)$insta), 'tiktok' => $tiktok]);
+            $this->log($affiliateId, 'media_saved');
+            return ['ok' => true, 'message' => 'Medios guardados.'];
+        } catch (\Throwable $e) { return ['ok' => false, 'message' => 'No se pudieron guardar los medios.']; }
+    }
+
     public function availableBalance(int $affiliateId): float
     {
         try {
