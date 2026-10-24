@@ -65,6 +65,41 @@ class AffiliateService
         return ['ok' => true, 'message' => 'Contraseña actualizada. Ya puedes iniciar sesión.'];
     }
 
+    public function availableBalance(int $affiliateId): float
+    {
+        try {
+            $st = Database::instance()->prepare("SELECT COALESCE(SUM(c.amount),0) FROM affiliate_commissions c LEFT JOIN affiliate_payout_items i ON i.commission_id = c.id AND i.site_id = c.site_id WHERE c.affiliate_id = :a AND c.site_id = @site_id AND c.status = 'APPROVED' AND i.id IS NULL");
+            $st->execute(['a' => $affiliateId]);
+            return (float)$st->fetchColumn();
+        } catch (\Throwable $e) { return 0.0; }
+    }
+
+    public function payoutRequest(int $affiliateId): array
+    {
+        $min = 100000.0;
+        $bal = $this->availableBalance($affiliateId);
+        if ($bal < $min) return ['ok' => false, 'message' => 'Saldo mínimo para retirar: $ ' . number_format($min, 0, ',', '.') . '. Tu saldo disponible es $ ' . number_format($bal, 0, ',', '.') . '.'];
+        $prof = $this->getById($affiliateId);
+        if (!$prof) return ['ok' => false, 'message' => 'Perfil no encontrado.'];
+        $this->sendOtp((string)$prof['email']);
+        return ['ok' => true, 'otp' => true, 'message' => 'Te enviamos un código al correo para confirmar el retiro de $ ' . number_format($bal, 0, ',', '.') . '.'];
+    }
+
+    public function payoutConfirm(int $affiliateId, string $code): array
+    {
+        $prof = $this->getById($affiliateId);
+        if (!$prof) return ['ok' => false, 'message' => 'Perfil no encontrado.'];
+        $v = $this->verifyOtp((string)$prof['email'], $code);
+        if (empty($v['ok'])) return ['ok' => false, 'message' => 'Código incorrecto o vencido.'];
+        $bal = $this->availableBalance($affiliateId);
+        if ($bal < 100000.0) return ['ok' => false, 'message' => 'Saldo insuficiente (mínimo $ 100.000).'];
+        try {
+            Database::instance()->prepare("INSERT INTO affiliate_payout_requests (site_id, affiliate_id, amount, status, created_at) VALUES (@site_id, :a, :m, 'requested', NOW())")->execute(['a' => $affiliateId, 'm' => $bal]);
+            $this->log($affiliateId, 'payout_requested', ['amount' => $bal]);
+            return ['ok' => true, 'message' => 'Retiro solicitado por $ ' . number_format($bal, 0, ',', '.') . '. Se procesará en el próximo corte.'];
+        } catch (\Throwable $e) { return ['ok' => false, 'message' => 'No se pudo registrar el retiro.']; }
+    }
+
     public function login(string $email, string $password): array
     {
         $email = strtolower(trim($email));
