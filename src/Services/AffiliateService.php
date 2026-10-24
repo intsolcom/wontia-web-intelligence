@@ -44,15 +44,28 @@ class AffiliateService
         } catch (\Throwable $e) {}
     }
 
-    public function login(string $email, string $password): ?array
+    public function login(string $email, string $password): array
     {
         $email = strtolower(trim($email));
-        if ($email === '' || $password === '') return null;
+        if ($email === '' || $password === '') return ['ok' => false, 'message' => 'Completa correo y contraseña.'];
         $prof = $this->profileByEmail($email);
-        if (!$prof || empty($prof['password_hash']) || !password_verify($password, (string)$prof['password_hash'])) return null;
+        if (!$prof || empty($prof['password_hash']) || !password_verify($password, (string)$prof['password_hash'])) {
+            return ['ok' => false, 'message' => 'Correo o contraseña incorrectos.'];
+        }
+        $sent = $this->sendOtp($email);
+        return ['ok' => true, 'otp' => true, 'sent' => !empty($sent['sent']), 'message' => 'Te enviamos un código al correo.'];
+    }
+
+    public function loginVerify(string $email, string $code): ?array
+    {
+        $email = strtolower(trim($email));
+        $r = $this->verifyOtp($email, $code);
+        if (empty($r['ok'])) return null;
+        $prof = $this->profileByEmail($email);
+        if (!$prof) return null;
         try { Database::instance()->prepare('UPDATE affiliate_profiles SET last_login_at = NOW() WHERE id = :id AND site_id = @site_id')->execute(['id' => (int)$prof['id']]); } catch (\Throwable $e) {}
         $name = trim((string)(($prof['artist_name'] ?: $prof['public_name']) ?: $prof['full_name']));
-        return ['id' => (int)$prof['id'], 'slug' => (string)$prof['slug'], 'name' => $name, 'status' => (string)$prof['status']];
+        return ['id' => (int)$prof['id'], 'slug' => (string)$prof['slug'], 'name' => $name];
     }
 
     public function setPassword(int $affiliateId, string $password): bool

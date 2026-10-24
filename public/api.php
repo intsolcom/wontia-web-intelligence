@@ -191,6 +191,7 @@ $router->post('/api/v1/public/affiliates/document', [\App\Controllers\AffiliateC
 $router->post('/api/v1/public/affiliates/contract', [\App\Controllers\AffiliateController::class, 'contract']);
 $router->post('/api/v1/public/affiliates/tip', [\App\Controllers\AffiliateController::class, 'tip']);
 $router->post('/api/v1/public/affiliates/login', [\App\Controllers\AffiliateController::class, 'login']);
+$router->post('/api/v1/public/affiliates/login/verify', [\App\Controllers\AffiliateController::class, 'loginVerify']);
 $router->post('/api/v1/public/affiliates/logout', [\App\Controllers\AffiliateController::class, 'logout']);
 $router->post('/api/v1/public/cart/validate', [\App\Controllers\CartController::class, 'validate']);
 $router->post('/api/v1/public/cart/coupon', [\App\Controllers\CartController::class, 'coupon']);

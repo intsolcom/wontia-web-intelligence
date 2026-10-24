@@ -28,18 +28,28 @@ class AffiliateController
         echo json_encode((new AffiliateService())->tipAdd((int)$aff['id'], $in), JSON_UNESCAPED_UNICODE);
     }
 
-    /** POST /api/v1/public/affiliates/login — correo + contraseña. */
+    /** POST /api/v1/public/affiliates/login — paso 1: correo + contraseña → envía OTP (no abre sesión). */
     public function login($request)
     {
         $in = json_decode((string)file_get_contents('php://input'), true);
         if (!is_array($in)) $in = $_POST;
         header('Content-Type: application/json');
         header('Cache-Control: no-store');
+        echo json_encode((new AffiliateService())->login((string)($in['email'] ?? ''), (string)($in['password'] ?? '')), JSON_UNESCAPED_UNICODE);
+    }
+
+    /** POST /api/v1/public/affiliates/login/verify — paso 2: correo + código OTP → abre sesión. */
+    public function loginVerify($request)
+    {
+        $in = json_decode((string)file_get_contents('php://input'), true);
+        if (!is_array($in)) $in = $_POST;
+        header('Content-Type: application/json');
+        header('Cache-Control: no-store');
         \App\Core\Session::start();
-        $r = (new AffiliateService())->login((string)($in['email'] ?? ''), (string)($in['password'] ?? ''));
-        if (!$r) { echo json_encode(['ok' => false, 'message' => 'Correo o contraseña incorrectos.']); return; }
-        $_SESSION['ff_affiliate_id'] = $r['id'];
-        echo json_encode(['ok' => true, 'slug' => $r['slug'], 'name' => $r['name']]);
+        $p = (new AffiliateService())->loginVerify((string)($in['email'] ?? ''), (string)($in['code'] ?? ''));
+        if (!$p) { echo json_encode(['ok' => false, 'message' => 'Código incorrecto o vencido.']); return; }
+        $_SESSION['ff_affiliate_id'] = $p['id'];
+        echo json_encode(['ok' => true, 'slug' => $p['slug'], 'name' => $p['name']], JSON_UNESCAPED_UNICODE);
     }
 
     /** POST /api/v1/public/affiliates/logout */
