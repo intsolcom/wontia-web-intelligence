@@ -28,6 +28,26 @@ class AffiliateController
         echo json_encode((new AffiliateService())->tipAdd((int)$aff['id'], $in), JSON_UNESCAPED_UNICODE);
     }
 
+    /** POST /api/v1/public/affiliates/recover — envía OTP para recuperar contraseña. */
+    public function recoverRequest($request)
+    {
+        $in = json_decode((string)file_get_contents('php://input'), true);
+        if (!is_array($in)) $in = $_POST;
+        header('Content-Type: application/json');
+        header('Cache-Control: no-store');
+        echo json_encode((new AffiliateService())->recoverRequest((string)($in['email'] ?? '')), JSON_UNESCAPED_UNICODE);
+    }
+
+    /** POST /api/v1/public/affiliates/recover/confirm — código OTP + nueva contraseña. */
+    public function recoverConfirm($request)
+    {
+        $in = json_decode((string)file_get_contents('php://input'), true);
+        if (!is_array($in)) $in = $_POST;
+        header('Content-Type: application/json');
+        header('Cache-Control: no-store');
+        echo json_encode((new AffiliateService())->recoverConfirm((string)($in['email'] ?? ''), (string)($in['code'] ?? ''), (string)($in['password'] ?? '')), JSON_UNESCAPED_UNICODE);
+    }
+
     /** POST /api/v1/public/affiliates/login — paso 1: correo + contraseña → envía OTP (no abre sesión). */
     public function login($request)
     {

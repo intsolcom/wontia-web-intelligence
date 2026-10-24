@@ -44,6 +44,27 @@ class AffiliateService
         } catch (\Throwable $e) {}
     }
 
+    public function recoverRequest(string $email): array
+    {
+        $email = strtolower(trim($email));
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) return ['ok' => false, 'message' => 'Correo inválido.'];
+        $prof = $this->profileByEmail($email);
+        if ($prof) $this->sendOtp($email);
+        return ['ok' => true, 'message' => 'Si el correo está registrado, enviamos un código.'];
+    }
+
+    public function recoverConfirm(string $email, string $code, string $newPassword): array
+    {
+        $email = strtolower(trim($email));
+        if (strlen($newPassword) < 8) return ['ok' => false, 'message' => 'La contraseña debe tener al menos 8 caracteres.'];
+        $r = $this->verifyOtp($email, $code);
+        if (empty($r['ok'])) return ['ok' => false, 'message' => 'Código incorrecto o vencido.'];
+        $prof = $this->profileByEmail($email);
+        if (!$prof) return ['ok' => false, 'message' => 'No encontrado.'];
+        if (!$this->setPassword((int)$prof['id'], $newPassword)) return ['ok' => false, 'message' => 'No se pudo cambiar la contraseña.'];
+        return ['ok' => true, 'message' => 'Contraseña actualizada. Ya puedes iniciar sesión.'];
+    }
+
     public function login(string $email, string $password): array
     {
         $email = strtolower(trim($email));
