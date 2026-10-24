@@ -198,7 +198,7 @@ if (($segments[0] ?? '') === 'artista' && ($segments[2] ?? '') === 'panel' && !e
 <details><summary>Redes sociales y video</summary>
 <label>Instagram (usuario o URL)</label><input name="instagram" value="{{INSTA}}" placeholder="@usuario" autocomplete="off">
 <label>TikTok (usuario o URL)</label><input name="tiktok" value="{{TIKTOK}}" placeholder="https://tiktok.com/@usuario" autocomplete="off">
-<label>YouTube (URL del video)</label><input name="video_url" value="{{VIDEO}}" placeholder="https://youtu.be/..." autocomplete="off">
+<label>Video de YouTube para la galería</label><input name="video_url" value="{{VIDEO}}" placeholder="https://youtu.be/... (se agrega al carrusel)" autocomplete="off"><div style="font-size:11px;color:#94a3b8;margin-top:4px">Se muestra como miniatura con ▶ y se reproduce en el cuadro principal.</div>
 </details>
 <details><summary>Imágenes por URL (opcional)</summary>
 <label>Portada</label><input name="cover" value="{{COVER}}" autocomplete="off">
@@ -277,75 +277,73 @@ HTML;
         foreach (['cover', 'avatar'] as $__mk) { $__mp = '/app/public' . (string)($__media[$__mk] ?? ''); if ($__mp !== '/app/public' && is_file($__mp)) $__usedM += (int)filesize($__mp); }
         foreach ($__galM as $__mg) { $__mp = '/app/public' . (string)$__mg; if ($__mp !== '/app/public' && is_file($__mp)) $__usedM += (int)filesize($__mp); }
         $__msCards = [
-            ['slot' => 'cover', 'label' => 'Portada', 'icon' => '🎬', 'src' => $__mCover, 'title' => 'Foto de portada', 'em' => 'Es el fondo de tu hero y la miniatura que se ve cuando comparten tu perfil.', 'specs' => ['Ideal: <b>1600 × 900 px</b> (16:9 horizontal).', 'Calidad: JPG, PNG o WebP · mínimo <b>1200 px</b> de ancho.', 'Peso: hasta <b>5 MB</b> (se optimiza a WebP automáticamente).', 'Consejo: buena luz, tú o tu banda en escena, sin texto en los bordes.'], 'gain' => 'Una portada profesional puede aumentar hasta <b>+40%</b> los clics a tu perfil.'],
-            ['slot' => 'avatar', 'label' => 'Perfil', 'icon' => '🎤', 'src' => $__mAvatar, 'title' => 'Foto de perfil', 'em' => 'Es tu cara en el círculo del hero, en “Mi equipo SONIKA” y en tus comentarios.', 'specs' => ['Ideal: <b>800 × 800 px</b> (1:1, cuadrado).', 'Calidad: rostro centrado, nítido y con fondo simple.', 'Peso: hasta <b>5 MB</b>.', 'Se recorta en círculo: deja aire alrededor de la cara.'], 'gain' => 'Un rostro claro y nítido genera confianza y más <b>solicitudes de contratación</b>.'],
-            ['slot' => 'gallery0', 'label' => 'Galería 1', 'icon' => '📸', 'src' => (string)($__galM[0] ?? ''), 'title' => 'Galería — foto 1', 'em' => 'Se muestra en el carrusel y la galería de tu página pública.', 'specs' => ['Ideal: <b>1200 × 1500 px</b> (vertical) o 1200 × 1200 px.', 'Calidad: JPG, PNG o WebP · mínimo <b>800 px</b> de ancho.', 'Peso: hasta <b>5 MB</b> por foto.', 'Consejo: escenario, instrumentos y momentos reales.'], 'gain' => 'Más fotos = más tiempo en tu página y más probabilidad de que te <b>contraten</b>.'],
-            ['slot' => 'gallery1', 'label' => 'Galería 2', 'icon' => '🎶', 'src' => (string)($__galM[1] ?? ''), 'title' => 'Galería — foto 2', 'em' => 'Segunda imagen del carrusel de tu página pública.', 'specs' => ['Ideal: <b>1200 × 1500 px</b> (vertical) o 1200 × 1200 px.', 'Calidad: JPG, PNG o WebP · mínimo <b>800 px</b> de ancho.', 'Peso: hasta <b>5 MB</b> por foto.', 'Consejo: muestra tu energía en vivo.'], 'gain' => 'Una galería completa hace que tu perfil se vea <b>profesional y activo</b>.'],
-            ['slot' => 'gallery2', 'label' => 'Galería 3', 'icon' => '⚡', 'src' => (string)($__galM[2] ?? ''), 'title' => 'Galería — foto 3', 'em' => 'Tercera imagen del carrusel de tu página pública.', 'specs' => ['Ideal: <b>1200 × 1500 px</b> (vertical) o 1200 × 1200 px.', 'Calidad: JPG, PNG o WebP · mínimo <b>800 px</b> de ancho.', 'Peso: hasta <b>5 MB</b> por foto.', 'Consejo: cierra con tu mejor foto de show.'], 'gain' => 'Cerrar con una gran foto deja una <b>impresión memorable</b> en quien te descubre.'],
+            ['slot' => 'cover', 'label' => 'Portada', 'icon' => '🎬', 'src' => $__mCover, 'title' => 'Foto de portada', 'em' => 'Fondo de tu hero y miniatura al compartir.', 'specs' => ['Ideal: <b>1600 × 900 px</b> (16:9).', 'Mínimo <b>1200 px</b> de ancho · hasta 5 MB.', 'Buena luz, sin texto en los bordes.'], 'gain' => 'Hasta <b>+40%</b> de clics a tu perfil.'],
+            ['slot' => 'avatar', 'label' => 'Perfil', 'icon' => '🎤', 'src' => $__mAvatar, 'title' => 'Foto de perfil', 'em' => 'Tu rostro en el círculo del hero.', 'specs' => ['Ideal: <b>800 × 800 px</b> (1:1).', 'Rostro centrado y nítido · hasta 5 MB.', 'Se recorta en círculo.'], 'gain' => 'Más confianza y <b>contrataciones</b>.'],
+            ['slot' => 'gallery0', 'label' => 'Galería 1', 'icon' => '📸', 'src' => (string)($__galM[0] ?? ''), 'title' => 'Galería — foto 1', 'em' => 'Primera imagen de tu carrusel.', 'specs' => ['Ideal: <b>1200 × 1200 px</b> o vertical.', 'Mínimo <b>800 px</b> · hasta 5 MB.'], 'gain' => 'Más tiempo en tu página.'],
+            ['slot' => 'gallery1', 'label' => 'Galería 2', 'icon' => '🎶', 'src' => (string)($__galM[1] ?? ''), 'title' => 'Galería — foto 2', 'em' => 'Segunda imagen de tu carrusel.', 'specs' => ['Ideal: <b>1200 × 1200 px</b> o vertical.', 'Mínimo <b>800 px</b> · hasta 5 MB.'], 'gain' => 'Perfil más <b>profesional</b>.'],
+            ['slot' => 'gallery2', 'label' => 'Galería 3', 'icon' => '⚡', 'src' => (string)($__galM[2] ?? ''), 'title' => 'Galería — foto 3', 'em' => 'Tercera imagen de tu carrusel.', 'specs' => ['Ideal: <b>1200 × 1200 px</b> o vertical.', 'Mínimo <b>800 px</b> · hasta 5 MB.'], 'gain' => 'Cierre <b>memorable</b>.'],
         ];
         $__msCss = <<<'CSS'
-.ahp-ms{position:relative;border-radius:22px;padding:22px;background:radial-gradient(1200px 420px at 8% -12%,#2a1b6b 0%,transparent 60%),radial-gradient(900px 420px at 100% 0%,#0b4a6f 0%,transparent 55%),linear-gradient(160deg,#080d1c,#101a35 55%,#0b1226);border:1px solid rgba(124,92,255,.35);box-shadow:0 24px 60px rgba(11,18,38,.28);color:#e6ecff;overflow:hidden;font-family:Sora,system-ui,sans-serif}
-.ahp-ms:before{content:"";position:absolute;inset:0;background-image:linear-gradient(90deg,rgba(124,92,255,.10) 1px,transparent 1px),linear-gradient(0deg,rgba(124,92,255,.10) 1px,transparent 1px);background-size:44px 44px;-webkit-mask-image:radial-gradient(circle at 50% 0%,#000 0%,transparent 72%);mask-image:radial-gradient(circle at 50% 0%,#000 0%,transparent 72%);pointer-events:none}
-.ahp-ms-head{position:relative;z-index:1;display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:16px}
-.ahp-ms-title{display:flex;gap:12px;align-items:center}
-.ahp-ms-title h2{margin:0;font-size:19px;letter-spacing:.01em;background:linear-gradient(90deg,#c9d6ff,#7ce8ff 55%,#b39bff);-webkit-background-clip:text;background-clip:text;color:transparent}
-.ahp-ms-title p{margin:3px 0 0;font-size:12px;color:#93a4c9}
-.ahp-ms-eq{display:inline-flex;gap:3px;align-items:flex-end;height:26px}
-.ahp-ms-eq i{width:4px;border-radius:2px;background:linear-gradient(180deg,#7c5cff,#37e8c8);height:8px;animation:ahpEq 1.15s ease-in-out infinite}
+.ahp-ms{position:relative;border-radius:16px;padding:13px 15px;background:linear-gradient(150deg,#0b1020,#111a33 60%,#0b1226);border:1px solid rgba(124,92,255,.28);box-shadow:0 14px 34px rgba(11,18,38,.22);color:#e6ecff;font-family:Sora,system-ui,sans-serif;overflow:visible}
+.ahp-ms:before{content:"";position:absolute;inset:0;border-radius:16px;background-image:linear-gradient(90deg,rgba(124,92,255,.09) 1px,transparent 1px),linear-gradient(0deg,rgba(124,92,255,.09) 1px,transparent 1px);background-size:38px 38px;-webkit-mask-image:radial-gradient(circle at 50% 0%,#000,transparent 70%);mask-image:radial-gradient(circle at 50% 0%,#000,transparent 70%);pointer-events:none;overflow:hidden}
+.ahp-ms-head{position:relative;z-index:1;display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.ahp-ms-title{display:flex;gap:9px;align-items:center;min-width:0}
+.ahp-ms-title h2{margin:0;font-size:13.5px;letter-spacing:.01em;background:linear-gradient(90deg,#c9d6ff,#7ce8ff 60%,#b39bff);-webkit-background-clip:text;background-clip:text;color:transparent;white-space:nowrap}
+.ahp-ms-title p{margin:0;font-size:10.5px;color:#8ea0c9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ahp-ms-eq{display:inline-flex;gap:2px;align-items:flex-end;height:18px;flex:none}
+.ahp-ms-eq i{width:3px;border-radius:2px;background:linear-gradient(180deg,#7c5cff,#37e8c8);height:5px;animation:ahpEq 1.15s ease-in-out infinite}
 .ahp-ms-eq i:nth-child(2){animation-delay:.14s}.ahp-ms-eq i:nth-child(3){animation-delay:.28s}.ahp-ms-eq i:nth-child(4){animation-delay:.42s}.ahp-ms-eq i:nth-child(5){animation-delay:.56s}
-@keyframes ahpEq{0%,100%{height:7px;opacity:.6}50%{height:26px;opacity:1}}
-.ahp-ms-quota{min-width:180px;flex:0 0 auto}
-.ahp-ms-quota-bar{height:8px;border-radius:999px;background:rgba(255,255,255,.12);overflow:hidden}
-.ahp-ms-quota-bar span{display:block;height:100%;width:0;border-radius:999px;background:linear-gradient(90deg,#37e8c8,#7c5cff);transition:width .45s ease}
-.ahp-ms-quota-txt{font-size:11px;color:#93a4c9;margin-top:5px;text-align:right}
-.ahp-ms-quota-txt b{color:#dbe6ff}
-.ahp-ms-grid{position:relative;z-index:1;display:grid;grid-template-columns:repeat(auto-fill,minmax(212px,1fr));gap:14px}
-.ahp-ms-card{display:flex;flex-direction:column;gap:9px;padding:12px;border-radius:16px;background:linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.028));border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(6px);transition:transform .25s,border-color .25s,box-shadow .25s}
-.ahp-ms-card:hover{transform:translateY(-3px);border-color:rgba(124,92,255,.55);box-shadow:0 14px 34px rgba(124,92,255,.22)}
-.ahp-ms-card.is-done{border-color:rgba(55,232,200,.5)}
-.ahp-ms-card-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
-.ahp-ms-badge{font-size:10.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:#a9bbff}
-.ahp-ms-info{position:relative;flex:0 0 auto;width:22px;height:22px;border-radius:50%;border:1px solid rgba(255,255,255,.28);background:rgba(255,255,255,.07);color:#c9d6ff;font-weight:800;font-size:12px;line-height:1;display:grid;place-items:center;cursor:help;padding:0}
-.ahp-ms-info:hover,.ahp-ms-info:focus{background:rgba(124,92,255,.35);outline:none}
-.ahp-ms-tip{position:absolute;top:140%;right:-6px;width:252px;padding:11px 13px;border-radius:12px;background:#090f22;border:1px solid rgba(124,92,255,.5);box-shadow:0 20px 44px rgba(0,0,0,.55);color:#c9d6ff;font-size:11.5px;line-height:1.5;text-align:left;opacity:0;visibility:hidden;transform:translateY(-5px);transition:.18s;z-index:30;pointer-events:none}
+@keyframes ahpEq{0%,100%{height:5px;opacity:.6}50%{height:18px;opacity:1}}
+.ahp-ms-quota{margin-left:auto;display:flex;align-items:center;gap:8px;flex:none}
+.ahp-ms-quota-bar{width:76px;height:5px;border-radius:999px;background:rgba(255,255,255,.13);overflow:hidden}
+.ahp-ms-quota-bar span{display:block;height:100%;width:0;border-radius:999px;background:linear-gradient(90deg,#37e8c8,#7c5cff);transition:width .4s ease}
+.ahp-ms-quota-txt{font-size:10px;color:#93a4c9;white-space:nowrap}
+.ahp-ms-quota-txt b{color:#dbe6ff;font-weight:700}
+.ahp-ms-grid{position:relative;z-index:1;display:grid;grid-template-columns:repeat(5,minmax(0,104px));gap:9px;justify-content:start}
+.ahp-ms-card{display:flex;flex-direction:column;gap:3px;min-width:0}
+.ahp-ms-card-top{display:flex;align-items:center;justify-content:space-between;gap:4px;padding:0 1px}
+.ahp-ms-badge{font-size:9px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:#9fb0d8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ahp-ms-info{position:relative;flex:none;width:15px;height:15px;border-radius:50%;border:1px solid rgba(255,255,255,.26);background:rgba(255,255,255,.06);color:#c9d6ff;font-weight:800;font-size:9px;line-height:1;display:grid;place-items:center;cursor:help;padding:0}
+.ahp-ms-info:hover,.ahp-ms-info:focus{background:rgba(124,92,255,.4);outline:none}
+.ahp-ms-tip{position:absolute;top:135%;right:-4px;width:224px;padding:10px 11px;border-radius:11px;background:#090f22;border:1px solid rgba(124,92,255,.5);box-shadow:0 18px 40px rgba(0,0,0,.55);color:#c9d6ff;font-size:10.5px;line-height:1.45;text-align:left;opacity:0;visibility:hidden;transform:translateY(-4px);transition:.18s;z-index:40;pointer-events:none}
 .ahp-ms-info:hover .ahp-ms-tip,.ahp-ms-info:focus .ahp-ms-tip{opacity:1;visibility:visible;transform:none}
-.ahp-ms-tip b{display:block;color:#fff;font-size:12.5px;margin-bottom:3px}
-.ahp-ms-tip em{display:block;font-style:normal;color:#9fb0d8;margin-bottom:7px}
-.ahp-ms-tip ul{margin:0 0 7px;padding-left:15px}
-.ahp-ms-tip li{margin:2px 0}
-.ahp-ms-tip li b{display:inline;font-size:11.5px;color:#8fe9ff}
-.ahp-ms-gain{display:block;padding-top:7px;border-top:1px dashed rgba(255,255,255,.16);color:#7cf0cf;font-size:11px;line-height:1.45}
-.ahp-ms-drop{position:relative;aspect-ratio:4/3;border-radius:12px;border:1.5px dashed rgba(160,180,255,.35);background:rgba(6,10,24,.55);display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;transition:border-color .2s,background .2s}
+.ahp-ms-tip b{display:block;color:#fff;font-size:11.5px;margin-bottom:2px}
+.ahp-ms-tip em{display:block;font-style:normal;color:#9fb0d8;margin-bottom:6px}
+.ahp-ms-tip ul{margin:0 0 6px;padding-left:14px}
+.ahp-ms-tip li{margin:1px 0}
+.ahp-ms-tip li b{display:inline;font-size:10.5px;color:#8fe9ff}
+.ahp-ms-gain{display:block;padding-top:6px;border-top:1px dashed rgba(255,255,255,.16);color:#7cf0cf;font-size:10px;line-height:1.4}
+.ahp-ms-drop{position:relative;aspect-ratio:1/1;border-radius:10px;border:1.5px dashed rgba(160,180,255,.32);background:rgba(6,10,24,.55);display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;transition:border-color .2s,background .2s,transform .2s}
+.ahp-ms-drop:hover{border-color:rgba(124,92,255,.7);background:rgba(124,92,255,.1);transform:translateY(-1px)}
 .ahp-ms-drop:focus-visible{outline:2px solid #37e8c8;outline-offset:2px}
-.ahp-ms-drop.is-over{border-color:#37e8c8;background:rgba(55,232,200,.09)}
-.ahp-ms-empty{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;padding:10px;transition:opacity .25s,transform .25s}
-.ahp-ms-empty p{margin:0;font-size:11.5px;color:#9fb0d8}
-.ahp-ms-empty small{font-size:10px;color:#6f80a8;letter-spacing:.05em}
-.ahp-ms-icon{font-size:24px;filter:drop-shadow(0 4px 10px rgba(124,92,255,.55))}
-.ahp-ms-file{position:relative;overflow:hidden;border-radius:10px;padding:9px 15px;font-weight:800;font-size:12px;color:#fff;background:linear-gradient(135deg,#287bff,#7c5cff);box-shadow:0 8px 20px rgba(80,80,255,.35);transition:transform .22s,box-shadow .22s,filter .22s;display:inline-block}
+.ahp-ms-drop.is-over{border-color:#37e8c8;background:rgba(55,232,200,.1)}
+.ahp-ms-card.is-done .ahp-ms-drop{border-style:solid;border-color:rgba(55,232,200,.42)}
+.ahp-ms-empty{display:flex;flex-direction:column;align-items:center;gap:5px;text-align:center;padding:4px;transition:opacity .25s,transform .25s}
+.ahp-ms-empty p,.ahp-ms-empty small{display:none}
+.ahp-ms-icon{font-size:15px;filter:drop-shadow(0 3px 8px rgba(124,92,255,.5))}
+.ahp-ms-file{position:relative;overflow:hidden;border-radius:7px;padding:4px 10px;font-weight:800;font-size:9.5px;letter-spacing:.03em;color:#fff;background:linear-gradient(135deg,#287bff,#7c5cff);box-shadow:0 5px 14px rgba(80,80,255,.3);transition:transform .2s,box-shadow .2s,filter .2s;display:inline-block;white-space:nowrap}
 .ahp-ms-file:after{content:"";position:absolute;top:0;left:-70%;width:45%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.6),transparent);transform:skewX(-22deg);transition:left .55s}
-.ahp-ms-drop:hover .ahp-ms-file{transform:translateY(-2px);box-shadow:0 12px 28px rgba(124,92,255,.6);filter:brightness(1.09)}
+.ahp-ms-drop:hover .ahp-ms-file{transform:translateY(-1px);box-shadow:0 8px 18px rgba(124,92,255,.55);filter:brightness(1.08)}
 .ahp-ms-drop:hover .ahp-ms-file:after{left:125%}
-.ahp-ms-preview{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transform:scale(1.08);transition:opacity .45s,transform .6s}
+.ahp-ms-preview{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transform:scale(1.06);transition:opacity .4s,transform .5s}
 .ahp-ms-card.is-preview .ahp-ms-empty,.ahp-ms-card.is-done .ahp-ms-empty{opacity:0;visibility:hidden;transform:scale(.95)}
 .ahp-ms-card.is-preview .ahp-ms-preview,.ahp-ms-card.is-done .ahp-ms-preview{opacity:1;transform:none}
-.ahp-ms-progress{position:absolute;left:10px;right:10px;bottom:10px;height:7px;border-radius:999px;background:rgba(255,255,255,.16);overflow:hidden}
+.ahp-ms-progress{position:absolute;left:6px;right:6px;bottom:6px;height:5px;border-radius:999px;background:rgba(255,255,255,.18);overflow:hidden}
 .ahp-ms-progress span{display:block;height:100%;width:0;border-radius:999px;background:linear-gradient(90deg,#37e8c8,#7c5cff,#287bff);transition:width .18s linear}
-.ahp-ms-pct{position:absolute;top:8px;right:8px;padding:3px 8px;border-radius:999px;background:rgba(6,10,24,.78);border:1px solid rgba(255,255,255,.2);font-size:10.5px;font-weight:800;color:#dbe6ff}
-.ahp-ms-status{font-size:11.5px;line-height:1.45;color:#9fb0d8;min-height:32px}
+.ahp-ms-pct{position:absolute;top:5px;right:5px;padding:2px 6px;border-radius:999px;background:rgba(6,10,24,.78);border:1px solid rgba(255,255,255,.2);font-size:9px;font-weight:800;color:#dbe6ff}
+.ahp-ms-status{font-size:9.5px;line-height:1.3;color:#7f8fb6;padding:0 1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ahp-ms-status.ok{color:#5ff0cc}
 .ahp-ms-status.err{color:#ff9a9a}
-.ahp-ms-retry{margin-left:6px;border:1px solid rgba(255,154,154,.5);background:transparent;color:#ff9a9a;border-radius:8px;padding:2px 8px;font:inherit;font-size:11px;font-weight:800;cursor:pointer}
-.ahp-ms-foot{position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,.1)}
-#ahp-ms-summary{font-size:12px;color:#9fb0d8}
+.ahp-ms-retry{margin-left:3px;border:1px solid rgba(255,154,154,.5);background:transparent;color:#ff9a9a;border-radius:6px;padding:0 5px;font:inherit;font-size:9px;font-weight:800;cursor:pointer}
+.ahp-ms-foot{position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;padding-top:9px;border-top:1px solid rgba(255,255,255,.1)}
+#ahp-ms-summary{font-size:10.5px;color:#9fb0d8}
 #ahp-ms-summary b{color:#7cf0cf}
-.ahp-ms-cta{display:inline-flex;align-items:center;gap:7px;padding:9px 15px;border-radius:10px;border:1px solid rgba(124,92,255,.6);background:rgba(124,92,255,.16);color:#dbe6ff;text-decoration:none;font-weight:800;font-size:12px;transition:.22s}
-.ahp-ms-cta:hover{background:rgba(124,92,255,.34);transform:translateY(-1px);box-shadow:0 10px 24px rgba(124,92,255,.3)}
-.ahp-ms-hint{position:relative;z-index:1;margin-top:12px;font-size:11.5px;color:#8ea0c9;background:rgba(55,232,200,.07);border:1px dashed rgba(55,232,200,.35);border-radius:10px;padding:9px 12px}
-@media (max-width:640px){.ahp-ms{padding:16px;border-radius:18px}.ahp-ms-tip{right:auto;left:0;width:230px}.ahp-ms-quota{min-width:140px}}
+.ahp-ms-cta{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:8px;border:1px solid rgba(124,92,255,.55);background:rgba(124,92,255,.16);color:#dbe6ff;text-decoration:none;font-weight:800;font-size:10.5px;transition:.2s}
+.ahp-ms-cta:hover{background:rgba(124,92,255,.34);transform:translateY(-1px)}
+@media(max-width:760px){.ahp-ms-grid{grid-template-columns:repeat(auto-fit,minmax(82px,1fr))}.ahp-ms-title p{display:none}.ahp-ms-quota-bar{width:54px}.ahp-ms-tip{right:auto;left:-40px}}
 CSS;
         echo '<div class="ahp-sec ahp-media-studio" data-tab="perfil"><div class="ahp-ms"><style>' . $__msCss . '</style>';
-        echo '<div class="ahp-ms-head"><div class="ahp-ms-title"><span class="ahp-ms-eq" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><div><h2>Estudio Visual</h2><p>Sube tus fotos: SONIKA las optimiza a WebP automáticamente.</p></div></div><div class="ahp-ms-quota"><div class="ahp-ms-quota-bar"><span id="ahp-ms-quota-fill"></span></div><div class="ahp-ms-quota-txt"><b id="ahp-ms-quota-used">0.0 MB</b> de 5 MB usados</div></div></div>';
+        echo '<div class="ahp-ms-head"><div class="ahp-ms-title"><span class="ahp-ms-eq" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span><h2>Estudio Visual</h2><p>· optimización WebP automática</p></div><div class="ahp-ms-quota"><div class="ahp-ms-quota-bar"><span id="ahp-ms-quota-fill"></span></div><div class="ahp-ms-quota-txt"><b id="ahp-ms-quota-used">0 KB</b> / 5 MB</div></div></div>';
         echo '<div class="ahp-ms-grid">';
         foreach ($__msCards as $__c) {
             $__src = (string)$__c['src'];
@@ -354,29 +352,25 @@ CSS;
             echo '<div class="ahp-ms-card-top"><span class="ahp-ms-badge">' . sonika_esc($__c['label']) . '</span><button type="button" class="ahp-ms-info" aria-label="Qué subir en ' . sonika_esc($__c['label']) . '">i<span class="ahp-ms-tip" role="tooltip"><b>' . sonika_esc($__c['title']) . '</b><em>' . $__c['em'] . '</em><ul>';
             foreach ($__c['specs'] as $__s) echo '<li>' . $__s . '</li>';
             echo '</ul><span class="ahp-ms-gain">🚀 ' . $__c['gain'] . '</span></span></button></div>';
-            echo '<div class="ahp-ms-drop" role="button" tabindex="0" aria-label="Subir ' . sonika_esc($__c['label']) . '"><input type="file" accept="image/jpeg,image/png,image/webp" hidden><img class="ahp-ms-preview" alt="' . sonika_esc($__c['label']) . '"' . ($__has ? ' src="' . sonika_esc($__src) . '"' : '') . '><div class="ahp-ms-empty"><div class="ahp-ms-icon">' . $__c['icon'] . '</div><p>Arrastra o elige tu foto</p><span class="ahp-ms-file">Cargar archivo</span><small>JPG · PNG · WebP</small></div><div class="ahp-ms-progress" hidden><span></span></div><div class="ahp-ms-pct" hidden>0%</div></div>';
-            echo '<div class="ahp-ms-status" aria-live="polite">' . ($__has ? '✓ Ya publicada en tu página' : 'Aún sin foto') . '</div>';
+            echo '<div class="ahp-ms-drop" role="button" tabindex="0" aria-label="Subir ' . sonika_esc($__c['label']) . '"><input type="file" accept="image/jpeg,image/png,image/webp" hidden><img class="ahp-ms-preview" alt="' . sonika_esc($__c['label']) . '"' . ($__has ? ' src="' . sonika_esc($__src) . '"' : '') . '><div class="ahp-ms-empty"><div class="ahp-ms-icon">' . $__c['icon'] . '</div><span class="ahp-ms-file">Subir</span></div><div class="ahp-ms-progress" hidden><span></span></div><div class="ahp-ms-pct" hidden>0%</div></div>';
+            echo '<div class="ahp-ms-status' . ($__has ? ' ok' : '') . '" aria-live="polite">' . ($__has ? '✓ Publicada' : 'Sin foto') . '</div>';
             echo '</article>';
         }
         echo '</div>';
         echo '<div class="ahp-ms-foot"><div id="ahp-ms-summary"></div><a class="ahp-ms-cta" href="/artista/' . sonika_esc((string)$__affPP['slug']) . '" target="_blank" rel="noopener">Ver mi página ↗</a></div>';
-        echo '<div class="ahp-ms-hint">💡 Consejo pro: usa fotos con tus instrumentos y luces de escenario. Las fotos nítidas y bien iluminadas venden tu show antes de que te escuchen.</div>';
         echo '</div></div>';
         $__msJs = <<<'JS'
 (function(){
   var endpoint='/api/v1/public/affiliates/media/upload';
   var QUOTA=5*1024*1024;
-  var PHRASES=['¡Portada lista! Tu página se ve increíble 🔥','¡Guardada y optimizada a WebP! Se nota el flow 🎧','¡Nivel subido! Tu perfil suena mejor ⚡','¡Perfecto! Cada foto suma a tu marca 🎸','¡Listo! Tus fans lo van a notar ✨'];
+  var PHRASES=['✓ Guardada','✓ Lista','✓ Optimizada','✓ Publicada','✓ Perfecta'];
   var cards=[].slice.call(document.querySelectorAll('.ahp-ms-card'));
   var sum=document.getElementById('ahp-ms-summary');
   var usedTxt=document.getElementById('ahp-ms-quota-used');
   var fill=document.getElementById('ahp-ms-quota-fill');
   function human(b){return b>=1048576?(b/1048576).toFixed(1)+' MB':Math.max(1,Math.round(b/1024))+' KB';}
-  function setQuota(used){var p=Math.min(100,used/QUOTA*100);if(fill)fill.style.width=p+'%';if(usedTxt)usedTxt.textContent=human(used);}
-  function refresh(){
-    var done=cards.filter(function(c){return c.classList.contains('is-done');}).length;
-    if(sum){sum.innerHTML=done===cards.length?'<b>¡Todo listo!</b> Tus '+done+' fotos están publicadas 🎉':(done+' de '+cards.length+' fotos listas · las demás se guardan al subirlas');}
-  }
+  function setQuota(u){if(fill)fill.style.width=Math.min(100,u/QUOTA*100)+'%';if(usedTxt)usedTxt.textContent=human(u);}
+  function refresh(){var done=cards.filter(function(c){return c.classList.contains('is-done');}).length;if(sum){sum.innerHTML=done===cards.length?('<b>¡Todo listo!</b> '+done+'/'+cards.length+' publicadas 🎉'):(done+'/'+cards.length+' fotos listas');}}
   setQuota(window.__MS_USED||0);refresh();
   cards.forEach(function(card){
     var input=card.querySelector('input[type=file]');
@@ -390,12 +384,12 @@ CSS;
     function say(t,cls){status.className='ahp-ms-status'+(cls?' '+cls:'');status.textContent=t;}
     function pick(f){
       if(!f)return;
-      if(!/^image\/(jpeg|png|webp)$/.test(f.type)){say('Formato no válido. Usa JPG, PNG o WebP.','err');return;}
-      if(f.size>5*1024*1024){say('La imagen pesa '+human(f.size)+'. El máximo es 5 MB.','err');return;}
+      if(!/^image\/(jpeg|png|webp)$/.test(f.type)){say('Usa JPG, PNG o WebP','err');return;}
+      if(f.size>5*1024*1024){say('Máximo 5 MB','err');return;}
       last=f;
       card.classList.add('is-preview');
       img.src=URL.createObjectURL(f);
-      var probe=new Image();probe.onload=function(){var w=probe.naturalWidth;if(w&&w<800){say('⚠️ Solo '+w+' px de ancho: puede verse borrosa en pantallas grandes.','');}else{say('Lista: '+human(f.size)+' · optimizando…','');}};probe.src=img.src;
+      say(human(f.size)+' · subiendo…','');
       send(f);
     }
     function send(f){
@@ -407,16 +401,16 @@ CSS;
         pw.hidden=true;pct.hidden=true;
         if(j&&j.ok){
           card.classList.add('is-done');card.classList.remove('is-preview');
-          say('✓ '+PHRASES[Math.floor(Math.random()*PHRASES.length)],'ok');
+          say(PHRASES[Math.floor(Math.random()*PHRASES.length)],'ok');
           if(typeof j.used==='number')setQuota(j.used);
           refresh();
         }else{
           card.classList.remove('is-done');
-          say((j&&j.message)||'No se pudo guardar.','err');
+          say((j&&j.message)||'No se pudo guardar','err');
           if(!status.querySelector('.ahp-ms-retry')){var b=document.createElement('button');b.type='button';b.className='ahp-ms-retry';b.textContent='Reintentar';b.onclick=function(){if(last)send(last);};status.appendChild(b);}
         }
       };
-      xhr.onerror=function(){pw.hidden=true;pct.hidden=true;say('Error de conexión. Revisa tu red e inténtalo otra vez.','err');};
+      xhr.onerror=function(){pw.hidden=true;pct.hidden=true;say('Error de conexión','err');};
       var fd=new FormData();fd.append(card.getAttribute('data-slot'),f);xhr.send(fd);
     }
     drop.addEventListener('click',function(e){if(e.target.closest('.ahp-ms-info'))return;input.click();});
@@ -573,14 +567,24 @@ if ($__artSlug !== '' && !in_array($__artSlug, $__res2, true) && !(function_exis
         $__ttV = trim((string)($__mediaP['tiktok'] ?? ''));
         $__ttUrl = $__ttV === '' ? '' : (preg_match('~^https?://~i', $__ttV) ? $__ttV : 'https://tiktok.com/@' . ltrim($__ttV, '@'));
         $__ytUrl = trim((string)($__mediaP['video_url'] ?? ''));
+        $__ytId = ($__ytUrl !== '' && preg_match('~(?:youtu\.be/|v=|embed/|shorts/)([A-Za-z0-9_-]{11})~', $__ytUrl, $__ym)) ? $__ym[1] : '';
+        $__slideCount = count($__stageImgs) + ($__ytId !== '' ? 1 : 0);
         $__msCss2 = <<<'CSS'
 .sonika-artist-page .ah-showcase{padding-top:10px}
-.sonika-artist-page .ah-showcase__grid{display:grid;grid-template-columns:minmax(0,380px) minmax(0,1fr);gap:26px;max-width:1040px;margin:0 auto;align-items:stretch}
+.sonika-artist-page .ah-showcase__grid{display:grid;grid-template-columns:minmax(0,440px) minmax(0,1fr);gap:26px;max-width:1040px;margin:0 auto;align-items:stretch}
 @media(max-width:900px){.sonika-artist-page .ah-showcase__grid{grid-template-columns:1fr}}
 .sonika-artist-page .ah-stage{position:relative;display:flex;flex-direction:column}
 .sonika-artist-page .ah-stage__frame{position:relative;width:min(100%,min(44vh,380px));aspect-ratio:1/1;height:auto;margin:0 auto;border-radius:16px;overflow:hidden;background:linear-gradient(160deg,#0b1226,#131a33);border:1px solid rgba(124,92,255,.3);box-shadow:0 18px 44px rgba(0,0,0,.45)}
 .sonika-artist-page .ah-stage__img{width:100%;height:100%;object-fit:cover;display:block;transition:opacity .22s ease,transform .5s ease}
 .sonika-artist-page .ah-stage__img.is-fade{opacity:0;transform:scale(1.03)}
+.sonika-artist-page .ah-stage__frame.is-video{width:100%;aspect-ratio:16/9}
+.sonika-artist-page .ah-stage__video{position:absolute;inset:0;z-index:2;background:#000}
+.sonika-artist-page .ah-stage__video iframe{width:100%;height:100%;border:0;display:block}
+.sonika-artist-page .ah-thumb.is-video img{opacity:.82}
+.sonika-artist-page .ah-thumb.is-video:after{content:"▶";position:absolute;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.3);color:#fff;font-size:18px;text-shadow:0 2px 8px rgba(0,0,0,.65)}
+.sonika-artist-page .ah-play{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:3;width:62px;height:62px;border-radius:50%;border:0;background:rgba(255,0,51,.92);color:#fff;cursor:pointer;display:grid;place-items:center;box-shadow:0 12px 30px rgba(255,0,51,.45);transition:transform .2s,box-shadow .2s}
+.sonika-artist-page .ah-play:hover{transform:translate(-50%,-50%) scale(1.08);box-shadow:0 16px 38px rgba(255,0,51,.6)}
+.sonika-artist-page .ah-play svg{width:26px;height:26px;margin-left:3px}
 .sonika-artist-page .ah-stage__empty{position:absolute;inset:0;display:grid;place-items:center;text-align:center;color:#8ea0c9;font-size:13px;padding:20px}
 .sonika-artist-page .ah-stage__empty b{display:block;font-size:32px;margin-bottom:8px;filter:drop-shadow(0 6px 16px rgba(124,92,255,.5))}
 .sonika-artist-page .ah-nav{position:absolute;top:50%;transform:translateY(-50%);z-index:4;width:46px;height:46px;border-radius:50%;border:1px solid rgba(255,255,255,.22);background:rgba(8,12,24,.55);backdrop-filter:blur(10px);color:#fff;display:grid;place-items:center;cursor:pointer;transition:transform .2s,background .2s,box-shadow .2s,border-color .2s;padding:0}
@@ -629,22 +633,31 @@ if ($__artSlug !== '' && !in_array($__artSlug, $__res2, true) && !(function_exis
 CSS;
         echo '<style>' . $__msCss2 . '</style>';
         echo '<section class="ah-sec ah-showcase" id="galeria"><div class="ah-showcase__grid"><div class="ah-stage" id="ah-stage">';
-        echo '<div class="ah-stage__frame">';
+        echo '<div class="ah-stage__frame" id="ah-frame">';
         if ($__stageImgs) {
             echo '<img class="ah-stage__img" id="ah-stage-img" src="' . sonika_esc((string)$__stageImgs[0]) . '" alt="' . sonika_esc($__name) . '">';
+        } elseif ($__ytId !== '') {
+            echo '<img class="ah-stage__img" id="ah-stage-img" src="https://i.ytimg.com/vi/' . sonika_esc($__ytId) . '/hqdefault.jpg" alt="Video de ' . sonika_esc($__name) . '">';
         } else {
             echo '<div class="ah-stage__empty"><div><b>🎸</b>Aún sin fotos.<br>Sube tu portada y galería desde Mi Antro.</div></div>';
         }
-        if (count($__stageImgs) > 1) {
-            echo '<button type="button" class="ah-nav prev" aria-label="Foto anterior"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>';
-            echo '<button type="button" class="ah-nav next" aria-label="Foto siguiente"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>';
-            echo '<div class="ah-stage__count" id="ah-stage-count">1 / ' . count($__stageImgs) . '</div>';
+        echo '<div class="ah-stage__video" id="ah-stage-video" hidden></div>';
+        if ($__ytId !== '' && !$__stageImgs) {
+            echo '<button type="button" class="ah-play" id="ah-play" data-video="' . sonika_esc($__ytId) . '" aria-label="Reproducir video"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>';
+        }
+        if ($__slideCount > 1) {
+            echo '<button type="button" class="ah-nav prev" aria-label="Anterior"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>';
+            echo '<button type="button" class="ah-nav next" aria-label="Siguiente"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg></button>';
+            echo '<div class="ah-stage__count" id="ah-stage-count">1 / ' . $__slideCount . '</div>';
         }
         echo '</div>';
-        if (count($__stageImgs) > 1) {
-            echo '<div class="ah-thumbs" role="tablist" aria-label="Fotos del artista">';
+        if ($__slideCount > 1) {
+            echo '<div class="ah-thumbs" role="tablist" aria-label="Galería del artista">';
             foreach ($__stageImgs as $__si => $__sImg) {
                 echo '<button type="button" class="ah-thumb' . ($__si === 0 ? ' on' : '') . '" role="tab" aria-selected="' . ($__si === 0 ? 'true' : 'false') . '" aria-label="Foto ' . ($__si + 1) . '" data-src="' . sonika_esc((string)$__sImg) . '"><img src="' . sonika_esc((string)$__sImg) . '" alt="" loading="lazy"></button>';
+            }
+            if ($__ytId !== '') {
+                echo '<button type="button" class="ah-thumb is-video" role="tab" aria-selected="false" aria-label="Video de YouTube" data-video="' . sonika_esc($__ytId) . '"><img src="https://i.ytimg.com/vi/' . sonika_esc($__ytId) . '/mqdefault.jpg" alt="" loading="lazy"></button>';
             }
             echo '</div>';
         }
@@ -682,7 +695,7 @@ CSS;
         if ($__igUrl !== '') {
             echo '<section class="ah-sec"><h2 class="ah-h" style="color:#fff">Publicaciones recientes</h2><div style="max-width:560px"><iframe src="https://www.instagram.com/' . sonika_esc(ltrim(preg_replace('~^https?://(www\.)?instagram\.com/~i', '', $__igUrl), '@')) . '/embed/" style="width:100%;height:460px;border:0;border-radius:14px" loading="lazy" title="Instagram de ' . sonika_esc($__name) . '"></iframe></div></section>';
         }
-        echo '<script>(function(){var st=document.getElementById("ah-stage");if(!st)return;var th=[].slice.call(st.querySelectorAll(".ah-thumb"));var main=document.getElementById("ah-stage-img");var cnt=document.getElementById("ah-stage-count");if(!main||!th.length)return;var i=0,t=null;function go(n){i=(n+th.length)%th.length;var src=th[i].getAttribute("data-src");main.classList.add("is-fade");setTimeout(function(){main.src=src;main.classList.remove("is-fade");},150);th.forEach(function(x,k){x.classList.toggle("on",k===i);x.setAttribute("aria-selected",k===i?"true":"false");});if(cnt)cnt.textContent=(i+1)+" / "+th.length;}function auto(){t=setInterval(function(){go(i+1);},6000);}function restart(){clearInterval(t);auto();}var nx=st.querySelector(".ah-nav.next"),pv=st.querySelector(".ah-nav.prev");if(nx)nx.addEventListener("click",function(){go(i+1);restart();});if(pv)pv.addEventListener("click",function(){go(i-1);restart();});th.forEach(function(x,k){x.addEventListener("click",function(){go(k);restart();});});st.addEventListener("mouseenter",function(){clearInterval(t);});st.addEventListener("mouseleave",auto);var x0=null;st.addEventListener("touchstart",function(e){x0=e.touches[0].clientX;},{passive:true});st.addEventListener("touchend",function(e){if(x0===null)return;var dx=e.changedTouches[0].clientX-x0;if(Math.abs(dx)>40){if(dx<0)go(i+1);else go(i-1);restart();}x0=null;},{passive:true});auto();})();</script>';
+        echo '<script>(function(){var st=document.getElementById("ah-stage");if(!st)return;var th=[].slice.call(st.querySelectorAll(".ah-thumb"));var main=document.getElementById("ah-stage-img");var fr=document.getElementById("ah-frame");var vw=document.getElementById("ah-stage-video");var cnt=document.getElementById("ah-stage-count");var play=document.getElementById("ah-play");var i=0,t=null;function stopAuto(){if(t){clearInterval(t);t=null;}}function startAuto(){stopAuto();if(!th.length)return;if(th[i]&&th[i].getAttribute("data-video"))return;t=setInterval(function(){go(i+1);},6000);}function hideVideo(){if(!vw)return;vw.hidden=true;vw.innerHTML="";if(fr)fr.classList.remove("is-video");if(main)main.style.opacity="1";if(play)play.hidden=false;}function showVideo(id,auto){if(!vw)return;if(fr)fr.classList.add("is-video");vw.hidden=false;vw.innerHTML="<iframe src=\"https://www.youtube-nocookie.com/embed/"+id+"?rel=0&playsinline=1"+(auto?"&autoplay=1":"")+"\" title=\"Video\" allow=\"accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture\" allowfullscreen></iframe>";if(main)main.style.opacity="0";if(play)play.hidden=true;stopAuto();}function go(n){if(!th.length)return;i=(n+th.length)%th.length;var b=th[i];var vid=b.getAttribute("data-video");if(vid){showVideo(vid,true);}else{hideVideo();if(main){main.classList.add("is-fade");setTimeout(function(){main.src=b.getAttribute("data-src");main.classList.remove("is-fade");},150);}}th.forEach(function(x,k){x.classList.toggle("on",k===i);x.setAttribute("aria-selected",k===i?"true":"false");});if(cnt)cnt.textContent=(i+1)+" / "+th.length;if(!vid)startAuto();}var nx=st.querySelector(".ah-nav.next"),pv=st.querySelector(".ah-nav.prev");if(nx)nx.addEventListener("click",function(){go(i+1);});if(pv)pv.addEventListener("click",function(){go(i-1);});th.forEach(function(x,k){x.addEventListener("click",function(){go(k);});});if(play)play.addEventListener("click",function(){showVideo(play.getAttribute("data-video"),true);});st.addEventListener("mouseenter",stopAuto);st.addEventListener("mouseleave",function(){if(!(th[i]&&th[i].getAttribute("data-video")))startAuto();});var x0=null;st.addEventListener("touchstart",function(e){x0=e.touches[0].clientX;},{passive:true});st.addEventListener("touchend",function(e){if(x0===null)return;var dx=e.changedTouches[0].clientX-x0;if(Math.abs(dx)>40){go(dx<0?i+1:i-1);}x0=null;},{passive:true});startAuto();})();</script>';
         echo '<script>(function(){var z=document.getElementById("ah-zoom");if(!z)return;var zi=document.getElementById("ah-zoom-img");function close(){z.classList.remove("on");document.body.style.overflow="";}function open(s){zi.src=s;z.classList.add("on");document.body.style.overflow="hidden";}document.querySelectorAll("[data-zoom]").forEach(function(el){el.addEventListener("click",function(e){e.preventDefault();var s=el.getAttribute("data-zoom");if(s)open(s);});el.addEventListener("keydown",function(e){if(e.key==="Enter"||e.key===" "){e.preventDefault();var s=el.getAttribute("data-zoom");if(s)open(s);}});});z.addEventListener("click",function(e){if(e.target===z||e.target.classList.contains("ah-zoom__x"))close();});document.addEventListener("keydown",function(e){if(e.key==="Escape")close();});})();</script>';
         if ($__ava !== '') echo '<div class="ah-zoom" id="ah-zoom" role="dialog" aria-modal="true" aria-label="Foto de perfil ampliada"><button type="button" class="ah-zoom__x" aria-label="Cerrar">✕</button><img id="ah-zoom-img" alt="' . sonika_esc($__name) . '"></div>';
         echo '<style>html{scroll-behavior:smooth}.sonika-artist-page .ah-anchors{display:flex;justify-content:center;align-items:center;gap:4px;flex-wrap:wrap;overflow:visible;max-width:1180px;margin:10px auto 0;padding:10px 22px 0;position:relative;scrollbar-width:none}.sonika-artist-page .ah-anchors:after{content:"";position:absolute;left:22px;right:22px;bottom:-10px;height:1px;background:linear-gradient(90deg,transparent,rgba(124,92,255,.45),rgba(55,232,200,.35),transparent)}.sonika-artist-page .ah-anchors a{position:relative;display:inline-flex;align-items:center;gap:7px;padding:9px 16px;border-radius:999px;font-size:12.5px;font-weight:700;letter-spacing:.01em;color:#c3cee4;text-decoration:none;border:1px solid transparent;transition:color .22s,background .22s,border-color .22s,transform .22s,box-shadow .22s}.sonika-artist-page .ah-anchors a:before{content:"";width:5px;height:5px;border-radius:50%;background:linear-gradient(135deg,#7c5cff,#37e8c8);opacity:.55;transition:transform .22s,box-shadow .22s,opacity .22s}.sonika-artist-page .ah-anchors a:hover{color:#fff;background:rgba(124,92,255,.14);border-color:rgba(124,92,255,.45);transform:translateY(-2px);box-shadow:0 10px 26px rgba(124,92,255,.25)}.sonika-artist-page .ah-anchors a:hover:before{opacity:1;transform:scale(1.4);box-shadow:0 0 12px #37e8c8}.sonika-artist-page .ah-anchors a.on{color:#fff;background:linear-gradient(135deg,rgba(40,123,255,.92),rgba(124,92,255,.92));border-color:transparent;box-shadow:0 10px 26px rgba(98,70,255,.35)}.sonika-artist-page .ah-anchors a.on:before{background:#fff;opacity:1;box-shadow:0 0 10px #fff}@media(max-width:640px){.sonika-artist-page .ah-anchors{gap:2px;padding-left:14px;padding-right:14px}.sonika-artist-page .ah-anchors a{padding:8px 12px;font-size:11.5px}}</style>';
