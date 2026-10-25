@@ -113,6 +113,7 @@ if (($segments[0] ?? '') === 'artista' && ($segments[2] ?? '') === 'panel' && !e
         $__lg0 = is_array($__d['league'] ?? null) ? $__d['league'] : [];
         $__lgIcons = ['semicorchea' => '♬', 'corchea' => '♪', 'negra' => '♩', 'blanca' => '𝅗𝅥', 'redonda' => '𝅝'];
         $__rangoIcon = $__lgIcons[$__lg0['code'] ?? ''] ?? '♫';
+        echo '<style>@media(max-width:720px){.ahp{padding:18px 14px 44px}.ahp-h h1{font-size:22px}.ahp-cards{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px}.ahp-c{padding:12px}.ahp-tabs{position:sticky;top:0;z-index:6;background:rgba(255,255,255,.94);backdrop-filter:blur(10px);padding:6px 0;margin:0 0 14px;scroll-snap-type:x proximity}.ahp-tab{min-width:106px;scroll-snap-align:start;min-height:44px}.ahp input,.ahp textarea,.ahp select{font-size:16px!important}.ahp table{display:block;overflow-x:auto;white-space:nowrap;border-radius:12px}.ahp-ms-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}.ahp-pub{grid-template-columns:1fr!important}}@media(max-width:420px){.ahp-ms-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}}.ahp button,.ahp a{-webkit-tap-highlight-color:transparent}</style>';
         echo '<section class="ahp"><div class="ahp-h"><h1>Mi Antro</h1><span class="badge">Hola, ' . sonika_esc($__nameP) . '</span><span class="badge" style="background:#101d3a;color:#fff">Tu rango: ' . $__rangoIcon . ' ' . sonika_esc((string)($__lg0['level'] ?? '—')) . '</span><a href="/artista/' . sonika_esc($__affPP['slug']) . '" style="margin-left:auto;font-size:12.5px;color:#64748b;text-decoration:none">Ver mi página ↗</a></div>';
         $__pendingStates = ['ESTIMATED', 'PENDING_VALIDATION', 'ON_HOLD', 'PAYMENT_QUEUED'];
         $__pending = 0.0;
@@ -749,6 +750,11 @@ CSS;
                 echo '<button type="button" class="ah-thumb' . ($__on ? ' on' : '') . '" role="tab" aria-selected="' . ($__on ? 'true' : 'false') . '" aria-label="Foto ' . ($__si + 1) . '" data-src="' . sonika_esc((string)$__sImg) . '"><img src="' . sonika_esc((string)$__sImg) . '" alt="" loading="lazy"></button>';
             }
             echo '</div>';
+            echo '<div class="ah-dots" id="ah-dots">';
+            for ($__d = 0; $__d < $__slideCount; $__d++) {
+                echo '<button type="button" class="ah-dot' . ($__d === 0 ? ' on' : '') . '" aria-label="Ir a la diapositiva ' . ($__d + 1) . '" aria-selected="' . ($__d === 0 ? 'true' : 'false') . '"></button>';
+            }
+            echo '</div>';
         }
         echo '</div>';
         echo '<aside class="ah-side"><h2 class="ah-side__h">Trayectoria</h2><p class="ah-side__kicker">' . sonika_esc($__name) . ' · Historia musical</p>';
@@ -800,6 +806,55 @@ CSS;
         if ($__trAch) $__ld['award'] = array_values(array_map('strval', $__trAch));
         if ($__trBands) $__ld['memberOf'] = array_map(function ($b) { return ['@type' => 'MusicGroup', 'name' => (string)$b]; }, $__trBands);
         echo '<script type="application/ld+json">' . json_encode($__ld, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . '</script>';
+        echo '<div class="ah-stickybar" id="ah-stickybar" hidden><a class="ah-btn" href="#contratame">Contratar</a><a class="ah-btn ghost" target="_blank" rel="noopener" href="' . sonika_esc('https://wa.me/?text=' . rawurlencode('Escucha y apoya a ' . $__name . ' en SONIKA: ' . $__affUrl)) . '">Compartir</a></div>';
+        echo '<style>
+.sonika-artist-page .ah-dots{display:none;justify-content:center;gap:7px;margin-top:8px}
+.sonika-artist-page .ah-dot{width:7px;height:7px;border-radius:999px;border:0;padding:0;background:rgba(255,255,255,.25);cursor:pointer;transition:width .25s,background .25s}
+.sonika-artist-page .ah-dot.on{width:20px;background:linear-gradient(90deg,#37e8c8,#7c5cff)}
+.sonika-artist-page .ah-stickybar{position:fixed;left:12px;right:12px;bottom:12px;z-index:9990;display:none;gap:8px;padding:8px;border-radius:14px;background:rgba(8,12,24,.88);border:1px solid rgba(255,255,255,.14);backdrop-filter:blur(12px);box-shadow:0 16px 40px rgba(0,0,0,.45)}
+.sonika-artist-page .ah-stickybar .ah-btn{flex:1;justify-content:center;min-height:44px}
+.sonika-artist-page [id]{scroll-margin-top:72px}
+.sonika-artist-page .ah-btn:active,.sonika-artist-page .ah-soc:active,.sonika-artist-page .ah-zoom__x:active{transform:scale(.97)}
+.sonika-artist-page a:focus-visible,.sonika-artist-page button:focus-visible{outline:2px solid #37e8c8;outline-offset:2px}
+.ahf{opacity:0;transform:translateY(14px);transition:opacity .5s ease,transform .5s ease}
+.ahf.in{opacity:1;transform:none}
+.ahp input,.ahp textarea,.ahp select{-webkit-appearance:none}
+@media(max-width:900px){.sonika-artist-page .ah-showcase{padding-top:6px}}
+@media(max-width:720px){
+.ahp{padding:18px 14px 44px}
+.ahp-h h1{font-size:22px}
+.ahp-cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.ahp-c{padding:12px}
+.ahp-tabs{position:sticky;top:0;z-index:6;background:rgba(255,255,255,.94);backdrop-filter:blur(10px);padding:6px 0;margin:0 0 14px;scroll-snap-type:x proximity}
+.ahp-tab{min-width:106px;scroll-snap-align:start;min-height:44px}
+.ahp input,.ahp textarea,.ahp select{font-size:16px!important}
+.ahp table{display:block;overflow-x:auto;white-space:nowrap;border-radius:12px}
+.ahp-ms-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+.ahp-pub{grid-template-columns:1fr!important}
+}
+@media(max-width:640px){
+.sonika-artist-page .ah-hero__in{padding:84px 18px 18px;gap:16px}
+.sonika-artist-page .ah-ava{width:92px;height:92px;border-width:2.5px}
+.sonika-artist-page .ah-hero__body{min-width:0}
+.sonika-artist-page .ah-name{font-size:clamp(1.5rem,7vw,2rem)}
+.sonika-artist-page .ah-actions{width:100%;margin-left:0;gap:8px}
+.sonika-artist-page .ah-actions .ah-btn{flex:1;justify-content:center;min-height:44px}
+.sonika-artist-page .ah-sec{padding:22px 16px}
+.sonika-artist-page .ah-thumbs{justify-content:flex-start;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;padding-bottom:8px}
+.sonika-artist-page .ah-thumb{scroll-snap-align:center;height:54px;flex-basis:76px}
+.sonika-artist-page .ah-nav{width:44px;height:44px}
+.sonika-artist-page .ah-side{padding:14px}
+.sonika-artist-page .ah-rich{max-height:none;-webkit-overflow-scrolling:touch}
+.sonika-artist-page .ah-side__socials{margin-top:14px}
+.sonika-artist-page .ah-soc{min-height:44px}
+.sonika-artist-page .ah-dots{display:flex}
+.sonika-artist-page .ah-stage__count{display:none}
+.sonika-artist-page .ah-stickybar:not([hidden]){display:flex}
+}
+@media(max-width:420px){.ahp-ms-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+@media (prefers-reduced-motion: reduce){.ahf{opacity:1;transform:none;transition:none}.sonika-artist-page .ah-dot,.sonika-artist-page .ah-btn,.sonika-artist-page .ah-thumb,.sonika-artist-page .ah-nav{transition:none!important}}
+</style>';
+        echo '<script>(function(){var bar=document.getElementById("ah-stickybar"),hero=document.querySelector(".ah-actions");if(bar&&hero){var upd=function(){var r=hero.getBoundingClientRect();bar.hidden=(r.bottom>0)||window.scrollY<220;};window.addEventListener("scroll",upd,{passive:true});upd();}var box=document.getElementById("ah-zoom");if(box){var y0=null;box.addEventListener("touchstart",function(e){y0=e.touches[0].clientY;},{passive:true});box.addEventListener("touchend",function(e){if(y0===null)return;var dy=e.changedTouches[0].clientY-y0;if(dy>90){box.classList.remove("on");document.body.style.overflow="";}y0=null;},{passive:true});}var thumbs=[].slice.call(document.querySelectorAll(".ah-thumb")),dots=[].slice.call(document.querySelectorAll(".ah-dot"));if(dots.length&&thumbs.length){var sync=function(){var idx=thumbs.findIndex(function(t){return t.classList.contains("on");});dots.forEach(function(d,k){d.classList.toggle("on",k===idx);d.setAttribute("aria-selected",k===idx?"true":"false");});};thumbs.forEach(function(t){new MutationObserver(sync).observe(t,{attributes:true,attributeFilter:["class"]});});dots.forEach(function(d,k){d.addEventListener("click",function(){if(thumbs[k])thumbs[k].click();});});sync();}var els=[].slice.call(document.querySelectorAll(".sonika-artist-page .ah-showcase,.sonika-artist-page .ah-shop,.sonika-artist-page .ah-sec"));if("IntersectionObserver" in window&&els.length){els.forEach(function(el){el.classList.add("ahf");});var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add("in");io.unobserve(e.target);}});},{threshold:.05});els.forEach(function(el){io.observe(el);});}else{els.forEach(function(e){e.classList.add("in");});}})();</script>';
         echo '<script>(function(){var st=document.getElementById("ah-stage");if(!st)return;var th=[].slice.call(st.querySelectorAll(".ah-thumb"));var main=document.getElementById("ah-stage-img");var fr=document.getElementById("ah-frame");var vw=document.getElementById("ah-stage-video");var cnt=document.getElementById("ah-stage-count");var play=document.getElementById("ah-play");var i=0,t=null;function stopAuto(){if(t){clearInterval(t);t=null;}}function startAuto(){stopAuto();if(!th.length)return;if(th[i]&&th[i].getAttribute("data-video"))return;t=setInterval(function(){go(i+1);},6000);}function hideVideo(){if(!vw)return;vw.hidden=true;vw.innerHTML="";if(fr)fr.classList.remove("is-video");if(main)main.style.opacity="1";if(play)play.hidden=true;}function showVideo(id,auto){if(!vw)return;if(fr)fr.classList.add("is-video");vw.hidden=false;vw.innerHTML="<iframe src=\"https://www.youtube-nocookie.com/embed/"+id+"?rel=0&playsinline=1"+(auto?"&autoplay=1":"")+"\" title=\"Video\" allow=\"accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture\" allowfullscreen></iframe>";if(main)main.style.opacity="0";if(play)play.hidden=true;stopAuto();}function go(n){if(!th.length)return;i=(n+th.length)%th.length;var b=th[i];var vid=b.getAttribute("data-video");if(vid){showVideo(vid,true);}else{hideVideo();if(main){main.classList.add("is-fade");setTimeout(function(){main.src=b.getAttribute("data-src");main.classList.remove("is-fade");},150);}}th.forEach(function(x,k){x.classList.toggle("on",k===i);x.setAttribute("aria-selected",k===i?"true":"false");});if(cnt)cnt.textContent=(i+1)+" / "+th.length;if(!vid)startAuto();}var nx=st.querySelector(".ah-nav.next"),pv=st.querySelector(".ah-nav.prev");if(nx)nx.addEventListener("click",function(){go(i+1);});if(pv)pv.addEventListener("click",function(){go(i-1);});th.forEach(function(x,k){x.addEventListener("click",function(){go(k);});});if(play)play.addEventListener("click",function(){showVideo(play.getAttribute("data-video"),true);});st.addEventListener("mouseenter",stopAuto);st.addEventListener("mouseleave",function(){if(!(th[i]&&th[i].getAttribute("data-video")))startAuto();});var x0=null;st.addEventListener("touchstart",function(e){x0=e.touches[0].clientX;},{passive:true});st.addEventListener("touchend",function(e){if(x0===null)return;var dx=e.changedTouches[0].clientX-x0;if(Math.abs(dx)>40){go(dx<0?i+1:i-1);}x0=null;},{passive:true});startAuto();})();</script>';
         echo '<script>(function(){var z=document.getElementById("ah-zoom");if(!z)return;var zi=document.getElementById("ah-zoom-img");function close(){z.classList.remove("on");document.body.style.overflow="";}function open(s){zi.src=s;z.classList.add("on");document.body.style.overflow="hidden";}document.querySelectorAll("[data-zoom]").forEach(function(el){el.addEventListener("click",function(e){e.preventDefault();var s=el.getAttribute("data-zoom");if(s)open(s);});el.addEventListener("keydown",function(e){if(e.key==="Enter"||e.key===" "){e.preventDefault();var s=el.getAttribute("data-zoom");if(s)open(s);}});});z.addEventListener("click",function(e){if(e.target===z||e.target.classList.contains("ah-zoom__x"))close();});document.addEventListener("keydown",function(e){if(e.key==="Escape")close();});})();</script>';
         if ($__ava !== '') echo '<div class="ah-zoom" id="ah-zoom" role="dialog" aria-modal="true" aria-label="Foto de perfil ampliada"><button type="button" class="ah-zoom__x" aria-label="Cerrar">✕</button><img id="ah-zoom-img" alt="' . sonika_esc($__name) . '"></div>';
