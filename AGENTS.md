@@ -259,3 +259,19 @@ Pestañas: Overview (8 KPIs, barra de presupuesto, **Sugerencias permanentes** �
 2. Migrar `AiContentService` para enrutar por BRICK (hoy usa DeepSeek directo con `DEEPSEEK_API_KEY` — ya tiene key en prod; migrar sin romper).
 3. Catálogo automático de modelos (model discovery) y cost dashboard por función.
 4. ~~Commit de todo el BRICK~~ — **HECHO**: commit `32a409b`. Falta `git push origin main` (confirmar con usuario).
+
+## 23. CONSTITUCIÓN DE ADAPTABILIDAD (NORMATIVA — rango superior)
+
+**Documento oficial:** `docs/CONSTITUCION-ADAPTABILIDAD.md` (v1.0.0). Aplica a TODO WWI: bricks, widgets, módulos, paneles, menús, temas, landings, PWA, WebViews y TV.
+
+**Obligaciones para cualquier agente/persona que toque código:**
+1. **DEBE** leer y cumplir la constitución antes de implementar, aunque el prompt no la mencione.
+2. **DEBE** inspeccionar primero lo existente (CSS, tokens, widgets, media queries) para **no duplicar** lo que ya funciona.
+3. **DEBE** hacer cambios **aditivos** y de mínimo impacto, preservando la **línea gráfica, estructura y diseño** establecidos.
+4. **DEBE** validar: sin scroll horizontal (320–1920 px/TV), menús visibles en móvil (bottom sheet), targets ≥44 px, inputs ≥16 px, WCAG 2.2 AA, Core Web Vitals dentro de presupuesto.
+5. **PUEDE** aplicar mejoras automáticas **solo** si son reversibles, no alteran la identidad visual y se **notifican** en la respuesta (qué/dónde/por qué).
+6. **NUNCA** cambiar copy/marca, rediseñar, eliminar funcionalidad ni alterar breakpoints globales sin aprobación explícita.
+
+**Patrón obligatorio para overlays en móvil:** en `≤900 px` o `pointer:coarse`, dropdowns/menús se abren como **bottom sheet** a `inset-inline:12px; bottom:12px` con `env(safe-area-inset-bottom)`; nunca `position:absolute; right:0` anclado al icono.
+
+**Revisión:** trimestral (WCAG, MDN, web.dev, Material 3, Apple HIG, TV). Todo cambio de la constitución se registra en su tabla de versiones.
