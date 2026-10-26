@@ -860,7 +860,7 @@ if (!function_exists('sonika_site_footer')) {
 </main>
 <?php echo \App\Widgets\WidgetRegistry::render('sonika-footer', []); ?>
 <?= CookieConsentService::render() ?>
-<script><?= sonika_js() ?>;;(function(){var q=/[?&]tv=1\b/.test(location.search),ua=/SmartTV|Tizen|Web0S|webOS|NetCast|BRAVIA|AFT[A-Z]|AppleTV|Roku|HbbTV|VIDAA/i.test(navigator.userAgent||'');if(!q&&!ua)return;document.documentElement.classList.add('tv-mode');var els=[].slice.call(document.querySelectorAll('a,button,input,select,textarea,[tabindex]')).filter(function(el){return !el.disabled&&el.offsetParent!==null});document.addEventListener('keydown',function(e){if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].indexOf(e.key)<0)return;var a=document.activeElement;if(!a||a===document.body){if(els[0]){els[0].focus();e.preventDefault()}return}var r=a.getBoundingClientRect(),best=null,bd=1e9;els.forEach(function(el){if(el===a)return;var b=el.getBoundingClientRect(),dx=b.left-r.left,dy=b.top-r.top,ok=(e.key==='ArrowRight'&&dx>8)||(e.key==='ArrowLeft'&&dx<-8)||(e.key==='ArrowDown'&&dy>8)||(e.key==='ArrowUp'&&dy<-8);if(!ok)return;var d=Math.abs(dx)+Math.abs(dy);if(d<bd){bd=d;best=el}});if(best){best.focus();e.preventDefault()}})})();</script>
+<script><?= sonika_js() ?>;;(function(){var q=/[?&]tv=1\b/.test(location.search),ua=/SmartTV|Tizen|Web0S|webOS|NetCast|BRAVIA|AFT[A-Z]|AppleTV|Roku|HbbTV|VIDAA/i.test(navigator.userAgent||'');if(!q&&!ua)return;document.documentElement.classList.add('tv-mode');var els=[].slice.call(document.querySelectorAll('a,button,input,select,textarea,[tabindex]')).filter(function(el){return !el.disabled&&el.offsetParent!==null});document.addEventListener('keydown',function(e){if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].indexOf(e.key)<0)return;var a=document.activeElement;if(!a||a===document.body){if(els[0]){els[0].focus();e.preventDefault()}return}var r=a.getBoundingClientRect(),best=null,bd=1e9;els.forEach(function(el){if(el===a)return;var b=el.getBoundingClientRect(),dx=b.left-r.left,dy=b.top-r.top,ok=(e.key==='ArrowRight'&&dx>8)||(e.key==='ArrowLeft'&&dx<-8)||(e.key==='ArrowDown'&&dy>8)||(e.key==='ArrowUp'&&dy<-8);if(!ok)return;var d=Math.abs(dx)+Math.abs(dy);if(d<bd){bd=d;best=el}});if(best){best.focus();e.preventDefault()}})})();;;(function(){function upd(){var t=('ontouchstart' in window)||(navigator.maxTouchPoints>0)||(window.matchMedia&&matchMedia('(pointer:coarse)').matches);var c=t||window.innerWidth<=1024;document.documentElement.classList.toggle('wwi-compact',!!c);}upd();window.addEventListener('resize',upd);window.addEventListener('orientationchange',upd);})();</script>
 </body>
 </html>
 <?php
@@ -969,7 +969,7 @@ if (!function_exists('sonika_css')) {
         .chip.ok{background:#ECFDF5;color:#047857;border-color:#A7F3D0}
         .chip.no{background:#F3F4F6;color:#6B7280}
         .qty{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-right:12px}
-        .qty button{width:40px;height:46px;border:none;background:#fff;font-size:18px;cursor:pointer}
+        .qty button{width:44px;height:46px;border:none;background:#fff;font-size:18px;cursor:pointer}
         .qty input{width:46px;height:46px;border:none;text-align:center;font-size:15px;font-family:inherit}
         .btn-buy{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;border:none;border-radius:12px;padding:14px 34px;font-weight:700;font-size:15px;cursor:pointer;box-shadow:0 10px 26px rgba(242,13,22,.3)}
         .pdp-desc{margin-top:34px;padding-top:26px;border-top:1px solid var(--line)}
@@ -1027,7 +1027,7 @@ if (!function_exists('sonika_css')) {
         .icon-btn{width:auto;padding:0 12px;gap:7px}
         .icon-btn .lbl{font-size:13px;font-weight:600}
         @media(max-width:960px){.hero-in,.pdp,.cart-wrap{grid-template-columns:1fr}.cat-grid,.prod-grid{grid-template-columns:repeat(2,1fr)}.fgrid{grid-template-columns:1fr 1fr}.summary{position:static}}
-@media (max-width:900px){.nav{flex-wrap:wrap!important;gap:8px!important;padding:10px 0!important;justify-content:flex-start!important}.nav>.logo{order:1!important;margin-right:0!important}.nav-actions{order:2!important;gap:6px!important;margin-left:0!important}.nav>.search{order:3!important;flex:1 1 100%!important;margin-top:6px!important;min-width:0!important;width:100%!important}.icon-btn{width:38px!important;height:38px!important;padding:0!important;border-radius:10px!important;font-size:16px!important}.logo-img{height:30px!important}.logo .mark{width:32px!important;height:32px!important;font-size:17px!important}.logo{gap:8px!important;font-size:18px!important}.nav-actions .lbl,.nav-actions .ska-acc-txt,.nav-actions .ska-acc-caret{display:none!important}.wwi-lang{display:none!important}.cart-badge{font-size:9px!important;padding:1px 5px!important;top:-4px!important;right:-4px!important}}
+@media (max-width:900px){.nav{flex-wrap:wrap!important;gap:8px!important;padding:10px 0!important;justify-content:flex-start!important}.nav>.logo{order:1!important;margin-right:0!important}.nav-actions{order:2!important;gap:6px!important;margin-left:0!important}.nav>.search{order:3!important;flex:1 1 100%!important;margin-top:6px!important;min-width:0!important;width:100%!important}.icon-btn{width:44px!important;height:44px!important;padding:0!important;border-radius:10px!important;font-size:16px!important}.logo-img{height:28px!important}.logo .mark{width:32px!important;height:32px!important;font-size:17px!important}.logo{gap:8px!important;font-size:18px!important}.nav-actions .lbl,.nav-actions .ska-acc-txt,.nav-actions .ska-acc-caret{display:none!important}.wwi-lang{display:none!important}.cart-badge{font-size:9px!important;padding:1px 5px!important;top:-4px!important;right:-4px!important}}
 @media (max-width:900px){.ska-acc-menu{position:fixed!important;left:12px!important;right:12px!important;bottom:12px!important;top:auto!important;width:auto!important;min-width:0!important;max-height:70vh!important;overflow:auto!important;border-radius:16px!important;z-index:9995!important;transform:translateY(8px)!important}.ska-acc:focus-within .ska-acc-menu{transform:none!important}.ska-acc-menu a{padding:13px 14px!important;font-size:15px!important}.wwi-cart__panel{position:fixed!important;left:0!important;right:0!important;bottom:0!important;top:auto!important;width:100%!important;max-width:none!important;max-height:78vh!important;overflow:auto!important;border-radius:18px 18px 0 0!important;z-index:9995!important;padding-bottom:calc(14px + env(safe-area-inset-bottom))!important}.wwi-cart.open .wwi-cart__panel{transform:none!important}}
         @media(max-width:600px){.hero h1{font-size:34px}.nav{flex-wrap:wrap}.search{order:9;flex-basis:100%;margin-top:8px}.icon-btn .lbl{display:none}.cat-grid,.prod-grid{grid-template-columns:repeat(2,1fr);gap:12px}.topbar__msg .wwi-bn{font-size:11px}}
         .hero{position:relative;overflow:hidden}
@@ -1039,15 +1039,32 @@ if (!function_exists('sonika_css')) {
 html,body{max-width:100%;overflow-x:clip}
 img,video,iframe{max-width:100%}
 .ah-rich,.ah-side__tags,.ah-tag,.ah-side__bio{overflow-wrap:anywhere}
+@media(max-width:900px){input,select,textarea{font-size:16px!important}}
 /* === TV / 10-foot UI (Constitution §12) === */
 html.tv-mode{font-size:20px}
-html.tv-mode body{overflow-x:hidden}
+html.tv-mode body{overflow-x:clip}
 html.tv-mode .wrap{max-width:1600px}
 html.tv-mode .nav{padding:18px 0}
 html.tv-mode :focus-visible{outline:4px solid #fff!important;outline-offset:4px!important;border-radius:8px}
 html.tv-mode a,html.tv-mode button,html.tv-mode [tabindex]{min-height:52px;min-width:52px}
 html.tv-mode .topbar{font-size:14px}
 @media (min-width:1600px){.hero h1{font-size:52px}}
+/* === Modo compacto determinista (touch o <=1024px) === */
+html.wwi-compact .nav{flex-wrap:wrap!important;gap:8px!important;padding:10px 0!important;justify-content:flex-start!important}
+html.wwi-compact .nav>.logo{order:1!important;margin-right:0!important}
+html.wwi-compact .nav-actions{order:2!important;gap:6px!important;margin-left:0!important}
+html.wwi-compact .nav>.search{order:3!important;flex:1 1 100%!important;margin-top:6px!important;min-width:0!important;width:100%!important}
+html.wwi-compact .icon-btn{width:44px!important;height:44px!important;padding:0!important;border-radius:10px!important;font-size:16px!important}
+html.wwi-compact .logo-img{height:28px!important}
+html.wwi-compact .logo{gap:8px!important;font-size:18px!important}
+html.wwi-compact .nav-actions .lbl,html.wwi-compact .nav-actions .ska-acc-txt,html.wwi-compact .nav-actions .ska-acc-caret,html.wwi-compact .wwi-lang{display:none!important}
+html.wwi-compact .cart-badge{font-size:9px!important;padding:1px 5px!important;top:-4px!important;right:-4px!important}
+html.wwi-compact .ska-acc-menu{position:fixed!important;left:12px!important;right:12px!important;bottom:12px!important;top:auto!important;width:auto!important;min-width:0!important;max-height:70dvh!important;overflow:auto!important;border-radius:16px!important;z-index:9995!important;transform:translateY(8px)!important}
+html.wwi-compact .ska-acc:focus-within .ska-acc-menu,html.wwi-compact .ska-acc:hover .ska-acc-menu{transform:none!important;opacity:1!important;visibility:visible!important}
+html.wwi-compact .ska-acc-menu a{padding:13px 14px!important;font-size:15px!important}
+html.wwi-compact .wwi-cart__panel{position:fixed!important;left:0!important;right:0!important;bottom:0!important;top:auto!important;width:100%!important;max-width:none!important;max-height:80dvh!important;overflow:auto!important;border-radius:18px 18px 0 0!important;z-index:9995!important;padding-bottom:calc(14px + env(safe-area-inset-bottom))!important}
+html.wwi-compact .wwi-cart.open .wwi-cart__panel{transform:none!important;opacity:1!important;visibility:visible!important}
+html.wwi-compact input,html.wwi-compact select,html.wwi-compact textarea{font-size:16px!important}
 CSS;
     }
 }
