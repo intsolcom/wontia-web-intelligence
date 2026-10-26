@@ -22,6 +22,7 @@ class SectionShowcaseWidget extends Widget
                 ['key' => 'desc', 'label' => 'Description', 'type' => 'textarea'],
                 ['key' => 'tag', 'label' => 'Tag', 'type' => 'text'],
                 ['key' => 'icon', 'label' => 'Icon (emoji)', 'type' => 'text'],
+                ['key' => 'chips', 'label' => 'Chips (comma separated)', 'type' => 'text'],
                 ['key' => 'url', 'label' => 'URL', 'type' => 'text'],
                 ['key' => 'badge', 'label' => 'Badge', 'type' => 'text'],
             ], 'default' => []],
@@ -115,6 +116,15 @@ class SectionShowcaseWidget extends Widget
             . '.ss-ind-card b{display:block;font-size:.83rem;font-weight:700;color:#0F172A;margin-bottom:4px;letter-spacing:-.01em}'
             . '.ss-ind-card span{display:block;font-size:.72rem;line-height:1.5;color:#7A8694}'
 
+            . '.ss-item-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}'
+            . '.ss-item-chip{font-size:10.5px;font-weight:600;color:#0077C2;background:#EAF5FE;border:1px solid #D3EBFB;border-radius:99px;padding:3px 9px}'
+            . '.ss-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}'
+            . '.ss-step{position:relative;background:#fff;border:1px solid #E1E8F0;border-radius:16px;padding:24px 22px 20px;transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease}'
+            . '.ss-step:hover{transform:translateY(-3px);box-shadow:0 18px 40px rgba(15,23,42,.08);border-color:rgba(0,200,150,.4)}'
+            . '.ss-step-num{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:12px;background:#EAFBF4;color:#00845F;font-family:"Space Grotesk",sans-serif;font-weight:700;font-size:15px;letter-spacing:.02em;margin-bottom:14px}'
+            . '.ss-step h3{font-family:"Space Grotesk",sans-serif;font-size:1rem;font-weight:700;letter-spacing:-.01em;margin:0 0 6px;color:#0F172A;text-transform:uppercase;font-size:.85rem;letter-spacing:.06em}'
+            . '.ss-step p{font-size:.9rem;line-height:1.6;color:#5B6773;margin:0}'
+            . '.ss-note{text-align:center;color:#7A8694;font-size:.88rem;margin-top:26px}'
             . '.ss-cmp{display:grid;grid-template-columns:1fr 1fr;gap:0;border-radius:20px;overflow:hidden;border:1px solid #E1E8F0;background:#fff}'
             . '.ss-cmp-col{padding:34px 32px}'
             . '.ss-cmp-col.trad{background:#FBFCFD;border-right:1px solid #E8EDF3}'
@@ -129,8 +139,8 @@ class SectionShowcaseWidget extends Widget
             . '.ss-cmp-col.trad .ss-cmp-mark{background:#F1F5F9;color:#94A3B8}'
             . '.ss-cmp-col.intsol .ss-cmp-mark{background:#DCF7EC;color:#00845F}'
 
-            . '@media(max-width:960px){.ss-stack{grid-template-columns:1fr;gap:30px}.ss-prod{grid-template-columns:1fr}.ss-eco-grid{grid-template-columns:1fr}.ss-eco-conn{display:none}.ss-bento{grid-template-columns:repeat(2,1fr);grid-auto-rows:auto}.ss-bento-item.big{grid-column:span 2;grid-row:span 1}.ss-ind{grid-template-columns:repeat(2,1fr)}.ss-cmp{grid-template-columns:1fr}.ss-cmp-col.trad{border-right:none;border-bottom:1px solid #E8EDF3}}'
-            . '@media(max-width:560px){.ss-light,.ss-white,.ss-dark{padding:64px 0}.ss-ind{grid-template-columns:1fr}.ss-eco-hub-card{padding:16px 22px}}'
+            . '@media(max-width:960px){.ss-stack{grid-template-columns:1fr;gap:30px}.ss-prod{grid-template-columns:1fr}.ss-eco-grid{grid-template-columns:1fr}.ss-eco-conn{display:none}.ss-bento{grid-template-columns:repeat(2,1fr);grid-auto-rows:auto}.ss-bento-item.big{grid-column:span 2;grid-row:span 1}.ss-ind{grid-template-columns:repeat(2,1fr)}.ss-cmp{grid-template-columns:1fr}.ss-cmp-col.trad{border-right:none;border-bottom:1px solid #E8EDF3}.ss-steps{grid-template-columns:1fr 1fr}}'
+            . '@media(max-width:560px){.ss-light,.ss-white,.ss-dark{padding:64px 0}.ss-ind{grid-template-columns:1fr}.ss-eco-hub-card{padding:16px 22px}.ss-steps{grid-template-columns:1fr}}'
             . '</style>';
 
         $html = '<div class="ss">' . $css;
@@ -144,7 +154,14 @@ class SectionShowcaseWidget extends Widget
                 $html .= '<article class="ss-eco-card">';
                 if (!empty($it['tag'])) $html .= '<span class="ss-eco-tag">' . $e($it['tag']) . '</span>';
                 if (!empty($it['icon'])) $html .= '<div class="ss-eco-icon">' . $e($it['icon']) . '</div>';
-                $html .= '<h3>' . $e($it['title'] ?? '') . '</h3><p>' . $e($it['desc'] ?? '') . '</p></article>';
+                $html .= '<h3>' . $e($it['title'] ?? '') . '</h3><p>' . $e($it['desc'] ?? '') . '</p>';
+                $chips = array_filter(array_map('trim', explode(',', (string)($it['chips'] ?? ''))));
+                if ($chips) {
+                    $html .= '<div class="ss-item-chips">';
+                    foreach ($chips as $chip) $html .= '<span class="ss-item-chip">' . $e($chip) . '</span>';
+                    $html .= '</div>';
+                }
+                $html .= '</article>';
             }
             $html .= '</div></div></div></section>';
         } elseif ($variant === 'stack') {
@@ -185,6 +202,16 @@ class SectionShowcaseWidget extends Widget
                 $html .= '<div class="ss-ind-card">' . (!empty($it['icon']) ? '<span class="ss-ind-ico">' . $e($it['icon']) . '</span>' : '') . '<b>' . $e($it['title'] ?? '') . '</b><span>' . $e($it['desc'] ?? '') . '</span></div>';
             }
             $html .= '</div></div></section>';
+        } elseif ($variant === 'steps') {
+            $html .= '<section class="ss-white" id="methodology"><div class="ss-wrap">';
+            $html .= '<div class="ss-head"><span class="ss-kicker">' . $e($c['kicker'] ?? '') . '</span><h2 class="ss-title">' . $e($c['title'] ?? '') . '</h2><p class="ss-sub">' . $e($c['subtitle'] ?? '') . '</p></div>';
+            $html .= '<div class="ss-steps">';
+            foreach ($items as $i => $it) {
+                $html .= '<article class="ss-step"><span class="ss-step-num">' . str_pad((string)($i + 1), 2, '0', STR_PAD_LEFT) . '</span><h3>' . $e($it['title'] ?? '') . '</h3><p>' . $e($it['desc'] ?? '') . '</p></article>';
+            }
+            $html .= '</div>';
+            if (!empty($c['note'])) $html .= '<p class="ss-note">' . $e($c['note']) . '</p>';
+            $html .= '</div></section>';
         } elseif ($variant === 'comparison') {
             $html .= '<section class="ss-light" id="comparison"><div class="ss-wrap">';
             $html .= '<div class="ss-head"><span class="ss-kicker">' . $e($c['kicker'] ?? '') . '</span><h2 class="ss-title">' . $e($c['title'] ?? '') . '</h2><p class="ss-sub">' . $e($c['subtitle'] ?? '') . '</p></div>';

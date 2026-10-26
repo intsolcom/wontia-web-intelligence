@@ -95,6 +95,13 @@ if (!$brandPrimary || !preg_match('/^#[0-9a-fA-F]{6}$/', (string)$brandPrimary))
         .h-sec{text-align:center;max-width:640px;margin:0 auto 44px}
         .h-sec h2{font-family:'Space Grotesk','Inter',sans-serif;font-size:clamp(1.6rem,3vw,2.4rem);font-weight:700;letter-spacing:-.02em;color:#0F172A;margin-bottom:10px}
         .h-sec p{font-size:15px;color:#475569;line-height:1.65}
+        main > .wwi-section .section h1{font-family:'Space Grotesk',sans-serif;font-size:clamp(1.6rem,3vw,2.2rem);font-weight:700;letter-spacing:-.02em;color:#0F172A;margin:0 0 18px}
+        main > .wwi-section .section h2{font-family:'Space Grotesk',sans-serif;font-size:1.12rem;font-weight:700;color:#0F172A;margin:30px 0 10px}
+        main > .wwi-section .section h2:first-child{margin-top:0}
+        main > .wwi-section .section p{font-size:.95rem;line-height:1.75;color:#4A5561;margin:0 0 12px}
+        main > .wwi-section .section ul{margin:0 0 14px 20px;color:#4A5561;font-size:.95rem;line-height:1.7}
+        main > .wwi-section .section li{margin-bottom:6px}
+        main > .wwi-section .section .last-updated{color:#94A3B8;font-size:.85rem}
         .wrap{max-width:1100px;margin:0 auto}
         .hero{position:relative}
         .hero-bg{display:none}
