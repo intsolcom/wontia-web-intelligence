@@ -25,6 +25,7 @@ class SonikaFooterWidget extends Widget
                 ['label' => 'Devoluciones, Retracto y Garantía', 'url' => '/politica-de-devoluciones'],
                 ['label' => 'Política de Envíos', 'url' => '/politica-de-envios'],
                 ['label' => 'Privacidad y Tratamiento de Datos', 'url' => '/politica-de-privacidad'],
+                ['label' => 'Términos y Condiciones', 'url' => '/terminos-y-condiciones'],
                 ['label' => 'Información sobre Promociones', 'url' => '/informacion-sobre-promociones'],
             ]],
             ['key' => '_h_contact', 'label' => 'Contacto corporativo', 'type' => 'heading'],
