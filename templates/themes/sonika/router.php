@@ -1385,8 +1385,24 @@ switch ($segments[0] ?? '') {
             document.getElementById('ac-login').onclick=async function(){var r=await api('/api/v1/public/account/login',{method:'POST',body:JSON.stringify({email:document.getElementById('ac-email').value,password:document.getElementById('ac-pass').value})});if(r.ok){location.search=''}else{login(r.message||E.badCred)}};
             document.getElementById('ac-toreg').onclick=function(e){e.preventDefault();location.search='?tab=register'};
             document.getElementById('ac-forgot').onclick=function(e){e.preventDefault();forgot()}}
-          function forgot(){box.innerHTML=acShell(acHead(E.eyebrow,E.recTitle,E.recDesc)+acField(E.email,'fg-email','email','email')+'<button class="sonika-account-login__submit" id="fg-go">'+E.sendCode+'</button><div id="fg-step2" hidden style="margin-top:16px">'+acField(E.code,'fg-code','text')+acField(E.newPass,'fg-pass','password','new-password')+'<button class="sonika-account-login__submit" id="fg-reset">'+E.reset+'</button></div><div class="sonika-account-login__row" style="justify-content:flex-start;margin-top:14px"><a href="#" id="fg-back" class="sonika-account-login__secondary-link">'+E.back+'</a></div>');
-            document.getElementById('fg-go').onclick=async function(){await api('/api/v1/public/account/forgot',{method:'POST',body:JSON.stringify({email:document.getElementById('fg-email').value})});document.getElementById('fg-step2').hidden=false};
+          function forgot(){box.innerHTML=acShell(acHead(E.eyebrow,E.recTitle,E.recDesc)+acField(E.email,'fg-email','email','email')+'<p style="margin:-4px 0 14px;color:#777;font-size:12.5px;line-height:1.5">Usa el mismo correo con el que creaste tu cuenta.</p><button class="sonika-account-login__submit" id="fg-go">'+E.sendCode+'</button><div id="fg-status" role="status" aria-live="polite" style="min-height:18px;margin-top:10px;font-size:12.5px;line-height:1.5"></div><div id="fg-step2" hidden style="margin-top:16px">'+acField(E.code,'fg-code','text')+acField(E.newPass,'fg-pass','password','new-password')+'<button class="sonika-account-login__submit" id="fg-reset">'+E.reset+'</button></div><div class="sonika-account-login__row" style="justify-content:flex-start;margin-top:14px"><a href="#" id="fg-back" class="sonika-account-login__secondary-link">'+E.back+'</a></div>');
+            document.getElementById('fg-go').onclick=async function(){
+              var btn=this,st=document.getElementById('fg-status'),em=document.getElementById('fg-email').value.trim();
+              btn.disabled=true;btn.textContent='Enviando…';
+              if(st){st.style.color='#6B6B6B';st.textContent='Enviando código…';}
+              try{
+                var r=await api('/api/v1/public/account/forgot',{method:'POST',body:JSON.stringify({email:em})});
+                if(!r||!r.ok){
+                  if(st){st.style.color='#B42318';st.textContent=(r&&r.message)||'No pudimos enviar el código. Intenta de nuevo.';}
+                  btn.disabled=false;btn.textContent=E.sendCode;return;
+                }
+                if(st){st.style.color='#0A6B49';st.textContent=(r&&r.message)||'Si la cuenta existe, enviamos un código a tu correo.';}
+                document.getElementById('fg-step2').hidden=false;
+              }catch(e){
+                if(st){st.style.color='#B42318';st.textContent='No pudimos conectar. Intenta de nuevo.';}
+              }
+              btn.disabled=false;btn.textContent=E.sendCode;
+            };
             document.getElementById('fg-reset').onclick=async function(){var r=await api('/api/v1/public/account/reset',{method:'POST',body:JSON.stringify({email:document.getElementById('fg-email').value,code:document.getElementById('fg-code').value,password:document.getElementById('fg-pass').value})});if(r.ok){location.search=''}else{alert(r.message||E.invalidCode)}};
             document.getElementById('fg-back').onclick=function(e){e.preventDefault();location.search=''}}
           function reg(){box.innerHTML=acShell(acHead(E.eyebrow,E.regTitle,E.regDesc)+acField(E.name,'rg-name','text','name')+acField(E.email,'rg-email','email','email')+acField(E.passMin,'rg-pass','password','new-password')+'<button class="sonika-account-login__submit" id="rg-go">'+E.create+'</button><div class="sonika-account-login__register">'+E.haveAccount+' <a href="#" id="rg-to" class="sonika-account-login__secondary-link">'+E.signin+'</a></div>');

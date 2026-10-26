@@ -252,13 +252,23 @@ class CustomerService
     {
         $this->ensureTables();
         $email = trim(strtolower($email));
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) return ['ok' => true];
+        $sec = new AuthSecurityService();
+        $ip = (string)($_SERVER['HTTP_CF_CONNECTING_IP'] ?? $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'] ?? '');
+        $ua = (string)($_SERVER['HTTP_USER_AGENT'] ?? '');
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $sec->audit('customer_forgot', 'invalid', 0, $email, [], $ip, $ua);
+            return ['ok' => true];
+        }
         $st = Database::instance()->prepare('SELECT id FROM store_customers WHERE site_id = @site_id AND email = ? LIMIT 1');
         $st->execute([$email]);
-        if (!$st->fetchColumn()) return ['ok' => true]; // respuesta genérica (no revelar)
-        $sec = new AuthSecurityService();
+        if (!$st->fetchColumn()) {
+            $sec->audit('customer_forgot', 'not_found', 0, $email, [], $ip, $ua);
+            return ['ok' => true];
+        }
+        $sec->audit('customer_forgot', 'requested', 0, $email, [], $ip, $ua);
         $code = $sec->createOtp(0, $email, 'customer_reset', 10);
-        $sec->sendOtpEmail($email, $code, $this->siteName(), 10);
+        $sent = $sec->sendOtpEmail($email, $code, $this->siteName(), 10);
+        $sec->audit('customer_forgot_sent', $sent ? 'ok' : 'error', 0, $email, ['sent' => $sent], $ip, $ua);
         return ['ok' => true];
     }
 
