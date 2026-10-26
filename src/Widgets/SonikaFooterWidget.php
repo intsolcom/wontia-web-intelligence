@@ -38,6 +38,7 @@ class SonikaFooterWidget extends Widget
             ['key' => 'co_name', 'label' => 'Colombia — Entidad', 'type' => 'text', 'default' => '🇨🇴 Intsolcom SAS'],
             ['key' => 'co_country', 'label' => 'Colombia — Sede', 'type' => 'text', 'default' => ''],
             ['key' => 'co_address', 'label' => 'Colombia — Dirección', 'type' => 'text', 'default' => 'Cra 55 # 100 - 51 Piso 13, Centro Empresarial Blue Garden'],
+            ['key' => 'co_address2', 'label' => 'Colombia — Dirección adicional (oficina administrativa)', 'type' => 'text', 'default' => 'Oficina administrativa: CR 53 80 198, Torre Atlántica, Torre Empresarial, Oficina 311, Barranquilla'],
             ['key' => 'co_phone', 'label' => 'Colombia — Teléfono', 'type' => 'text', 'default' => '+57 3116020005'],
             ['key' => 'co_email', 'label' => 'Colombia — Email', 'type' => 'text', 'default' => 'cliente@intsolcom.com'],
             ['key' => '_h_cred', 'label' => 'Créditos y estilo', 'type' => 'heading'],
@@ -122,6 +123,7 @@ class SonikaFooterWidget extends Widget
             $h .= '<div class="sf__ent"><strong>' . $this->esc($name) . '</strong>';
             if (trim((string)($c[$p . '_country'] ?? '')) !== '') $h .= '<span>' . $this->esc((string)$c[$p . '_country']) . '</span>';
             if (trim((string)($c[$p . '_address'] ?? '')) !== '') $h .= '<span>' . $this->esc((string)$c[$p . '_address']) . '</span>';
+            if (trim((string)($c[$p . '_address2'] ?? '')) !== '') $h .= '<span>' . $this->esc((string)$c[$p . '_address2']) . '</span>';
             $ph = trim((string)($c[$p . '_phone'] ?? ''));
             if ($ph !== '') $h .= '<a href="tel:' . $this->esc(preg_replace('/[^0-9+]/', '', $ph)) . '">' . $this->esc($ph) . '</a><br>';
             $em = trim((string)($c[$p . '_email'] ?? ''));
