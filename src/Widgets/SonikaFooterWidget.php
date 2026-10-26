@@ -26,7 +26,7 @@ class SonikaFooterWidget extends Widget
                 ['label' => 'Política de Envíos', 'url' => '/politicas#envios'],
                 ['label' => 'Privacidad y Tratamiento de Datos', 'url' => '/politicas#privacidad'],
                 ['label' => 'Términos y Condiciones', 'url' => '/politicas#terminos'],
-                ['label' => 'Información sobre Promociones', 'url' => '/politicas#promociones'],
+                ['label' => 'Información sobre Promociones', 'url' => '/informacion-sobre-promociones'],
                 ['label' => 'PQRS', 'url' => '/politicas#pqrs'],
             ]],
             ['key' => '_h_contact', 'label' => 'Contacto corporativo', 'type' => 'heading'],
