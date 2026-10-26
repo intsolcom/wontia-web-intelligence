@@ -926,7 +926,9 @@ if (($segments[0] ?? '') === 'politicas') {
     echo '<div style="line-height:1.8">';
     foreach ($pol as $slug => $title) {
         echo '<h2 id="' . $slug . '" style="font-size:18px;margin:28px 0 8px">' . sonika_esc($title) . '</h2>';
-        echo '<p style="color:#999">Contenido en preparación.</p>';
+                echo $slug === 'pagos'
+                    ? '<p style="color:#334155">Consulta la <a href="/politica-de-pagos-en-linea" style="color:#F20D16;font-weight:700">Política de Pagos en Línea completa</a>.</p>'
+                    : '<p style="color:#999">Contenido en preparación.</p>';
     }
     echo '</div></section>';
     sonika_site_footer();

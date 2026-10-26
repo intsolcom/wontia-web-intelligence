@@ -5,7 +5,9 @@ use App\Core\Database;
 header('Content-Type: application/xml; charset=utf-8');
 echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
 
-$url = Config::get('APP_URL', 'https://wontia.intsolcom.com');
+$__scheme = ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https')) ? 'https' : 'http';
+$__host = (string)($_SERVER['HTTP_HOST'] ?? '');
+$url = $__host !== '' ? $__scheme . '://' . $__host : rtrim((string)Config::get('APP_URL', 'https://wontia.intsolcom.com'), '/');
 
 echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
 

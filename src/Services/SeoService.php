@@ -7,11 +7,14 @@ class SeoService
 {
     public static function metaTags(array $page): string
     {
-        $url = Config::get('APP_URL', 'https://wontia.intsolcom.com');
+        $scheme = ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https')) ? 'https' : 'http';
+        $host = (string)($_SERVER['HTTP_HOST'] ?? '');
+        $url = $host !== '' ? $scheme . '://' . $host : rtrim((string)Config::get('APP_URL', 'https://wontia.intsolcom.com'), '/');
         $title = htmlspecialchars($page['meta_title'] ?? $page['title'] ?? 'Wontia');
         $desc = htmlspecialchars($page['meta_description'] ?? Config::get('site_description', 'Applied Intelligence Platform'));
         $ogImage = $page['og_image'] ?? "$url/assets/wontia-og.png";
-        $canonical = $page['canonical_url'] ?? "$url/" . ($page['slug'] ?? '');
+        $path = trim((string)($page['slug'] ?? ''), '/');
+        $canonical = $page['canonical_url'] ?? rtrim($url, '/') . '/' . $path;
 
         $html = "    <title>$title</title>\n";
         $html .= "    <meta name=\"description\" content=\"$desc\">\n";

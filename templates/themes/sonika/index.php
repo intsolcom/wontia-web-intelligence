@@ -6,6 +6,28 @@ require_once __DIR__ . '/lib.php';
 $page = $page ?? ['title' => 'SONIKA', 'slug' => 'home'];
 AnalyticsService::track($_SERVER['REQUEST_URI'], $_SERVER['HTTP_REFERER'] ?? '', $_SERVER['HTTP_USER_AGENT'] ?? '');
 
+$__cmsSlug = (string)($page['slug'] ?? 'home');
+if ($__cmsSlug !== 'home') {
+    $__cmsTitle = trim((string)($page['meta_title'] ?? '')) ?: (string)($page['title'] ?? 'SONIKA');
+    sonika_site_head($__cmsTitle, (string)($page['meta_description'] ?? ''));
+    echo '<style>.sonika-cms{background:#fff;color:#17212b}.sonika-cms .cms-head{max-width:940px;margin:0 auto;padding:30px 22px 4px}.sonika-cms .cms-head h1{font:800 clamp(1.5rem,3.2vw,2.1rem)/1.15 Sora,sans-serif;color:#101d3a;margin:0}.sonika-cms .wwi-section{max-width:940px;margin:0 auto;padding:0 22px}.sonika-cms .prose{padding:10px 0 40px;font-size:15px;line-height:1.75;color:#334155}.sonika-cms .prose h2{font:800 20px Sora,sans-serif;color:#101d3a;margin:30px 0 10px;scroll-margin-top:90px}.sonika-cms .prose h3{font:800 16px Sora,sans-serif;color:#17212b;margin:20px 0 8px}.sonika-cms .prose p{margin:0 0 12px}.sonika-cms .prose ul,.sonika-cms .prose ol{margin:0 0 14px;padding-left:22px}.sonika-cms .prose li{margin:4px 0}.sonika-cms .prose a{color:#F20D16;font-weight:600;text-decoration:none;border-bottom:1px solid rgba(242,13,22,.3)}.sonika-cms .prose strong{color:#101d3a}.sonika-cms .legal-meta{background:#f6fbf9;border:1px solid #e6eeea;border-radius:12px;padding:12px 14px;font-size:13px;color:#51607a}.sonika-cms .legal-foot{margin-top:26px;padding-top:16px;border-top:1px solid #eef2f0;font-size:13px;color:#64748b}.sonika-cms .legal-foot b{color:#101d3a}@media(max-width:640px){.sonika-cms .prose{font-size:14.5px}.sonika-cms .wwi-section{padding:0 16px}}</style>';
+    echo '<main class="sonika-cms"><div class="cms-head"><h1>' . sonika_esc((string)$page['title']) . '</h1></div>';
+    $__secs = is_array($sections ?? null) ? $sections : [];
+    if (!$__secs) {
+        echo '<div class="wwi-section"><div class="prose"><p>Contenido en preparación.</p></div></div>';
+    }
+    foreach ($__secs as $__s) {
+        $__cfg = json_decode((string)($__s['config'] ?? '{}'), true) ?: [];
+        $__isWidget = !empty($__s['widget_type']) && \App\Widgets\WidgetRegistry::get($__s['widget_type']);
+        $__html = $__isWidget ? \App\Widgets\WidgetRegistry::render($__s['widget_type'], $__cfg) : (string)($__s['content'] ?? '');
+        echo '<section class="wwi-section" data-sid="' . (int)$__s['id'] . '">' . ($__isWidget ? $__html : '<div class="prose">' . $__html . '</div>') . '</section>';
+    }
+    echo '</main>';
+    sonika_site_footer();
+    require ROOT_DIR . '/templates/themes/_shared/live-editor.php';
+    return;
+}
+
 sonika_site_head('SONIKA — Instrumentos Musicales', 'Compra instrumentos musicales, audio, iluminación y accesorios con envío a toda Colombia. Sonido profesional, precio justo.');
 ?>
 

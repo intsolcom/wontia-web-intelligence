@@ -687,10 +687,12 @@ if (!function_exists('sonika_site_head')) {
             @setcookie('sonika_aff', $__rc, ['expires' => time() + 30 * 86400, 'path' => '/', 'samesite' => 'Lax']);
             $_COOKIE['sonika_aff'] = $__rc;
         }
+        $__seoPath = trim((string)parse_url((string)($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH), '/');
         $pageMeta = [
             'title' => $title,
             'meta_title' => $title,
-            'meta_description' => $desc ?: 'SONIKA — Instrumentos musicales, audio e iluminación. Envíos a toda Colombia.',
+            'meta_description' => $desc ?: 'SONIKA - Instrumentos musicales, audio e iluminación. Envíos a toda Colombia.',
+            'slug' => $__seoPath,
         ];
         ?><!DOCTYPE html>
 <html lang="<?= sonika_esc(\App\Core\Lang::current()) ?>">
