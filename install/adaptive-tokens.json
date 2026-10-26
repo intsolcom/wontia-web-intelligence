@@ -1,0 +1,23 @@
+{
+  "$schema": "https://design-tokens.github.io/community-group/format/",
+  "wwi": {
+    "tapTarget": { "value": "44px", "type": "dimension" },
+    "radius": { "value": "12px", "type": "dimension" },
+    "breakpoints": {
+      "xs": { "value": "320px" }, "sm": { "value": "480px" }, "md": { "value": "600px" },
+      "lg": { "value": "768px" }, "xl": { "value": "1024px" }, "2xl": { "value": "1280px" },
+      "3xl": { "value": "1536px" }, "uw": { "value": "1920px" }, "tv": { "value": "1920px/3840px" }
+    },
+    "font": {
+      "body": { "value": "1rem" },
+      "inputMobile": { "value": "16px" },
+      "tvBase": { "value": "20px" }
+    },
+    "space": { "gap": { "value": "clamp(.5rem,.4rem + .5vw,.9rem)" } },
+    "maxWidth": { "content": { "value": "1180px" }, "tv": { "value": "1600px" } },
+    "motion": { "reduced": { "value": "prefers-reduced-motion" } },
+    "budgets": {
+      "lcp": { "value": "2500ms" }, "inp": { "value": "200ms" }, "cls": { "value": "0.1" }
+    }
+  }
+}

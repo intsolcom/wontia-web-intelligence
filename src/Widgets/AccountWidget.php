@@ -111,6 +111,7 @@ class AccountWidget extends Widget
 .ska-acc-ava-img{width:100%;height:100%;object-fit:cover;display:block}
 .ska-acc-ava-ini{display:inline-flex;align-items:center;justify-content:center;width:100%;height:100%;font-weight:800;font-size:16px;color:#3A4150}
 .ska-acc-menu{position:absolute;right:0;top:calc(100% + 8px);min-width:180px;background:#fff;border:1px solid #E6E6E6;border-radius:12px;box-shadow:0 18px 44px rgba(0,0,0,.14);padding:6px;opacity:0;visibility:hidden;transform:translateY(6px);transition:.16s;z-index:150}
+@media(max-width:900px){.ska-acc-menu{position:fixed;left:12px;right:12px;bottom:12px;top:auto;width:auto;min-width:0;max-height:70vh;overflow:auto;border-radius:16px;z-index:9995}.ska-acc-menu a{padding:13px 14px;font-size:15px}}
 .ska-acc[data-align="left"] .ska-acc-menu{right:auto;left:0}
 .ska-acc:hover .ska-acc-menu,.ska-acc:focus-within .ska-acc-menu{opacity:1;visibility:visible;transform:none}
 .ska-acc-menu a{display:block;padding:9px 12px;border-radius:8px;color:#111;font-size:13px;font-weight:600;text-decoration:none}

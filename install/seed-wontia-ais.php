@@ -155,15 +155,16 @@ $bricks = [
         'phone_co' => '+57 311 602 0005',
         'email_co' => 'cliente@intsolcom.com',
         'solutions' => [
-            ['name' => 'Wontia Business', 'url' => '#business', 'status' => 'available'],
+            ['name' => 'Wontia Business', 'url' => '/#business', 'status' => 'available'],
             ['name' => 'Wontia AIP', 'url' => 'https://app.wontia.com/login', 'status' => 'available', 'child' => true],
-            ['name' => 'Wontia Web Intelligence', 'url' => '#domain-arch', 'status' => 'available', 'child' => true],
-            ['name' => 'Wontia Food Security', 'url' => '#food-security', 'status' => 'development'],
-            ['name' => 'Wontia Health', 'url' => '#domain-arch', 'status' => 'future'],
-            ['name' => 'Wontia Agriculture', 'url' => '#domain-arch', 'status' => 'future'],
-            ['name' => 'Wontia Industry', 'url' => '#domain-arch', 'status' => 'future'],
-            ['name' => 'Wontia Logistics', 'url' => '#domain-arch', 'status' => 'future'],
-            ['name' => 'Wontia Education', 'url' => '#domain-arch', 'status' => 'future'],
+            ['name' => 'Wontia Web Intelligence', 'url' => '/#domain-arch', 'status' => 'available', 'child' => true],
+            ['name' => 'Wontia IA Annotation Manager', 'url' => '/ia-annotation', 'status' => 'available'],
+            ['name' => 'Wontia Food Security', 'url' => '/#food-security', 'status' => 'development'],
+            ['name' => 'Wontia Health', 'url' => '/#domain-arch', 'status' => 'future'],
+            ['name' => 'Wontia Agriculture', 'url' => '/#domain-arch', 'status' => 'future'],
+            ['name' => 'Wontia Industry', 'url' => '/#domain-arch', 'status' => 'future'],
+            ['name' => 'Wontia Logistics', 'url' => '/#domain-arch', 'status' => 'future'],
+            ['name' => 'Wontia Education', 'url' => '/#domain-arch', 'status' => 'future'],
         ],
     ])],
 ];
@@ -173,4 +174,52 @@ foreach ($bricks as $i => $b) {
     $stmt->execute([$pageId, $b[0], $b[1], $b[2], $b[3], $i]);
 }
 
+$pdo->exec("INSERT INTO pages (site_id, title, slug, template, meta_title, meta_description, status, sort_order) VALUES (1, 'Wontia IA Annotation Manager', 'ia-annotation', 'default', 'Wontia IA Annotation Manager | Sports Annotation Intelligence', 'Sports annotation platform: assignment, production, QA, payments, Slack and client feedback — powered by WONTIA and TIA.', 'published', 1)");
+$annotationId = $pdo->lastInsertId();
+
+$annotationBricks = [
+    ['ais-hero', 'ais-hero', 'Hero', json_encode([
+        'eyebrow' => 'APPLIED INTELLIGENCE SYSTEM',
+        'headline' => 'Wontia IA<br><span class="gradient-text">Annotation Manager</span>',
+        'subtitle' => 'Sports annotation intelligence: assignment, production, QA, payments, Slack and client feedback — orchestrated by TIA. One operation. Full traceability.',
+        'cta_primary_text' => 'Talk to Us',
+        'cta_primary_url' => 'mailto:customer@intsolcom.com',
+        'cta_secondary_text' => 'Back to Wontia',
+        'cta_secondary_url' => '/',
+    ])],
+    ['features', 'features', 'Features', json_encode([
+        'title' => 'Annotation Intelligence',
+        'cards' => [
+            ['title' => 'Assignment Intelligence', 'desc' => 'Smart workload distribution across annotators, tracked in real time.'],
+            ['title' => 'Production Workflows', 'desc' => 'Stages, rules and deadlines. TIA flags bottlenecks before they block you.'],
+            ['title' => 'QA Control', 'desc' => 'Quality gates at every stage. Rejections, corrections and approvals — audited.'],
+            ['title' => 'Payments & Payroll', 'desc' => 'Production-based payments calculated automatically. Ready for payroll.'],
+            ['title' => 'Slack Integration', 'desc' => 'Client feedback arrives in Slack and lands directly on the affected clips.'],
+            ['title' => 'Client Feedback', 'desc' => 'Every request, revision and approval connected to the original annotation.'],
+        ],
+    ])],
+    ['howitworks', 'howitworks', 'How It Works', json_encode([
+        'title' => 'How it works',
+        'subtitle' => 'From upload to delivery — a single intelligence layer.',
+        'steps' => [
+            ['title' => 'Upload & Configure', 'desc' => 'Load your match footage and define the annotation playbook for each sport.', 'image' => ''],
+            ['title' => 'Assign & Annotate', 'desc' => 'TIA distributes work, tracks progress and keeps every annotator on spec.', 'image' => ''],
+            ['title' => 'QA, Deliver & Pay', 'desc' => 'Quality gates, client feedback, delivery and production-based payroll.', 'image' => ''],
+        ],
+    ])],
+    ['trust', 'trust', 'Trust & Control', '{}'],
+    ['cta', 'cta', 'CTA', json_encode([
+        'title' => 'Bring annotation intelligence to your operation',
+        'description' => 'Sports annotation with production control, QA, payments and client feedback — powered by WONTIA and TIA.',
+        'button_text' => 'Talk to Us',
+        'button_url' => 'mailto:customer@intsolcom.com',
+    ])],
+    ['footer', 'footer', 'Footer', '{}'],
+];
+
+foreach ($annotationBricks as $i => $b) {
+    $stmt->execute([$annotationId, $b[0], $b[1], $b[2], $b[3], $i]);
+}
+
 echo "Seeded " . count($bricks) . " BRICK widgets (AIS positioning). Page ID: $pageId\n";
+echo "Seeded annotation page (" . count($annotationBricks) . " bricks). Page ID: $annotationId\n";

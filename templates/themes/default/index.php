@@ -111,22 +111,24 @@ if ($brandPrimary && preg_match('/^#[0-9a-fA-F]{6}$/', (string)$brandPrimary)):
     <?php endif; ?>
   </div>
   <div class="nav-links" style="display:flex;align-items:center;gap:22px">
-    <a href="#ais-concept">AIS</a>
-    <a href="#tia-command">TIA</a>
+    <a href="/#ais-concept">AIS</a>
+    <a href="/#tia-command">TIA</a>
     <div class="nav-item">
       <button type="button" class="nav-sol" aria-haspopup="true" aria-expanded="false">Soluciones <span class="nav-chev">&#9662;</span></button>
       <div class="nav-dropdown">
-        <a href="#business" class="nd-item"><span class="nd-dot" style="background:#4A9E6E"></span>Wontia Business<span class="nd-badge" style="background:#D9F2E2;color:#4A9E6E">AVAILABLE</span></a>
+        <a href="/#business" class="nd-item"><span class="nd-dot" style="background:#4A9E6E"></span>Wontia Business<span class="nd-badge" style="background:#D9F2E2;color:#4A9E6E">AVAILABLE</span></a>
         <a href="https://app.wontia.com/login" class="nd-item nd-child"><span class="nd-dot" style="background:#4A9E6E"></span>Wontia AIP<span class="nd-badge" style="background:#D9F2E2;color:#4A9E6E">AVAILABLE</span></a>
-        <a href="#domain-arch" class="nd-item nd-child"><span class="nd-dot" style="background:#4A9E6E"></span>Wontia Web Intelligence<span class="nd-badge" style="background:#D9F2E2;color:#4A9E6E">AVAILABLE</span></a>
+        <a href="/#domain-arch" class="nd-item nd-child"><span class="nd-dot" style="background:#4A9E6E"></span>Wontia Web Intelligence<span class="nd-badge" style="background:#D9F2E2;color:#4A9E6E">AVAILABLE</span></a>
         <div class="nd-sep"></div>
-        <a href="#food-security" class="nd-item"><span class="nd-dot" style="background:#D4A54A"></span>Wontia Food Security<span class="nd-badge" style="background:#F7E8C8;color:#D4A54A">IN DEVELOPMENT</span></a>
+        <a href="/ia-annotation" class="nd-item"><span class="nd-dot" style="background:#4A9E6E"></span>Wontia IA Annotation Manager<span class="nd-badge" style="background:#D9F2E2;color:#4A9E6E">AVAILABLE</span></a>
         <div class="nd-sep"></div>
-        <a href="#domain-arch" class="nd-item"><span class="nd-dot" style="background:#7C3AED"></span>Wontia Health<span class="nd-badge" style="background:#EDE9FE;color:#7C3AED">FUTURE</span></a>
-        <a href="#domain-arch" class="nd-item"><span class="nd-dot" style="background:#7C3AED"></span>Wontia Agriculture<span class="nd-badge" style="background:#EDE9FE;color:#7C3AED">FUTURE</span></a>
-        <a href="#domain-arch" class="nd-item"><span class="nd-dot" style="background:#7C3AED"></span>Wontia Industry<span class="nd-badge" style="background:#EDE9FE;color:#7C3AED">FUTURE</span></a>
-        <a href="#domain-arch" class="nd-item"><span class="nd-dot" style="background:#7C3AED"></span>Wontia Logistics<span class="nd-badge" style="background:#EDE9FE;color:#7C3AED">FUTURE</span></a>
-        <a href="#domain-arch" class="nd-item"><span class="nd-dot" style="background:#7C3AED"></span>Wontia Education<span class="nd-badge" style="background:#EDE9FE;color:#7C3AED">FUTURE</span></a>
+        <a href="/#food-security" class="nd-item"><span class="nd-dot" style="background:#D4A54A"></span>Wontia Food Security<span class="nd-badge" style="background:#F7E8C8;color:#D4A54A">IN DEVELOPMENT</span></a>
+        <div class="nd-sep"></div>
+        <a href="/#domain-arch" class="nd-item"><span class="nd-dot" style="background:#7C3AED"></span>Wontia Health<span class="nd-badge" style="background:#EDE9FE;color:#7C3AED">FUTURE</span></a>
+        <a href="/#domain-arch" class="nd-item"><span class="nd-dot" style="background:#7C3AED"></span>Wontia Agriculture<span class="nd-badge" style="background:#EDE9FE;color:#7C3AED">FUTURE</span></a>
+        <a href="/#domain-arch" class="nd-item"><span class="nd-dot" style="background:#7C3AED"></span>Wontia Industry<span class="nd-badge" style="background:#EDE9FE;color:#7C3AED">FUTURE</span></a>
+        <a href="/#domain-arch" class="nd-item"><span class="nd-dot" style="background:#7C3AED"></span>Wontia Logistics<span class="nd-badge" style="background:#EDE9FE;color:#7C3AED">FUTURE</span></a>
+        <a href="/#domain-arch" class="nd-item"><span class="nd-dot" style="background:#7C3AED"></span>Wontia Education<span class="nd-badge" style="background:#EDE9FE;color:#7C3AED">FUTURE</span></a>
       </div>
     </div>
   </div>
@@ -135,18 +137,19 @@ if ($brandPrimary && preg_match('/^#[0-9a-fA-F]{6}$/', (string)$brandPrimary)):
     <button type="button" class="nav-hamburger" aria-label="Menu"><span></span><span></span><span></span></button>
   </div>
   <div class="nav-mobile" id="navMobile">
-    <a href="#ais-concept">AIS</a>
-    <a href="#tia-command">TIA</a>
+    <a href="/#ais-concept">AIS</a>
+    <a href="/#tia-command">TIA</a>
     <div class="nm-title">Soluciones</div>
-    <a href="#business"><span class="nd-dot" style="background:#4A9E6E"></span>Wontia Business<span class="nd-badge" style="margin-left:auto;background:#D9F2E2;color:#4A9E6E">AVAILABLE</span></a>
+    <a href="/#business"><span class="nd-dot" style="background:#4A9E6E"></span>Wontia Business<span class="nd-badge" style="margin-left:auto;background:#D9F2E2;color:#4A9E6E">AVAILABLE</span></a>
     <a href="https://app.wontia.com/login" class="nm-child"><span class="nd-dot" style="background:#4A9E6E"></span>Wontia AIP<span class="nd-badge" style="margin-left:auto;background:#D9F2E2;color:#4A9E6E">AVAILABLE</span></a>
-    <a href="#domain-arch" class="nm-child"><span class="nd-dot" style="background:#4A9E6E"></span>Wontia Web Intelligence<span class="nd-badge" style="margin-left:auto;background:#D9F2E2;color:#4A9E6E">AVAILABLE</span></a>
-    <a href="#food-security"><span class="nd-dot" style="background:#D4A54A"></span>Wontia Food Security<span class="nd-badge" style="margin-left:auto;background:#F7E8C8;color:#D4A54A">IN DEVELOPMENT</span></a>
-    <a href="#domain-arch"><span class="nd-dot" style="background:#7C3AED"></span>Wontia Health<span class="nd-badge" style="margin-left:auto;background:#EDE9FE;color:#7C3AED">FUTURE</span></a>
-    <a href="#domain-arch"><span class="nd-dot" style="background:#7C3AED"></span>Wontia Agriculture<span class="nd-badge" style="margin-left:auto;background:#EDE9FE;color:#7C3AED">FUTURE</span></a>
-    <a href="#domain-arch"><span class="nd-dot" style="background:#7C3AED"></span>Wontia Industry<span class="nd-badge" style="margin-left:auto;background:#EDE9FE;color:#7C3AED">FUTURE</span></a>
-    <a href="#domain-arch"><span class="nd-dot" style="background:#7C3AED"></span>Wontia Logistics<span class="nd-badge" style="margin-left:auto;background:#EDE9FE;color:#7C3AED">FUTURE</span></a>
-    <a href="#domain-arch"><span class="nd-dot" style="background:#7C3AED"></span>Wontia Education<span class="nd-badge" style="margin-left:auto;background:#EDE9FE;color:#7C3AED">FUTURE</span></a>
+    <a href="/#domain-arch" class="nm-child"><span class="nd-dot" style="background:#4A9E6E"></span>Wontia Web Intelligence<span class="nd-badge" style="margin-left:auto;background:#D9F2E2;color:#4A9E6E">AVAILABLE</span></a>
+    <a href="/ia-annotation"><span class="nd-dot" style="background:#4A9E6E"></span>Wontia IA Annotation Manager<span class="nd-badge" style="margin-left:auto;background:#D9F2E2;color:#4A9E6E">AVAILABLE</span></a>
+    <a href="/#food-security"><span class="nd-dot" style="background:#D4A54A"></span>Wontia Food Security<span class="nd-badge" style="margin-left:auto;background:#F7E8C8;color:#D4A54A">IN DEVELOPMENT</span></a>
+    <a href="/#domain-arch"><span class="nd-dot" style="background:#7C3AED"></span>Wontia Health<span class="nd-badge" style="margin-left:auto;background:#EDE9FE;color:#7C3AED">FUTURE</span></a>
+    <a href="/#domain-arch"><span class="nd-dot" style="background:#7C3AED"></span>Wontia Agriculture<span class="nd-badge" style="margin-left:auto;background:#EDE9FE;color:#7C3AED">FUTURE</span></a>
+    <a href="/#domain-arch"><span class="nd-dot" style="background:#7C3AED"></span>Wontia Industry<span class="nd-badge" style="margin-left:auto;background:#EDE9FE;color:#7C3AED">FUTURE</span></a>
+    <a href="/#domain-arch"><span class="nd-dot" style="background:#7C3AED"></span>Wontia Logistics<span class="nd-badge" style="margin-left:auto;background:#EDE9FE;color:#7C3AED">FUTURE</span></a>
+    <a href="/#domain-arch"><span class="nd-dot" style="background:#7C3AED"></span>Wontia Education<span class="nd-badge" style="margin-left:auto;background:#EDE9FE;color:#7C3AED">FUTURE</span></a>
     <a href="https://app.wontia.com/login" class="btn-primary" style="margin-top:18px;text-align:center;padding:12px 20px">Ingresar</a>
   </div>
 </nav>

@@ -1,0 +1,57 @@
+name: Adaptive Audit
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  adaptive-lint:
+    name: Adaptive Lint (Constitución)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+      - name: Lint
+        run: php tools/adaptive-lint.php --paths=templates,src/Widgets --fail-on=error
+
+  visual-a11y:
+    name: Snapshots + axe
+    needs: adaptive-lint
+    if: ${{ secrets.PREVIEW_URL != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm install --prefix tools
+      - run: npx --prefix tools playwright install --with-deps chromium
+      - name: Run snapshots + axe
+        env:
+          BASE_URL: ${{ secrets.PREVIEW_URL }}
+        run: node tools/visual-snapshot.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: adaptive-snapshots
+          path: artifacts/adaptive
+
+  lighthouse:
+    name: Core Web Vitals budget
+    needs: adaptive-lint
+    if: ${{ secrets.PREVIEW_URL != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: treosh/lighthouse-ci-action@v12
+        env:
+          PREVIEW_URL: ${{ secrets.PREVIEW_URL }}
+        with:
+          urls: |
+            ${{ secrets.PREVIEW_URL }}/
+            ${{ secrets.PREVIEW_URL }}/artista/demo-artist
+          configPath: ./lighthouserc.json
+          uploadArtifacts: true

@@ -96,6 +96,7 @@ class CartWidget extends Widget
 .wwi-cart{position:relative;display:inline-flex}
 .wwi-cart__badge{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;border-radius:10px;background:var(--wwi-cart-accent,var(--brand,#F20D16));color:#fff;font-size:10px;font-weight:800;display:none;align-items:center;justify-content:center;padding:0 4px}
 .wwi-cart__panel{position:absolute;top:calc(100% + 10px);right:0;width:min(92vw,360px);background:#fff;color:var(--ink,#111);border:1px solid var(--line,#E6E6E6);border-radius:14px;box-shadow:0 24px 60px rgba(0,0,0,.18);opacity:0;visibility:hidden;transform:translateY(8px);transition:.16s;z-index:220;text-align:left}
+@media(max-width:900px){.wwi-cart__panel{position:fixed;left:0;right:0;bottom:0;top:auto;width:100%;max-width:none;max-height:78vh;overflow:auto;border-radius:18px 18px 0 0;z-index:9995;padding-bottom:calc(14px + env(safe-area-inset-bottom))}}
 .wwi-cart[data-pos="left"] .wwi-cart__panel{right:auto;left:0}
 .wwi-cart.open .wwi-cart__panel{opacity:1;visibility:visible;transform:none}
 .wwi-cart__head{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line,#E6E6E6)}

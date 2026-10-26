@@ -341,3 +341,20 @@ img,video,iframe,svg{max-width:100%}
 ---
 
 **FIN DE LA CONSTITUCIÓN.**
+
+---
+
+## 23. Herramientas implementadas (v1.1.0)
+
+- **`tools/adaptive-lint.php`** — linter sin dependencias. Detecta: zoom bloqueado, `alt` faltante, `100vh/100vw`, dropdowns anclados, targets <44 px, inputs <16 px, scripts bloqueantes, iframes sin lazy, `target="_blank"` sin `rel`, `outline:none`, overflow-x, exceso de `!important`.
+  - Uso: `php tools/adaptive-lint.php --paths=templates,src/Widgets --fail-on=error`
+- **`tools/visual-snapshot.mjs`** — Playwright + axe: capturas en 320/390/768/1024/1440/1920, detección de scroll horizontal y violaciones axe serious/critical.
+- **`.github/workflows/adaptive-audit.yml`** — CI: lint + snapshots/axe + Lighthouse (requiere secret `PREVIEW_URL`).
+- **`lighthouserc.json`** — presupuesto CWV (LCP ≤2500 ms, CLS ≤0.1, TBT ≤200 ms) y accesibilidad ≥0.9.
+- **Tokens**: `install/adaptive-tokens.json` + variables `--wwi-*` en el CSS del tema.
+- **Modo TV**: detección por UA o `?tv=1`, foco D-pad con flechas, tipografía 20 px, overscan y targets ≥52 px.
+
+### Actualización del registro de cambios
+| Versión | Fecha | Cambio |
+|---|---|---|
+| 1.1.0 | 2026-10-26 | Herramientas (lint, snapshots, CI, Lighthouse), tokens JSON, modo TV, corrección 100vw y bottom sheets en widgets. |

@@ -1,0 +1,12 @@
+{
+  "name": "wwi-adaptive-tools",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "snap": "node visual-snapshot.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.47.0",
+    "@axe-core/playwright": "^4.10.0"
+  }
+}

@@ -860,7 +860,7 @@ if (!function_exists('sonika_site_footer')) {
 </main>
 <?php echo \App\Widgets\WidgetRegistry::render('sonika-footer', []); ?>
 <?= CookieConsentService::render() ?>
-<script><?= sonika_js() ?></script>
+<script><?= sonika_js() ?>;;(function(){var q=/[?&]tv=1\b/.test(location.search),ua=/SmartTV|Tizen|Web0S|webOS|NetCast|BRAVIA|AFT[A-Z]|AppleTV|Roku|HbbTV|VIDAA/i.test(navigator.userAgent||'');if(!q&&!ua)return;document.documentElement.classList.add('tv-mode');var els=[].slice.call(document.querySelectorAll('a,button,input,select,textarea,[tabindex]')).filter(function(el){return !el.disabled&&el.offsetParent!==null});document.addEventListener('keydown',function(e){if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].indexOf(e.key)<0)return;var a=document.activeElement;if(!a||a===document.body){if(els[0]){els[0].focus();e.preventDefault()}return}var r=a.getBoundingClientRect(),best=null,bd=1e9;els.forEach(function(el){if(el===a)return;var b=el.getBoundingClientRect(),dx=b.left-r.left,dy=b.top-r.top,ok=(e.key==='ArrowRight'&&dx>8)||(e.key==='ArrowLeft'&&dx<-8)||(e.key==='ArrowDown'&&dy>8)||(e.key==='ArrowUp'&&dy<-8);if(!ok)return;var d=Math.abs(dx)+Math.abs(dy);if(d<bd){bd=d;best=el}});if(best){best.focus();e.preventDefault()}})})();</script>
 </body>
 </html>
 <?php
@@ -1034,6 +1034,20 @@ if (!function_exists('sonika_css')) {
         .hero-bg-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;opacity:.4}
         .hero>.wrap{position:relative;z-index:1}
         @media(prefers-reduced-motion:reduce){.hero-bg-video{display:none}}
+/* === WWI Adaptive Tokens (Constitution v1.0) === */
+:root{--wwi-tap:44px;--wwi-radius:12px;--wwi-gap:clamp(.5rem,.4rem + .5vw,.9rem);--wwi-maxw:1180px;--wwi-fs-body:1rem;--wwi-fs-input:1rem}
+html,body{max-width:100%;overflow-x:clip}
+img,video,iframe{max-width:100%}
+.ah-rich,.ah-side__tags,.ah-tag,.ah-side__bio{overflow-wrap:anywhere}
+/* === TV / 10-foot UI (Constitution §12) === */
+html.tv-mode{font-size:20px}
+html.tv-mode body{overflow-x:hidden}
+html.tv-mode .wrap{max-width:1600px}
+html.tv-mode .nav{padding:18px 0}
+html.tv-mode :focus-visible{outline:4px solid #fff!important;outline-offset:4px!important;border-radius:8px}
+html.tv-mode a,html.tv-mode button,html.tv-mode [tabindex]{min-height:52px;min-width:52px}
+html.tv-mode .topbar{font-size:14px}
+@media (min-width:1600px){.hero h1{font-size:52px}}
 CSS;
     }
 }
