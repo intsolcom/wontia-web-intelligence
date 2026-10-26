@@ -23,8 +23,8 @@ class SonikaFooterWidget extends Widget
             ], 'default' => [
                 ['label' => 'Política de pagos en línea', 'url' => '/politica-de-pagos-en-linea'],
                 ['label' => 'Devoluciones, Retracto y Garantía', 'url' => '/politica-de-devoluciones'],
-                ['label' => 'Política de Envíos', 'url' => '/politicas#envios'],
-                ['label' => 'Privacidad y Tratamiento de Datos', 'url' => '/politicas#privacidad'],
+                ['label' => 'Política de Envíos', 'url' => '/politica-de-envios'],
+                ['label' => 'Privacidad y Tratamiento de Datos', 'url' => '/politica-de-privacidad'],
                 ['label' => 'Términos y Condiciones', 'url' => '/politicas#terminos'],
                 ['label' => 'Información sobre Promociones', 'url' => '/informacion-sobre-promociones'],
                 ['label' => 'PQRS', 'url' => '/politicas#pqrs'],

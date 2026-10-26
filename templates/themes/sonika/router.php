@@ -926,7 +926,7 @@ if (($segments[0] ?? '') === 'politicas') {
     echo '<div style="line-height:1.8">';
     foreach ($pol as $slug => $title) {
         echo '<h2 id="' . $slug . '" style="font-size:18px;margin:28px 0 8px">' . sonika_esc($title) . '</h2>';
-                $__polPage = ['pagos' => ['/politica-de-pagos-en-linea', 'Política de Pagos en Línea'], 'devoluciones' => ['/politica-de-devoluciones', 'Política de Devoluciones, Cambios, Retracto y Garantías'], 'promociones' => ['/informacion-sobre-promociones', 'Información importante sobre promociones y ofertas']][$slug] ?? null;
+                $__polPage = ['pagos' => ['/politica-de-pagos-en-linea', 'Política de Pagos en Línea'], 'devoluciones' => ['/politica-de-devoluciones', 'Política de Devoluciones, Cambios, Retracto y Garantías'], 'envios' => ['/politica-de-envios', 'Política de Envíos y Entregas'], 'privacidad' => ['/politica-de-privacidad', 'Política de Privacidad y Tratamiento de Datos Personales'], 'promociones' => ['/informacion-sobre-promociones', 'Información importante sobre promociones y ofertas']][$slug] ?? null;
                 echo $__polPage
                     ? '<p style="color:#334155">Consulta la <a href="' . $__polPage[0] . '" style="color:#F20D16;font-weight:700">' . sonika_esc($__polPage[1]) . '</a> completa.</p>'
                     : '<p style="color:#999">Contenido en preparación.</p>';
