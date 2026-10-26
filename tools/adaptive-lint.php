@@ -45,7 +45,7 @@ $walk = function ($dir) use (&$walk, &$findings, &$files, $root) {
                 foreach ($mm[0] as $tag) { if (!preg_match('~\balt\s*=~i', $tag)) $add('img-no-alt', 'warn', 'Imagen sin alt (usa alt="" si es decorativa).'); }
             }
             if (str_contains($line, '100vh')) $add('vh-100', 'warn', '100vh falla en móvil; usa 100dvh/100svh.');
-            if (str_contains($line, '100vw')) $add('vw-100', 'warn', '100vw incluye scrollbar y provoca overflow; usa width:100%.');
+            if (preg_match('~(?<!max-)(?<!min-)width\s*:\s*100vw~i', $line)) $add('vw-100', 'warn', 'width:100vw incluye scrollbar y provoca overflow; usa width:100%.');
             if (preg_match('~position\s*:\s*absolute~i', $line) && preg_match('~(right|left)\s*:\s*0~i', $line)) {
                 $sel = strtolower(substr($line, 0, (int)strpos($line, '{')));
                 if (preg_match('~menu|dropdown|panel|popover|cart|acc|drawer~', $sel)) {
@@ -81,7 +81,10 @@ $walk = function ($dir) use (&$walk, &$findings, &$files, $root) {
     }
 };
 
-foreach ($paths as $rel) $walk($root . DIRECTORY_SEPARATOR . ltrim($rel, '/\\'));
+foreach ($paths as $rel) {
+    $abs = (str_starts_with($rel, '/') || preg_match('~^[A-Za-z]:~', $rel)) ? $rel : $root . DIRECTORY_SEPARATOR . ltrim($rel, '/\\');
+    $walk($abs);
+}
 
 $counts = ['error' => 0, 'warn' => 0, 'info' => 0];
 foreach ($findings as $f) $counts[$f['severity']]++;
