@@ -27,4 +27,9 @@ try {
 } catch (\Throwable $e) {
     $result['cart_recovery'] = ['error' => $e->getMessage()];
 }
+try {
+    $result['pqrf'] = (new \App\Services\PqrfService())->runMaintenance();
+} catch (\Throwable $e) {
+    $result['pqrf'] = ['error' => $e->getMessage()];
+}
 echo json_encode($result, JSON_UNESCAPED_UNICODE) . "\n";

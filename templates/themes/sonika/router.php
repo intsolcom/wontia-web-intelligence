@@ -936,6 +936,19 @@ if (($segments[0] ?? '') === 'politicas') {
     return true;
 }
 
+if (($segments[0] ?? '') === 'pqrf') {
+    $__pqrfSub = (string)($segments[1] ?? '');
+    if ($__pqrfSub !== '' && $__pqrfSub !== 'seguimiento') {
+        http_response_code(404);
+        sonika_site_head('No encontrado — SONIKA', 'La página solicitada no existe.');
+        echo '<section class="pad wrap" style="max-width:760px"><div class="head"><h1>Página no encontrada</h1></div><p style="color:#777;margin-bottom:18px">El enlace que abriste no existe. Puedes radicar tu solicitud o consultar un radicado.</p><a class="cta" href="/pqrf">Ir a PQRS</a></section>';
+        sonika_site_footer();
+        return true;
+    }
+    require __DIR__ . '/pqrf.php';
+    return true;
+}
+
 if (($segments[0] ?? '') === 'producto' && !empty($segments[1])) {
     $product = sonika_find($segments[1]);
     if ($product) {

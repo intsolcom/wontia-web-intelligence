@@ -16,6 +16,28 @@ class EmailService
         return $this->deliver($to, $subject, $html, true);
     }
 
+    public function sendMultipart(string $to, string $subject, string $text, string $html, array $options = []): bool
+    {
+        $boundary = '=_wwi_' . bin2hex(random_bytes(12));
+        $textPart = rtrim(chunk_split(base64_encode($text), 76, "\r\n"));
+        $htmlPart = rtrim(chunk_split(base64_encode($html), 76, "\r\n"));
+        $body = '--' . $boundary . "\r\n"
+            . "Content-Type: text/plain; charset=UTF-8\r\n"
+            . "Content-Transfer-Encoding: base64\r\n\r\n"
+            . $textPart . "\r\n"
+            . '--' . $boundary . "\r\n"
+            . "Content-Type: text/html; charset=UTF-8\r\n"
+            . "Content-Transfer-Encoding: base64\r\n\r\n"
+            . $htmlPart . "\r\n"
+            . '--' . $boundary . "--\r\n";
+        $extra = ['Content-Type: multipart/alternative; boundary="' . $boundary . '"'];
+        $replyTo = trim((string)($options['reply_to'] ?? ''));
+        if ($replyTo !== '' && filter_var($replyTo, FILTER_VALIDATE_EMAIL)) {
+            $extra[] = 'Reply-To: ' . $replyTo;
+        }
+        return $this->transmit($to, $subject, $extra, $body);
+    }
+
     public function configured(): bool
     {
         $c = $this->resolve();
@@ -23,6 +45,19 @@ class EmailService
     }
 
     private function deliver(string $to, string $subject, string $body, bool $html): bool
+    {
+        $ctype = $html ? 'text/html' : 'text/plain';
+        $extra = ['Content-Type: ' . $ctype . '; charset=UTF-8'];
+        if ($html) {
+            $extra[] = 'Content-Transfer-Encoding: base64';
+            $payload = rtrim(chunk_split(base64_encode($body), 76, "\r\n"));
+        } else {
+            $payload = $body;
+        }
+        return $this->transmit($to, $subject, $extra, $payload);
+    }
+
+    private function transmit(string $to, string $subject, array $extraHeaders, string $body): bool
     {
         $c = $this->resolve();
         if ($c['host'] === '' || $c['host'] === 'smtp.example.com' || $c['user'] === '' || $c['pass'] === '') {
@@ -51,17 +86,9 @@ class EmailService
         if ($this->code($this->cmd($fp, 'DATA')) !== 354) { fclose($fp); return false; }
 
         $fromHeader = $c['from_name'] !== '' ? ('=?UTF-8?B?' . base64_encode($c['from_name']) . '?= <' . $fromAddr . '>') : $fromAddr;
-        $ctype = $html ? 'text/html' : 'text/plain';
         $headers = "From: $fromHeader\r\nTo: $to\r\nSubject: =?UTF-8?B?" . base64_encode($subject) . "?=\r\n"
-            . "MIME-Version: 1.0\r\nContent-Type: $ctype; charset=UTF-8\r\n";
-        if ($html) {
-            $headers .= "Content-Transfer-Encoding: base64\r\n\r\n";
-            $payload = rtrim(chunk_split(base64_encode($body), 76, "\r\n"));
-        } else {
-            $headers .= "\r\n";
-            $payload = $body;
-        }
-        fwrite($fp, $headers . $payload . "\r\n.\r\n");
+            . "MIME-Version: 1.0\r\n" . implode("\r\n", $extraHeaders) . "\r\n\r\n";
+        fwrite($fp, $headers . $body . "\r\n.\r\n");
         $sent = $this->code($this->read($fp)) === 250;
         $this->cmd($fp, 'QUIT');
         fclose($fp);

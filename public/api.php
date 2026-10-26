@@ -20,7 +20,7 @@ $isProtected = str_starts_with($path, '/api/v1/admin') || str_starts_with($path,
 $origin = rtrim((string)Config::get('APP_URL', '*'), '/');
 header('Access-Control-Allow-Origin: ' . ($isProtected ? ($origin ?: '*') : '*'));
 header('Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Brick-Key, X-Requested-With');
+header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Brick-Key, X-Requested-With, Idempotency-Key');
 header('Vary: Origin');
 header('Cache-Control: no-store, no-cache, must-revalidate');
 header('Pragma: no-cache');
@@ -142,6 +142,11 @@ $router->get('/api/v1/public/domain/check', function ($request) {
 });
 
 $router->post('/api/v1/public/search/ai', [\App\Controllers\SearchAiController::class, 'suggest']);
+
+$router->post('/api/v1/public/pqrf', [\App\Controllers\PqrfPublicController::class, 'create']);
+$router->get('/api/v1/public/pqrf/track', [\App\Controllers\PqrfPublicController::class, 'track']);
+$router->post('/api/v1/public/pqrf/track', [\App\Controllers\PqrfPublicController::class, 'trackMessage']);
+$router->get('/api/v1/public/pqrf/attachment', [\App\Controllers\PqrfPublicController::class, 'download']);
 
 $router->post('/api/v1/public/account/register', [\App\Controllers\CustomerAccountController::class, 'register']);
 $router->post('/api/v1/public/account/login', [\App\Controllers\CustomerAccountController::class, 'login']);

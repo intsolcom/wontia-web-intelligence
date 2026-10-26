@@ -27,6 +27,7 @@ class SonikaFooterWidget extends Widget
                 ['label' => 'Privacidad y Tratamiento de Datos', 'url' => '/politica-de-privacidad'],
                 ['label' => 'Términos y Condiciones', 'url' => '/terminos-y-condiciones'],
                 ['label' => 'Información sobre Promociones', 'url' => '/informacion-sobre-promociones'],
+                ['label' => 'PQRS / Radica tu solicitud', 'url' => '/pqrf'],
             ]],
             ['key' => '_h_contact', 'label' => 'Contacto corporativo', 'type' => 'heading'],
             ['key' => 'us_name', 'label' => 'EE.UU. — Entidad', 'type' => 'text', 'default' => '🇺🇸 Intsolcom, LLC'],
@@ -88,6 +89,21 @@ class SonikaFooterWidget extends Widget
         }
 
         $pol = $this->safeJson($c['policies'] ?? []);
+        $hasPqrf = false;
+        foreach ($pol as &$it) {
+            if (!is_array($it)) continue;
+            $lbl = trim((string)($it['label'] ?? ''));
+            $url = trim((string)($it['url'] ?? ''));
+            if (stripos($lbl, 'pqrs') !== false || str_contains($url, '#pqrs')) {
+                $it['label'] = 'PQRS / Radica tu solicitud';
+                $it['url'] = '/pqrf';
+                $hasPqrf = true;
+            } elseif ($url === '/pqrf') {
+                $hasPqrf = true;
+            }
+        }
+        unset($it);
+        if (!$hasPqrf) $pol[] = ['label' => 'PQRS / Radica tu solicitud', 'url' => '/pqrf'];
 
         $h = '<style>.sf{background:' . $bg . ';color:' . $fg . ';font-size:13.5px;border-top:1px solid rgba(255,255,255,.08)}.sf *{box-sizing:border-box}.sf__wrap{max-width:1180px;margin:0 auto;padding:44px 22px 0}.sf__grid{display:grid;grid-template-columns:repeat(' . $cols . ',1fr);gap:30px}.sf__col h4{font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:' . $fg . ';margin:0 0 12px}.sf__col ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}.sf__col a{color:' . $mut . ';text-decoration:none;transition:color .15s}.sf__col a:hover,.sf__col a:focus-visible{color:' . $acc . '}.sf__logo img{height:32px;width:auto;filter:brightness(0) invert(1)}.sf__desc{margin:14px 0 0;color:' . $mut . ';line-height:1.6;max-width:300px}.sf__disc{margin:10px 0 0;font-size:11.5px;color:' . $mut . ';line-height:1.55;max-width:320px}.sf__ent{margin-bottom:14px}.sf__ent strong{display:block;color:' . $fg . '}.sf__ent span{display:block;font-size:11.5px;color:' . $mut . ';margin-bottom:4px}.sf__ent a{font-size:12px}.sf__credits{border-top:1px solid rgba(255,255,255,.08);margin-top:34px;padding:16px 0;font-size:12px;color:' . $mut . ';text-align:center;line-height:1.5}@media(max-width:900px){.sf__grid{grid-template-columns:repeat(2,1fr);gap:22px}}@media(max-width:560px){.sf__grid{grid-template-columns:1fr}}</style>';
 
