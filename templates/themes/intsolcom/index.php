@@ -71,10 +71,10 @@ if (!$brandPrimary || !preg_match('/^#[0-9a-fA-F]{6}$/', (string)$brandPrimary))
         .nav a:hover{color:#0F172A}
         .nav a.navlink{position:relative;padding:6px 2px}
         .nav a.navlink:hover{color:<?= $brandPrimary ?>}
-        .btn-primary{display:inline-block;padding:14px 36px;border-radius:12px;border:none;background:<?= $brandPrimary ?>;color:#fff;cursor:pointer;font-size:15px;font-weight:700;text-decoration:none;box-shadow:0 8px 32px rgba(0,200,150,.3);transition:all .2s}
-        .btn-primary:hover{transform:translateY(-2px);box-shadow:0 12px 40px rgba(0,200,150,.42)}
-        .btn-outline{display:inline-block;padding:14px 36px;border-radius:12px;border:1px solid rgba(0,200,150,.45);background:transparent;color:#00A67D;cursor:pointer;font-size:15px;font-weight:600;text-decoration:none;transition:all .2s}
-        .btn-outline:hover{background:rgba(0,200,150,.07)}
+        .btn-primary{display:inline-block;padding:14px 36px;border-radius:12px;border:none;background:<?= $brandPrimary ?>;color:#fff;cursor:pointer;font-size:15px;font-weight:700;text-decoration:none;box-shadow:0 8px 32px rgba(0,163,255,.28);transition:all .2s}
+        .btn-primary:hover{transform:translateY(-2px);box-shadow:0 12px 40px rgba(0,163,255,.38)}
+        .btn-outline{display:inline-block;padding:14px 36px;border-radius:12px;border:1px solid rgba(0,163,255,.45);background:transparent;color:<?= $brandPrimary ?>;cursor:pointer;font-size:15px;font-weight:600;text-decoration:none;transition:all .2s}
+        .btn-outline:hover{background:rgba(0,163,255,.07)}
         .badge{display:inline-block;padding:6px 16px;border-radius:20px;font-size:12px;font-weight:600}
         .card{border-radius:16px;background:#FFFFFF;border:1px solid #E2E8F0;box-shadow:0 1px 3px rgba(15,23,42,.04);overflow:hidden}
         .card-padded{padding:28px 24px}
@@ -86,7 +86,7 @@ if (!$brandPrimary || !preg_match('/^#[0-9a-fA-F]{6}$/', (string)$brandPrimary))
         .footer{padding:48px 40px;border-top:1px solid rgba(15,23,42,.06);background:#0F172A;color:#94A3B8}
         .footer,.footer *{color:#FFFFFF !important}
         .footer a{color:#FFFFFF;text-decoration:none}
-        .footer a:hover{color:#00C896}
+        .footer a:hover{color:<?= $brandPrimary ?>}
         .img-swap{position:relative;width:100%;height:150px;border-radius:12px;overflow:hidden;margin-bottom:18px;background:#F1F5F9}
         .img-swap .img-a,.img-swap .img-b{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:opacity .5s ease,transform .5s ease}
         .img-swap .img-b{opacity:0;transform:scale(1.03)}
