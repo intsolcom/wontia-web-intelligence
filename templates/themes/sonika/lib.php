@@ -863,6 +863,26 @@ if (!function_exists('sonika_site_footer')) {
 <?php echo \App\Widgets\WidgetRegistry::render('sonika-footer', []); ?>
 <?= CookieConsentService::render() ?>
 <script><?= sonika_js() ?>;;(function(){var q=/[?&]tv=1\b/.test(location.search),ua=/SmartTV|Tizen|Web0S|webOS|NetCast|BRAVIA|AFT[A-Z]|AppleTV|Roku|HbbTV|VIDAA/i.test(navigator.userAgent||'');if(!q&&!ua)return;document.documentElement.classList.add('tv-mode');var els=[].slice.call(document.querySelectorAll('a,button,input,select,textarea,[tabindex]')).filter(function(el){return !el.disabled&&el.offsetParent!==null});document.addEventListener('keydown',function(e){if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].indexOf(e.key)<0)return;var a=document.activeElement;if(!a||a===document.body){if(els[0]){els[0].focus();e.preventDefault()}return}var r=a.getBoundingClientRect(),best=null,bd=1e9;els.forEach(function(el){if(el===a)return;var b=el.getBoundingClientRect(),dx=b.left-r.left,dy=b.top-r.top,ok=(e.key==='ArrowRight'&&dx>8)||(e.key==='ArrowLeft'&&dx<-8)||(e.key==='ArrowDown'&&dy>8)||(e.key==='ArrowUp'&&dy<-8);if(!ok)return;var d=Math.abs(dx)+Math.abs(dy);if(d<bd){bd=d;best=el}});if(best){best.focus();e.preventDefault()}})})();;;(function(){function upd(){var t=('ontouchstart' in window)||(navigator.maxTouchPoints>0)||(window.matchMedia&&matchMedia('(pointer:coarse)').matches);var c=t||window.innerWidth<=1024;document.documentElement.classList.toggle('wwi-compact',!!c);}upd();window.addEventListener('resize',upd);window.addEventListener('orientationchange',upd);})();;;;(function(){try{if(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches)return;var S=64,cv=document.createElement('canvas');cv.width=cv.height=S;var cx=cv.getContext('2d');if(!cx)return;var lk=document.querySelector('link[rel~="icon"]');if(!lk){lk=document.createElement('link');lk.rel='icon';document.head.appendChild(lk);}function draw(t){cx.clearRect(0,0,S,S);cx.fillStyle='#F20D16';var n=5,bw=8,gp=3,tot=n*bw+(n-1)*gp,x0=(S-tot)/2,base=S-8;for(var i=0;i<n;i++){var h=13+Math.round((Math.sin(t+i*1.3)*0.5+0.5)*31);var x=x0+i*(bw+gp),y=base-h,r=bw/2;cx.beginPath();cx.moveTo(x,y+r);cx.arcTo(x,y,x+r,y,r);cx.lineTo(x+bw-r,y);cx.arcTo(x+bw,y,x+bw,y+r,r);cx.lineTo(x+bw,base);cx.lineTo(x,base);cx.closePath();cx.fill();}lk.type='image/png';lk.href=cv.toDataURL('image/png');}var t=0,tm=null;function tick(){t+=0.45;draw(t);}function start(){if(tm)return;tm=setInterval(tick,260);}function stop(){if(tm){clearInterval(tm);tm=null;}}document.addEventListener('visibilitychange',function(){document.hidden?stop():start();});if(window.matchMedia){var mq=matchMedia('(prefers-reduced-motion: reduce)');if(mq.addEventListener)mq.addEventListener('change',function(e){e.matches?stop():start();});}draw(0);start();}catch(e){}})();</script>
+<?php if (wwi_setting('tia_embed_enabled', '1') !== '0'): ?>
+<?php
+$__tiaWa = preg_replace('/\D+/', '', (string)wwi_setting('pqrf_whatsapp', '3045650333'));
+$__tiaWaUrl = $__tiaWa !== '' ? 'https://wa.me/' . (strlen($__tiaWa) === 10 ? '57' : '') . $__tiaWa : '';
+$__tiaWelcome = 'Hola, soy TIA, el asistente virtual de SONIKA. Puedo ayudarte con productos, envíos, pagos, garantías y soporte. Si necesitas una persona, escríbenos por WhatsApp o usa el formulario.';
+?>
+<script src="/assets/js/tia-embed.js?v=<?= (int)(@filemtime(ROOT_DIR . '/public/assets/js/tia-embed.js') ?: 1) ?>"
+        data-tia-api="/api/v1/public/tia/chat"
+        data-tia-site="sonika"
+        data-tia-mode="both"
+        data-tia-mount="[data-tia-support]"
+        data-tia-disable-on="/soporte"
+        data-tia-color="#F20D16"
+        data-tia-title="<?= htmlspecialchars('TIA · Asistente SONIKA', ENT_QUOTES, 'UTF-8') ?>"
+        data-tia-welcome="<?= htmlspecialchars($__tiaWelcome, ENT_QUOTES, 'UTF-8') ?>"
+        data-tia-whatsapp="<?= htmlspecialchars($__tiaWaUrl, ENT_QUOTES, 'UTF-8') ?>"
+        data-tia-form="/soporte#contacto"
+        data-tia-pqrf="/pqrf"
+        defer></script>
+<?php endif; ?>
 </body>
 </html>
 <?php

@@ -142,6 +142,7 @@ $router->get('/api/v1/public/domain/check', function ($request) {
 });
 
 $router->post('/api/v1/public/search/ai', [\App\Controllers\SearchAiController::class, 'suggest']);
+$router->post('/api/v1/public/tia/chat', [\App\Controllers\TiaChatController::class, 'chat']);
 
 $router->post('/api/v1/public/pqrf', [\App\Controllers\PqrfPublicController::class, 'create']);
 $router->get('/api/v1/public/pqrf/track', [\App\Controllers\PqrfPublicController::class, 'track']);
