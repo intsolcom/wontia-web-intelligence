@@ -5,22 +5,32 @@ use App\Core\Config;
 use App\Core\Database;
 
 /**
- * SONIKA Artist Partners — Fase 1.
- * Atribución (último clic válido 30d) + comisiones progresivas en MODO SIMULACIÓN.
+ * SONIKA Partners — programa único de distribuidores.
+ * Atribución (último clic válido 30d) + Puntos SONIKA (valor + volumen).
+ * La categoría interna (artist/influencer/natural) no altera la comisión.
  * No ejecuta pagos reales. Datos separados de pedidos históricos.
  */
 class AffiliateService
 {
     public const STATUSES = ['DRAFT', 'EMAIL_PENDING', 'PHONE_PENDING', 'DOCUMENTS_PENDING', 'REVIEW_REQUIRED', 'APPROVED', 'REJECTED', 'SUSPENDED', 'TERMINATED'];
     public const TTL_DAYS = 30;
-    // Tramos progresivos (tasa marginal por tramo de ventas mensuales elegibles).
-    public const TIERS = [
-        [0, 499999.99, 0.0025],
-        [500000, 1499999.99, 0.0050],
-        [1500000, 2999999.99, 0.0075],
-        [3000000, 5999999.99, 0.0100],
-        [6000000, 9999999.99, 0.0125],
-        [10000000, PHP_FLOAT_MAX, 0.0150],
+    public const FORMULA_VERSION = 'puntos_sonika_v1';
+    public const POINTS_PER_VALUE = 100000.0;
+    public const POINTS_PER_ORDER = 1;
+    public const MIN_ORDER_VALUE = 1000.0;
+    public const OUTLET_RATE = 0.020;
+    public const PROFILE_CATEGORIES = [
+        'artist' => 'Artista',
+        'influencer' => 'Influencer / creador',
+        'natural' => 'Persona natural',
+    ];
+    // Puntos SONIKA: cada $100.000 vendidos + cada pedido válido.
+    public const POINT_TIERS = [
+        [0, 9, 0.030],
+        [10, 29, 0.035],
+        [30, 59, 0.040],
+        [60, 119, 0.045],
+        [120, PHP_INT_MAX, 0.050],
     ];
 
     public function ready(): bool
@@ -36,12 +46,47 @@ class AffiliateService
         return trim(substr($s, 0, 100), '-');
     }
 
+    private function uniqueProfileSlug(string $base, string $email): string
+    {
+        $slug = $this->slugify($base);
+        if ($slug === '') $slug = 'partner';
+        try {
+            for ($i = 0; $i < 20; $i++) {
+                $candidate = $i === 0 ? $slug : $slug . '-' . substr(hash('sha256', $email . '|' . $i), 0, 4);
+                $st = Database::instance()->prepare('SELECT 1 FROM affiliate_profiles WHERE site_id = @site_id AND slug = ? LIMIT 1');
+                $st->execute([$candidate]);
+                if (!$st->fetchColumn()) return $candidate;
+            }
+        } catch (\Throwable $e) {
+        }
+        return $slug . '-' . substr(bin2hex(random_bytes(3)), 0, 5);
+    }
+
     public function log(?int $affiliateId, string $action, array $meta = []): void
     {
         try {
             Database::instance()->prepare('INSERT INTO affiliate_audit (site_id, affiliate_id, actor, action, meta, created_at) VALUES (@site_id, :a, :actor, :act, :m, NOW())')
                 ->execute(['a' => $affiliateId, 'actor' => 'system', 'act' => $action, 'm' => $meta ? json_encode($meta, JSON_UNESCAPED_UNICODE) : null]);
         } catch (\Throwable $e) {}
+    }
+
+    /** Marca un paso del wizard que no se puede deducir de los datos (ej. compartir enlace). */
+    public function markWizardStep(int $affiliateId, string $step): array
+    {
+        if (!in_array($step, ['share'], true)) return ['ok' => false, 'message' => 'Paso no válido.'];
+        $this->log($affiliateId, 'wizard_' . $step, []);
+        return ['ok' => true];
+    }
+
+    public function hasWizardStep(int $affiliateId, string $step): bool
+    {
+        try {
+            $st = Database::instance()->prepare('SELECT COUNT(*) FROM affiliate_audit WHERE site_id = @site_id AND affiliate_id = ? AND action = ?');
+            $st->execute([$affiliateId, 'wizard_' . $step]);
+            return (int)$st->fetchColumn() > 0;
+        } catch (\Throwable $e) {
+            return false;
+        }
     }
 
     public function recoverRequest(string $email): array
@@ -266,11 +311,18 @@ class AffiliateService
         if ($name === '') return ['ok' => false, 'message' => 'Nombre obligatorio.'];
         $pass = (string)($in['password'] ?? '');
         if ($pass !== '' && strlen($pass) < 8) return ['ok' => false, 'message' => 'La contraseña debe tener al menos 8 caracteres.'];
-        $slug = $this->slugify((string)($in['artist_name'] ?? $in['public_name'] ?? $name));
+        $category = strtolower(trim((string)($in['profile_category'] ?? '')));
+        if ($category === '' && (!empty($in['artist_name']) || !empty($in['music_instrument']))) $category = 'artist';
+        if ($category === '') $category = 'natural';
+        if (!isset(self::PROFILE_CATEGORIES[$category])) $category = 'natural';
+        $nameBase = $category === 'artist' ? (string)($in['artist_name'] ?? '') : '';
+        $slug = $this->uniqueProfileSlug($nameBase !== '' ? $nameBase : (string)($in['public_name'] ?? $name), $email);
         try {
             $db = Database::instance();
-            $st = $db->prepare('INSERT INTO affiliate_profiles (site_id, email, password_hash, full_name, doc_type, doc_number, public_name, artist_name, slug, status, music_experience, music_instrument, music_level, music_genre, music_desired, music_role, socials, created_at)
-                VALUES (@site_id, :email, :ph, :name, :dt, :dn, :pn, :an, :slug, :status, :me, :mi, :ml, :mg, :md, :mr, :soc, NOW())');
+            $platforms = $in['platforms'] ?? null;
+            if (is_string($platforms)) $platforms = array_values(array_filter(array_map('trim', explode(',', $platforms))));
+            $st = $db->prepare('INSERT INTO affiliate_profiles (site_id, email, password_hash, full_name, doc_type, doc_number, public_name, artist_name, slug, status, profile_category, niche, audience_size, platforms, verification_status, public_profile_enabled, payout_method, tax_id, music_experience, music_instrument, music_level, music_genre, music_desired, music_role, socials, created_at)
+                VALUES (@site_id, :email, :ph, :name, :dt, :dn, :pn, :an, :slug, :status, :category, :niche, :audience, :platforms, "pending", :public_profile, :payout, :tax, :me, :mi, :ml, :mg, :md, :mr, :soc, NOW())');
             $st->execute([
                 'email' => $email, 'ph' => $pass !== '' ? password_hash($pass, PASSWORD_DEFAULT) : null, 'name' => $name,
                 'dt' => substr((string)($in['doc_type'] ?? ''), 0, 16),
@@ -279,23 +331,132 @@ class AffiliateService
                 'an' => substr((string)($in['artist_name'] ?? ''), 0, 120),
                 'slug' => $slug,
                 'status' => 'EMAIL_PENDING',
+                'category' => $category,
+                'niche' => isset($in['niche']) ? substr((string)$in['niche'], 0, 120) : null,
+                'audience' => isset($in['audience_size']) ? substr((string)$in['audience_size'], 0, 60) : null,
+                'platforms' => !empty($platforms) ? json_encode($platforms, JSON_UNESCAPED_UNICODE) : null,
+                'public_profile' => $category === 'artist' ? 1 : 0,
+                'payout' => isset($in['payout_method']) ? substr((string)$in['payout_method'], 0, 40) : null,
+                'tax' => isset($in['tax_id']) ? substr((string)$in['tax_id'], 0, 40) : null,
                 'me' => $in['music_experience'] ?? null, 'mi' => $in['music_instrument'] ?? null,
                 'ml' => $in['music_level'] ?? null, 'mg' => $in['music_genre'] ?? null,
                 'md' => $in['music_desired'] ?? null, 'mr' => $in['music_role'] ?? null,
                 'soc' => !empty($in['socials']) ? json_encode($in['socials'], JSON_UNESCAPED_UNICODE) : null,
             ]);
             $id = (int)$db->lastInsertId();
-            $this->log($id, 'profile_created', ['email' => $email]);
+            $this->log($id, 'profile_created', ['email' => $email, 'category' => $category, 'program' => 'sonika_partners']);
             if (!empty($in['accept_contract'])) {
                 $c = $this->currentContract();
                 if ($c) $this->acceptContract($id, (int)$c['id']);
             }
             // Confirmación de correo obligatoria por OTP al registrarse.
             $this->sendOtp($email);
-            return ['ok' => true, 'id' => $id, 'slug' => $slug];
+            // Aviso interno a superadmins/admins por cada nuevo registro.
+            $this->notifyNewArtist($id, $in, $email, $slug);
+            return ['ok' => true, 'id' => $id, 'slug' => $slug, 'profile_category' => $category, 'program' => 'SONIKA Partners'];
         } catch (\Throwable $e) {
             return ['ok' => false, 'message' => 'No se pudo crear (¿correo ya registrado?).'];
         }
+    }
+
+    /**
+     * Envía un aviso interno (superadmins/admins del sitio y correos de operación)
+     * por cada nuevo registro de artista. Nunca bloquea el registro.
+     */
+    private function notifyNewArtist(int $id, array $in, string $email, string $slug): void
+    {
+        try {
+            $recipients = $this->notificationRecipients();
+            if (!$recipients) {
+                $this->log($id, 'admin_notify_skipped', ['reason' => 'sin_destinatarios']);
+                return;
+            }
+            $esc = static fn($v): string => htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
+            $name = trim((string)($in['full_name'] ?? ''));
+            $artist = trim((string)($in['artist_name'] ?? ''));
+            $public = trim((string)($in['public_name'] ?? ''));
+            $docType = trim((string)($in['doc_type'] ?? ''));
+            $doc = preg_replace('/\D+/', '', (string)($in['doc_number'] ?? ''));
+            $docMasked = $doc !== '' ? str_repeat('*', max(0, strlen($doc) - 4)) . substr($doc, -4) : '—';
+            $status = 'EMAIL_PENDING';
+            $createdAt = date('Y-m-d H:i:s');
+            $host = (string)($_SERVER['HTTP_HOST'] ?? '');
+            if (!preg_match('/^[a-z0-9.\-]+(:\d+)?$/i', $host)) $host = '';
+            $base = $host !== '' ? 'https://' . $host : rtrim((string)Config::get('APP_URL', 'https://sonika.com.co'), '/');
+            $adminUrl = $base . '/admin-afiliados.php';
+            $subject = 'Nuevo registro Partner SONIKA — ' . ($artist !== '' ? $artist : ($name !== '' ? $name : $email));
+            $text = "Nuevo registro en SONIKA Partners\n\n"
+                . "Nombre completo: $name\n"
+                . "Nombre artístico: " . ($artist !== '' ? $artist : '—') . "\n"
+                . "Nombre público: " . ($public !== '' ? $public : '—') . "\n"
+                . "Correo: $email\n"
+                . "Documento: " . ($docType !== '' ? $docType . ' ' : '') . $docMasked . "\n"
+                . "Instrumento: " . (string)($in['music_instrument'] ?? '—') . "\n"
+                . "Nivel: " . (string)($in['music_level'] ?? '—') . "\n"
+                . "Género: " . (string)($in['music_genre'] ?? '—') . "\n"
+                . "Rol: " . (string)($in['music_role'] ?? '—') . "\n"
+                . "Estado: $status\n"
+                . "Fecha: $createdAt\n\n"
+                . "Revisa y aprueba la solicitud aquí:\n$adminUrl\n";
+            $html = '<div style="font-family:Inter,Arial,sans-serif;max-width:620px;margin:auto;background:#0b0b0b;color:#fff;border-radius:14px;padding:26px">'
+                . '<div style="color:#F20D16;font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;margin-bottom:10px">SONIKA · Partners</div>'
+                . '<h2 style="margin:0 0 14px;font-size:20px;color:#fff">Nuevo registro Partner SONIKA</h2>'
+                . '<table role="presentation" style="width:100%;border-collapse:collapse;font-size:13.5px;line-height:1.6;color:#d4d4d4">'
+                . '<tr><td style="padding:4px 0;color:#9a9a9a;width:130px">Nombre</td><td style="padding:4px 0;color:#fff">' . $esc($name) . '</td></tr>'
+                . '<tr><td style="padding:4px 0;color:#9a9a9a">Nombre artístico</td><td style="padding:4px 0;color:#fff">' . $esc($artist !== '' ? $artist : '—') . '</td></tr>'
+                . '<tr><td style="padding:4px 0;color:#9a9a9a">Correo</td><td style="padding:4px 0"><a href="mailto:' . $esc($email) . '" style="color:#FF6B71">' . $esc($email) . '</a></td></tr>'
+                . '<tr><td style="padding:4px 0;color:#9a9a9a">Documento</td><td style="padding:4px 0;color:#fff">' . $esc(($docType !== '' ? $docType . ' ' : '') . $docMasked) . '</td></tr>'
+                . '<tr><td style="padding:4px 0;color:#9a9a9a">Instrumento</td><td style="padding:4px 0;color:#fff">' . $esc((string)($in['music_instrument'] ?? '—')) . '</td></tr>'
+                . '<tr><td style="padding:4px 0;color:#9a9a9a">Nivel</td><td style="padding:4px 0;color:#fff">' . $esc((string)($in['music_level'] ?? '—')) . '</td></tr>'
+                . '<tr><td style="padding:4px 0;color:#9a9a9a">Género</td><td style="padding:4px 0;color:#fff">' . $esc((string)($in['music_genre'] ?? '—')) . '</td></tr>'
+                . '<tr><td style="padding:4px 0;color:#9a9a9a">Estado</td><td style="padding:4px 0;color:#fff">' . $esc($status) . '</td></tr>'
+                . '<tr><td style="padding:4px 0;color:#9a9a9a">Fecha</td><td style="padding:4px 0;color:#fff">' . $esc($createdAt) . '</td></tr>'
+                . '</table>'
+                . '<p style="margin:22px 0 0"><a href="' . $esc($adminUrl) . '" style="display:inline-block;background:#F20D16;color:#fff;text-decoration:none;font-weight:700;padding:12px 18px;border-radius:9px">Revisar solicitud</a></p>'
+                . '<p style="color:#8a8a8a;font-size:11px;margin:18px 0 0">Slug: ' . $esc($slug) . ' · Perfil #' . $id . '</p></div>';
+            $sentTo = 0;
+            $mailer = new EmailService();
+            foreach ($recipients as $to) {
+                try {
+                    if ($mailer->sendMultipart($to, $subject, $text, $html, ['reply_to' => $email])) $sentTo++;
+                } catch (\Throwable $e) {
+                }
+            }
+            $this->log($id, $sentTo > 0 ? 'admin_notified' : 'admin_notify_failed', [
+                'recipients' => count($recipients),
+                'sent' => $sentTo,
+            ]);
+        } catch (\Throwable $e) {
+            $this->log($id, 'admin_notify_failed', ['error' => 'exception']);
+        }
+    }
+
+    /** Destinatarios internos: setting explícito, admins del sitio y correos de operación. */
+    private function notificationRecipients(): array
+    {
+        $out = [];
+        $add = static function ($value) use (&$out): void {
+            foreach (preg_split('/[,;\s]+/', (string)$value) ?: [] as $email) {
+                $email = strtolower(trim($email));
+                if ($email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL)) $out[$email] = $email;
+            }
+        };
+        try {
+            $db = Database::instance();
+            $st = $db->prepare("SELECT `value` FROM settings WHERE site_id = @site_id AND `key` = 'affiliate_notify_email' LIMIT 1");
+            $st->execute();
+            $add($st->fetchColumn());
+            $st = $db->prepare("SELECT email FROM users WHERE site_id = @site_id AND is_active = 1 AND role IN ('superadmin','admin') AND email <> ''");
+            $st->execute();
+            foreach ($st->fetchAll() as $row) $add($row['email']);
+            if (!$out) {
+                $st = $db->prepare("SELECT `key`, `value` FROM settings WHERE site_id = @site_id AND `key` IN ('store_notify_email','contact_notify_email','support_notify_email','pqrf_admin_email')");
+                $st->execute();
+                foreach ($st->fetchAll() as $row) $add($row['value']);
+            }
+        } catch (\Throwable $e) {
+        }
+        return array_values($out);
     }
 
     public function setStatus(int $id, string $status): bool
@@ -327,6 +488,13 @@ class AffiliateService
         catch (\Throwable $e) { return null; }
     }
 
+    /** Perfil por slug sin filtro de estado: solo para el panel privado del artista autenticado. */
+    public function getBySlugAny(string $slug): ?array
+    {
+        try { $st = Database::instance()->prepare('SELECT * FROM affiliate_profiles WHERE slug = :s AND site_id = @site_id LIMIT 1'); $st->execute(['s' => $slug]); return $st->fetch() ?: null; }
+        catch (\Throwable $e) { return null; }
+    }
+
     public function collections(int $affiliateId): array
     {
         try {
@@ -336,16 +504,35 @@ class AffiliateService
         } catch (\Throwable $e) { return []; }
     }
 
+    /** Ruta pública del partner: página de artista si la tiene; si no, tienda. */
+    public function storePath(array $affiliate): string
+    {
+        $slug = trim((string)($affiliate['slug'] ?? ''));
+        $category = (string)($affiliate['profile_category'] ?? 'natural');
+        $public = (int)($affiliate['public_profile_enabled'] ?? 0) === 1;
+        if ($category === 'artist' && $public && $slug !== '') return '/artista/' . rawurlencode($slug);
+        return '/tienda';
+    }
+
     public function ensureLink(int $affiliateId): string
     {
         try {
             $db = Database::instance();
-            $st = $db->prepare('SELECT code FROM affiliate_links WHERE affiliate_id = :a AND site_id = @site_id LIMIT 1');
+            $aff = $this->getById($affiliateId);
+            $target = $aff ? $this->storePath($aff) : '/artistas';
+            $st = $db->prepare('SELECT id, code, target_url FROM affiliate_links WHERE affiliate_id = :a AND site_id = @site_id LIMIT 1');
             $st->execute(['a' => $affiliateId]);
-            $code = $st->fetchColumn();
-            if ($code) return (string)$code;
+            $row = $st->fetch();
+            if ($row) {
+                if ((string)$row['target_url'] !== $target) {
+                    $db->prepare('UPDATE affiliate_links SET target_url = :t WHERE id = :id AND site_id = @site_id')
+                        ->execute(['t' => $target, 'id' => (int)$row['id']]);
+                }
+                return (string)$row['code'];
+            }
             $code = substr(bin2hex(random_bytes(5)), 0, 10);
-            $db->prepare('INSERT INTO affiliate_links (site_id, affiliate_id, code, target_url, created_at) VALUES (@site_id, :a, :c, "/", NOW())')->execute(['a' => $affiliateId, 'c' => $code]);
+            $db->prepare('INSERT INTO affiliate_links (site_id, affiliate_id, code, target_url, created_at) VALUES (@site_id, :a, :c, :t, NOW())')
+                ->execute(['a' => $affiliateId, 'c' => $code, 't' => $target]);
             return $code;
         } catch (\Throwable $e) { return ''; }
     }
@@ -374,45 +561,82 @@ class AffiliateService
                     'ip' => hash('sha256', (string)($_SERVER['REMOTE_ADDR'] ?? '')),
                     'b' => $isBot ? 1 : 0,
                 ]);
-            return ['affiliate_id' => (int)$aff['id'], 'code' => $code, 'artist' => $aff['artist_name'] ?: $aff['public_name'] ?: $aff['full_name'], 'slug' => $aff['slug']];
+            $storePath = $this->storePath($aff);
+            if ((string)($link['target_url'] ?? '') !== $storePath) {
+                $db->prepare('UPDATE affiliate_links SET target_url = :t WHERE id = :id AND site_id = @site_id')
+                    ->execute(['t' => $storePath, 'id' => (int)$link['id']]);
+            }
+            return ['affiliate_id' => (int)$aff['id'], 'code' => $code, 'artist' => $aff['artist_name'] ?: $aff['public_name'] ?: $aff['full_name'], 'slug' => $aff['slug'], 'store_path' => $storePath];
         } catch (\Throwable $e) { return null; }
     }
 
-    /** Comisión progresiva del monto sobre la base acumulada del mes (simulación). */
-    public function progressiveCommission(float $cumulativeBefore, float $base): array
+    /** Tasa según puntos SONIKA. */
+    public function rateForPoints(float $points): float
     {
-        $base = max(0.0, $base);
-        $cum = max(0.0, $cumulativeBefore);
-        $rem = $base;
-        $total = 0.0;
-        $lastRate = 0.0;
-        foreach (self::TIERS as [$lo, $hi, $rate]) {
-            if ($cum >= $hi) continue;
-            $start = max($cum, (float)$lo);
-            $room = $hi - $start;
-            if ($room <= 0) continue;
-            $portion = min($rem, $room);
-            if ($portion <= 0) continue;
-            $total += $portion * $rate;
-            $rem -= $portion;
-            $cum += $portion;
-            $lastRate = $rate;
-            if ($rem <= 0) break;
+        $points = max(0.0, $points);
+        foreach (self::POINT_TIERS as [$lo, $hi, $rate]) {
+            if ($points >= $lo && $points <= $hi) return (float)$rate;
         }
-        return ['amount' => round($total, 2), 'rate' => $lastRate];
+        return 0.05;
+    }
+
+    /** Puntos, ventas y pedidos válidos del mes del partner. */
+    public function pointsForMonth(int $affiliateId, string $monthKey = ''): array
+    {
+        $monthKey = $monthKey !== '' ? $monthKey : date('Y-m');
+        $default = ['month' => $monthKey, 'sales' => 0.0, 'orders' => 0, 'points' => 0.0, 'rate' => $this->rateForPoints(0)];
+        try {
+            $st = Database::instance()->prepare("SELECT
+                COALESCE(SUM(base_amount), 0) sales,
+                COALESCE(SUM(CASE WHEN base_amount >= :min_order THEN 1 ELSE 0 END), 0) orders
+                FROM affiliate_commissions
+                WHERE site_id = @site_id AND affiliate_id = :a
+                AND COALESCE(month_key, DATE_FORMAT(created_at, '%Y-%m')) = :month
+                AND status NOT IN ('REVERSED','REJECTED')");
+            $st->execute(['a' => $affiliateId, 'month' => $monthKey, 'min_order' => self::MIN_ORDER_VALUE]);
+            $row = $st->fetch() ?: [];
+            $sales = (float)($row['sales'] ?? 0);
+            $orders = (int)($row['orders'] ?? 0);
+            $points = floor($sales / self::POINTS_PER_VALUE) + ($orders * self::POINTS_PER_ORDER);
+            return ['month' => $monthKey, 'sales' => $sales, 'orders' => $orders, 'points' => (float)$points, 'rate' => $this->rateForPoints((float)$points)];
+        } catch (\Throwable $e) {
+            return $default;
+        }
+    }
+
+    /** Recalcula retroactivamente todas las comisiones del mes con la tasa final. */
+    public function recalculateMonth(int $affiliateId, string $monthKey = ''): array
+    {
+        $calc = $this->pointsForMonth($affiliateId, $monthKey);
+        try {
+            $db = Database::instance();
+            $st = $db->prepare("UPDATE affiliate_commissions SET
+                tier_rate = :rate,
+                amount = ROUND((base_amount - outlet_amount) * :rate2 + outlet_amount * :outlet_rate, 2),
+                points = :points,
+                formula_version = :formula
+                WHERE site_id = @site_id AND affiliate_id = :a
+                AND COALESCE(month_key, DATE_FORMAT(created_at, '%Y-%m')) = :month
+                AND status NOT IN ('REVERSED','REJECTED')");
+            $st->execute([
+                'rate' => $calc['rate'], 'rate2' => $calc['rate'], 'points' => (int)$calc['points'],
+                'outlet_rate' => self::OUTLET_RATE,
+                'formula' => self::FORMULA_VERSION, 'a' => $affiliateId, 'month' => $calc['month'],
+            ]);
+            $this->log($affiliateId, 'month_recalculated', $calc);
+            return $calc + ['updated' => $st->rowCount()];
+        } catch (\Throwable $e) {
+            return $calc + ['updated' => 0];
+        }
     }
 
     public function monthSales(int $affiliateId): float
     {
-        try {
-            $st = Database::instance()->prepare('SELECT COALESCE(SUM(base_amount),0) FROM affiliate_commissions WHERE affiliate_id = :a AND site_id = @site_id AND status NOT IN ("REVERSED","REJECTED") AND created_at >= DATE_FORMAT(NOW(), "%Y-%m-01")');
-            $st->execute(['a' => $affiliateId]);
-            return (float)$st->fetchColumn();
-        } catch (\Throwable $e) { return 0.0; }
+        return (float)$this->pointsForMonth($affiliateId)['sales'];
     }
 
-    /** Fija la atribución de un pedido + comisión estimada (idempotente). */
-    public function attributeOrder(string $orderRef, float $baseAmount, ?int $affiliateId = null, ?string $code = null): ?array
+    /** Fija la atribución de un pedido + comisión con Puntos SONIKA (idempotente). */
+    public function attributeOrder(string $orderRef, float $baseAmount, ?int $affiliateId = null, ?string $code = null, float $outletAmount = 0.0): ?array
     {
         if (!$this->ready()) return null;
         try {
@@ -429,15 +653,46 @@ class AffiliateService
             $st = $db->prepare('SELECT COUNT(*) FROM affiliate_clicks WHERE affiliate_id = :a AND site_id = @site_id AND is_bot = 0 AND clicked_at >= (NOW() - INTERVAL ' . self::TTL_DAYS . ' DAY)');
             $st->execute(['a' => $affiliateId]);
             if ((int)$st->fetchColumn() === 0) return null;
-            $cum = $this->monthSales($affiliateId);
-            $calc = $this->progressiveCommission($cum, $baseAmount);
+            $monthKey = date('Y-m');
+            $baseAmount = max(0.0, $baseAmount);
+            $outletAmount = max(0.0, min($baseAmount, $outletAmount));
             $db->prepare('INSERT IGNORE INTO affiliate_order_attributions (site_id, order_ref, affiliate_id, code, model, fixed_at) VALUES (@site_id, :o, :a, :c, "last_click_30d", NOW())')
                 ->execute(['o' => $orderRef, 'a' => $affiliateId, 'c' => $code]);
-            $db->prepare('INSERT IGNORE INTO affiliate_commissions (site_id, affiliate_id, order_ref, base_amount, tier_rate, amount, status, meta, created_at) VALUES (@site_id, :a, :o, :b, :r, :amt, "ESTIMATED", :m, NOW())')
-                ->execute(['a' => $affiliateId, 'o' => $orderRef, 'b' => $baseAmount, 'r' => $calc['rate'], 'amt' => $calc['amount'], 'm' => json_encode(['simulation' => true, 'cumulative_before' => $cum], JSON_UNESCAPED_UNICODE)]);
-            $this->log($affiliateId, 'order_attributed', ['order' => $orderRef, 'amount' => $calc['amount'], 'simulation' => true]);
-            return ['ok' => true, 'affiliate_id' => $affiliateId, 'commission' => $calc['amount'], 'rate' => $calc['rate'], 'simulation' => true];
+            $db->prepare('INSERT IGNORE INTO affiliate_commissions (site_id, affiliate_id, order_ref, base_amount, outlet_amount, tier_rate, amount, status, month_key, formula_version, meta, created_at) VALUES (@site_id, :a, :o, :b, :outlet, 0, 0, "ESTIMATED", :month, :formula, :m, NOW())')
+                ->execute([
+                    'a' => $affiliateId, 'o' => $orderRef, 'b' => $baseAmount, 'outlet' => $outletAmount, 'month' => $monthKey,
+                    'formula' => self::FORMULA_VERSION,
+                    'm' => json_encode(['program' => 'sonika_partners', 'formula' => self::FORMULA_VERSION, 'min_order' => self::MIN_ORDER_VALUE, 'outlet_amount' => $outletAmount, 'outlet_rate' => self::OUTLET_RATE], JSON_UNESCAPED_UNICODE),
+                ]);
+            $calc = $this->recalculateMonth($affiliateId, $monthKey);
+            $st = $db->prepare('SELECT amount, tier_rate, points, outlet_amount FROM affiliate_commissions WHERE site_id = @site_id AND order_ref = :o LIMIT 1');
+            $st->execute(['o' => $orderRef]);
+            $row = $st->fetch() ?: [];
+            $amount = (float)($row['amount'] ?? 0);
+            $rate = (float)($row['tier_rate'] ?? $calc['rate']);
+            $this->log($affiliateId, 'order_attributed', ['order' => $orderRef, 'amount' => $amount, 'rate' => $rate, 'points' => $calc['points'], 'month' => $monthKey, 'outlet_amount' => (float)($row['outlet_amount'] ?? $outletAmount), 'simulation' => true]);
+            return ['ok' => true, 'affiliate_id' => $affiliateId, 'commission' => $amount, 'rate' => $rate, 'points' => $calc['points'], 'orders' => $calc['orders'], 'month_sales' => $calc['sales'], 'outlet_amount' => (float)($row['outlet_amount'] ?? $outletAmount), 'outlet_rate' => self::OUTLET_RATE, 'simulation' => true, 'formula' => self::FORMULA_VERSION];
         } catch (\Throwable $e) { return null; }
+    }
+
+    /** Revierte la comisión de un pedido anulado, devuelto o fraudulento. */
+    public function reverseOrder(string $orderRef, string $reason = 'Reverso de pedido'): bool
+    {
+        try {
+            $db = Database::instance();
+            $st = $db->prepare('SELECT affiliate_id, month_key FROM affiliate_commissions WHERE site_id = @site_id AND order_ref = :o LIMIT 1');
+            $st->execute(['o' => $orderRef]);
+            $row = $st->fetch();
+            if (!$row) return false;
+            $db->prepare("UPDATE affiliate_commissions SET status = 'REVERSED', meta = JSON_SET(COALESCE(meta, '{}'), '$.reversal_reason', :r), amount = 0 WHERE site_id = @site_id AND order_ref = :o")
+                ->execute(['o' => $orderRef, 'r' => mb_substr($reason, 0, 200)]);
+            $month = (string)($row['month_key'] ?? date('Y-m'));
+            $this->recalculateMonth((int)$row['affiliate_id'], $month);
+            $this->log((int)$row['affiliate_id'], 'order_reversed', ['order' => $orderRef, 'reason' => $reason]);
+            return true;
+        } catch (\Throwable $e) {
+            return false;
+        }
     }
 
     public function statusLookup(string $email, string $doc): ?array
@@ -461,8 +716,78 @@ class AffiliateService
         } catch (\Throwable $e) { return null; }
     }
 
+    public function isDemoProfile(int $affiliateId): bool
+    {
+        try {
+            $st = Database::instance()->prepare("SELECT slug FROM affiliate_profiles WHERE id = :id AND site_id = @site_id LIMIT 1");
+            $st->execute(['id' => $affiliateId]);
+            return (string)$st->fetchColumn() === 'demo-artist';
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+
+    private function demoDashboard(): array
+    {
+        return [
+            'demo' => true,
+            'clicks' => 1248,
+            'sales' => 18450000.0,
+            'commission_total' => 922500.0,
+            'by_status' => [
+                'ESTIMATED' => ['amount' => 185000.0, 'count' => 4],
+                'PENDING_VALIDATION' => ['amount' => 92500.0, 'count' => 2],
+                'PAYMENT_QUEUED' => ['amount' => 75000.0, 'count' => 1],
+                'APPROVED' => ['amount' => 410000.0, 'count' => 5],
+                'PAID' => ['amount' => 160000.0, 'count' => 2],
+            ],
+            'recent' => [
+                ['order_ref' => 'PED-2610-1048', 'base_amount' => 1249000.0, 'tier_rate' => 0.05, 'amount' => 62450.0, 'status' => 'APPROVED', 'created_at' => '2026-10-24 16:42:00'],
+                ['order_ref' => 'PED-2610-1031', 'base_amount' => 689000.0, 'tier_rate' => 0.05, 'amount' => 34450.0, 'status' => 'PAID', 'created_at' => '2026-10-23 11:18:00'],
+                ['order_ref' => 'PED-2610-1017', 'base_amount' => 2199000.0, 'tier_rate' => 0.05, 'amount' => 109950.0, 'status' => 'PENDING_VALIDATION', 'created_at' => '2026-10-21 18:06:00'],
+                ['order_ref' => 'PED-2610-1004', 'base_amount' => 459000.0, 'tier_rate' => 0.05, 'amount' => 22950.0, 'status' => 'PAYMENT_QUEUED', 'created_at' => '2026-10-19 09:35:00'],
+                ['order_ref' => 'PED-2609-0992', 'base_amount' => 1899000.0, 'tier_rate' => 0.05, 'amount' => 94950.0, 'status' => 'ESTIMATED', 'created_at' => '2026-09-28 15:12:00'],
+                ['order_ref' => 'PED-2609-0981', 'base_amount' => 899000.0, 'tier_rate' => 0.05, 'amount' => 44950.0, 'status' => 'PAID', 'created_at' => '2026-09-26 12:04:00'],
+            ],
+            'league' => [
+                'level' => 'Corchea',
+                'code' => 'corchea',
+                'sales' => 18450000.0,
+                'clicks' => 1248,
+                'next' => 'Negra',
+                'next_min' => 25000000.0,
+                'progress' => 74,
+            ],
+        ];
+    }
+
+    private function demoSalesStats(): array
+    {
+        return [
+            'orders' => 38,
+            'clicks' => 1248,
+            'conversion' => 3.0,
+            'avg_ticket' => 485526.0,
+            'top_sold' => [
+                ['name' => 'GUITARRA ELECTRICA FENDER AM PRO II STRATOCASTER BLANCO P/ROSA MOD0113910705', 'qty' => 1, 'amt' => 8199000],
+                ['name' => 'BAJO ELEC GRETSCH STRML JET CLB BASS', 'qty' => 2, 'amt' => 3598000],
+                ['name' => 'AUDIFONO SHURE SRH240', 'qty' => 12, 'amt' => 1428000],
+                ['name' => 'ACORDEON HOHNER REY VALLENATO ADG ROJO A4904S', 'qty' => 2, 'amt' => 3200000],
+                ['name' => 'PAR LED BIG DIPPER LP005', 'qty' => 8, 'amt' => 1600000],
+            ],
+            'top_viewed' => [
+                ['page_url' => '/producto/promo-aniversario-guitarra-electrica-fender-american-profesional-ii-stratocaster-hss-color-owt-mod0113910705-diapason-en-palo-de-rosa', 'v' => 186],
+                ['page_url' => '/producto/bajo-elec-gretsch-strml-jet-clb-bass', 'v' => 142],
+                ['page_url' => '/producto/aud014', 'v' => 97],
+                ['page_url' => '/producto/acordeon-hohner-rey-vallenato', 'v' => 84],
+                ['page_url' => '/producto/parl08', 'v' => 61],
+            ],
+        ];
+    }
+
     public function dashboard(int $affiliateId): array
     {
+        if ($this->isDemoProfile($affiliateId)) return $this->demoDashboard();
         $out = ['clicks' => 0, 'sales' => 0.0, 'commission_total' => 0.0, 'by_status' => [], 'recent' => []];
         try {
             $db = Database::instance();
@@ -494,8 +819,14 @@ class AffiliateService
 
     public function currentContract(): ?array
     {
-        try { $st = Database::instance()->query("SELECT * FROM affiliate_contracts WHERE site_id = @site_id AND code = 'artist_partners' AND status = 'published' ORDER BY id DESC LIMIT 1"); return $st->fetch() ?: null; }
-        catch (\Throwable $e) { return null; }
+        try {
+            (new \App\Services\ArtistContractService())->ensure();
+            $st = Database::instance()->query("SELECT * FROM affiliate_contracts WHERE site_id = @site_id AND code = 'sonika_partners' AND status = 'published' ORDER BY id DESC LIMIT 1");
+            $row = $st->fetch();
+            if ($row) return $row;
+            $st = Database::instance()->query("SELECT * FROM affiliate_contracts WHERE site_id = @site_id AND code = 'artist_partners' AND status = 'published' ORDER BY id DESC LIMIT 1");
+            return $st->fetch() ?: null;
+        } catch (\Throwable $e) { return null; }
     }
 
     public function acceptContract(int $affiliateId, int $contractId): bool
@@ -527,7 +858,7 @@ class AffiliateService
             if (class_exists('\\App\\Services\\EmailService')) {
                 try {
                     $es = new \App\Services\EmailService();
-                    $sent = $es->sendHtml($email, 'Tu código de verificación — SONIKA Artist', '<div style="font-family:Arial,sans-serif"><p>Tu código de verificación es:</p><p style="font-size:28px;font-weight:800;letter-spacing:4px">' . $code . '</p><p>Vence en 10 minutos. Si no lo solicitaste, ignora este correo.</p></div>');
+                    $sent = $es->sendHtml($email, 'Tu código de verificación — SONIKA Partners', '<div style="font-family:Arial,sans-serif"><p>Tu código de verificación es:</p><p style="font-size:28px;font-weight:800;letter-spacing:4px">' . $code . '</p><p>Vence en 10 minutos. Si no lo solicitaste, ignora este correo.</p></div>');
                 } catch (\Throwable $x) {}
             }
             return ['ok' => true, 'sent' => $sent];
@@ -814,6 +1145,7 @@ class AffiliateService
 
     public function salesStats(int $affiliateId): array
     {
+        if ($this->isDemoProfile($affiliateId)) return $this->demoSalesStats();
         $out = ['orders' => 0, 'clicks' => 0, 'conversion' => 0.0, 'avg_ticket' => 0.0, 'top_sold' => [], 'top_viewed' => []];
         try {
             $db = Database::instance();

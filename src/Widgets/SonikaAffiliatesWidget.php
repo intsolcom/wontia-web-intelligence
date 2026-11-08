@@ -4,7 +4,7 @@ namespace App\Widgets;
 use App\Services\AffiliateService;
 
 /**
- * SONIKA Artist Partners — Brick (programa de afiliados). Desactivable.
+ * SONIKA Partners — Brick (programa único de distribuidores). Desactivable.
  * Fase 1: landing + registro (modo simulación, sin pagos reales). La lógica vive en AffiliateService.
  */
 class SonikaAffiliatesWidget extends Widget
@@ -18,7 +18,7 @@ class SonikaAffiliatesWidget extends Widget
     {
         return [
             ['key' => 'enabled', 'label' => 'Activar el programa (modo simulación)', 'type' => 'toggle', 'default' => false],
-            ['key' => 'title', 'label' => 'Título', 'type' => 'text', 'default' => 'SONIKA Artist Partners'],
+            ['key' => 'title', 'label' => 'Título', 'type' => 'text', 'default' => 'SONIKA Partners'],
             ['key' => 'subtitle', 'label' => 'Subtítulo', 'type' => 'text', 'default' => 'Convierte tu música en ingresos. Recomienda el catálogo oficial y gana comisiones.'],
             ['key' => 'show_levels', 'label' => 'Mostrar Sound League (5 niveles)', 'type' => 'toggle', 'default' => true],
             ['key' => 'show_tiers', 'label' => 'Mostrar tramos de comisión', 'type' => 'toggle', 'default' => true],
@@ -29,7 +29,7 @@ class SonikaAffiliatesWidget extends Widget
 
     public static function defaultConfig(): array
     {
-        return ['enabled' => false, 'title' => 'SONIKA Artist Partners', 'subtitle' => 'Convierte tu música en ingresos. Recomienda el catálogo oficial y gana comisiones.', 'show_levels' => true, 'show_tiers' => true, 'show_register' => true, 'note' => 'Programa en habilitación. Términos y condiciones pendientes de revisión legal. Las comisiones mostradas son de simulación y no constituyen una oferta vinculante.'];
+        return ['enabled' => false, 'title' => 'SONIKA Partners', 'subtitle' => 'Comparte, vende y gana comisiones por ventas válidas.', 'show_levels' => true, 'show_tiers' => true, 'show_register' => true, 'note' => 'Programa en habilitación. Términos y condiciones pendientes de revisión legal. Las comisiones mostradas son de simulación y no constituyen una oferta vinculante.'];
     }
 
     public function render(array $config = []): string
@@ -71,7 +71,7 @@ class SonikaAffiliatesWidget extends Widget
             . '@media(max-width:800px){.ap__grid{grid-template-columns:1fr}}'
             . '</style>';
         $h .= '<section class="ap" id="' . $uid . '"><div class="ap__in">';
-        $h .= '<div class="ap__head"><span class="ap__kicker">Artist Partners</span><h2 class="ap__title">' . $this->esc((string)$c['title']) . '</h2><p class="ap__sub">' . $this->esc((string)$c['subtitle']) . '</p></div>';
+        $h .= '<div class="ap__head"><span class="ap__kicker">SONIKA Partners</span><h2 class="ap__title">' . $this->esc((string)$c['title']) . '</h2><p class="ap__sub">' . $this->esc((string)$c['subtitle']) . '</p></div>';
         $h .= '<div class="ap__grid">';
 
         if (!empty($c['show_levels'])) {

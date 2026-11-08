@@ -14,8 +14,14 @@ class StoreService
         'store_max_orders_hour_ip', 'store_max_orders_hour_email',
         'store_reviews_auto_approve', 'store_reviews_require_purchase',
         'store_loyalty_enabled', 'store_loyalty_points_per_1000', 'store_loyalty_redeem_cents',
-        'store_currencies',
+        'store_currencies', 'store_payment_logos',
+        'store_catalog_sort', 'store_catalog_mode', 'store_catalog_brands',
+        'store_catalog_hide_out_of_stock', 'store_catalog_show_tags',
+        'store_oos_disable_add',
+        'store_show_sales', 'store_show_sales_categories', 'store_payment_logo_methods',
+        'store_recommendations', 'store_social_proof', 'store_impact_note',
         'store_recovery_enabled', 'store_recovery_hours', 'store_reservation_minutes',
+        'product_content_v2',
     ];
 
     public const PAYMENT_METHODS = ['wompi', 'cod', 'manual'];
@@ -56,6 +62,45 @@ class StoreService
         foreach ([
             "ALTER TABLE store_orders ADD COLUMN IF NOT EXISTS ip_hash VARCHAR(64) NULL",
             "ALTER TABLE store_orders ADD COLUMN IF NOT EXISTS stock_released TINYINT DEFAULT 0",
+            "ALTER TABLE store_orders ADD COLUMN IF NOT EXISTS quote_code VARCHAR(40) COLLATE utf8mb4_unicode_ci NULL",
+            "ALTER TABLE store_orders MODIFY quote_code VARCHAR(40) COLLATE utf8mb4_unicode_ci NULL",
+            "ALTER TABLE store_products ADD COLUMN IF NOT EXISTS vendor VARCHAR(150) NULL",
+            "ALTER TABLE store_products ADD COLUMN IF NOT EXISTS product_type VARCHAR(150) NULL",
+            "ALTER TABLE store_products ADD COLUMN IF NOT EXISTS catalog_handle VARCHAR(255) NULL",
+            "ALTER TABLE store_products ADD COLUMN IF NOT EXISTS source VARCHAR(20) NOT NULL DEFAULT 'local'",
+            "ALTER TABLE store_products ADD COLUMN IF NOT EXISTS catalog_synced_at DATETIME NULL",
+            "ALTER TABLE store_orders MODIFY quote_code VARCHAR(40) COLLATE utf8mb4_unicode_ci NULL",
+            "ALTER TABLE store_orders ADD INDEX idx_store_orders_quote (site_id, quote_code)",
+            "ALTER TABLE store_orders ADD COLUMN IF NOT EXISTS shipping_rate_id INT NULL",
+            "ALTER TABLE store_orders ADD COLUMN IF NOT EXISTS shipping_department_code CHAR(2) NULL",
+            "ALTER TABLE store_orders ADD COLUMN IF NOT EXISTS shipping_municipality_code CHAR(5) NULL",
+            "ALTER TABLE store_orders ADD COLUMN IF NOT EXISTS shipping_carrier VARCHAR(100) NULL",
+            "ALTER TABLE store_orders ADD COLUMN IF NOT EXISTS shipping_eta_min_days INT NULL",
+            "ALTER TABLE store_orders ADD COLUMN IF NOT EXISTS shipping_eta_max_days INT NULL",
+            "ALTER TABLE store_orders ADD COLUMN IF NOT EXISTS recommendation_discount_cents INT NOT NULL DEFAULT 0",
+            "ALTER TABLE store_orders ADD COLUMN IF NOT EXISTS recommendation_discount_net_cents INT NOT NULL DEFAULT 0",
+            "ALTER TABLE store_order_items ADD COLUMN IF NOT EXISTS discount_cents INT NOT NULL DEFAULT 0",
+            "ALTER TABLE store_order_items ADD COLUMN IF NOT EXISTS discount_net_cents INT NOT NULL DEFAULT 0",
+            "ALTER TABLE store_order_items ADD COLUMN IF NOT EXISTS recommendation_discount_cents INT NOT NULL DEFAULT 0",
+            "ALTER TABLE store_order_items ADD COLUMN IF NOT EXISTS recommendation_discount_net_cents INT NOT NULL DEFAULT 0",
+            "ALTER TABLE store_order_items ADD COLUMN IF NOT EXISTS recommendation_rate DECIMAL(6,4) NULL",
+            "ALTER TABLE store_order_items ADD COLUMN IF NOT EXISTS recommendation_source VARCHAR(40) NULL",
+            "ALTER TABLE store_orders MODIFY subtotal_cents BIGINT NOT NULL DEFAULT 0",
+            "ALTER TABLE store_orders MODIFY subtotal_net_cents BIGINT NOT NULL DEFAULT 0",
+            "ALTER TABLE store_orders MODIFY tax_cents BIGINT NOT NULL DEFAULT 0",
+            "ALTER TABLE store_orders MODIFY breb_discount_cents BIGINT NOT NULL DEFAULT 0",
+            "ALTER TABLE store_orders MODIFY breb_discount_net_cents BIGINT NOT NULL DEFAULT 0",
+            "ALTER TABLE store_orders MODIFY shipping_cents BIGINT NOT NULL DEFAULT 0",
+            "ALTER TABLE store_orders MODIFY discount_cents BIGINT NOT NULL DEFAULT 0",
+            "ALTER TABLE store_orders MODIFY total_cents BIGINT NOT NULL DEFAULT 0",
+            "ALTER TABLE store_orders MODIFY recommendation_discount_cents BIGINT NOT NULL DEFAULT 0",
+            "ALTER TABLE store_orders MODIFY recommendation_discount_net_cents BIGINT NOT NULL DEFAULT 0",
+            "ALTER TABLE store_order_items MODIFY price_cents BIGINT NOT NULL DEFAULT 0",
+            "ALTER TABLE store_order_items MODIFY subtotal_cents BIGINT NOT NULL DEFAULT 0",
+            "ALTER TABLE store_order_items MODIFY discount_cents BIGINT NOT NULL DEFAULT 0",
+            "ALTER TABLE store_order_items MODIFY discount_net_cents BIGINT NOT NULL DEFAULT 0",
+            "ALTER TABLE store_order_items MODIFY recommendation_discount_cents BIGINT NOT NULL DEFAULT 0",
+            "ALTER TABLE store_order_items MODIFY recommendation_discount_net_cents BIGINT NOT NULL DEFAULT 0",
         ] as $alter) {
             try { $db->exec($alter); } catch (\Exception $e) {}
         }
@@ -199,7 +244,7 @@ class StoreService
         if (!empty($f['featured'])) $sql .= " AND p.is_featured = 1";
         $sql .= " ORDER BY p.sort_order ASC, p.id DESC";
         $limit = (int)($f['limit'] ?? 0);
-        if ($limit > 0) $sql .= " LIMIT " . min($limit, 200);
+        if ($limit > 0) $sql .= " LIMIT " . min($limit, 5000);
         $offset = (int)($f['offset'] ?? 0);
         if ($limit > 0 && $offset > 0) $sql .= " OFFSET " . $offset;
         $stmt = $db->prepare($sql);
@@ -218,6 +263,25 @@ class StoreService
         $stmt = $db->prepare($sql);
         $stmt->execute($params);
         return (int)$stmt->fetchColumn();
+    }
+
+    public function productsAdmin(array $f = []): array
+    {
+        $db = Database::instance();
+        $sql = "SELECT p.id, p.name, p.slug, p.sku, p.price_cents, p.stock, p.track_stock, p.status, p.is_featured, p.category_id, c.name AS category_name FROM store_products p LEFT JOIN store_categories c ON c.id = p.category_id WHERE p.site_id = @site_id";
+        $params = [];
+        if (!empty($f['status'])) { $sql .= " AND p.status = :status"; $params['status'] = $f['status']; }
+        if (!empty($f['category_id'])) { $sql .= " AND p.category_id = :cat"; $params['cat'] = (int)$f['category_id']; }
+        if (!empty($f['search'])) { $sql .= " AND (p.name LIKE :q1 OR p.sku LIKE :q2 OR p.slug LIKE :q3)"; $params['q1'] = '%' . $f['search'] . '%'; $params['q2'] = '%' . $f['search'] . '%'; $params['q3'] = '%' . $f['search'] . '%'; }
+        if (!empty($f['featured'])) $sql .= " AND p.is_featured = 1";
+        $sql .= " ORDER BY p.sort_order ASC, p.id DESC";
+        $limit = (int)($f['limit'] ?? 0);
+        if ($limit > 0) $sql .= " LIMIT " . min($limit, 5000);
+        $offset = (int)($f['offset'] ?? 0);
+        if ($limit > 0 && $offset > 0) $sql .= " OFFSET " . $offset;
+        $stmt = $db->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 
     public function product(int $id): ?array
@@ -245,6 +309,15 @@ class StoreService
         if ($name === '') throw new \InvalidArgumentException('Nombre requerido');
         $slug = trim((string)($d['slug'] ?? '')) ?: $this->slugify($name);
         $this->assertSlugFree('store_products', $slug, $id);
+        $existingProduct = [];
+        if ($id) {
+            $st = $db->prepare('SELECT tags, images, vendor, product_type, catalog_handle, source FROM store_products WHERE id = ? AND site_id = @site_id LIMIT 1');
+            $st->execute([$id]);
+            $existingProduct = $st->fetch(\PDO::FETCH_ASSOC) ?: [];
+        }
+        if (!array_key_exists('tags', $d) && !empty($existingProduct['tags'])) {
+            $d['tags'] = json_decode((string)$existingProduct['tags'], true) ?: [];
+        }
         $params = [
             'category_id' => !empty($d['category_id']) ? (int)$d['category_id'] : null,
             'name' => $name,
@@ -281,6 +354,13 @@ class StoreService
             $productId = (int)$db->lastInsertId();
         }
         if (array_key_exists('variants', $d)) $this->saveVariants($productId, (array)$d['variants']);
+        try {
+            $ready = $db->prepare("SELECT slug FROM store_products WHERE id = ? AND site_id = @site_id AND status = 'active' AND (track_stock = 0 OR stock > 0) LIMIT 1");
+            $ready->execute([$productId]);
+            $readySlug = (string)($ready->fetchColumn() ?: '');
+            if ($readySlug !== '') (new StockNotificationService())->notifyForProduct($readySlug);
+        } catch (\Throwable $e) {
+        }
         return $productId;
     }
 
@@ -368,6 +448,47 @@ class StoreService
     }
 
     // ── Orders ──
+
+    /** Base de productos outlet/bajo margen sujeta a 2 % fijo (en pesos). */
+    private function affiliateOutletBase(array $lines, int $subtotal, int $discountCents): float
+    {
+        if ($subtotal <= 0 || !$lines) return 0.0;
+        $ids = [];
+        foreach ($lines as $l) {
+            $pid = (int)($l['product_id'] ?? 0);
+            if ($pid > 0) $ids[$pid] = true;
+        }
+        if (!$ids) return 0.0;
+        try {
+            $ids = array_keys($ids);
+            $ph = implode(',', array_fill(0, count($ids), '?'));
+            $st = Database::instance()->prepare("SELECT id, tags FROM store_products WHERE site_id = @site_id AND id IN ($ph)");
+            $st->execute($ids);
+            $outlet = [];
+            foreach ($st->fetchAll() as $row) {
+                $tags = $row['tags'] ?? '';
+                if (is_string($tags)) $tags = json_decode($tags, true);
+                if (!is_array($tags)) continue;
+                foreach ($tags as $tag) {
+                    $t = str_replace(['á', 'é', 'í', 'ó', 'ú'], ['a', 'e', 'i', 'o', 'u'], strtolower((string)$tag));
+                    if (strpos($t, 'outlet') !== false || strpos($t, 'liquidaci') !== false || strpos($t, 'margen_bajo') !== false || strpos($t, 'bajo_margen') !== false) {
+                        $outlet[(int)$row['id']] = true;
+                        break;
+                    }
+                }
+            }
+            if (!$outlet) return 0.0;
+            $outletSubtotal = 0;
+            foreach ($lines as $l) {
+                if (!empty($outlet[(int)($l['product_id'] ?? 0)])) $outletSubtotal += (int)($l['subtotal_cents'] ?? 0);
+            }
+            if ($outletSubtotal <= 0) return 0.0;
+            $net = max(0, $subtotal - $discountCents);
+            return round(($net * ($outletSubtotal / $subtotal)) / 100, 2);
+        } catch (\Throwable $e) {
+            return 0.0;
+        }
+    }
 
     public function createOrder(array $input, string $ip = ''): array
     {
@@ -504,6 +625,7 @@ class StoreService
                     'pm' => $method, 'notes' => (string)($input['notes'] ?? ''), 'iph' => $ipHash,
                 ]);
             $orderId = (int)$db->lastInsertId();
+            $this->markOrderInternal($orderId);
 
             $istmt = $db->prepare("INSERT INTO store_order_items (site_id, order_id, product_id, variant_id, name, variant_name, price_cents, qty, subtotal_cents, image)
                 VALUES (@site_id, :oid, :pid, :vid, :name, :vname, :price, :qty, :sub, :img)");
@@ -523,11 +645,19 @@ class StoreService
 
             $db->commit();
 
-            // Atribución de afiliado (SONIKA Artist Partners) — nunca bloquea el pedido.
+            // Atribución de Partner SONIKA — nunca bloquea el pedido.
             try {
                 $__aff = (string)($_COOKIE['sonika_aff'] ?? '');
+                $__internal = 0;
                 if ($__aff !== '') {
-                    (new \App\Services\AffiliateService())->attributeOrder((string)$uuid, (float)$total / 100, null, $__aff);
+                    $st = $db->prepare('SELECT is_internal FROM store_orders WHERE id = ? AND site_id = @site_id LIMIT 1');
+                    $st->execute([$orderId]);
+                    $__internal = (int)$st->fetchColumn();
+                }
+                if ($__aff !== '' && $__internal === 0) {
+                    $__base = max(0.0, ((float)$subtotal - (float)$discountCents) / 100);
+                    $__outlet = $this->affiliateOutletBase($lines, (int)$subtotal, (int)$discountCents);
+                    (new \App\Services\AffiliateService())->attributeOrder((string)$uuid, $__base, null, $__aff, $__outlet);
                 }
             } catch (\Throwable $e) {
             }
@@ -563,6 +693,9 @@ class StoreService
     {
         $this->ensureTables();
         (new CustomerService())->ensureTables();
+        (new BrebService())->ensureTables();
+        (new StoreCouponService())->ensureTables();
+        (new LoyaltyService())->ensureTables();
 
         $itemsIn = (array)($input['items'] ?? []);
         if (!$itemsIn) throw new \InvalidArgumentException('El pedido no tiene productos');
@@ -572,53 +705,184 @@ class StoreService
         $name = trim((string)($customer['name'] ?? ''));
         $email = trim((string)($customer['email'] ?? ''));
         $phone = trim((string)($customer['phone'] ?? ''));
-        if ($name === '') throw new \InvalidArgumentException('Nombre requerido');
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) throw new \InvalidArgumentException('Email invalido');
-        if ($phone === '') throw new \InvalidArgumentException('Telefono requerido');
+        $document = trim((string)($customer['document'] ?? ''));
+        $shipIn = (array)($input['shipping'] ?? []);
+        $addr = (array)($shipIn['address'] ?? []);
+        $line1 = trim((string)($addr['line1'] ?? ''));
+        $city = trim((string)($addr['city'] ?? ''));
+        $region = trim((string)($addr['region'] ?? ''));
+        $departmentCode = preg_replace('/\D+/', '', (string)($addr['department_code'] ?? ($shipIn['department_code'] ?? '')));
+        $municipalityCode = preg_replace('/\D+/', '', (string)($addr['municipality_code'] ?? ($shipIn['municipality_code'] ?? '')));
+        $notes = trim((string)($input['notes'] ?? ($addr['notes'] ?? '')));
+        if ($name === '' || mb_strlen($name) < 2) throw new \InvalidArgumentException('Escribe tu nombre completo.');
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) throw new \InvalidArgumentException('Escribe un correo electronico valido.');
+        $phoneDigits = preg_replace('/\D+/', '', $phone);
+        if ($phoneDigits === '' || strlen($phoneDigits) < 7 || strlen($phoneDigits) > 15) throw new \InvalidArgumentException('Escribe un telefono valido (7 a 15 digitos).');
+        if ($document === '' || mb_strlen($document) < 5) throw new \InvalidArgumentException('Escribe tu documento (CC, NIT o CE).');
+        if ($line1 === '' || mb_strlen($line1) < 5) throw new \InvalidArgumentException('Escribe la direccion de entrega.');
+        if (strlen($departmentCode) !== 2 || strlen($municipalityCode) !== 5) throw new \InvalidArgumentException('Selecciona el departamento y el municipio de entrega.');
+        if ($city === '' || mb_strlen($city) < 2) throw new \InvalidArgumentException('Escribe la ciudad o municipio.');
+        if ($notes === '' || mb_strlen($notes) < 30) throw new \InvalidArgumentException('Escribe al menos 30 caracteres con indicaciones para la entrega.');
+        if (mb_strlen($notes) > 500) throw new \InvalidArgumentException('Las indicaciones de entrega no pueden superar 500 caracteres.');
+        if (empty($input['terms'])) throw new \InvalidArgumentException('Debes aceptar los terminos y condiciones.');
 
         $settings = $this->settings();
         if (($settings['store_enabled'] ?? '') === '0') throw new \RuntimeException('La tienda esta deshabilitada');
         $this->assertRateLimit($settings, $input, $ip);
 
-        $val = (new CartService())->validate($itemsIn);
-        $lines = array_values(array_filter((array)$val['items'], fn($l) => !empty($l['available'])));
-        if (!$lines) throw new \RuntimeException('Ningun producto esta disponible');
-        $subtotal = 0;
-        foreach ($lines as $l) $subtotal += (int)$l['line_total_cents'];
+        $method = (string)($input['payment_method'] ?? 'request');
+        if (!in_array($method, BrebService::METHODS, true)) throw new \InvalidArgumentException('Metodo de pago no disponible');
+
+        $breb = new BrebService();
+        $brebSettings = $breb->settings();
+        if ($method === 'breb' && !$breb->available()) throw new \RuntimeException('Bre-B no esta disponible en este momento.');
+        if ($method === 'mercadopago' && !(new MercadoPagoService())->isAvailable() && ($brebSettings['mp_link'] === '' || !$brebSettings['mp_enabled'])) throw new \RuntimeException('Mercado Pago no esta disponible en este momento.');
+        if ($method === 'epayco' && ($brebSettings['epayco_link'] === '' || !$brebSettings['epayco_enabled'])) throw new \RuntimeException('ePayco no esta disponible en este momento.');
+        if ($method === 'sistecredito' && !(new SistecreditoService())->isAvailable()) throw new \RuntimeException('Sistecrédito no está disponible en este momento.');
+
+        $quoteCode = strtoupper(trim((string)($input['quote_code'] ?? '')));
+        if ($quoteCode !== '' && !preg_match('/^COT-[A-Z0-9-]{4,36}$/', $quoteCode)) $quoteCode = '';
+        $couponIn = strtoupper(trim((string)($input['coupon'] ?? '')));
+        $pointsReq = max(0, (int)($input['points'] ?? 0));
+        $quote = $breb->quote($itemsIn, $method, $couponIn, $pointsReq, [
+            'department_code' => $departmentCode,
+            'municipality_code' => $municipalityCode,
+        ]);
+        if (empty($quote['ok'])) throw new \RuntimeException((string)($quote['message'] ?? 'El pedido no es valido'));
+        $shippingMeta = (array)($quote['shipping'] ?? []);
+        if (empty($shippingMeta['ok'])) throw new \RuntimeException((string)($shippingMeta['message'] ?? 'No hay cobertura para este municipio.'));
+        if (!empty($shippingMeta['municipality'])) $city = (string)$shippingMeta['municipality'];
+        if (!empty($shippingMeta['department'])) $region = (string)$shippingMeta['department'];
+        if ($couponIn !== '' && ($quote['coupon_ok'] ?? null) === false) {
+            throw new \RuntimeException((string)($quote['coupon_message'] ?? 'El cupón no es válido.'));
+        }
+        if ($pointsReq > 0 && (int)($quote['points_used'] ?? 0) <= 0) {
+            throw new \RuntimeException((string)($quote['points_message'] ?? 'No se pudieron aplicar los puntos.'));
+        }
+        if ((int)$quote['issue_count'] > 0) {
+            $names = [];
+            foreach (array_slice((array)$quote['issues'], 0, 3) as $issue) {
+                $label = trim((string)($issue['title'] ?? $issue['ref'] ?? ''));
+                if ($label !== '') $names[] = $label;
+            }
+            throw new \RuntimeException('Revisa la disponibilidad del pedido: ' . ($names ? implode(', ', $names) : 'hay productos no disponibles'));
+        }
+
+        $lines = (array)$quote['items'];
+        $subtotal = (int)$quote['subtotal_before_cents'];
+        $subtotalNet = (int)$quote['net_after_cents'];
+        $tax = (int)$quote['tax_after_cents'];
+        $brebDiscount = (int)($quote['breb_discount_cents'] ?? 0);
+        $brebDiscountNet = (int)($quote['breb_discount_net_cents'] ?? 0);
+        $recommendationDiscount = (int)($quote['recommendation_discount_cents'] ?? 0);
+        $recommendationDiscountNet = (int)($quote['recommendation_discount_net_cents'] ?? 0);
+        $couponDiscount = (int)($quote['coupon_discount_cents'] ?? 0);
+        $couponId = (int)($quote['coupon_id'] ?? 0);
+        $pointsUsed = (int)($quote['points_used'] ?? 0);
+        $pointsDiscount = (int)($quote['points_discount_cents'] ?? 0);
+        $pointsCustomerId = 0;
+        if ($pointsUsed > 0) {
+            $me = (new CustomerService())->current();
+            if (!$me || strcasecmp((string)$me['email'], $email) !== 0) {
+                throw new \RuntimeException('Inicia sesión con el correo de tu cuenta para usar puntos.');
+            }
+            $pointsCustomerId = (int)$me['id'];
+        }
+        $discount = (int)$quote['discount_cents'];
+        $discountNet = (int)$quote['discount_net_cents'];
+        $shipping = (int)$quote['shipping_cents'];
+        $total = (int)$quote['total_cents'];
 
         $currency = ($settings['store_currency'] ?? '') !== '' ? (string)$settings['store_currency'] : 'COP';
         $uuid = $this->uuid4();
         $orderNumber = 'PED-' . date('ymd') . '-' . strtoupper(substr(bin2hex(random_bytes(3)), 0, 5));
-        $addr = (array)((array)($input['shipping'] ?? []))['address'] ?? [];
         $addressJson = json_encode(array_filter([
-            'line1' => (string)($addr['line1'] ?? ''),
-            'city' => (string)($addr['city'] ?? ''),
-            'region' => (string)($addr['region'] ?? ''),
+            'line1' => $line1,
+            'city' => $city,
+            'region' => $region,
+            'department' => (string)($shippingMeta['department'] ?? ''),
+            'municipality' => (string)($shippingMeta['municipality'] ?? ''),
+            'department_code' => $departmentCode,
+            'municipality_code' => $municipalityCode,
+            'notes' => $notes,
         ], fn($v) => $v !== ''));
+
+        $paymentLink = null;
+        if ($method === 'mercadopago') $paymentLink = $brebSettings['mp_link'];
+        if ($method === 'epayco') $paymentLink = $brebSettings['epayco_link'];
+        $paymentReference = in_array($method, ['breb', 'mercadopago', 'epayco'], true)
+            ? strtoupper($method === 'breb' ? 'BREB-' : ($method === 'mercadopago' ? 'MP-' : 'EPAYCO-')) . $orderNumber
+            : null;
+        $expiresAt = $method === 'breb'
+            ? date('Y-m-d H:i:s', time() + ((int)$brebSettings['payment_minutes'] * 60))
+            : null;
+        $paymentMeta = json_encode([
+            'quote_method' => $method,
+            'tax_rate' => $brebSettings['tax_rate'],
+            'prices_include_tax' => $brebSettings['prices_include_tax'],
+            'free_shipping' => (bool)$quote['free_shipping'],
+            'shipping_rate_id' => (int)($shippingMeta['rate_id'] ?? 0),
+            'shipping_source' => (string)($shippingMeta['source'] ?? ''),
+            'shipping_eta_min_days' => (int)($shippingMeta['eta_min_days'] ?? 0),
+            'shipping_eta_max_days' => (int)($shippingMeta['eta_max_days'] ?? 0),
+            'discount_pct' => $method === 'breb' ? $brebSettings['discount_pct'] : 0,
+            'coupon_code' => (string)($quote['coupon_code'] ?? ''),
+            'coupon_discount_cents' => $couponDiscount,
+            'recommendation_discount_cents' => $recommendationDiscount,
+            'recommendation_discount_net_cents' => $recommendationDiscountNet,
+            'recommendation_items' => (array)($quote['recommendation_items'] ?? []),
+            'points_used' => $pointsUsed,
+            'points_discount_cents' => $pointsDiscount,
+        ]);
 
         $db = Database::instance();
         $db->beginTransaction();
         try {
-            $cust = $this->upsertCustomer($name, $email, $phone, (string)($customer['document'] ?? ''), $addressJson);
-            $db->prepare("INSERT INTO store_orders (site_id, uuid, order_number, customer_id, customer_name, customer_email, customer_phone, customer_document,
-                shipping_address, subtotal_cents, shipping_cents, discount_cents, total_cents, currency, payment_method, payment_status,
-                fulfillment_status, notes, ip_hash) VALUES (@site_id, :uuid, :num, :cid, :name, :email, :phone, :doc, :addr, :sub, 0, 0, :total, :cur, 'request',
-                'pending', 'new', :notes, :iph)")
+            $cust = $this->upsertCustomer($name, $email, $phone, $document, $addressJson);
+            $db->prepare("INSERT INTO store_orders (site_id, uuid, order_number, customer_id, customer_name, customer_email, customer_phone, customer_document, quote_code,
+                shipping_address, shipping_rate_id, shipping_department_code, shipping_municipality_code, shipping_carrier,
+                shipping_eta_min_days, shipping_eta_max_days,
+                subtotal_cents, subtotal_net_cents, tax_cents, breb_discount_cents, breb_discount_net_cents,
+                recommendation_discount_cents, recommendation_discount_net_cents,
+                shipping_cents, discount_cents, total_cents, currency, payment_method, payment_status, payment_reference, payment_link,
+                payment_expires_at, payment_proof_status, payment_meta, fulfillment_status, notes, ip_hash)
+                VALUES (@site_id, :uuid, :num, :cid, :name, :email, :phone, :doc, :quote, :addr, :rate, :dept, :mun, :carrier,
+                :etamin, :etamax, :sub, :subnet, :tax, :bdis, :bdisnet, :rdis, :rdisnet,
+                :ship, :disc, :total, :cur, :pm, 'pending', :pref, :link, :expires, 'none', :meta, 'new', :notes, :iph)")
                 ->execute([
                     'uuid' => $uuid, 'num' => $orderNumber, 'cid' => $cust, 'name' => $name, 'email' => $email, 'phone' => $phone,
-                    'doc' => (string)($customer['document'] ?? ''), 'addr' => $addressJson,
-                    'sub' => $subtotal, 'total' => $subtotal, 'cur' => $currency,
-                    'notes' => (string)($input['notes'] ?? ''), 'iph' => $ip !== '' ? hash('sha256', $ip) : '',
+                    'doc' => $document, 'quote' => $quoteCode !== '' ? $quoteCode : null, 'addr' => $addressJson,
+                    'rate' => (int)($shippingMeta['rate_id'] ?? 0) ?: null, 'dept' => $departmentCode, 'mun' => $municipalityCode,
+                    'carrier' => (string)($shippingMeta['carrier'] ?? '') ?: null,
+                    'etamin' => (int)($shippingMeta['eta_min_days'] ?? 0) ?: null,
+                    'etamax' => (int)($shippingMeta['eta_max_days'] ?? 0) ?: null,
+                    'sub' => $subtotal, 'subnet' => $subtotalNet, 'tax' => $tax, 'bdis' => $brebDiscount, 'bdisnet' => $brebDiscountNet,
+                    'rdis' => $recommendationDiscount, 'rdisnet' => $recommendationDiscountNet,
+                    'ship' => $shipping, 'disc' => $discount, 'total' => $total, 'cur' => $currency, 'pm' => $method,
+                    'pref' => $paymentReference, 'link' => $paymentLink, 'expires' => $expiresAt, 'meta' => $paymentMeta,
+                    'notes' => $notes, 'iph' => $ip !== '' ? hash('sha256', $ip) : '',
                 ]);
             $orderId = (int)$db->lastInsertId();
+            $this->markOrderInternal($orderId);
 
-            $istmt = $db->prepare("INSERT INTO store_order_items (site_id, order_id, product_id, variant_id, name, variant_name, price_cents, qty, subtotal_cents, image)
-                VALUES (@site_id, :oid, 0, NULL, :name, '', :price, :qty, :sub, :img)");
+            $istmt = $db->prepare("INSERT INTO store_order_items (site_id, order_id, product_id, variant_id, name, variant_name, price_cents, qty, subtotal_cents, discount_cents, discount_net_cents, recommendation_discount_cents, recommendation_discount_net_cents, recommendation_rate, recommendation_source, image)
+                VALUES (@site_id, :oid, 0, NULL, :name, '', :price, :qty, :sub, :disc, :discnet, :recdisc, :recdiscnet, :recrate, :recsource, :img)");
             foreach ($lines as $l) {
                 $istmt->execute([
-                    'oid' => $orderId, 'name' => (string)($l['title'] ?? $l['ref']), 'price' => (int)$l['price_cents'],
-                    'qty' => (int)$l['qty'], 'sub' => (int)$l['line_total_cents'], 'img' => (string)($l['image'] ?? ''),
+                    'oid' => $orderId, 'name' => (string)($l['title'] ?? $l['ref']), 'price' => (int)$l['original_unit_cents'],
+                    'qty' => (int)$l['qty'], 'sub' => (int)$l['original_line_cents'], 'img' => (string)($l['image'] ?? ''),
+                    'disc' => (int)($l['discount_cents'] ?? 0), 'discnet' => (int)($l['discount_net_cents'] ?? 0),
+                    'recdisc' => (int)($l['recommendation_discount_cents'] ?? 0),
+                    'recdiscnet' => (int)($l['recommendation_discount_net_cents'] ?? 0),
+                    'recrate' => (float)($l['recommendation_rate'] ?? 0) ?: null,
+                    'recsource' => (string)($l['rec']['source'] ?? '') ?: null,
                 ]);
+            }
+            if ($pointsUsed > 0 && $pointsCustomerId > 0) {
+                $db->prepare("INSERT INTO store_loyalty_ledger (site_id, customer_id, points, reason, order_id, note) VALUES (@site_id, ?, ?, 'redeem', ?, 'Puntos usados en el pedido')")
+                    ->execute([$pointsCustomerId, -$pointsUsed, $orderId]);
+                $db->prepare("UPDATE store_customers SET points_balance = points_balance - ? WHERE id = ? AND site_id = @site_id")
+                    ->execute([$pointsUsed, $pointsCustomerId]);
             }
             $db->commit();
         } catch (\Throwable $e) {
@@ -626,12 +890,93 @@ class StoreService
             throw $e;
         }
 
+        if ($couponId > 0) {
+            try {
+                (new StoreCouponService())->redeem($couponId);
+            } catch (\Throwable $e) {
+            }
+        }
+        if ($quoteCode !== '') {
+            try {
+                (new QuoteService())->attributeOrder($quoteCode, $uuid, $orderNumber, $total);
+            } catch (\Throwable $e) {
+            }
+        }
         $order = $this->orderById($orderId);
+        $addiPayment = null;
+        $sistecreditoPayment = null;
+        $mercadopagoPayment = null;
+        if ($method === 'mercadopago' && (new MercadoPagoService())->isAvailable()) {
+            $mp = new MercadoPagoService();
+            $mpMode = $mp->mode();
+            $mpResult = $mpMode === 'checkout_pro' ? $mp->createPreference($order) : ['ok' => true, 'redirect_url' => '', 'status' => 'pending'];
+            if (empty($mpResult['ok'])) {
+                $this->updateOrder($orderId, ['payment_status' => 'failed']);
+                throw new \RuntimeException((string)($mpResult['message'] ?? 'No se pudo iniciar el pago con Mercado Pago.'));
+            }
+            $mercadopagoPayment = [
+                'method' => 'mercadopago',
+                'redirect_url' => (string)($mpResult['redirect_url'] ?? ''),
+                'status' => (string)($mpResult['status'] ?? 'pending'),
+                'mode' => $mpMode,
+            ];
+            $meta = json_decode((string)($order['payment_meta'] ?? ''), true) ?: [];
+            $meta['mercadopago_mode'] = $mpMode;
+            $meta['mercadopago_redirect_url'] = $mercadopagoPayment['redirect_url'];
+            $meta['mercadopago_status'] = 'pending';
+            $db->prepare('UPDATE store_orders SET payment_reference = ?, payment_link = ?, payment_meta = ?, payment_expires_at = ? WHERE id = ? AND site_id = @site_id')
+                ->execute([
+                    'MP-' . $orderNumber,
+                    $mercadopagoPayment['redirect_url'] !== '' ? $mercadopagoPayment['redirect_url'] : null,
+                    json_encode($meta, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                    date('Y-m-d H:i:s', time() + 3600),
+                    $orderId,
+                ]);
+            $order = $this->orderById($orderId);
+        }
+        if ($method === 'sistecredito') {
+            $scResult = (new SistecreditoService())->createApplication($order);
+            if (empty($scResult['ok'])) {
+                $this->updateOrder($orderId, ['payment_status' => 'failed']);
+                throw new \RuntimeException((string)($scResult['message'] ?? 'No se pudo iniciar el pago con Sistecrédito.'));
+            }
+            $sistecreditoPayment = [
+                'method' => 'sistecredito',
+                'redirect_url' => (string)($scResult['redirect_url'] ?? ''),
+                'status' => (string)($scResult['status'] ?? 'pending'),
+                'pending' => !empty($scResult['pending']),
+            ];
+            $meta = json_decode((string)($order['payment_meta'] ?? ''), true) ?: [];
+            $meta['sistecredito_redirect_url'] = $sistecreditoPayment['redirect_url'];
+            $meta['sistecredito_status'] = $sistecreditoPayment['status'];
+            $meta['sistecredito_provider_payment_id'] = (string)($scResult['provider_payment_id'] ?? '');
+            $db->prepare('UPDATE store_orders SET payment_reference = ?, payment_meta = ?, payment_expires_at = ? WHERE id = ? AND site_id = @site_id')
+                ->execute(['SISTE-' . $orderNumber, json_encode($meta, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), date('Y-m-d H:i:s', time() + 900), $orderId]);
+            $order = $this->orderById($orderId);
+        }
+        if ($method === 'addi') {
+            $addiResult = (new AddiService())->createApplication($order);
+            if (empty($addiResult['ok'])) {
+                $this->updateOrder($orderId, ['payment_status' => 'failed']);
+                throw new \RuntimeException((string)($addiResult['message'] ?? 'No se pudo iniciar el pago con Addi.'));
+            }
+            $addiPayment = [
+                'method' => 'addi',
+                'redirect_url' => (string)$addiResult['redirect_url'],
+                'status' => 'REDIRECT',
+            ];
+            $meta = json_decode((string)($order['payment_meta'] ?? ''), true) ?: [];
+            $meta['addi_redirect_url'] = $addiPayment['redirect_url'];
+            $meta['addi_status'] = 'REDIRECT';
+            $db->prepare('UPDATE store_orders SET payment_meta = ? WHERE id = ? AND site_id = @site_id')
+                ->execute([json_encode($meta, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), $orderId]);
+            $order = $this->orderById($orderId);
+        }
         try {
             $this->notifyOrder($order);
         } catch (\Throwable $e) {
         }
-        return ['order' => $order];
+        return ['order' => $order, 'payment' => $mercadopagoPayment ?: ($sistecreditoPayment ?: ($addiPayment ?: $breb->paymentInfo($order)))];
     }
 
     public function orderById(int $id): ?array
@@ -689,6 +1034,16 @@ class StoreService
         if (array_key_exists('admin_notes', $d)) { $sets[] = "admin_notes = :an"; $params['an'] = (string)$d['admin_notes']; }
         if (!$sets) return;
         $db->prepare("UPDATE store_orders SET " . implode(', ', $sets) . " WHERE id = :id AND site_id = @site_id")->execute($params);
+        $reverse = in_array((string)($d['payment_status'] ?? ''), ['failed', 'refunded'], true) || (string)($d['fulfillment_status'] ?? '') === 'cancelled';
+        if ($reverse) {
+            try {
+                $st = $db->prepare('SELECT uuid FROM store_orders WHERE id = ? AND site_id = @site_id LIMIT 1');
+                $st->execute([$id]);
+                $uuid = (string)$st->fetchColumn();
+                if ($uuid !== '') (new \App\Services\AffiliateService())->reverseOrder($uuid, 'Pedido ' . (string)($d['payment_status'] ?? $d['fulfillment_status'] ?? 'anulado'));
+            } catch (\Throwable $e) {
+            }
+        }
     }
 
     public function markPaid(string $uuid, string $providerRef, string $method): bool
@@ -732,6 +1087,18 @@ class StoreService
 
     // ── Helpers ──
 
+    /** Marca el pedido como interno si se creó desde un equipo del negocio. */
+    private function markOrderInternal(int $orderId): void
+    {
+        try {
+            $internal = SeoInternalTrafficService::detect();
+            if (empty($internal['internal'])) return;
+            Database::instance()->prepare('UPDATE store_orders SET is_internal = 1, internal_reason = ? WHERE id = ? AND site_id = @site_id')
+                ->execute([mb_substr((string)($internal['reason'] ?? 'internal'), 0, 40), $orderId]);
+        } catch (\Throwable $e) {
+        }
+    }
+
     private function assertRateLimit(array $settings, array $input, string $ip): void
     {
         $maxIp = (int)($settings['store_max_orders_hour_ip'] ?? 0) ?: 8;
@@ -759,7 +1126,7 @@ class StoreService
         if (!$this->ready()) return ['released' => 0, 'orders' => []];
         $db = Database::instance();
         $sql = "SELECT id, site_id, uuid, order_number FROM store_orders
-                WHERE payment_status = 'pending' AND payment_method <> 'cod' AND stock_released = 0
+                WHERE payment_status = 'pending' AND payment_method NOT IN ('cod', 'breb', 'mercadopago', 'epayco', 'addi', 'request') AND stock_released = 0
                 AND created_at <= (NOW() - INTERVAL :m MINUTE)";
         $params = ['m' => max(5, $minutes)];
         if ($siteId !== null) {
@@ -821,10 +1188,45 @@ class StoreService
             foreach (($order['items'] ?? []) as $it) {
                 $lines .= '- ' . $it['qty'] . ' x ' . $it['name'] . ($it['variant_name'] ? ' (' . $it['variant_name'] . ')' : '') . ' = ' . $this->money((int)$it['subtotal_cents'], $currency) . "\n";
             }
+            $baseUrl = rtrim((string)\App\Core\Config::get('APP_URL', ''), '/');
+            $orderUrl = $baseUrl . '/pedido/' . (string)$order['uuid'];
+            $methodLabel = match ((string)$order['payment_method']) {
+                'breb' => 'Bre-B',
+                'mercadopago' => 'Mercado Pago',
+                'epayco' => 'ePayco',
+                'addi' => 'Addi (crédito)',
+                'sistecredito' => 'Sistecrédito',
+                'wompi' => 'Wompi',
+                'cod' => 'Contra entrega',
+                default => 'Pago asistido',
+            };
             $body = "Pedido " . $order['order_number'] . "\n\n" . $lines . "\nSubtotal: " . $this->money((int)$order['subtotal_cents'], $currency)
+                . "\nDescuento: " . $this->money((int)($order['discount_cents'] ?? 0), $currency)
+                . "\nIVA incluido: " . $this->money((int)($order['tax_cents'] ?? 0), $currency)
                 . "\nEnvio: " . $this->money((int)$order['shipping_cents'], $currency)
                 . "\nTotal: " . $this->money((int)$order['total_cents'], $currency)
-                . "\n\nMetodo de pago: " . $order['payment_method'];
+                . "\n\nMetodo de pago: " . $methodLabel;
+            $addr = (array)($order['shipping_address'] ?? []);
+            $delivery = trim(implode(', ', array_filter([
+                (string)($addr['line1'] ?? ''),
+                (string)($addr['city'] ?? ''),
+                (string)($addr['region'] ?? ''),
+            ], fn($v) => trim($v) !== '')));
+            if ($delivery !== '') $body .= "\nEntrega: " . $delivery;
+            if (!empty($addr['notes'])) $body .= "\nIndicaciones: " . (string)$addr['notes'];
+            $body .= "\n\nPuedes ver el estado y continuar el pago aqui:\n" . $orderUrl;
+            if ((string)$order['payment_method'] === 'breb') {
+                $body .= "\n\nEscanea el QR de Bre-B y adjunta tu comprobante en la pagina del pedido. El pedido queda pendiente de verificacion.";
+            } elseif (in_array((string)$order['payment_method'], ['mercadopago', 'epayco'], true) && !empty($order['payment_link'])) {
+                $body .= "\n\nCompleta el pago aqui:\n" . (string)$order['payment_link'];
+            } elseif ((string)$order['payment_method'] === 'addi') {
+                $addiMeta = json_decode((string)($order['payment_meta'] ?? ''), true) ?: [];
+                if (!empty($addiMeta['addi_redirect_url'])) $body .= "\n\nCompleta tu solicitud de crédito Addi aquí:\n" . (string)$addiMeta['addi_redirect_url'];
+            } elseif ((string)$order['payment_method'] === 'sistecredito') {
+                $scMeta = json_decode((string)($order['payment_meta'] ?? ''), true) ?: [];
+                if (!empty($scMeta['sistecredito_redirect_url'])) $body .= "\n\nCompleta tu solicitud de crédito Sistecrédito aquí:\n" . (string)$scMeta['sistecredito_redirect_url'];
+            }
+            $body .= "\n\nTu pedido queda sujeto a confirmacion del pago y disponibilidad de los productos.";
             $svc->send($order['customer_email'], 'Pedido recibido ' . $order['order_number'], $body);
             $notify = $s['store_notify_email'];
             if ($notify !== '' && filter_var($notify, FILTER_VALIDATE_EMAIL)) {

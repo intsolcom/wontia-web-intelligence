@@ -24,7 +24,7 @@ class AffiliateController
         header('Content-Type: application/json');
         header('Cache-Control: no-store');
         $aff = (new AffiliateService())->getBySlug((string)($in['artist'] ?? ''));
-        if (!$aff) { echo json_encode(['ok' => false, 'message' => 'Artista no encontrado.']); return; }
+        if (!$aff) { echo json_encode(['ok' => false, 'message' => 'Partner no encontrado.']); return; }
         echo json_encode((new AffiliateService())->tipAdd((int)$aff['id'], $in), JSON_UNESCAPED_UNICODE);
     }
 
@@ -137,7 +137,7 @@ class AffiliateController
         \App\Core\Session::start();
         if (empty($_SESSION['ff_affiliate_id'])) { echo json_encode(['ok' => false, 'message' => 'Sesión no iniciada.']); return; }
         $started = (int)($_SESSION['ff_started_at'] ?? time());
-        echo json_encode(['ok' => true, 'expires_in' => max(0, 3600 - (time() - $started))], JSON_UNESCAPED_UNICODE);
+        echo json_encode(['ok' => true, 'expires_in' => max(0, \App\Core\Session::LIFETIME_SECONDS - (time() - $started))], JSON_UNESCAPED_UNICODE);
     }
 
     /** POST /api/v1/public/affiliates/session/extend — renueva la sesión por 60 min más. */
@@ -148,7 +148,7 @@ class AffiliateController
         \App\Core\Session::start();
         if (empty($_SESSION['ff_affiliate_id'])) { echo json_encode(['ok' => false, 'message' => 'Sesión no iniciada.']); return; }
         $_SESSION['ff_started_at'] = time();
-        echo json_encode(['ok' => true, 'expires_in' => 3600], JSON_UNESCAPED_UNICODE);
+        echo json_encode(['ok' => true, 'expires_in' => \App\Core\Session::LIFETIME_SECONDS], JSON_UNESCAPED_UNICODE);
     }
 
     /** POST /api/v1/public/affiliates/logout */
@@ -158,6 +158,19 @@ class AffiliateController
         unset($_SESSION['ff_affiliate_id']);
         header('Content-Type: application/json');
         echo json_encode(['ok' => true]);
+    }
+
+    /** POST /api/v1/public/affiliates/wizard — guarda pasos del wizard que no se deducen de datos. */
+    public function wizard($request)
+    {
+        header('Content-Type: application/json');
+        header('Cache-Control: no-store');
+        \App\Core\Session::start();
+        $affiliateId = (int)($_SESSION['ff_affiliate_id'] ?? 0);
+        if ($affiliateId <= 0) { http_response_code(401); echo json_encode(['ok' => false, 'message' => 'Sesión requerida.']); return; }
+        $in = json_decode((string)file_get_contents('php://input'), true);
+        if (!is_array($in)) $in = $_POST;
+        echo json_encode((new AffiliateService())->markWizardStep($affiliateId, (string)($in['step'] ?? '')), JSON_UNESCAPED_UNICODE);
     }
 
     /** POST /api/v1/public/affiliates/contract — solicitud de contratación (público). */
@@ -170,11 +183,27 @@ class AffiliateController
         $slug = (string)($in['artist'] ?? '');
         $svc = new AffiliateService();
         $aff = $svc->getBySlug($slug);
-        if (!$aff) { echo json_encode(['ok' => false, 'message' => 'Artista no encontrado.']); return; }
+        if (!$aff) { echo json_encode(['ok' => false, 'message' => 'Partner no encontrado.']); return; }
         echo json_encode($svc->contractRequestAdd((int)$aff['id'], $in), JSON_UNESCAPED_UNICODE);
     }
 
     /** POST /api/v1/public/affiliates/document — subida privada (email + últimos 4 del doc + archivo). */
+    public function signContract($request)
+    {
+        $in = json_decode((string)file_get_contents('php://input'), true);
+        if (!is_array($in)) $in = $_POST;
+        header('Content-Type: application/json');
+        header('Cache-Control: no-store');
+        \App\Core\Session::start();
+        $affiliateId = (int)($_SESSION['ff_affiliate_id'] ?? 0);
+        if ($affiliateId <= 0) {
+            http_response_code(401);
+            echo json_encode(['ok' => false, 'message' => 'Inicia sesión como Partner para firmar el contrato.'], JSON_UNESCAPED_UNICODE);
+            return;
+        }
+        echo json_encode((new \App\Services\ArtistContractService())->sign($affiliateId, $in), JSON_UNESCAPED_UNICODE);
+    }
+
     public function uploadDocument($request)
     {
         header('Content-Type: application/json');
@@ -245,9 +274,21 @@ class AffiliateController
         $sid = (string)($_COOKIE['wwi_seo_sid'] ?? '');
         $r = (new AffiliateService())->recordClick((string)$code, $sid);
         if ($r) {
-            setcookie('sonika_aff', (string)$r['code'], time() + 30 * 86400, '/', '', false, false);
+            $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+            @setcookie('sonika_aff', (string)$r['code'], [
+                'expires' => time() + (AffiliateService::TTL_DAYS * 86400),
+                'path' => '/',
+                'secure' => $secure,
+                'httponly' => false,
+                'samesite' => 'Lax',
+            ]);
+            $_COOKIE['sonika_aff'] = (string)$r['code'];
+            $dest = (string)($r['store_path'] ?? '/tienda');
+            $sep = str_contains($dest, '?') ? '&' : '?';
+            header('Location: ' . $dest . $sep . 'ref=' . rawurlencode((string)$r['code']), true, 302);
+            exit;
         }
-        header('Location: /', true, 302);
+        header('Location: /sonika-partners', true, 302);
         exit;
     }
 }

@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS affiliate_contracts (
   body MEDIUMTEXT NOT NULL,
   effective_at DATE NOT NULL,
   status VARCHAR(20) NOT NULL DEFAULT 'published',
+  profile_scope VARCHAR(30) NOT NULL DEFAULT 'all',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY uq_site_code_ver (site_id, code, version)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

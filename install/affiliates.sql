@@ -11,6 +11,17 @@ CREATE TABLE IF NOT EXISTS affiliate_profiles (
   artist_name VARCHAR(120) NOT NULL DEFAULT '',
   slug VARCHAR(120) NOT NULL DEFAULT '',
   status VARCHAR(24) NOT NULL DEFAULT 'DRAFT',
+  profile_category VARCHAR(20) NOT NULL DEFAULT 'natural',
+  niche VARCHAR(120) DEFAULT NULL,
+  audience_size VARCHAR(60) DEFAULT NULL,
+  platforms JSON NULL,
+  verification_status VARCHAR(24) NOT NULL DEFAULT 'pending',
+  public_profile_enabled TINYINT NOT NULL DEFAULT 0,
+  payout_method VARCHAR(40) DEFAULT NULL,
+  tax_id VARCHAR(40) DEFAULT NULL,
+  risk_score INT NOT NULL DEFAULT 0,
+  approved_at DATETIME NULL,
+  approved_by VARCHAR(190) NULL,
   music_experience VARCHAR(60) DEFAULT NULL,
   music_instrument VARCHAR(60) DEFAULT NULL,
   music_level VARCHAR(40) DEFAULT NULL,
@@ -102,11 +113,16 @@ CREATE TABLE IF NOT EXISTS affiliate_commissions (
   base_amount DECIMAL(14,2) NOT NULL DEFAULT 0,
   tier_rate DECIMAL(6,4) NOT NULL DEFAULT 0,
   amount DECIMAL(14,2) NOT NULL DEFAULT 0,
+  outlet_amount DECIMAL(14,2) NOT NULL DEFAULT 0,
   status VARCHAR(24) NOT NULL DEFAULT 'ESTIMATED',
+  points INT NOT NULL DEFAULT 0,
+  month_key CHAR(7) NULL,
+  formula_version VARCHAR(24) NULL,
   meta JSON NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY uq_site_order (site_id, order_ref),
-  INDEX idx_site_aff (site_id, affiliate_id)
+  INDEX idx_site_aff (site_id, affiliate_id),
+  INDEX idx_aff_month (site_id, affiliate_id, month_key)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS affiliate_levels (

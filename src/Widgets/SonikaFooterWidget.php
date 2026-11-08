@@ -82,6 +82,54 @@ class SonikaFooterWidget extends Widget
             }
         }
         if (!$explora) $explora = [['label' => 'Tienda', 'url' => '/tienda'], ['label' => 'Categorías', 'url' => '/categorias'], ['label' => 'Mi cuenta', 'url' => '/cuenta'], ['label' => 'Carrito', 'url' => '/carrito']];
+        $hasDirectorio = false;
+        foreach ($explora as $__it) {
+            if (stripos((string)($__it['label'] ?? ''), 'directorio sonika') !== false) {
+                $hasDirectorio = true;
+                break;
+            }
+        }
+        if (!$hasDirectorio) {
+            $__directorio = ['label' => 'Directorio Sonika', 'url' => 'https://sonika.com.co/directorio'];
+            $__insertAt = count($explora);
+            foreach ($explora as $__i => $__it) {
+                if (stripos((string)($__it['label'] ?? ''), 'garant') !== false) {
+                    $__insertAt = $__i + 1;
+                    break;
+                }
+            }
+            if ($__insertAt === count($explora)) {
+                foreach ($explora as $__i => $__it) {
+                    if (stripos((string)($__it['label'] ?? ''), 'contacto') !== false || stripos((string)($__it['label'] ?? ''), 'soporte') !== false) {
+                        $__insertAt = $__i;
+                        break;
+                    }
+                }
+            }
+            array_splice($explora, $__insertAt, 0, [$__directorio]);
+        }
+        $hasPartners = false;
+        foreach ($explora as &$__it) {
+            $__label = (string)($__it['label'] ?? '');
+            $__url = (string)($__it['url'] ?? '');
+            if (stripos($__label, 'artistas sonika') !== false || stripos($__label, 'sonika partners') !== false || $__url === '/artistas' || $__url === '/influencers') {
+                $__it['label'] = 'SONIKA Partners — Comparte, vende y gana';
+                $__it['url'] = '/sonika-partners';
+                $hasPartners = true;
+            }
+        }
+        unset($__it);
+        if (!$hasPartners) {
+            $__partners = ['label' => 'SONIKA Partners — Comparte, vende y gana', 'url' => '/sonika-partners'];
+            $__partnerAt = count($explora);
+            foreach ($explora as $__i => $__it) {
+                if (stripos((string)($__it['label'] ?? ''), 'directorio sonika') !== false) {
+                    $__partnerAt = $__i + 1;
+                    break;
+                }
+            }
+            array_splice($explora, $__partnerAt, 0, [$__partners]);
+        }
 
         $cats = [];
         if (function_exists('sonika_categories')) {

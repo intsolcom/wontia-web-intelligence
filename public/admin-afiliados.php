@@ -58,7 +58,7 @@ $ready = $svc->ready();
 <html lang="es">
 <head>
 <meta charset="UTF-8" /><meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Afiliados — SONIKA Artist Partners</title>
+<title>Partners — SONIKA Partners</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:Inter,system-ui,sans-serif;background:#f4f7f6;color:#17212b;padding:24px}
@@ -82,22 +82,25 @@ button{padding:7px 12px;border:0;border-radius:8px;background:#0d9f72;color:#fff
 </style>
 </head>
 <body>
-<div class="head"><h1>Afiliados · SONIKA Artist Partners</h1><a href="/admin">← Volver al panel</a></div>
+<div class="head"><h1>Partners · SONIKA Partners</h1><a href="/admin">← Volver al panel</a></div>
 <?php if ($msg !== ''): ?><div class="msg"><?= htmlspecialchars($msg) ?></div><?php endif; ?>
 <?php if (!$ready): ?><div class="tbl"><div class="empty">Las tablas de afiliados aún no están creadas.</div></div>
 <?php elseif (!$profiles): ?><div class="tbl"><div class="empty">Aún no hay solicitudes.</div></div>
 <?php else: ?>
 <div class="tbl"><table>
-<thead><tr><th>#</th><th>Artista / Correo</th><th>Instrumento</th><th>Estado</th><th>Documentos</th><th>Acción</th></tr></thead>
+<thead><tr><th>#</th><th>Partner / Correo</th><th>Categoría interna</th><th>Instrumento</th><th>Estado</th><th>Documentos</th><th>Acción</th></tr></thead>
 <tbody>
 <?php foreach ($profiles as $p):
     $doc = preg_replace('/\D/', '', (string)($p['doc_number'] ?? ''));
     $docMask = $doc !== '' ? '****' . substr($doc, -4) : '—';
     $name = $p['artist_name'] ?: ($p['public_name'] ?: $p['full_name']);
+    $catKey = (string)($p['profile_category'] ?? 'natural');
+    $catLabel = AffiliateService::PROFILE_CATEGORIES[$catKey] ?? 'Persona natural';
 ?>
 <tr>
   <td>#<?= (int)$p['id'] ?></td>
   <td><b><?= htmlspecialchars($name) ?></b><br><small><?= htmlspecialchars((string)$p['email']) ?> · Doc <?= htmlspecialchars($docMask) ?></small></td>
+  <td><span class="st"><?= htmlspecialchars($catLabel) ?></span></td>
   <td><?= htmlspecialchars((string)($p['music_instrument'] ?? '—')) ?></td>
   <td><span class="st <?= htmlspecialchars((string)$p['status']) ?>"><?= htmlspecialchars((string)$p['status']) ?></span></td>
   <td><?php
@@ -149,7 +152,7 @@ button{padding:7px 12px;border:0;border-radius:8px;background:#0d9f72;color:#fff
 <?php $reqs = $svc->listPayoutRequests(100); ?>
 <div class="head" style="margin-top:26px"><h1 style="font-size:18px">Solicitudes de retiro</h1></div>
 <div class="tbl"><table>
-<thead><tr><th>#</th><th>Artista</th><th>Monto</th><th>Estado</th><th>Fecha</th><th>Acción</th></tr></thead>
+<thead><tr><th>#</th><th>Partner</th><th>Monto</th><th>Estado</th><th>Fecha</th><th>Acción</th></tr></thead>
 <tbody>
 <?php if (!$reqs): ?><tr><td colspan="6" style="padding:22px;text-align:center;color:#94a3b8">Sin solicitudes de retiro.</td></tr><?php endif; ?>
 <?php foreach ($reqs as $q): $qname = $q['artist_name'] ?: ($q['public_name'] ?: ($q['full_name'] ?? ('#' . $q['affiliate_id']))); ?>

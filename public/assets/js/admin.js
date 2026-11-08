@@ -45,13 +45,15 @@ W.router=function(){
     if(panel==='brick'){window.location.replace(window.location.pathname+window.location.search+'#bricks/ia');return}
     if(panel==='factory'){var ftab=parts[1]||'inicio';if(ftab==='updates')ftab='system';window.location.replace(window.location.pathname+window.location.search+'#wwi/'+ftab);return}
     if((panel==='wwi'||panel==='factory')&&!window.__WWI_IS_CENTRAL){window.location.replace(window.location.pathname+window.location.search+'#dashboard');return}
-    if(panel==='seo'||panel==='seo-global-launch'){window.location.replace(window.location.pathname+window.location.search+'#dashboard');return}
+    if(panel==='seo'){window.location.replace('/admin.php?panel=seo-global-launch&v='+Date.now()+'#seo-global-launch/monitoreo');return}
     if(panel==='sections'){window.location.replace(window.location.pathname+window.location.search+'#pages/secciones'+(parts[1]?'/'+parts[1]:''));return}
     if(panel.indexOf('section-edit-')===0){W.panels.sectionEditor(panel.replace('section-edit-',''));return}
+    if(panel==='seo-global-launch'&&!id){id='resumen';}
     if(panel!=='bricks'){W.state.brickHost=null;W.state.bhHost=null}
     document.querySelectorAll('.w-nav-item').forEach(function(a){a.classList.toggle('active',a.dataset.panel===panel)});
+    if(panel==='hero'){var _heroNav=document.querySelector('.w-nav-item[data-panel="bricks"]');if(_heroNav)_heroNav.classList.add('active');}
     var title=document.getElementById('panel-title');
-    var titles={dashboard:'Dashboard',wwi:'WWI — Sistema',store:'Tienda','order-center':'Central de pedidos','mega-menu':'Mega Menú',hero:'SONIKA Hero Builder',pages:'Pages',sections:'Sections',bricks:'Bricks',brickhub:'BrickHub',brick:'AI BRICK',factory:'Factory',portal:'Mi Portal',blog:'Blog',media:'Media',banners:'Banners',seo:'SEO','seo-global-launch':'SEO Global Launch',analytics:'Analytics',settings:'Settings',users:'Users'};
+    var titles={dashboard:'Dashboard',wwi:'WWI — Sistema',store:'Tienda',sistecredito:'Sistecrédito','order-center':'Central de pedidos','mega-menu':'Mega Menú',hero:'SONIKA Hero Builder',directory:'Directorio Sonika',toques:'Toques',monas:'Moñas',pages:'Pages',sections:'Sections',bricks:'Bricks',brickhub:'BrickHub',brick:'AI BRICK',factory:'Factory',portal:'Mi Portal',blog:'Blog',media:'Media',banners:'Banners',seo:'SEO','seo-global-launch':'SEO Global Launch','tia-command-center':'TIA Command Center',analytics:'Analytics',settings:'Settings',users:'Users'};
     if(title)title.textContent=titles[panel]||panel;
     var app=document.getElementById('wontia-app');
     if(!app)return;
@@ -81,6 +83,8 @@ W.notify=function(msg,type){
 W.modal=function(title,body,actions){
     var ov=document.getElementById('w-modal');
     var ct=document.getElementById('w-modal-content');
+    if(!ct)return;
+    ct.classList.remove('w-modal--media');
     var html='<h3>'+title+'</h3><div>'+body+'</div>';
     if(actions)html+='<div class="w-modal-actions">'+actions+'</div>';
     ct.innerHTML=html;
@@ -738,19 +742,8 @@ W.renderLinkField=function(f,v){
 
 W.imgPrev=function(key){var el=document.getElementById('secf-'+key);var w=document.getElementById('secf-'+key+'-prevwrap');if(!el||!w)return;var u=el.value;w.innerHTML=u?'<img src="'+W.esc(u)+'" alt="" style="max-width:100%;max-height:120px;border-radius:6px;display:block"/>':'<span style="font-size:11px;color:var(--w-muted)">Sin imagen</span>'};
 
-W.libToggle=async function(key){
-    var panel=document.getElementById('secf-'+key+'-lib');if(!panel)return;
-    if(panel.style.display!=='none'){panel.style.display='none';return}
-    panel.style.display='block';
-    panel.innerHTML='<div style="font-size:12px;color:var(--w-muted);padding:8px">Cargando…</div>';
-    try{
-        var d=await W.api('/api/v1/admin/media?type=image');
-        var items=(d&&d.data)||[];
-        if(!items.length){panel.innerHTML='<div style="font-size:12px;color:var(--w-muted);padding:8px">No hay imágenes en la biblioteca.</div>';return}
-        panel.innerHTML='<div class="w-lib-grid">'+items.map(function(m){
-            return '<button type="button" class="w-lib-item" title="'+W.esc(m.filename||'')+'" onclick="wontia.libPick(\''+W.esc(key)+'\',\''+W.esc(m.url)+'\')"><img src="'+W.esc(m.url)+'" alt="'+W.esc(m.alt_text||'')+'" loading="lazy"/></button>';
-        }).join('')+'</div>';
-    }catch(e){panel.innerHTML='<div style="font-size:12px;color:#ef4444;padding:8px">Error cargando la biblioteca.</div>'}
+W.libToggle=function(key){
+    W.openMediaExplorer({type:'image',title:'Elegir imagen',onSelect:function(m){W.libPick(key,m.url)}});
 };
 W.libPick=function(key,url){var el=document.getElementById('secf-'+key);if(el)el.value=url;W.imgPrev(key);var panel=document.getElementById('secf-'+key+'-lib');if(panel)panel.style.display='none';if(W.markDirty)W.markDirty()};
 
@@ -1022,7 +1015,9 @@ W.renderRepeaterField=function(f,items){
         +'<div class="w-rep-items" id="rep-items-'+W.esc(key)+'"></div>'
         +'<div class="w-flex w-gap-sm" style="margin-top:8px;flex-wrap:wrap"><button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.repAdd(\''+W.esc(key)+'\')">+ Añadir</button>'
         +'<button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.repAiFill(\''+W.esc(key)+'\')">✨ Rellenar con IA</button>'
-        +'<button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.repReset(\''+W.esc(key)+'\')">Restaurar</button></div>'
+        +'<button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.repReset(\''+W.esc(key)+'\')">Restaurar</button>'
+        +(f.collapsible?'<button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.repToggleAll(\''+W.esc(key)+'\',true)">Expandir todo</button><button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.repToggleAll(\''+W.esc(key)+'\',false)">Contraer</button>':'')
+        +'</div>'
         +'<textarea id="secf-'+W.esc(key)+'" style="display:none">'+W.esc(JSON.stringify(W._rep[key]))+'</textarea>'
         +'</div>';
 };
@@ -1032,11 +1027,15 @@ W.repRefresh=function(key){
     var items=W._rep[key]||[];
     var el=document.getElementById('rep-items-'+key);if(!el)return;
     if(!items.length){el.innerHTML='<div style="font-size:12px;color:var(--w-muted);padding:8px 0">Sin elementos. Añade el primero.</div>';W.repSync(key);return}
+    var collapsible=!!f.collapsible;
     el.innerHTML=items.map(function(it,i){
         var body=(f.fields||[]).map(function(sf){
             var val=(it&&it[sf.key]!==undefined&&it[sf.key]!==null)?it[sf.key]:'';
             var id='rep-'+key+'-'+i+'-'+sf.key;
             var st=sf.type||'text';
+            var cls='rep-lb';
+            if(st==='image'||st==='textarea'||st==='richtext')cls+=' rep-lb--full';
+            if(sf.key==='title'||sf.key==='text'||sf.key==='href')cls+=' rep-lb--full';
             var inp;
             if(st==='richtext'){
                 inp='<div class="w-rt"><div class="w-rt-bar">'
@@ -1047,26 +1046,41 @@ W.repRefresh=function(key){
                     +'<button type="button" class="w-rt-b" title="Enlace" onclick="wontia.rtLinkId(\''+id+'\')">🔗</button>'
                     +'</div><div class="w-rt-edit rep-in" data-i="'+i+'" data-k="'+W.esc(sf.key)+'" id="'+id+'" contenteditable="true">'+W.sanitizeRich(val)+'</div></div>';
             }
-            else if(st==='textarea')inp='<textarea class="w-textarea rep-in" data-i="'+i+'" data-k="'+W.esc(sf.key)+'" id="'+id+'" style="min-height:60px">'+W.esc(val)+'</textarea>';
-            else if(st==='image')inp='<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input class="w-input rep-in" data-i="'+i+'" data-k="'+W.esc(sf.key)+'" id="'+id+'" value="'+W.esc(val)+'" style="flex:1;min-width:150px"/><button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.repPickImage(\''+id+'\')">📁 Media</button><img id="'+id+'-prev" src="'+W.esc(val)+'" alt="" style="'+(val?'':'display:none;')+'height:34px;width:34px;object-fit:cover;border-radius:6px;border:1px solid var(--w-border)"/></div>';
-            else if(st==='toggle')inp='<label style="display:flex;align-items:center;gap:6px"><input type="checkbox" class="rep-in" data-i="'+i+'" data-k="'+W.esc(sf.key)+'" id="'+id+'"'+(val?' checked':'')+'/> <span style="font-size:12px;color:var(--w-muted)">'+(val?'Sí':'No')+'</span></label>';
-            else if(st==='color')inp='<input type="color" class="rep-in" data-i="'+i+'" data-k="'+W.esc(sf.key)+'" id="'+id+'" value="'+W.esc(val||'#111111')+'"/>';
+            else if(st==='textarea')inp='<textarea class="w-textarea rep-in" data-i="'+i+'" data-k="'+W.esc(sf.key)+'" id="'+id+'">'+W.esc(val)+'</textarea>';
+            else if(st==='image')inp='<div class="rep-img"><img id="'+id+'-prev" src="'+W.esc(val)+'" alt="" style="'+(val?'':'display:none;')+'"/><input class="w-input rep-in" data-i="'+i+'" data-k="'+W.esc(sf.key)+'" id="'+id+'" value="'+W.esc(val)+'" placeholder="https://… o /assets/uploads/…"/><button type="button" class="w-btn w-btn-secondary w-btn-sm rep-media-btn" onclick="wontia.repPickImage(\''+id+'\')">'+W.iconSvg('image',14)+'<span>Biblioteca</span></button></div>';
+            else if(st==='toggle'){
+                if(collapsible)inp='<label class="rep-switch"><input type="checkbox" class="rep-in" data-i="'+i+'" data-k="'+W.esc(sf.key)+'" id="'+id+'"'+(val?' checked':'')+' onchange="wontia.repSwitch(this)"/><span class="rep-switch__track"></span><span class="rep-switch__txt">'+(val?'Sí':'No')+'</span></label>';
+                else inp='<label style="display:flex;align-items:center;gap:6px"><input type="checkbox" class="rep-in" data-i="'+i+'" data-k="'+W.esc(sf.key)+'" id="'+id+'"'+(val?' checked':'')+'/> <span style="font-size:12px;color:var(--w-muted)">'+(val?'Sí':'No')+'</span></label>';
+            }
+            else if(st==='color')inp='<input type="color" class="rep-in" data-i="'+i+'" data-k="'+W.esc(sf.key)+'" id="'+id+'" value="'+W.esc(val||sf.default||'#111111')+'"/>';
             else if(st==='number')inp='<input type="number" class="w-input rep-in" data-i="'+i+'" data-k="'+W.esc(sf.key)+'" id="'+id+'" value="'+W.esc(val)+'"/>';
             else if(st==='select'){var kopts=sf.options||{};inp='<select class="w-select rep-in" data-i="'+i+'" data-k="'+W.esc(sf.key)+'" id="'+id+'">'+(Array.isArray(kopts)?kopts.map(function(o){var v=(o.value!==undefined?o.value:o),ll=(o.label!==undefined?o.label:v);return '<option value="'+W.esc(v)+'"'+(String(val)===String(v)?' selected':'')+'>'+W.esc(ll)+'</option>'}).join(''):Object.keys(kopts).map(function(k2){return '<option value="'+W.esc(k2)+'"'+(String(val)===String(k2)?' selected':'')+'>'+W.esc(kopts[k2])+'</option>'}).join(''))+'</select>';}
-            else if(st==='icon')inp='<div style="display:flex;gap:8px;align-items:center"><input class="w-input rep-in" data-i="'+i+'" data-k="'+W.esc(sf.key)+'" id="'+id+'" value="'+W.esc(val)+'" style="flex:1"/><span id="'+id+'-iprev" style="color:#3a3a3a;flex:0 0 auto">'+(W.iconSvg(val,20)||W.esc(val))+'</span><button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.pickIcon(\''+id+'\')">Iconos</button></div>';
+            else if(st==='icon')inp='<div style="display:flex;gap:7px;align-items:center"><input class="w-input rep-in" data-i="'+i+'" data-k="'+W.esc(sf.key)+'" id="'+id+'" value="'+W.esc(val)+'" style="flex:1"/><span id="'+id+'-iprev" style="color:#3a3a3a;flex:0 0 auto">'+(W.iconSvg(val,18)||W.esc(val))+'</span><button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.pickIcon(\''+id+'\')">Iconos</button></div>';
             else inp='<input class="w-input rep-in" data-i="'+i+'" data-k="'+W.esc(sf.key)+'" id="'+id+'" value="'+W.esc(val)+'"/>';
-            return '<label class="rep-lb"><span>'+W.esc(sf.label||sf.key)+'</span>'+inp+'</label>';
+            return '<label class="'+cls+'"><span>'+W.esc(sf.label||sf.key)+'</span>'+inp+'</label>';
         }).join('');
-        return '<div class="w-rep-card"><div class="w-rep-head"><span class="w-drag-handle" title="Arrastra para reordenar">⠿</span><b>#'+(i+1)+'</b>'
-            +'<span class="w-flex w-gap-sm" style="margin-left:auto">'
-            +'<button type="button" class="w-btn w-btn-secondary w-btn-sm" title="Subir" onclick="wontia.repMove(\''+key+'\','+i+',-1)">▲</button>'
-            +'<button type="button" class="w-btn w-btn-secondary w-btn-sm" title="Bajar" onclick="wontia.repMove(\''+key+'\','+i+',1)">▼</button>'
+        var thumbUrl=it.image||it.desktop||'';
+        var title=it.label||it.title||it.alt||('Elemento '+(i+1));
+        if(key==='backgrounds'&&!it.alt)title='Fondo '+(i+1);
+        var sub=it.href||it.text||'';
+        if(key==='backgrounds'&&!sub)sub=it.focal||'';
+        if(key==='slides'){title=it.title||('Slide '+(i+1));sub=it.subtitle||it.eyebrow||it.cta_label||'';}
+        var off=(it.enabled!==undefined&&(it.enabled===0||it.enabled==='0'||it.enabled===false));
+        var thumb=thumbUrl?'<img class="w-rep-thumb" src="'+W.esc(thumbUrl)+'" alt="" loading="lazy">':((key==='benefits'&&it.icon)?'<span class="w-rep-ic">'+W.iconSvg(it.icon,16)+'</span>':'');
+        var summary=collapsible?'<span class="w-rep-summary">'+thumb+'<span class="w-rep-summary-t"><b>'+W.esc(title)+'</b>'+(sub?'<small>'+W.esc(sub)+'</small>':'')+'</span>'+(off?'<span class="w-rep-off">Oculto</span>':'')+'</span>':'';
+        var actions='<span class="w-rep-actions">'+(collapsible?'<button type="button" class="w-btn w-btn-secondary w-btn-sm w-rep-toggle" aria-expanded="false" onclick="wontia.repToggle(this)">Editar</button>':'')
+            +'<button type="button" class="w-btn w-btn-secondary w-btn-sm" title="Subir" onclick="wontia.repMove(\''+key+'\','+i+',-1)">↑</button>'
+            +'<button type="button" class="w-btn w-btn-secondary w-btn-sm" title="Bajar" onclick="wontia.repMove(\''+key+'\','+i+',1)">↓</button>'
             +'<button type="button" class="w-btn w-btn-secondary w-btn-sm" title="Duplicar" onclick="wontia.repDup(\''+key+'\','+i+')">⧉</button>'
-            +'<button type="button" class="w-btn w-btn-danger w-btn-sm" title="Eliminar" onclick="wontia.repDel(\''+key+'\','+i+')">✕</button>'
-            +'</span></div><div class="w-rep-body">'+body+'</div></div>';
+            +'<button type="button" class="w-btn w-btn-danger w-btn-sm" title="Eliminar" onclick="wontia.repDel(\''+key+'\','+i+')">×</button>'
+            +'</span>';
+        return '<div class="w-rep-card'+(collapsible?' is-collapsible':'')+'"><div class="w-rep-head"><span class="w-drag-handle" title="Arrastra para reordenar">⠿</span><b class="w-rep-num">#'+(i+1)+'</b>'+summary+actions+'</div><div class="w-rep-body'+(collapsible?' is-collapsed':'')+'">'+body+'</div></div>';
     }).join('');
     W.repSync(key);
 };
+W.repSwitch=function(el){var l=el&&el.parentNode;if(!l)return;var t=l.querySelector('.rep-switch__txt');if(t)t.textContent=el.checked?'Sí':'No'};
+W.repToggle=function(btn){var card=btn&&btn.closest?btn.closest('.w-rep-card'):null;if(!card)return;var body=card.querySelector('.w-rep-body');if(!body)return;var collapsed=body.classList.toggle('is-collapsed');card.classList.toggle('is-open',!collapsed);btn.setAttribute('aria-expanded',String(!collapsed));btn.textContent=collapsed?'Editar':'Cerrar'};
+W.repToggleAll=function(key,open){var el=document.getElementById('rep-items-'+key);if(!el)return;el.querySelectorAll('.w-rep-card').forEach(function(card){var body=card.querySelector('.w-rep-body');var btn=card.querySelector('.w-rep-toggle');if(!body)return;body.classList.toggle('is-collapsed',!open);card.classList.toggle('is-open',!!open);if(btn){btn.setAttribute('aria-expanded',String(!!open));btn.textContent=open?'Cerrar':'Editar'}})};
 
 W.repSync=function(key){var ta=document.getElementById('secf-'+key);if(ta)ta.value=JSON.stringify(W._rep[key]||[])};
 W.repCollect=function(key){
@@ -1085,12 +1099,8 @@ W.repDup=function(key,i){W.repCollect(key);var c=JSON.parse(JSON.stringify(W._re
 W.repMove=function(key,i,d){W.repCollect(key);var j=i+d;if(j<0||j>=(W._rep[key]||[]).length)return;var t=W._rep[key][i];W._rep[key][i]=W._rep[key][j];W._rep[key][j]=t;W.repRefresh(key);if(W.markDirty)W.markDirty()};
 W.repReset=function(key){var f=W._repSchema[key];W._rep=W._rep||{};W._rep[key]=(f&&Array.isArray(f.default))?JSON.parse(JSON.stringify(f.default)):[];W.repRefresh(key);if(W.markDirty)W.markDirty()};
 W.repInit=function(schema){(schema||[]).forEach(function(f){if((f.type||'')==='repeater'&&document.getElementById('rep-items-'+f.key))W.repRefresh(f.key)})};
-W.repPickImage=async function(inputId){
-    var d=await W.api('/api/v1/admin/media?type=image');
-    var items=(d&&d.data)||[];
-    var h=items.length?'<div class="w-lib-grid">'+items.map(function(m){return '<button type="button" class="w-lib-item" title="'+W.esc(m.filename||'')+'" onclick="wontia.repSetImage(\''+inputId+'\',\''+W.esc(m.url)+'\')"><img src="'+W.esc(m.url)+'" alt=""/></button>'}).join('')+'</div>':'<div style="color:var(--w-muted)">No hay imágenes en la Biblioteca. Sube una en el menú <b>Media</b>.</div>';
-    h+='<div style="margin-top:12px;display:flex;gap:8px"><input class="w-input" id="rep-img-url" placeholder="…o pega una URL de imagen" style="flex:1"/><button type="button" class="w-btn w-btn-secondary" onclick="wontia.repSetImage(\''+inputId+'\',document.getElementById(\'rep-img-url\').value)">Usar URL</button></div>';
-    W.modal('Elegir imagen (Biblioteca de Media)',h,'<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cerrar</button>');
+W.repPickImage=function(inputId){
+    W.openMediaExplorer({type:'image',title:'Elegir imagen',onSelect:function(m){W.repSetImage(inputId,m.url)}});
 };
 W.repSetImage=function(inputId,url){var el=document.getElementById(inputId);if(el)el.value=url;var p=document.getElementById(inputId+'-prev');if(p){p.src=url;p.style.display=url?'':'none'}W.closeModal();if(W.markDirty)W.markDirty()};
 
@@ -1111,7 +1121,8 @@ W.ICONS={
  'star':'<path d="M12 3l2.6 5.4 5.9.8-4.3 4.1 1 5.9-5.2-2.8L7.8 19l1-5.9L4.5 9.2l5.9-.8z"/>',
  'check':'<path d="M4 12l5 5L20 6"/>',
  'tag':'<path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"/>',
- 'info':'<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/>'
+ 'info':'<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/>',
+ 'phone':'<rect x="6" y="2" width="12" height="20" rx="3"/><path d="M10 5h4M11 18h2"/>'
 };
 W.iconSvg=function(name,size){var p=W.ICONS[name];if(!p)return '';size=size||22;return '<svg viewBox="0 0 24 24" width="'+size+'" height="'+size+'" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+p+'</svg>';};
 W.pickIcon=function(inputId){
@@ -1260,9 +1271,121 @@ W.loadCategories=async function(){
 
 W.state=W.state||{};W.state.media={folder:'',kind:'',q:'',trash:0};
 W.mediaHuman=function(b){b=parseInt(b)||0;if(b<1024)return b+' B';if(b<1048576)return (b/1024).toFixed(1)+' KB';return (b/1048576).toFixed(2)+' MB'};
+W.meKindLabel=function(m){var k=String((m&&m.kind)||'');if(k==='video')return 'Video';if(k==='icon')return 'Icono';if(k==='file')return 'Archivo';return 'Imagen'};
+W.meDims=function(m){var w=parseInt(m&&m.width,10)||0,h=parseInt(m&&m.height,10)||0;return (w>0&&h>0)?(w+'×'+h):''};
+W.meDate=function(v){if(!v)return '—';var d=new Date(String(v));if(isNaN(d.getTime()))return String(v);try{return d.toLocaleDateString('es-CO',{year:'numeric',month:'short',day:'numeric'})}catch(e){return String(v)}};
+W.meThumb=function(m){
+    var vs={};try{vs=m.variants?(typeof m.variants==='string'?JSON.parse(m.variants):m.variants):{}}catch(e){vs={}}
+    var thumb=(vs.thumb&&vs.thumb.url)?vs.thumb.url:'';
+    var label=W.meKindLabel(m);
+    if(m.kind==='video')return (thumb?'<img src="'+W.esc(thumb)+'" alt="" loading="lazy"/>':'')+'<span class="w-me-play">▶</span><span class="w-me-kind">'+label+'</span>';
+    if(m.kind==='file')return '<div class="w-me-play">▤</div><span class="w-me-kind">'+label+'</span>';
+    var src=thumb||m.url;
+    return '<img src="'+W.esc(src)+'" alt="'+W.esc(m.alt_text||'')+'" loading="lazy"/><span class="w-me-kind">'+label+'</span>';
+};
+W.meMetaLine=function(m){var parts=[W.meKindLabel(m)];var d=W.meDims(m);if(d)parts.push(d);parts.push(W.mediaHuman(m.original_size||m.size));if(m.converted_ext)parts.push(String(m.converted_ext).toUpperCase()+(m.converted_size?' '+W.mediaHuman(m.converted_size):''));return parts.join(' · ')};
+W.meCompatible=function(m){if(!W._me||!W._me.type)return true;if(!m||!m.kind)return true;if(W._me.type==='image')return m.kind==='image'||m.kind==='icon';if(W._me.type==='video')return m.kind==='video';return true};
+W.openMediaExplorer=function(options){
+    options=options||{};
+    W._me={type:options.type||'',kind:options.type||'',q:'',folder:'',items:[],folders:[],selectedId:null,onSelect:options.onSelect||null,title:options.title||'Biblioteca de Media'};
+    var body='<div class="w-me" id="w-me">'
+      +'<div class="w-me-top"><div class="w-me-tabs" id="w-me-tabs"></div><div class="w-me-tools"><input class="w-input" id="w-me-search" placeholder="Buscar por nombre, tipo o marca…" value="" onkeydown="if(event.keyCode===13)wontia.meSearch()"/><button type="button" class="w-btn w-btn-secondary" onclick="wontia.meSearch()">Buscar</button><button type="button" class="w-btn w-btn-primary" onclick="wontia.meUploadPick()">Subir</button><input type="file" id="w-me-file" accept="image/*,video/*,.svg,.ico,.pdf" multiple style="display:none" onchange="wontia.meUpload(this.files)"/></div></div>'
+      +'<div class="w-me-body"><aside class="w-me-side" id="w-me-side"></aside><div class="w-me-gallery-wrap" id="w-me-gallery-wrap"><div class="w-me-gallery" id="w-me-grid"><div class="w-me-empty">Cargando biblioteca…</div></div></div><aside class="w-me-detail" id="w-me-detail"></aside></div>'
+      +'<div class="w-me-foot" id="w-me-foot"></div></div>';
+    W.modal(options.title||'Biblioteca de Media',body,'<button type="button" class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cerrar</button><button type="button" class="w-btn w-btn-primary" id="w-me-use" onclick="wontia.meUse()" disabled>Usar seleccionado</button>');
+    var box=document.querySelector('#w-modal .w-modal');if(box)box.classList.add('w-modal--media');
+    var wrap=document.getElementById('w-me-gallery-wrap');
+    if(wrap){
+        wrap.addEventListener('dragover',function(e){e.preventDefault();wrap.classList.add('is-drag')});
+        wrap.addEventListener('dragleave',function(){wrap.classList.remove('is-drag')});
+        wrap.addEventListener('drop',function(e){e.preventDefault();wrap.classList.remove('is-drag');if(e.dataTransfer&&e.dataTransfer.files)W.meUpload(e.dataTransfer.files)});
+    }
+    W.mediaExplorerLoad();
+};
+W.mediaExplorerLoad=async function(){
+    var s=W._me;if(!s)return;
+    var grid=document.getElementById('w-me-grid');if(grid)grid.innerHTML='<div class="w-me-empty">Cargando biblioteca…</div>';
+    var qs='?limit=160';if(s.kind)qs+='&kind='+encodeURIComponent(s.kind);if(s.folder!=='')qs+='&folder_id='+encodeURIComponent(s.folder);if(s.q)qs+='&q='+encodeURIComponent(s.q);
+    try{
+        var d=await W.api('/api/v1/admin/media'+qs);
+        var fo=await W.api('/api/v1/admin/media/folders');
+        s.items=(d&&d.data)||[];s.folders=(fo&&fo.data)||[];
+    }catch(e){s.items=[];s.folders=[];W.notify('No se pudo cargar la biblioteca','error')}
+    if(s.selectedId&&!s.items.filter(function(m){return String(m.id)===String(s.selectedId)})[0])s.selectedId=null;
+    W.mediaExplorerRender();
+};
+W.mediaExplorerRender=function(){
+    var s=W._me;if(!s)return;
+    var tabs=[['','Todos'],['image','Imágenes'],['video','Videos'],['icon','Iconos']];
+    var tabsEl=document.getElementById('w-me-tabs');
+    if(tabsEl)tabsEl.innerHTML=tabs.map(function(t){return '<button type="button" class="w-me-tab'+(String(s.kind)===String(t[0])?' active':'')+'" onclick="wontia.meKind(\''+t[0]+'\')">'+t[1]+'</button>'}).join('');
+    var side=document.getElementById('w-me-side');
+    if(side){
+        var h='<div class="w-me-side-title">Carpetas</div><button type="button" class="w-me-side-btn'+(s.folder===''?' active':'')+'" onclick="wontia.meFolder(\'\')"><span>Todas</span></button>';
+        s.folders.forEach(function(f){h+='<button type="button" class="w-me-side-btn'+(String(s.folder)===String(f.id)?' active':'')+'" onclick="wontia.meFolder(\''+f.id+'\')"><span>'+W.esc(f.name)+'</span><small>'+parseInt(f.count,10)+'</small></button>'});
+        h+='<button type="button" class="w-btn w-btn-secondary w-me-side-add" onclick="wontia.meNewFolder()">+ Nueva carpeta</button>';
+        side.innerHTML=h;
+    }
+    var grid=document.getElementById('w-me-grid');
+    if(grid){
+        if(!s.items.length)grid.innerHTML='<div class="w-me-empty">No hay archivos con estos filtros.<br><button type="button" class="w-btn w-btn-primary" style="margin-top:12px" onclick="wontia.meUploadPick()">Subir un archivo</button></div>';
+        else grid.innerHTML=s.items.map(function(m){return W.mediaExplorerCard(m)}).join('');
+    }
+    var detail=document.getElementById('w-me-detail');if(detail)detail.innerHTML=W.mediaExplorerDetail();
+    var foot=document.getElementById('w-me-foot');
+    if(foot){var sel=s.items.filter(function(m){return String(m.id)===String(s.selectedId)})[0];foot.innerHTML='<span>'+s.items.length+' archivo(s)</span><span>'+(sel?('Seleccionado: <b>'+W.esc(sel.original_name||sel.filename||'')+'</b>'):'Haz clic en una tarjeta para ver sus datos')+'</span>'}
+    var use=document.getElementById('w-me-use');if(use){var m=s.items.filter(function(x){return String(x.id)===String(s.selectedId)})[0];use.disabled=!m||!W.meCompatible(m)}
+};
+W.mediaExplorerCard=function(m){
+    var s=W._me;var sel=String(s.selectedId)===String(m.id);var name=m.original_name||m.filename||('Archivo #'+m.id);var compat=W.meCompatible(m);
+    return '<div class="w-me-card'+(sel?' is-selected':'')+(compat?'':' is-incompatible')+'" role="button" tabindex="0" aria-label="'+W.esc(name)+'" onclick="wontia.meSelect('+parseInt(m.id,10)+')" ondblclick="wontia.meUse()" onkeydown="if(event.keyCode===13||event.keyCode===32){event.preventDefault();wontia.meSelect('+parseInt(m.id,10)+')}">'
+      +'<div class="w-me-thumb">'+W.meThumb(m)+(sel?'<span class="w-me-check">✓</span>':'')+'<button type="button" class="w-me-del" title="Mover a papelera" onclick="event.stopPropagation();wontia.meDelete('+parseInt(m.id,10)+')">🗑</button></div>'
+      +'<div class="w-me-meta"><b title="'+W.esc(name)+'">'+W.esc(name)+'</b><small title="'+W.esc(W.meMetaLine(m))+'">'+W.esc(W.meMetaLine(m))+'</small></div></div>';
+};
+W.mediaExplorerDetail=function(){
+    var s=W._me;if(!s)return '';
+    var m=s.items.filter(function(x){return String(x.id)===String(s.selectedId)})[0];
+    if(!m)return '<div class="w-me-detail-empty">Selecciona una imagen o un video para ver sus datos, copiar la ruta o adjuntarlo al campo.</div>';
+    var name=m.original_name||m.filename||('Archivo #'+m.id);var compat=W.meCompatible(m);
+    var folder='Sin carpeta';if(m.folder_id){var f=s.folders.filter(function(x){return String(x.id)===String(m.folder_id)})[0];if(f)folder=f.name}
+    var rows=[['Tipo',W.meKindLabel(m)],['Dimensiones',W.meDims(m)||'—'],['Peso',W.mediaHuman(m.original_size||m.size)],['Optimizado',m.converted_ext?(String(m.converted_ext).toUpperCase()+(m.converted_size?' · '+W.mediaHuman(m.converted_size):'')):'—'],['Fecha',W.meDate(m.created_at||m.created)],['Carpeta',folder]];
+    if(m.is_brand)rows.push(['Marca','Sí']);
+    return '<div class="w-me-prev">'+W.meThumb(m)+'</div>'
+      +'<h4>'+W.esc(name)+'</h4><div class="w-me-sub">'+W.esc(m.mime||'')+'</div>'
+      +'<div class="w-me-data">'+rows.map(function(r){return '<div><span>'+r[0]+'</span><b>'+W.esc(String(r[1]))+'</b></div>'}).join('')+'</div>'
+      +'<div class="w-me-url" title="URL del archivo">'+W.esc(m.url||'')+'</div>'
+      +(compat?'':'<div class="w-me-warn">Este campo espera '+W.esc(s.type==='image'?'una imagen':'un video')+'.</div>')
+      +'<button type="button" class="w-btn w-btn-primary" onclick="wontia.meUse()"'+(compat?'':' disabled')+'>Usar este archivo</button>'
+      +'<button type="button" class="w-btn w-btn-secondary" onclick="wontia.meCopy(\''+W.esc(m.url||'')+'\')">Copiar URL</button>'
+      +'<button type="button" class="w-btn w-btn-danger" onclick="wontia.meDelete('+parseInt(m.id,10)+')">Mover a papelera</button>';
+};
+W.meKind=function(kind){if(!W._me)return;W._me.kind=kind||'';W.mediaExplorerLoad()};
+W.meFolder=function(folder){if(!W._me)return;W._me.folder=folder===''?'':String(folder);W.mediaExplorerLoad()};
+W.meSearch=function(){if(!W._me)return;W._me.q=(document.getElementById('w-me-search')||{}).value||'';W.mediaExplorerLoad()};
+W.meSelect=function(id){if(!W._me)return;W._me.selectedId=id;W.mediaExplorerRender()};
+W.meUse=function(){var s=W._me;if(!s)return;var m=s.items.filter(function(x){return String(x.id)===String(s.selectedId)})[0];if(!m||!W.meCompatible(m))return;var cb=s.onSelect;W.closeModal();if(cb)cb(m)};
+W.meDelete=async function(id){
+    if(!W._me)return;if(!confirm('¿Mover este archivo a la papelera? Podrás restaurarlo desde Media.'))return;
+    var r=await W.api('/api/v1/admin/media/'+id,{method:'DELETE'});
+    if(r&&r.ok){W.notify('Archivo movido a la papelera','success');W._me.items=W._me.items.filter(function(m){return String(m.id)!==String(id)});if(String(W._me.selectedId)===String(id))W._me.selectedId=null;W.mediaExplorerRender();}
+    else W.notify((r&&r.message)||'No se pudo eliminar','error');
+};
+W.meCopy=function(url){if(!url)return;navigator.clipboard.writeText(url);W.notify('Ruta copiada','success')};
+W.meUploadPick=function(){var f=document.getElementById('w-me-file');if(f)f.click()};
+W.meUpload=async function(files){
+    files=files?Array.prototype.slice.call(files):[];if(!files.length||!W._me)return;
+    var s=W._me;var ok=0;var foot=document.getElementById('w-me-foot');if(foot)foot.textContent='Subiendo '+files.length+' archivo(s)…';
+    for(var i=0;i<files.length;i++){
+        var fd=new FormData();fd.append('file',files[i]);fd.append('folder_id',s.folder||0);
+        try{var r=await W.api('/api/v1/admin/media/upload',{method:'POST',body:fd});if(r&&r.ok)ok++}catch(e){}
+    }
+    W.notify(ok?(ok+' archivo(s) subido(s)'):'No se pudo subir','success');
+    await W.mediaExplorerLoad();
+};
+W.meNewFolder=function(){var name=prompt('Nombre de la carpeta:');if(!name)return;W.api('/api/v1/admin/media/folders',{method:'POST',body:{name:name}}).then(function(r){if(r&&r.ok)W.mediaExplorerLoad();else W.notify((r&&r.message)||'No se pudo crear','error')})};
 W.renderMediaManager=function(){
     var app=document.getElementById('wontia-app');
-    app.innerHTML='<div class="w-flex-between w-mb-lg"><h3>Media Library</h3><div class="w-flex w-gap-sm"><span id="media-stats" style="font-size:11px;color:var(--w-muted);align-self:center"></span><button class="w-btn w-btn-secondary" onclick="wontia.mediaSyncBrand()">↻ Marca</button><button class="w-btn w-btn-primary" id="media-upload-btn">Subir</button></div></div>'
+    app.innerHTML='<div class="w-flex-between w-mb-lg"><h3>Biblioteca de Media</h3><div class="w-flex w-gap-sm"><span id="media-stats" style="font-size:11px;color:var(--w-muted);align-self:center"></span><button class="w-btn w-btn-secondary" onclick="wontia.mediaSyncBrand()">↻ Marca</button><button class="w-btn w-btn-primary" id="media-upload-btn">Subir</button></div></div>'
       +'<div class="w-drop-zone w-mb-lg" id="media-drop"><span>Arrastra y suelta aquí (imágenes, videos, iconos) o haz clic para subir</span></div>'
       +'<div id="media-uploader" style="display:none;margin-bottom:16px"></div>'
       +'<input type="file" id="media-file-input" accept="image/*,video/*,.svg,.ico,.pdf" style="display:none" multiple/>'
@@ -1303,26 +1426,18 @@ W.refreshMedia=async function(){
     }
     var grid=document.getElementById('media-grid');if(!grid)return;
     if(!items.length){grid.innerHTML='<div class="w-empty-state"><p>Sin resultados.</p></div>';return}
-    grid.innerHTML='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px">'+items.map(W.mediaCard).join('')+'</div>';
+    grid.innerHTML='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px">'+items.map(W.mediaCard).join('')+'</div>';
 };
 
 W.mediaCard=function(m){
-    var vs={};try{vs=m.variants?(typeof m.variants==='string'?JSON.parse(m.variants):m.variants):{}}catch(e){vs={}};
-    var thumb=(vs.thumb&&vs.thumb.url)?vs.thumb.url:m.url;
-    var isVid=m.kind==='video';
-    var conv=m.converted_ext?(W.esc(String(m.converted_ext).toUpperCase())):'—';
-    var convSize=m.converted_size?W.mediaHuman(m.converted_size):'';
-    var saved=(m.original_size&&m.converted_size&&m.converted_size<m.original_size)?('−'+Math.round((1-m.converted_size/m.original_size)*100)+'%'):'';
-    var img=isVid?'<div style="height:120px;background:#0d1220;color:#9fb0c9;display:grid;place-items:center;font-size:12px">▶ video</div>':'<img src="'+W.esc(thumb)+'" alt="'+W.esc(m.alt_text||'')+'" style="width:100%;height:120px;object-fit:cover;display:block" loading="lazy"/>';
+    var name=m.original_name||m.filename||('Archivo #'+m.id);
     var actions=m.deleted_at
-      ?'<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.mediaRestore('+m.id+')">↩ Restaurar</button><button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.mediaPurge('+m.id+')">Borrar</button>'
-      :'<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.mediaCopy(\''+W.esc(m.url)+'\')">Copiar ruta</button><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.mediaMove('+m.id+')">Mover</button><button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.mediaTrash('+m.id+')">🗑</button>';
-    return '<div class="w-card" style="padding:0;overflow:hidden">'+img
-      +'<div style="padding:8px"><div style="font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+W.esc(m.original_name||m.filename)+'</div>'
-      +'<div style="font-size:10px;color:var(--w-muted);margin-top:3px">'+W.esc(m.kind||'')+(m.is_brand?' · marca':'')+' · '+(m.width||0)+'×'+(m.height||0)+'</div>'
-      +'<div style="font-size:10px;color:var(--w-muted);margin-top:3px;word-break:break-all">'+W.esc(m.url)+'</div>'
-      +'<div style="font-size:10px;margin-top:3px">Original: <b>'+W.mediaHuman(m.original_size||m.size)+'</b>'+(m.converted_ext?(' → <b>'+conv+'</b> '+convSize+' '+(saved?('<span style="color:#34d399">'+saved+'</span>'):'')):'')+'</div>'
-      +'<div class="w-flex w-gap-sm" style="flex-wrap:wrap;margin-top:6px">'+actions+'</div></div></div>';
+      ?'<button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.mediaRestore('+m.id+')">↩ Restaurar</button><button type="button" class="w-btn w-btn-danger w-btn-sm" onclick="wontia.mediaPurge('+m.id+')">Borrar</button>'
+      :'<button type="button" class="w-btn w-btn-secondary w-btn-sm" title="Copiar ruta" onclick="wontia.mediaCopy(\''+W.esc(m.url)+'\')">Copiar</button><button type="button" class="w-btn w-btn-secondary w-btn-sm" title="Mover a carpeta" onclick="wontia.mediaMove('+m.id+')">Mover</button><button type="button" class="w-btn w-btn-danger w-btn-sm" title="Mover a papelera" onclick="wontia.mediaTrash('+m.id+')">🗑</button>';
+    return '<div class="w-me-card w-me-card--manager">'
+      +'<div class="w-me-thumb">'+W.meThumb(m)+'</div>'
+      +'<div class="w-me-meta"><b title="'+W.esc(m.url||'')+'">'+W.esc(name)+'</b><small title="'+W.esc(m.url||'')+'">'+W.esc(W.meMetaLine(m))+(m.is_brand?' · marca':'')+'</small></div>'
+      +'<div class="w-me-actions">'+actions+'</div></div>';
 };
 
 W.mediaCopy=function(u){navigator.clipboard.writeText(u);W.notify('Ruta copiada','success')};
@@ -1609,6 +1724,7 @@ W._crRender=function(d,sug){
     var kpi=function(l,v,c){return '<div class="w-card" style="flex:1;min-width:130px;text-align:center;margin:0"><div style="font-size:24px;font-weight:800;'+(c?'color:'+c:'')+'">'+W.num(v||0)+'</div><div style="font-size:11px;color:var(--w-muted);margin-top:4px">'+l+'</div></div>'};
     var h='<div class="w-flex-between" style="flex-wrap:wrap;gap:8px;margin-bottom:10px"><div><div style="font-size:11px;color:var(--w-muted)">Settings › Conciliación de catálogo</div><h3 style="margin:0">🤖 Robot de coherencia del catálogo</h3></div><button class="w-btn w-btn-primary" onclick="wontia.crScan()">↻ Escanear ahora</button></div>';
     h+='<div style="font-size:12px;color:var(--w-muted);margin-bottom:10px">Compara la clasificación del tema (keywords) con la taxonomía real (tags) y detecta incoherencias. Último escaneo: '+W.esc(d.generated_at||'—')+'</div>';
+    h+='<div class="w-card" style="margin-bottom:14px;border-left:3px solid #7C3AED"><div class="w-flex-between" style="gap:10px;flex-wrap:wrap"><div><h3 style="margin:0 0 4px">📝 Contenido editorial y actualizaciones de Miche</h3><div style="font-size:12px;color:var(--w-muted);line-height:1.6">El Content Fix Lab investiga fichas oficiales, verifica identidad exacta, genera con TIA y compara si Miche mejoró la descripción. También exporta la lista de trabajo en .xls.</div></div><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="w-btn w-btn-primary" onclick="location.hash=\'#store/contenido\';setTimeout(function(){wontia.storeContentLab()},700)">Abrir Content Fix Lab</button><button class="w-btn w-btn-secondary" onclick="location.hash=\'#store/contenido\';setTimeout(function(){wontia.storeContentLabMicheScan()},900)">Escanear contenido Miche</button></div></div></div>';
     h+='<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px">'
       +kpi('Productos',s.products)+kpi('Con categoría (tag)',s.with_tag)+kpi('Sin categoría',s.without_tag,'#b45309')
       +kpi('Categorías sin mapear',(s.unmapped_categories||0),'#DC2626')+kpi('Solapamientos',(iss.overlap||{}).count,'#b45309')+kpi('Divergencias',(iss.divergence||{}).count,'#b45309')
@@ -1664,19 +1780,26 @@ W.crAssign=async function(handle){
 };
 W.renderHero=async function(id){
     var app=document.getElementById('wontia-app'); if(!app)return;
+    if(id==='config')return W.renderHeroThemePage();
     if(id)return W.heroEdit(parseInt(id,10));
     app.innerHTML='<div style="padding:30px;text-align:center;color:var(--w-muted)">Cargando…</div>';
-    var r=await W.api('/api/v1/admin/hero'); var d=(r&&r.data)||{}; W._heroTypes=d.types||{}; W._heroSlides=d.slides||[];
+    var r=await W.api('/api/v1/admin/hero'); var d=(r&&r.data)||{}; W._heroTypes=d.types||{}; W._heroSlides=d.slides||[]; W._heroTheme=d.theme||{active:'classic',themes:{},config:{}};
     var h='<div class="w-flex-between" style="flex-wrap:wrap;gap:8px;margin-bottom:12px"><div><div style="font-size:11px;color:var(--w-muted)">Bricks › SONIKA Hero Builder</div><h3 style="margin:0">🚀 SONIKA Hero Builder</h3></div><div class="w-flex w-gap-sm"><button class="w-btn w-btn-secondary" onclick="location.hash=\'#bricks\'">← Bricks</button><button class="w-btn w-btn-primary" onclick="wontia.heroNew()">＋ Nuevo slide</button></div></div>';
+    var __ht=W._heroTheme||{}, __hid=__ht.active||'classic', __hl=__ht.themes||{};
+    var __hopts=Object.keys(__hl).map(function(k){return '<option value="'+W.esc(k)+'"'+(k===__hid?' selected':'')+'>'+W.esc((__hl[k]&&__hl[k].name)||k)+'</option>';}).join('');
+    var __hname=(__hl[__hid]&&__hl[__hid].name)||__hid;
+    h+='<div class="w-card" style="margin-bottom:12px;border:1px solid rgba(242,13,22,.3)"><div class="w-flex-between" style="flex-wrap:wrap;gap:10px"><div><div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--w-muted);font-weight:800">Theme del Hero</div><div style="font-size:18px;font-weight:800;margin-top:3px">'+W.esc(__hname)+'</div><div style="font-size:11px;color:var(--w-muted);margin-top:3px">Cambia la experiencia visual sin borrar slides ni configuraciones.</div></div><span class="w-badge" style="background:rgba(52,211,153,.14);color:#0d7a58">ACTIVO</span></div><div class="w-flex w-gap-sm" style="flex-wrap:wrap;margin-top:12px;align-items:center"><select class="w-select" id="hero-theme-select" style="max-width:260px">'+__hopts+'</select><button class="w-btn w-btn-primary" onclick="wontia.heroThemeApply()">Aplicar theme</button><button class="w-btn w-btn-secondary" onclick="wontia.heroThemeConfigOpen()">Configurar contenido</button><button class="w-btn w-btn-secondary" onclick="wontia.heroThemeClassic()">Volver al theme clásico</button></div></div>';
+    h+='<div style="font-size:12px;color:var(--w-muted);margin-bottom:12px"><b>Clásico</b> usa los slides de abajo. <b>El Sonido Se Apodera</b> usa su propio contenido, categorías, beneficios y slides editables.</div>';
     h+='<div style="font-size:12px;color:var(--w-muted);margin-bottom:12px">Slides de <b>2 zonas</b>. <b>Borrador</b> = no visible · <b>Activo</b> = publicado. Los motores de instrumento aún no están implementados.</div>';
     if(!W._heroSlides.length){h+='<div class="w-empty-state"><h3>Sin slides</h3><p>Crea el primero.</p></div>';}
     else{
         h+='<div style="display:flex;flex-direction:column;gap:8px">';
         W._heroSlides.forEach(function(s){
             var lt=(W._heroTypes[s.left_type]||{}).label||s.left_type, rt=(W._heroTypes[s.right_type]||{}).label||s.right_type;
+            var mode=s.layout==='background'?('FONDO: '+(s.design&&s.design.bg_type?s.design.bg_type:'imagen')):('IZQ: '+lt+' · DER: '+rt);
             h+='<div class="w-card" style="padding:12px 14px"><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span style="font-weight:800">'+W.esc(s.name)+'</span>'
               +'<span class="w-badge" style="background:'+(s.status==='active'?'rgba(52,211,153,.15);color:#34d399':'rgba(148,163,184,.15);color:#94a3b8')+'">'+(s.status==='active'?'ACTIVO':'BORRADOR')+'</span>'
-              +'<span style="font-size:11px;color:var(--w-muted)">IZQ: '+W.esc(lt)+' · DER: '+W.esc(rt)+'</span><span style="flex:1"></span>'
+              +'<span style="font-size:11px;color:var(--w-muted)">'+W.esc(mode)+'</span><span style="flex:1"></span>'
               +'<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.heroGo('+s.id+')">Configurar</button>'
               +'<button class="w-btn w-btn-secondary w-btn-sm" title="Duplicar" onclick="wontia.heroDup('+s.id+')">⧉</button>'
               +(s.status==='active'?'<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.heroSetStatus('+s.id+',\'draft\')">Despublicar</button>':'<button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.heroPub('+s.id+')">🚀 Publicar</button>')
@@ -1693,6 +1816,543 @@ W.heroDup=async function(id){var r=await W.api('/api/v1/admin/hero/slides/'+id+'
 W.heroDel=async function(id){if(!confirm('¿Eliminar este slide?'))return;await W.api('/api/v1/admin/hero/slides/'+id,{method:'DELETE'});W.renderHero();};
 W.heroPub=async function(id){var r=await W.api('/api/v1/admin/hero/slides/'+id+'/publish',{method:'POST',body:{}});if(r&&r.ok)W.notify('Publicado','success');else W.notify((r&&r.message)||'No se pudo publicar','error');W.renderHero();};
 W.heroSetStatus=async function(id,st){var s=(W._heroSlides||[]).filter(function(x){return x.id===id})[0];if(!s)return;await W.api('/api/v1/admin/hero/slides',{method:'POST',body:{id:id,name:s.name,status:st,layout:s.layout,left_type:s.left_type,left_data:s.left_data,right_type:s.right_type,right_data:s.right_data,design:s.design}});W.renderHero();};
+W.heroThemeSchema=function(){
+    var cfg=(W._heroTheme&&W._heroTheme.config)||{};
+    var defaultCats=[
+        {label:'Guitarras',slug:'guitarras',href:'/guitarras',image:'https://cdn.shopify.com/s/files/1/0269/4178/4117/files/3_c0fcc64c-78ef-4675-b9c0-04cc0127a521.png?v=1748015983&width=640',enabled:1},
+        {label:'Pianos',slug:'pianos',href:'/pianos',image:'https://cdn.shopify.com/s/files/1/0269/4178/4117/files/1_82429ffb-d1db-43da-b2b2-f5d95dcb861a.png?v=1758898900&width=640',enabled:1},
+        {label:'Acordeones',slug:'acordeon',href:'/acordeon',image:'https://cdn.shopify.com/s/files/1/0269/4178/4117/products/ACOR36.png?v=1717789153&width=640',enabled:1},
+        {label:'Baterías',slug:'baterias',href:'/buscar?q=bateria',image:'https://cdn.shopify.com/s/files/1/0269/4178/4117/files/1_04b0d32c-6821-410d-865d-c04aba234935.png?v=1776099590&width=640',enabled:1},
+        {label:'Bajos',slug:'bajos',href:'/guitarras?sub=bajos',image:'https://cdn.shopify.com/s/files/1/0269/4178/4117/files/BAJOELECFENDERSQDEBUTPBASSSUNBURTMOD0379700503.png?v=1791214002&width=640',enabled:1},
+        {label:'Violines',slug:'violines',href:'/buscar?q=violin',image:'https://cdn.shopify.com/s/files/1/0269/4178/4117/files/1_1addf835-272f-4619-a99c-b104923b7845.png?v=1764197651&width=640',enabled:1},
+        {label:'Ukelele',slug:'ukelele',href:'/buscar?q=ukelele',image:'https://cdn.shopify.com/s/files/1/0269/4178/4117/products/Ukelele_florecer_miche-instrumentos_musicales_tienda_en_linea-1.jpg?v=1631538264&width=640',enabled:1},
+        {label:'Saxofón',slug:'saxofon',href:'/buscar?q=saxofon',image:'https://cdn.shopify.com/s/files/1/0269/4178/4117/files/ARTICULOSMICHE_3_211c9030-1f81-4ba1-b3d5-313d344763a3.png?v=1760458403&width=640',enabled:1},
+        {label:'Timbales',slug:'timbales',href:'/buscar?q=timbal',image:'https://cdn.shopify.com/s/files/1/0269/4178/4117/files/LP1415-KP_5a484e93-8e61-4402-a275-91ed107e38b0.webp?v=1727973167&width=640',enabled:1},
+        {label:'Bongoes',slug:'bongoes',href:'/buscar?q=bongo',image:'https://cdn.shopify.com/s/files/1/0269/4178/4117/products/BON067.png?v=1586384906&width=640',enabled:1},
+        {label:'Tumbadoras',slug:'tumbadoras',href:'/buscar?q=tumbadora',image:'https://cdn.shopify.com/s/files/1/0269/4178/4117/products/CONGACP1212CHERRYENFIBRAVIDRIOTUMBACONAROCONFORTMICHETIENDACON137.png?v=1692204700&width=640',enabled:1},
+        {label:'Baquetas',slug:'baquetas',href:'/buscar?q=baqueta',image:'https://cdn.shopify.com/s/files/1/0269/4178/4117/products/BAQ039.png?v=1574455593&width=640',enabled:1},
+        {label:'Micrófonos',slug:'microfono-miche',href:'/microfono-miche',image:'https://cdn.shopify.com/s/files/1/0269/4178/4117/files/MICROFONOAUDIOTECHNICAAT2020CONDENSADOR.png?v=1791216440&width=640',enabled:1},
+        {label:'Cabinas',slug:'cabinas',href:'/buscar?q=cabina',image:'https://cdn.shopify.com/s/files/1/0269/4178/4117/files/CABINAACTIVAEVETX-15SPUSSUBWOOFERETX-15SP.png?v=1790694499&width=640',enabled:1},
+        {label:'Amplificadores Fender',slug:'amplificadores-fender',href:'/buscar?q=amplificador%20fender',image:'https://cdn.shopify.com/s/files/1/0269/4178/4117/files/2330300000_fen_amp_frt_1_nr.png?v=1741811461&width=640',enabled:1},
+        {label:'Audio Profesional',slug:'amplificadores',href:'/amplificadores',image:'https://cdn.shopify.com/s/files/1/0269/4178/4117/files/1_175f6da6-d872-4f86-8371-b7976ffb28bc.png?v=1771707885&width=640',enabled:1},
+        {label:'Audífonos',slug:'audifonos',href:'/buscar?q=audifono',image:'https://cdn.shopify.com/s/files/1/0269/4178/4117/files/AUDIFONOAUDIOTECHNICAATHM20XBTNEGROATHM20XBT.png?v=1790267571&width=640',enabled:1},
+        {label:'Cabezas móviles',slug:'cabezas-moviles',href:'/buscar?q=cabeza%20movil',image:'https://cdn.shopify.com/s/files/1/0269/4178/4117/files/FORMATODECREACIONART_9_71047ce9-a78f-42f3-bf86-d73b40f047c5.png?v=1785446032&width=640',enabled:1},
+        {label:'Accesorios',slug:'cuerdas-guitarras',href:'/cuerdas-guitarras',image:'https://cdn.shopify.com/s/files/1/0269/4178/4117/files/1_67a602cb-ddb7-41e0-b756-d3cb589f6893.png?v=1776956607&width=640',enabled:1}
+    ];
+    var catRows=(Array.isArray(cfg.categories)&&cfg.categories.length)?cfg.categories:defaultCats;
+    var catOpts=[{value:'',label:'Sin foco'}];
+    catRows.forEach(function(c){if(c&&c.slug)catOpts.push({value:c.slug,label:c.label||c.slug})});
+    var defaultBgs=[
+        {desktop:'/assets/uploads/wontia_5ddad38e1699f7db.webp',mobile:'/assets/uploads/wontia_5ddad38e1699f7db.webp',alt:'Primer plano de guitarra eléctrica',focal:'50% 45%'},
+        {desktop:'/assets/uploads/wontia_2c020fab54677229.webp',mobile:'/assets/uploads/wontia_4a97a4f3251c0c73.png',alt:'Escenario SONIKA con guitarra',focal:'42% 50%'}
+    ];
+    var defaultSlides=defaultBgs.map(function(bg,i){
+        return {id:'slide-'+(i+1),enabled:1,eyebrow:'SONIKA PRESENTA',title:'EL SONIDO\nSE *APODERA*.',subtitle:'Tu música. Tu escenario. Tu momento.',cta_label:'Explorar Instrumentos',cta_url:'/guitarras',cta2_label:'Ver la Experiencia',cta2_video:'https://www.youtube.com/watch?v=dsD03vmVe30',cta2_url:'',desktop:bg.desktop,mobile:bg.mobile,alt:bg.alt,focal:bg.focal,overlay:55,accent:'#F20D16',instrument_focus:i===0?'guitarras':''};
+    });
+    return [
+        {key:'slides',label:'Slides del Hero',type:'repeater',collapsible:true,default:defaultSlides,fields:[
+            {key:'id',label:'ID interno (enlaces directos)',type:'text'},
+            {key:'enabled',label:'Visible',type:'toggle'},
+            {key:'eyebrow',label:'Eyebrow',type:'text'},
+            {key:'title',label:'Título (usa *texto* para el acento)',type:'textarea'},
+            {key:'subtitle',label:'Descripción',type:'textarea'},
+            {key:'cta_label',label:'Botón principal',type:'text'},
+            {key:'cta_url',label:'Enlace del botón principal',type:'text'},
+            {key:'cta2_label',label:'Botón secundario',type:'text'},
+            {key:'cta2_video',label:'Video YouTube del botón secundario (opcional)',type:'text'},
+            {key:'cta2_url',label:'Enlace alternativo del botón secundario (si no hay video)',type:'text'},
+            {key:'desktop',label:'Imagen escritorio',type:'image'},
+            {key:'mobile',label:'Imagen móvil',type:'image'},
+            {key:'alt',label:'Texto alternativo',type:'text'},
+            {key:'focal',label:'Punto focal (ej. 50% 45%)',type:'text'},
+            {key:'overlay',label:'Overlay propio (%) — vacío = global',type:'number'},
+            {key:'accent',label:'Color de acento del slide',type:'color',default:'#F20D16'},
+            {key:'instrument_focus',label:'Instrumento a destacar en el carrusel',type:'select',options:catOpts}
+        ]},
+        {key:'autoplay',label:'Autoplay del carrusel (ms, 0 = off)',type:'number',default:9000,min:0,max:30000,step:500},
+        {key:'_h_layout',label:'Comportamiento y proporción',type:'heading'},
+        {key:'height',label:'Altura en escritorio (px)',type:'range',default:448,min:360,max:760,step:1},
+        {key:'overlay',label:'Overlay global (%) — slides sin overlay propio',type:'range',default:55,min:0,max:85,step:1},
+        {key:'focus_index',label:'Ficha destacada en escritorio (1–6)',type:'range',default:3,min:1,max:6,step:1},
+        {key:'focus_index_mobile',label:'Ficha destacada en móvil (1–3)',type:'range',default:2,min:1,max:3,step:1},
+        {key:'focus_scale',label:'Escala del destacado en escritorio (%)',type:'range',default:132,min:100,max:133,step:1},
+        {key:'focus_scale_mobile',label:'Escala del destacado en móvil (%)',type:'range',default:132,min:100,max:135,step:1},
+        {key:'edge_opacity',label:'Opacidad de extremos en escritorio (%)',type:'range',default:41,min:20,max:100,step:1},
+        {key:'edge_scale',label:'Escala de fichas de extremos en escritorio (%)',type:'range',default:85,min:70,max:100,step:1},
+        {key:'near_scale',label:'Escala de fichas intermedias en escritorio (%)',type:'range',default:90,min:80,max:100,step:1},
+        {key:'show_categories',label:'Mostrar panel de instrumentos',type:'toggle',default:1},
+        {key:'show_benefits',label:'Mostrar franja de beneficios',type:'toggle',default:1},
+        {key:'_h_categories',label:'Instrumentos',type:'heading'},
+        {key:'categories',label:'Instrumentos del panel',type:'repeater',collapsible:true,default:defaultCats,fields:[
+            {key:'label',label:'Nombre',type:'text'},
+            {key:'slug',label:'Clave / slug (opcional)',type:'text'},
+            {key:'href',label:'Enlace',type:'text'},
+            {key:'image',label:'Imagen (opcional)',type:'image'},
+            {key:'enabled',label:'Visible',type:'toggle'}
+        ]},
+        {key:'instrument_image_ms',label:'Cambio de imagen de cada instrumento (ms)',type:'range',default:5000,min:2000,max:12000,step:500},
+        {key:'instrument_label_max',label:'Tamaño máximo del nombre del instrumento (px)',type:'range',default:16,min:10,max:24,step:1},
+        {key:'_h_mobile',label:'Experiencia móvil',type:'heading'},
+        {key:'mobile_copy_offset',label:'Bajar bloque de texto',type:'number',default:0,min:-100,max:240,step:1,hint:'Positivo baja; negativo sube. La unidad se elige al lado.'},
+        {key:'mobile_copy_offset_unit',label:'Unidad del texto',type:'select',default:'px',options:{px:'px',pt:'pt',cm:'cm'}},
+        {key:'mobile_cards_offset',label:'Bajar carrusel de instrumentos',type:'number',default:0,min:-100,max:240,step:1,hint:'Mueve solo las fichas de instrumentos dentro del Hero.'},
+        {key:'mobile_cards_offset_unit',label:'Unidad del carrusel',type:'select',default:'px',options:{px:'px',pt:'pt',cm:'cm'}},
+        {key:'mobile_group_scale',label:'Escala del bloque de texto (%)',type:'range',default:100,min:60,max:130,step:1},
+        {key:'mobile_eyebrow_scale',label:'Escala del eyebrow (%)',type:'range',default:100,min:60,max:140,step:1},
+        {key:'mobile_title_scale',label:'Escala del título (%)',type:'range',default:100,min:60,max:140,step:1},
+        {key:'mobile_sub_scale',label:'Escala de la descripción (%)',type:'range',default:100,min:60,max:140,step:1},
+        {key:'mobile_cta_scale',label:'Escala del CTA (%)',type:'range',default:100,min:60,max:140,step:1},
+        {key:'mobile_cta_width_mode',label:'Ancho del CTA en móvil',type:'select',default:'full',options:{full:'Ancho completo',auto:'Automático',custom:'Personalizado'}},
+        {key:'mobile_cta_width_value',label:'Ancho personalizado del CTA',type:'number',default:100,min:20,max:340,step:1,hint:'En % va de 20 a 100; en px de 40 a 340.'},
+        {key:'mobile_cta_width_unit',label:'Unidad del ancho del CTA',type:'select',default:'%',options:{'%':'%',px:'px'}},
+        {key:'_h_benefits',label:'Beneficios',type:'heading'},
+        {key:'benefits',label:'Franja de beneficios',type:'repeater',collapsible:true,default:[
+            {icon:'truck',title:'Envío rápido',text:'a todo Colombia',enabled:1},
+            {icon:'shield',title:'Compra segura',text:'pagos 100% protegidos',enabled:1},
+            {icon:'card',title:'Cuotas fáciles',text:'con Sistecrédito y más',enabled:1},
+            {icon:'headset',title:'Asesoría experta',text:'antes y después de tu compra',enabled:1}
+        ],fields:[
+            {key:'icon',label:'Icono',type:'icon'},
+            {key:'title',label:'Título',type:'text'},
+            {key:'text',label:'Subtítulo',type:'text'},
+            {key:'enabled',label:'Visible',type:'toggle'}
+        ]}
+    ];
+};
+W.heroThemeApply=async function(){
+    var sel=document.getElementById('hero-theme-select'); if(!sel)return;
+    var r=await W.api('/api/v1/admin/hero/theme',{method:'POST',body:{active_theme:sel.value}});
+    if(r&&r.ok){W.notify('Theme activado.','success');W.renderHero();}else W.notify((r&&r.message)||'No se pudo activar el theme','error');
+};
+W.heroThemeClassic=async function(){
+    if(!confirm('¿Volver al theme clásico? La configuración del nuevo theme se conservará.'))return;
+    var r=await W.api('/api/v1/admin/hero/theme',{method:'POST',body:{active_theme:'classic'}});
+    if(r&&r.ok){W.notify('Theme clásico activado.','success');W.renderHero();}else W.notify((r&&r.message)||'No se pudo volver al theme clásico','error');
+};
+W.heroThemeConfigOpen=function(){window.location.hash='#hero/config';};
+W.renderHeroThemePage=async function(){
+    var app=document.getElementById('wontia-app');
+    if(!app)return;
+    app.innerHTML='<div style="text-align:center;padding:60px;color:var(--w-muted)">Cargando editor del Hero...</div>';
+    if(!W._heroTheme||!W._heroTheme.themes){
+        try{
+            var boot=await W.api('/api/v1/admin/hero');
+            if(boot&&boot.data){W._heroTheme=boot.data.theme||{};W._heroSlides=boot.data.slides||[];}
+        }catch(e){}
+    }
+    var theme=W._heroTheme||{};
+    var themes=theme.themes||{};
+    var active=theme.active||'classic';
+    var activeName=(themes[active]&&themes[active].name)||active;
+    var schema=W.heroThemeSchema(); W._heroThemeSchema=schema;
+    var useDefaults=!!W._heroThemeConfigUseDefaults; W._heroThemeConfigUseDefaults=false;
+    var values=useDefaults?{}:(theme.config||{});
+    var def=function(k){var f=schema.filter(function(x){return x.key===k})[0];return f&&f.default!==undefined?f.default:''};
+    var val=function(k){var v=values[k];return (v!==undefined&&v!==null&&v!=='')?v:def(k)};
+    var repCount=function(k){var a=val(k);if(typeof a==='string'){try{a=JSON.parse(a)}catch(e){a=[]}}return Array.isArray(a)?a.length:0};
+    var fieldsOf=function(keys){return keys.map(function(k){return schema.filter(function(f){return f.key===k&&f.type!=='heading'})[0]}).filter(Boolean)};
+    var groups=[
+        {id:'slides',title:'Slides del Hero',desc:'Imagen, copy, botones e instrumento destacado por slide.',help:'Cada slide actualiza la imagen, el eyebrow, el título, la descripción, los CTAs y, si lo eliges, el instrumento que enfoca el carrusel vertical. La estructura del Hero y el panel de instrumentos se mantienen.',icon:'light',keys:['slides','autoplay'],badge:repCount('slides')+' slides'},
+        {id:'layout',title:'Proporción y foco',desc:'Altura, overlay, ficha destacada y transparencia.',help:'El foco es la ficha que se agranda. En escritorio se cuenta de 1 a 6; en móvil de 1 a 3. La transparencia y las escalas laterales solo se aplican en PC.',icon:'card',keys:['height','overlay','focus_index','focus_index_mobile','focus_scale','focus_scale_mobile','edge_opacity','edge_scale','near_scale'],badge:val('height')+' px · '+val('focus_scale')+'%'},
+        {id:'instruments',title:'Instrumentos',desc:'Fichas, imágenes rotativas, flechas y tamaño de los nombres.',help:'Cada ficha rota hasta 3 imágenes del catálogo. El nombre crece hasta llenar el ancho disponible; los nombres que ya lo llenan se mantienen. Las flechas superior e inferior permiten recorrer toda la lista sin reiniciar el carrusel. La ficha del instrumento elegido en cada slide se resalta.',icon:'guitar',keys:['show_categories','categories','instrument_image_ms','instrument_label_max'],badge:repCount('categories')+' fichas'},
+        {id:'benefits',title:'Beneficios',desc:'Franja inferior con los cuatro beneficios.',help:'Cada beneficio tiene icono, título y texto. La secuencia activa avanza cada 10 segundos.',icon:'truck',keys:['show_benefits','benefits'],badge:repCount('benefits')+' ítems'},
+        {id:'mobile',title:'Móvil · posición y escala',desc:'Baja el texto y el carrusel, escala cada pieza y define el ancho del CTA.',help:'Mueve el bloque de texto y las fichas de instrumentos sin cambiar la altura del Hero ni empujar otras secciones. Usa el teléfono para arrastrar las asas o los controles numéricos. Las escalas son proporcionales: no refluyen el diseño. El CTA puede ir a ancho completo, automático o personalizado en %/px.',icon:'phone',keys:['mobile_copy_offset','mobile_copy_offset_unit','mobile_cards_offset','mobile_cards_offset_unit','mobile_group_scale','mobile_eyebrow_scale','mobile_title_scale','mobile_sub_scale','mobile_cta_scale','mobile_cta_width_mode','mobile_cta_width_value','mobile_cta_width_unit'],badge:'estudio táctil'}
+    ];
+    var used={};groups.forEach(function(g){g.keys.forEach(function(k){used[k]=1})});
+    var extras=schema.filter(function(f){return f.type!=='heading'&&!used[f.key]});
+    if(extras.length)groups.push({id:'extras',title:'Otros ajustes',desc:'Campos adicionales del theme.',help:'Opciones avanzadas.',icon:'info',keys:extras.map(function(f){return f.key}),badge:extras.length+' campos'});
+    var firstOpen=W._heroConfigOpenSection||'slides';
+    var accHtml=groups.map(function(g,idx){
+        var fields=fieldsOf(g.keys); if(!fields.length)return '';
+        var open=(g.id===firstOpen)||(!W._heroConfigOpenSection&&idx===0);
+        var extra=g.id==='mobile'?W.heroMobileStudio(values):'';
+        return '<details class="hte-acc" data-hte-section="'+g.id+'"'+(open?' open':'')+'>'
+            +'<summary><span class="hte-ic">'+(W.iconSvg(g.icon,18)||'')+'</span><span class="hte-st"><b>'+W.esc(g.title)+'</b><small>'+W.esc(g.desc)+'</small></span><span class="hte-badge">'+W.esc(g.badge)+'</span><span class="hte-chev">⌄</span></summary>'
+            +'<div class="hte-body"><div class="hte-desc">'+W.esc(g.help)+'</div>'+W.renderSchemaFields(fields,values)+extra+'</div></details>';
+    }).join('');
+    var status=useDefaults?'Valores por defecto cargados (sin guardar)':'Sin cambios';
+    var statusClass=useDefaults?' is-dirty':'';
+    var h='<div class="hte-page" id="hte-page">'
+        +'<div class="hte-head"><div><div class="hte-crumb"><a href="#hero">SONIKA Hero Builder</a><span>/</span><span>Contenido del theme</span></div>'
+        +'<h2 class="hte-title">'+W.esc(activeName)+'</h2>'
+        +'<p class="hte-sub">Edita el Hero por secciones. Abre una categoría para ver sus campos; los cambios se guardan en este theme sin alterar el theme clásico.</p>'
+        +'<div class="hte-status'+statusClass+'" id="ht-status"><span class="hte-dot"></span><span id="ht-status-text">'+W.esc(status)+'</span></div></div>'
+        +'<div class="hte-actions"><a class="w-btn w-btn-secondary" href="/" target="_blank" rel="noopener">Ver Hero ↗</a><button type="button" class="w-btn w-btn-secondary" onclick="wontia.heroThemeConfigReset()">Restaurar</button><button type="button" class="w-btn w-btn-primary" id="hero-theme-save" onclick="wontia.heroThemeConfigPageSave()">Guardar cambios</button></div></div>'
+        +'<div class="hte-grid"><div class="hte-main">'+accHtml+'</div>'
+        +'<aside class="hte-side">'
+        +'<div class="hte-side-card"><div class="hte-eyebrow">Theme activo</div><div class="hte-theme">'+W.esc(activeName)+'</div><div class="hte-note">Los cambios se guardan en este theme. El theme clásico y sus slides se conservan intactos.</div></div>'
+        +'<div class="hte-side-card"><div class="hte-side-title">Resumen rápido</div><div class="hte-stats">'
+        +'<div class="hte-stat"><span>Altura</span><b id="ht-sum-height">'+W.esc(val('height'))+' px</b></div>'
+        +'<div class="hte-stat"><span>Foco PC / móvil</span><b id="ht-sum-focus">'+W.esc(val('focus_index'))+' / '+W.esc(val('focus_index_mobile'))+'</b></div>'
+        +'<div class="hte-stat"><span>Escala PC / móvil</span><b id="ht-sum-scale">'+W.esc(val('focus_scale'))+'% / '+W.esc(val('focus_scale_mobile'))+'%</b></div>'
+        +'<div class="hte-stat"><span>Ajuste móvil</span><b id="ht-sum-mobile">'+W.esc(val('mobile_copy_offset'))+W.esc(val('mobile_copy_offset_unit'))+' / '+W.esc(val('mobile_cards_offset'))+W.esc(val('mobile_cards_offset_unit'))+'</b></div>'
+        +'<div class="hte-stat"><span>Extremos PC</span><b id="ht-sum-edge">'+W.esc(val('edge_opacity'))+'%</b></div>'
+        +'<div class="hte-stat"><span>Laterales PC</span><b id="ht-sum-sides">'+W.esc(val('edge_scale'))+'% / '+W.esc(val('near_scale'))+'%</b></div>'
+        +'<div class="hte-stat"><span>Instrumentos</span><b id="ht-sum-inst">'+repCount('categories')+' fichas</b></div>'
+        +'<div class="hte-stat"><span>Beneficios</span><b id="ht-sum-ben">'+repCount('benefits')+' ítems</b></div>'
+        +'<div class="hte-stat"><span>Slides</span><b id="ht-sum-slides">'+repCount('slides')+' slides</b></div>'
+        +'</div></div>'
+        +'<div class="hte-side-card hte-tip"><b>Consejo</b><br>Cada slide puede enfocar un instrumento del carrusel vertical. El autoplay, las flechas y los dots cambian solo el contenido del Hero; la estructura y el panel de instrumentos se mantienen.</div>'
+        +'</aside></div></div>';
+    app.innerHTML=h;
+    if(W.repInit)W.repInit(schema);
+    W.heroThemeSyncSummary();
+    var page=document.getElementById('hte-page');
+    if(page){
+        page.addEventListener('input',function(e){W.heroThemeMarkDirty();W.heroThemeSyncSummary();if(e.target&&e.target.closest&&e.target.closest('[data-hte-section="mobile"]'))W.heroMobileStudioApply();});
+        page.addEventListener('change',function(e){W.heroThemeMarkDirty();W.heroThemeSyncSummary();if(e.target&&e.target.closest&&e.target.closest('[data-hte-section="mobile"]'))W.heroMobileStudioApply();});
+        page.addEventListener('click',function(e){var t=e.target;if(t&&t.closest&&t.closest('.w-field-reset,.w-rep button,.w-rep .w-btn')){W.heroThemeMarkDirty();setTimeout(W.heroThemeSyncSummary,0);}});
+        page.querySelectorAll('details[data-hte-section]').forEach(function(d){d.addEventListener('toggle',function(){if(d.open){W._heroConfigOpenSection=d.getAttribute('data-hte-section');page.querySelectorAll('details[data-hte-section]').forEach(function(o){if(o!==d)o.open=false;});if(d.getAttribute('data-hte-section')==='mobile')setTimeout(W.heroMobileStudioApply,0);}});});
+    }
+};
+W.heroThemeSyncSummary=function(){
+    var get=function(k){var el=document.getElementById('secf-'+k);if(!el)return null;if(el.type==='checkbox')return el.checked?1:0;return el.value};
+    var set=function(id,v){var el=document.getElementById(id);if(el)el.textContent=v};
+    set('ht-sum-height',(get('height')||'448')+' px');
+    set('ht-sum-focus',(get('focus_index')||'3')+' / '+(get('focus_index_mobile')||'2'));
+    set('ht-sum-scale',(get('focus_scale')||'132')+'% / '+(get('focus_scale_mobile')||'132')+'%');
+    set('ht-sum-mobile',(get('mobile_copy_offset')||'0')+(get('mobile_copy_offset_unit')||'px')+' / '+(get('mobile_cards_offset')||'0')+(get('mobile_cards_offset_unit')||'px'));
+    set('ht-sum-edge',(get('edge_opacity')||'41')+'%');
+    set('ht-sum-sides',(get('edge_scale')||'85')+'% / '+(get('near_scale')||'90')+'%');
+    var count=function(key){var el=document.getElementById('rep-items-'+key);return el?el.querySelectorAll('.w-rep-card').length:0};
+    set('ht-sum-inst',count('categories')+' fichas');
+    set('ht-sum-ben',count('benefits')+' ítems');
+    set('ht-sum-slides',count('slides')+' slides');
+};
+W.heroThemeMarkDirty=function(){
+    var st=document.getElementById('ht-status'),txt=document.getElementById('ht-status-text');
+    if(st)st.className='hte-status is-dirty';
+    if(txt)txt.textContent='Cambios sin guardar';
+};
+W.heroThemeConfigPageSave=async function(){
+    var btn=document.getElementById('hero-theme-save');
+    var schema=W._heroThemeSchema||W.heroThemeSchema();
+    var old=btn?btn.textContent:'';
+    if(btn){btn.disabled=true;btn.textContent='Guardando…';}
+    var values=W.collectSchemaFields(schema);
+    var r=await W.api('/api/v1/admin/hero/theme',{method:'POST',body:{config:values}});
+    if(btn){btn.disabled=false;btn.textContent=old||'Guardar cambios';}
+    if(r&&r.ok){
+        if(r.data&&r.data.config&&W._heroTheme)W._heroTheme.config=r.data.config;
+        var st=document.getElementById('ht-status'),txt=document.getElementById('ht-status-text');
+        if(st)st.className='hte-status is-saved';
+        if(txt)txt.textContent='Guardado '+new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+        W.notify('Contenido del theme guardado.','success');
+    }else{
+        W.notify((r&&r.message)||'No se pudo guardar la configuración','error');
+    }
+};
+W.heroMobileStudio=function(){
+    return '<div class="hte-mobile-studio" data-mobile-studio>'
+        +'<div class="hte-mobile-bar"><div><b>Estudio móvil</b><span>390 × 430 px · arrastra las asas dentro del teléfono</span></div>'
+        +'<div class="hte-mobile-presets">'
+        +'<button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.heroMobilePreset(\'compact\')">Compacto</button>'
+        +'<button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.heroMobilePreset(\'balanced\')">Equilibrado</button>'
+        +'<button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.heroMobilePreset(\'editorial\')">Editorial</button>'
+        +'<button type="button" class="w-btn w-btn-primary w-btn-sm" onclick="wontia.heroMobileAutoFit()">Auto-ajustar</button>'
+        +'<button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.heroMobilePreset(\'reset\')">Restablecer</button>'
+        +'</div></div>'
+        +'<div class="hte-mobile-grid"><div class="hte-phone"><iframe id="hte-mobile-frame" src="/" title="Vista previa móvil del Hero" loading="lazy" onload="wontia.heroMobileStudioReady(this)"></iframe></div>'
+        +'<div class="hte-mobile-side"><div class="hte-mobile-readout" id="hte-mobile-readout">Cargando vista previa…</div>'
+        +'<div class="hte-mobile-legend"><span class="hte-mobile-dot hte-mobile-dot--copy"></span>Texto <span class="hte-mobile-dot hte-mobile-dot--cards"></span>Instrumentos</div>'
+        +'<div class="hte-mobile-note">Las asas se arrastran verticalmente y actualizan los campos. <b>No cambian la altura del Hero ni empujan otras secciones.</b></div>'
+        +'<a class="w-btn w-btn-secondary w-btn-sm" href="/" target="_blank" rel="noopener" style="margin-top:10px">Abrir Hero ↗</a>'
+        +'</div></div></div>';
+};
+
+W.heroMobileFrame=function(){return document.getElementById('hte-mobile-frame')};
+W.heroMobileField=function(k,d){var el=document.getElementById('secf-'+k);return el?el.value:(d===undefined?'':d)};
+W.heroMobilePx=function(value,unit){value=parseFloat(value)||0;if(unit==='pt')return value*96/72;if(unit==='cm')return value*96/2.54;return value};
+W.heroMobileFromPx=function(px,unit){if(unit==='pt')return px*72/96;if(unit==='cm')return px*2.54/96;return px};
+W.heroMobileClamp=function(px){return Math.max(-100,Math.min(240,px))};
+W.heroMobileReadPx=function(key){return W.heroMobilePx(W.heroMobileField(key,0),W.heroMobileField(key+'_unit','px'))};
+W.heroMobileWritePx=function(key,px){
+    px=W.heroMobileClamp(px);
+    var unit=W.heroMobileField(key+'_unit','px');
+    var input=document.getElementById('secf-'+key);
+    if(input)input.value=Math.round(W.heroMobileFromPx(px,unit)*10)/10;
+    W.heroThemeMarkDirty();
+    W.heroMobileStudioApply();
+};
+W.heroMobileReadout=function(html){var el=document.getElementById('hte-mobile-readout');if(el)el.innerHTML=html;};
+
+W.heroMobileStudioReady=function(frame){
+    try{
+        if(!frame||!frame.contentDocument)return;
+        var run=function(){
+            try{
+                W.heroMobileIsolate(frame);
+                W.heroMobileUnitInit();
+                W.heroMobileStudioApply();
+            }catch(e){}
+        };
+        run();
+        setTimeout(run,700);
+        setTimeout(run,1800);
+    }catch(e){
+        W.heroMobileReadout('<div class="hte-mobile-warn">No se pudo cargar la vista previa. Abre el Hero en otra pestaña para revisarlo.</div>');
+    }
+};
+
+W.heroMobileIsolate=function(frame){
+    var doc=frame.contentDocument, win=frame.contentWindow;
+    if(!doc)return;
+    var hero=doc.querySelector('.sth');
+    if(!hero){
+        W.heroMobileReadout('<div class="hte-mobile-warn">Activa el theme “El Sonido Se Apodera” para previsualizar los ajustes móviles.</div>');
+        return;
+    }
+    var node=hero;
+    while(node&&node.parentElement&&node.parentElement!==doc.body){
+        var parent=node.parentElement;
+        Array.prototype.forEach.call(parent.children,function(child){
+            if(child===node||child.contains(hero))return;
+            if(child.tagName==='SCRIPT'||child.tagName==='STYLE'||child.tagName==='LINK')return;
+            child.style.display='none';
+        });
+        node=parent;
+    }
+    Array.prototype.forEach.call(doc.body.children,function(child){
+        if(child.contains(hero))return;
+        if(child.tagName==='SCRIPT'||child.tagName==='STYLE'||child.tagName==='LINK')return;
+        child.style.display='none';
+    });
+    var all=doc.querySelectorAll('body *');
+    for(var i=0;i<all.length;i++){
+        var el=all[i];
+        if(hero.contains(el))continue;
+        try{
+            var cs=win.getComputedStyle(el);
+            if(cs&&cs.position==='fixed')el.style.display='none';
+        }catch(e){}
+    }
+    doc.body.style.background='#07080d';
+    doc.body.style.overflow='hidden';
+    doc.documentElement.style.overflow='hidden';
+    doc.body.style.paddingTop='0';
+    hero.style.marginTop='0';
+    try{
+        var pauseBtn=hero.querySelector('[data-sth-pause]');
+        if(pauseBtn&&pauseBtn.getAttribute('aria-pressed')!=='true')pauseBtn.click();
+    }catch(e){}
+    var style=doc.getElementById('hte-mobile-isolate-style');
+    if(!style){
+        style=doc.createElement('style');
+        style.id='hte-mobile-isolate-style';
+        doc.head.appendChild(style);
+    }
+    style.textContent='html,body{background:#07080d!important;overflow:hidden!important}'
+        +'.sth{margin:0!important}'
+        +'.sth__copy,.sth__cats{position:relative!important}'
+        +'.hte-mobile-grip{position:absolute;right:3px;z-index:99;display:inline-flex;align-items:center;gap:3px;padding:4px 7px;border-radius:999px;background:rgba(242,13,22,.92);color:#fff;font:800 8px/1 Sora,system-ui,sans-serif;letter-spacing:.04em;text-transform:uppercase;cursor:ns-resize;touch-action:none;user-select:none;box-shadow:0 6px 18px rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.35)}'
+        +'.hte-mobile-grip--copy{top:4px}'
+        +'.hte-mobile-grip--cards{top:50%;background:rgba(16,29,58,.94);transform:translateY(-50%)}'
+        +'.hte-mobile-grip:before{content:"\\2195";font-size:12px;line-height:1}'
+        +'.hte-mobile-grip:focus-visible{outline:2px solid #fff;outline-offset:2px}';
+    try{win.scrollTo(0,0)}catch(e){}
+};
+
+W.heroMobileGrips=function(doc){
+    if(!doc)return;
+    var copy=doc.querySelector('.sth__copy');
+    var cats=doc.querySelector('.sth__cats');
+    if(copy&&!copy.querySelector('[data-mobile-grip="copy"]')){
+        var gc=doc.createElement('div');
+        gc.className='hte-mobile-grip hte-mobile-grip--copy';
+        gc.setAttribute('data-mobile-grip','copy');
+        gc.setAttribute('role','slider');
+        gc.setAttribute('aria-label','Mover el texto del Hero');
+        gc.innerHTML='Texto';
+        copy.appendChild(gc);
+        W.heroMobileBindGrip(gc,'mobile_copy_offset');
+    }
+    if(cats&&!cats.querySelector('[data-mobile-grip="cards"]')){
+        var gk=doc.createElement('div');
+        gk.className='hte-mobile-grip hte-mobile-grip--cards';
+        gk.setAttribute('data-mobile-grip','cards');
+        gk.setAttribute('role','slider');
+        gk.setAttribute('aria-label','Mover el carrusel de instrumentos');
+        gk.innerHTML='Instrumentos';
+        cats.appendChild(gk);
+        W.heroMobileBindGrip(gk,'mobile_cards_offset');
+    }
+};
+
+W.heroMobileBindGrip=function(el,key){
+    var startY=0,startPx=0,on=false;
+    el.setAttribute('tabindex','0');
+    el.addEventListener('pointerdown',function(e){
+        if(e.button!==undefined&&e.button!==0)return;
+        on=true;startY=e.clientY;startPx=W.heroMobileReadPx(key);
+        try{el.setPointerCapture(e.pointerId)}catch(err){}
+        e.preventDefault();e.stopPropagation();
+    });
+    el.addEventListener('pointermove',function(e){
+        if(!on)return;
+        W.heroMobileWritePx(key,startPx+(e.clientY-startY));
+        e.preventDefault();e.stopPropagation();
+    });
+    var end=function(e){on=false;try{el.releasePointerCapture(e.pointerId)}catch(err){}};
+    el.addEventListener('pointerup',end);
+    el.addEventListener('pointercancel',end);
+    el.addEventListener('keydown',function(e){
+        if(e.key!=='ArrowUp'&&e.key!=='ArrowDown')return;
+        W.heroMobileWritePx(key,W.heroMobileReadPx(key)+(e.key==='ArrowDown'?2:-2));
+        e.preventDefault();
+    });
+};
+
+W.heroMobileStudioApply=function(){
+    var frame=W.heroMobileFrame();
+    if(!frame)return;
+    var doc;
+    try{doc=frame.contentDocument}catch(e){W.heroMobileReadout('<div class="hte-mobile-warn">La vista previa no está disponible. Abre el Hero en otra pestaña.</div>');return}
+    if(!doc)return;
+    var hero=doc.querySelector('.sth');
+    if(!hero){W.heroMobileReadout('<div class="hte-mobile-warn">Activa el theme “El Sonido Se Apodera” para usar el estudio móvil.</div>');return;}
+    var copyPx=W.heroMobileClamp(W.heroMobileReadPx('mobile_copy_offset'));
+    var cardsPx=W.heroMobileClamp(W.heroMobileReadPx('mobile_cards_offset'));
+    hero.style.setProperty('--sth-m-copy-y',copyPx+'px');
+    hero.style.setProperty('--sth-m-cards-y',cardsPx+'px');
+    hero.style.setProperty('--sth-m-copy-scale',(parseFloat(W.heroMobileField('mobile_group_scale',100))||100)/100);
+    hero.style.setProperty('--sth-m-eyebrow-scale',(parseFloat(W.heroMobileField('mobile_eyebrow_scale',100))||100)/100);
+    hero.style.setProperty('--sth-m-title-scale',(parseFloat(W.heroMobileField('mobile_title_scale',100))||100)/100);
+    hero.style.setProperty('--sth-m-sub-scale',(parseFloat(W.heroMobileField('mobile_sub_scale',100))||100)/100);
+    hero.style.setProperty('--sth-m-cta-scale',(parseFloat(W.heroMobileField('mobile_cta_scale',100))||100)/100);
+    var mode=W.heroMobileField('mobile_cta_width_mode','full');
+    hero.classList.remove('sth--m-cta-full','sth--m-cta-auto','sth--m-cta-custom');
+    hero.classList.add('sth--m-cta-'+mode);
+    var ctaUnit=W.heroMobileField('mobile_cta_width_unit','%');
+    var ctaVal=parseFloat(W.heroMobileField('mobile_cta_width_value',100))||100;
+    hero.style.setProperty('--sth-m-cta-w',ctaVal+ctaUnit);
+    W.heroMobileGrips(doc);
+    var stage=doc.querySelector('.sth__stage')||hero;
+    var copy=doc.querySelector('.sth__copy');
+    var cats=doc.querySelector('.sth__cats');
+    var nav=doc.querySelector('.sth__nav');
+    var sr=stage.getBoundingClientRect();
+    var bottom=Math.max(
+        copy?copy.getBoundingClientRect().bottom:sr.top,
+        cats?cats.getBoundingClientRect().bottom:sr.top,
+        nav?nav.getBoundingClientRect().bottom:sr.top
+    );
+    var overflow=Math.round(bottom-sr.bottom);
+    var topGap=Math.round((copy?copy.getBoundingClientRect().top:sr.top)-sr.top);
+    var html='<div class="hte-mobile-metrics"><span>Texto <b>'+Math.round(copyPx)+' px</b></span><span>Carrusel <b>'+Math.round(cardsPx)+' px</b></span><span>Imagen visible <b>'+Math.max(0,topGap)+' px</b></span></div>';
+    html+=overflow>0
+        ? '<div class="hte-mobile-warn">Atención: el contenido se recorta '+overflow+' px. Reduce el desplazamiento o la escala.</div>'
+        : '<div class="hte-mobile-ok">Dentro del área segura · '+Math.max(0,-overflow)+' px libres</div>';
+    W.heroMobileReadout(html);
+};
+
+W.heroMobileUnitInit=function(){
+    var initLength=function(key){
+        var input=document.getElementById('secf-'+key);
+        var unit=document.getElementById('secf-'+key+'_unit');
+        if(!input||!unit||unit.getAttribute('data-mobile-init')==='1')return;
+        unit.setAttribute('data-mobile-init','1');
+        unit.setAttribute('data-prev-unit',unit.value);
+        var applyLimits=function(){
+            if(unit.value==='pt'){input.min=-75;input.max=180;input.step=0.5;}
+            else if(unit.value==='cm'){input.min=-2.65;input.max=6.35;input.step=0.1;}
+            else{input.min=-100;input.max=240;input.step=1;}
+        };
+        applyLimits();
+        unit.addEventListener('change',function(){
+            var old=unit.getAttribute('data-prev-unit')||unit.value;
+            var px=W.heroMobilePx(input.value,old);
+            input.value=Math.round(W.heroMobileFromPx(px,unit.value)*10)/10;
+            unit.setAttribute('data-prev-unit',unit.value);
+            applyLimits();
+            W.heroMobileStudioApply();
+        });
+        input.addEventListener('input',function(){W.heroMobileStudioApply()});
+    };
+    initLength('mobile_copy_offset');
+    initLength('mobile_cards_offset');
+    var mode=document.getElementById('secf-mobile_cta_width_mode');
+    var value=document.getElementById('secf-mobile_cta_width_value');
+    var unit=document.getElementById('secf-mobile_cta_width_unit');
+    if(mode&&value&&unit&&mode.getAttribute('data-mobile-init')!=='1'){
+        mode.setAttribute('data-mobile-init','1');
+        var applyCta=function(){
+            if(unit.value==='%'){value.min=20;value.max=100;value.step=1;}
+            else{value.min=40;value.max=340;value.step=1;}
+            var disabled=mode.value!=='custom';
+            value.disabled=disabled;unit.disabled=disabled;
+            var gv=value.closest('.w-form-group'),gu=unit.closest('.w-form-group');
+            if(gv)gv.style.opacity=disabled?'.45':'1';
+            if(gu)gu.style.opacity=disabled?'.45':'1';
+        };
+        applyCta();
+        mode.addEventListener('change',function(){applyCta();W.heroMobileStudioApply()});
+        unit.addEventListener('change',function(){applyCta();W.heroMobileStudioApply()});
+        value.addEventListener('input',function(){W.heroMobileStudioApply()});
+    }
+};
+
+W.heroMobileAutoFit=function(){
+    var frame=W.heroMobileFrame();
+    if(!frame)return;
+    var doc;
+    try{doc=frame.contentDocument}catch(e){return}
+    if(!doc)return;
+    var hero=doc.querySelector('.sth');
+    if(!hero)return;
+    hero.style.setProperty('--sth-m-copy-y','0px');
+    hero.style.setProperty('--sth-m-cards-y','0px');
+    void hero.offsetHeight;
+    var stage=doc.querySelector('.sth__stage')||hero;
+    var copy=doc.querySelector('.sth__copy');
+    var cats=doc.querySelector('.sth__cats');
+    var nav=doc.querySelector('.sth__nav');
+    var sr=stage.getBoundingClientRect();
+    var bottom=Math.max(
+        copy?copy.getBoundingClientRect().bottom:sr.top,
+        cats?cats.getBoundingClientRect().bottom:sr.top,
+        nav?nav.getBoundingClientRect().bottom:sr.top
+    );
+    var free=Math.max(0,Math.min(240,Math.floor(sr.bottom-bottom-8)));
+    W.heroMobileWritePx('mobile_copy_offset',free);
+    W.heroMobileWritePx('mobile_cards_offset',free);
+    W.heroThemeSyncSummary();
+};
+
+W.heroMobilePreset=function(name){
+    var sets={
+        compact:{mobile_copy_offset:8,mobile_cards_offset:0,mobile_copy_offset_unit:'px',mobile_cards_offset_unit:'px',mobile_group_scale:92,mobile_eyebrow_scale:95,mobile_title_scale:90,mobile_sub_scale:95,mobile_cta_scale:95,mobile_cta_width_mode:'auto',mobile_cta_width_value:100,mobile_cta_width_unit:'%'},
+        balanced:{mobile_copy_offset:24,mobile_cards_offset:12,mobile_copy_offset_unit:'px',mobile_cards_offset_unit:'px',mobile_group_scale:100,mobile_eyebrow_scale:100,mobile_title_scale:100,mobile_sub_scale:100,mobile_cta_scale:100,mobile_cta_width_mode:'full',mobile_cta_width_value:100,mobile_cta_width_unit:'%'},
+        editorial:{mobile_copy_offset:36,mobile_cards_offset:18,mobile_copy_offset_unit:'px',mobile_cards_offset_unit:'px',mobile_group_scale:100,mobile_eyebrow_scale:95,mobile_title_scale:100,mobile_sub_scale:100,mobile_cta_scale:100,mobile_cta_width_mode:'custom',mobile_cta_width_value:86,mobile_cta_width_unit:'%'},
+        reset:{mobile_copy_offset:0,mobile_cards_offset:0,mobile_copy_offset_unit:'px',mobile_cards_offset_unit:'px',mobile_group_scale:100,mobile_eyebrow_scale:100,mobile_title_scale:100,mobile_sub_scale:100,mobile_cta_scale:100,mobile_cta_width_mode:'full',mobile_cta_width_value:100,mobile_cta_width_unit:'%'}
+    };
+    var set=sets[name]||sets.reset;
+    Object.keys(set).forEach(function(k){
+        var el=document.getElementById('secf-'+k);
+        if(!el)return;
+        el.value=set[k];
+        if(el.type==='range'){var out=document.getElementById('secf-'+k+'-out');if(out)out.textContent=set[k];}
+        if(k.indexOf('_unit')>-1)el.setAttribute('data-prev-unit',set[k]);
+    });
+    ['mobile_copy_offset','mobile_cards_offset'].forEach(function(key){
+        var u=document.getElementById('secf-'+key+'_unit'),i=document.getElementById('secf-'+key);
+        if(!u||!i)return;
+        if(u.value==='pt'){i.min=-75;i.max=180;i.step=.5;}
+        else if(u.value==='cm'){i.min=-2.65;i.max=6.35;i.step=.1;}
+        else{i.min=-100;i.max=240;i.step=1;}
+        u.setAttribute('data-prev-unit',u.value);
+    });
+    var cu=document.getElementById('secf-mobile_cta_width_unit'),cv=document.getElementById('secf-mobile_cta_width_value');
+    if(cu&&cv){if(cu.value==='%'){cv.min=20;cv.max=100;cv.step=1;}else{cv.min=40;cv.max=340;cv.step=1;}}
+    W.heroThemeMarkDirty();
+    W.heroThemeSyncSummary();
+    W.heroMobileStudioApply();
+};
+
+W.heroThemeConfigReset=function(){
+    if(!confirm('¿Cargar los valores por defecto? Los cambios actuales no se guardarán hasta pulsar Guardar.'))return;
+    W._heroThemeConfigUseDefaults=true;
+    W.renderHeroThemePage();
+};
 W.heroSel=function(side,sel){var opts=Object.keys(W._heroTypes||{}).map(function(k){var t=W._heroTypes[k];return '<option value="'+W.esc(k)+'"'+(k===sel?' selected':'')+(t.available?'':' disabled')+'>'+W.esc(t.label)+(t.available?'':' — no disponible')+'</option>'}).join('');return '<select class="w-select" id="hero-'+side+'-type" onchange="wontia.heroEditReload(\''+side+'\')">'+opts+'</select>';};
 W.heroFields=function(side,type,data){var d=data||{};
     var gv=function(k,def){return (d[k]===undefined||d[k]===null||d[k]==='')?def:d[k]};
@@ -1738,29 +2398,31 @@ W.heroFields=function(side,type,data){var d=data||{};
     }
     return '<div style="font-size:12px;color:var(--w-muted)">Este tipo aún no tiene motor implementado; no se puede publicar.</div>';
 };
-W.heroPickMedia=async function(inputId,type){
-    type=type||'image';
-    var d=await W.api('/api/v1/admin/media?type='+encodeURIComponent(type));
-    var items=(d&&d.data)||[];
-    var h=items.length?'<div class="w-lib-grid">'+items.map(function(m){return '<button type="button" class="w-lib-item" title="'+W.esc(m.filename||'')+'" onclick="wontia.heroSetMedia(\''+inputId+'\',\''+W.esc(m.url)+'\')"><img src="'+W.esc(m.url)+'" alt=""/></button>'}).join('')+'</div>':'<div style="color:var(--w-muted)">No hay archivos de este tipo. Súbelos en el menú <b>Media</b>.</div>';
-    h+='<div style="margin-top:12px;display:flex;gap:8px"><input class="w-input" id="heromedia-url" placeholder="…o pega una URL" style="flex:1"/><button type="button" class="w-btn w-btn-secondary" onclick="wontia.heroSetMedia(\''+inputId+'\',document.getElementById(\'heromedia-url\').value)">Usar URL</button></div>';
-    W.modal('Elegir de la Biblioteca de Media',h,'<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cerrar</button>');
+W.heroPickMedia=function(inputId,type){
+    W.openMediaExplorer({type:(type==='video'?'video':(type==='image'?'image':'')),title:'Elegir media',onSelect:function(m){W.heroSetMedia(inputId,m.url)}});
 };
 W.heroSetMedia=function(inputId,url){var el=document.getElementById(inputId);if(el)el.value=url;W.closeModal();W.heroPreview();};
 W.heroEditReload=function(side){var sel=document.getElementById('hero-'+side+'-type');var box=document.getElementById('hero-'+side+'-fields');if(sel&&box){box.innerHTML=W.heroFields(side,sel.value,{});W.heroPreview();}};
-W.heroCollect=function(side){var box=document.getElementById('hero-'+side+'-fields');var out={};if(box)box.querySelectorAll('.hero-f').forEach(function(el){out[el.getAttribute('data-k')]=el.value});if(typeof out.string_points==='string')out.string_points=out.string_points.split('\n').map(function(s){return s.trim()}).filter(function(s){return s});[['hattrs_','attrs'],['hdyn_','dyn_items'],['hsub_','dyn_sub_items']].forEach(function(p){var rk=p[0]+side;if(W.repCollect)W.repCollect(rk);var ta=document.getElementById('secf-'+rk);if(ta){try{out[p[1]]=JSON.parse(ta.value||'[]')}catch(e){}}});return out;};
+W.heroCollectFrom=function(boxId,repSide){var box=document.getElementById(boxId);var out={};if(box)box.querySelectorAll('.hero-f').forEach(function(el){out[el.getAttribute('data-k')]=el.value});if(typeof out.string_points==='string')out.string_points=out.string_points.split('\n').map(function(s){return s.trim()}).filter(function(s){return s});[['hattrs_','attrs'],['hdyn_','dyn_items'],['hsub_','dyn_sub_items']].forEach(function(p){var rk=p[0]+repSide;if(W.repCollect)W.repCollect(rk);var ta=document.getElementById('secf-'+rk);if(ta){try{out[p[1]]=JSON.parse(ta.value||'[]')}catch(e){}}});return out;};
+W.heroCollect=function(side){return W.heroCollectFrom('hero-'+side+'-fields',side);};
+W.heroBg=function(){var out={};document.querySelectorAll('.hero-bg-f').forEach(function(el){out[el.getAttribute('data-k')]=el.type==='checkbox'?(el.checked?'1':'0'):el.value});return out;};
+W.heroBgTypeChange=function(){var v=((document.getElementById('hero-bg-type')||{}).value)||'image';document.querySelectorAll('[data-bg-for]').forEach(function(el){el.style.display=el.getAttribute('data-bg-for')===v?'':'none'});W.heroPreview();};
+W.heroLayoutChange=function(v){W._heroLayout=v==='background'?'background':'split';var a=document.getElementById('hero-split-wrap'),b=document.getElementById('hero-bg-wrap');if(a)a.style.display=W._heroLayout==='background'?'none':'grid';if(b)b.style.display=W._heroLayout==='background'?'':'none';W.heroPreview();};
+W.heroFillBg=function(source){var src=W.heroCollect(source);var box=document.getElementById('hero-bg-content-fields');if(!box)return;box.innerHTML=W.heroFields('bg','text',src);if(W.repInit)W.repInit([{key:'hattrs_bg',type:'repeater'},{key:'hdyn_bg',type:'repeater'},{key:'hsub_bg',type:'repeater'}]);W.heroPreview();};
 W.heroEditReloadKeep=function(el){var box=el&&el.closest?el.closest('#hero-left-fields, #hero-right-fields'):null;if(!box)return;var side=box.id.indexOf('left')>-1?'left':'right';var sel=document.getElementById('hero-'+side+'-type');if(!sel)return;var cur=W.heroCollect(side);box.innerHTML=W.heroFields(side,sel.value,cur);W.heroPreview();};
 W.calSync=function(k,v){var el=document.getElementById('calv-'+k);if(el){var s=document.querySelector('#hero-right-fields [data-k="cal_unit"], #hero-left-fields [data-k="cal_unit"]');el.textContent=v+' '+((s&&s.value==='vb')?'u':((s&&s.value)||''));}};
 W.calNudge=function(k,dir){var el=document.querySelector('#hero-right-fields [data-k="'+k+'"], #hero-left-fields [data-k="'+k+'"]');if(!el)return;var step=parseFloat(el.step||'1');var v=parseFloat(el.value||'0')+dir*step*5;v=Math.max(parseFloat(el.min===''?(-1e9):el.min),Math.min(parseFloat(el.max===''?1e9:el.max),v));el.value=Math.round(v*100)/100;W.calSync(k,el.value);W.heroPreview();};
 W.calReset=function(){var box=document.querySelector('#hero-right-fields')||document.querySelector('#hero-left-fields');if(!box){return}var keys=['cal_x','cal_y','cal_tilt'];for(var i=0;i<6;i++)keys.push('cal_per'+i);keys.forEach(function(k){var el=box.querySelector('[data-k="'+k+'"]');if(el){el.value=0;W.calSync(k,0)}});var sp=box.querySelector('[data-k="cal_spread"]');if(sp){sp.value=100;W.calSync('cal_spread',100)}var g=box.querySelector('[data-k="cal_guides"]');if(g)g.value='0';W.heroPreview();};
 W.heroEdit=async function(id){
     var app=document.getElementById('wontia-app'); if(!app)return;
-    var r=await W.api('/api/v1/admin/hero'); var d=(r&&r.data)||{}; W._heroTypes=d.types||{}; W._heroSlides=d.slides||[];
+    var r=await W.api('/api/v1/admin/hero'); var d=(r&&r.data)||{}; W._heroTypes=d.types||{}; W._heroSlides=d.slides||[]; W._heroTheme=d.theme||{active:'classic',themes:{},config:{}};
     var s=(W._heroSlides||[]).filter(function(x){return x.id===id})[0];
     if(!s){app.innerHTML='<div class="w-empty-state"><p>Slide no encontrado.</p><button class="w-btn w-btn-secondary" onclick="wontia.heroBack()">← Volver</button></div>';return;}
     W._heroCur=s;
     var h='<div class="w-flex-between" style="flex-wrap:wrap;gap:8px;margin-bottom:12px"><div><div style="font-size:11px;color:var(--w-muted)">Hero Builder › slide</div><h3 style="margin:0">'+W.esc(s.name)+'</h3></div><div class="w-flex w-gap-sm"><button class="w-btn w-btn-secondary" onclick="wontia.heroBack()">← Volver</button><button class="w-btn w-btn-primary" onclick="wontia.heroSave()">💾 Guardar</button></div></div>';
     h+='<div class="w-card"><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px"><div class="w-form-group"><label class="w-label">Nombre</label><input class="w-input" id="hero-name" value="'+W.esc(s.name)+'"/></div><div class="w-form-group"><label class="w-label">Estado</label><select class="w-select" id="hero-status"><option value="draft"'+(s.status!=='active'?' selected':'')+'>Borrador</option><option value="active"'+(s.status==='active'?' selected':'')+'>Activo</option></select></div></div></div>';
+    var layout=s.layout==='background'?'background':'split';W._heroLayout=layout;
+    h+='<div class="w-card" style="margin-top:12px"><h3>Composición del slide</h3><div style="font-size:12px;color:var(--w-muted);margin-bottom:8px">Elige cómo se organiza este slide.</div><select class="w-select" id="hero-layout" onchange="wontia.heroLayoutChange(this.value)"><option value="split"'+(layout==='split'?' selected':'')+'>Dos zonas (izquierda / derecha)</option><option value="background"'+(layout==='background'?' selected':'')+'>Fondo principal a pantalla completa</option></select></div>';
     var dz=s.design||{};var colsOpts=['50/50','45/55','55/45','40/60','60/40','35/65','65/35'];
     h+='<div class="w-card" style="margin-top:12px"><h3>Diseño</h3><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px">'
       +'<div class="w-form-group"><label class="w-label">Fondo</label><input type="color" class="w-input hero-df" data-k="bg" value="'+W.esc(dz.bg||'#111111')+'" oninput="wontia.heroPreview()"/></div>'
@@ -1769,23 +2431,64 @@ W.heroEdit=async function(id){
       +'<div class="w-form-group"><label class="w-label" title="Espacio superior del contenido (px)">Espacio superior del contenido (px)</label><input type="number" class="w-input hero-df" data-k="pad_top" min="0" max="160" step="4" value="'+W.esc(dz.pad_top||0)+'" oninput="wontia.heroPreview()"/></div>'
       +'<div class="w-form-group"><label class="w-label" title="Espacio lateral del contenido (px)">Espacio lateral (px)</label><input type="number" class="w-input hero-df" data-k="pad_x" min="0" max="80" step="2" value="'+W.esc(dz.pad_x||22)+'" oninput="wontia.heroPreview()"/></div>'
       +'</div></div>';
-    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px">';
+    h+='<div id="hero-split-wrap" style="display:'+(layout==='background'?'none':'grid')+';grid-template-columns:1fr 1fr;gap:14px;margin-top:14px">';
     h+='<div class="w-card"><h3>Zona izquierda</h3>'+W.heroSel('left',s.left_type)+'<div id="hero-left-fields" style="margin-top:10px">'+W.heroFields('left',s.left_type,s.left_data||{})+'</div></div>';
     h+='<div class="w-card"><h3>Zona derecha</h3>'+W.heroSel('right',s.right_type)+'<div id="hero-right-fields" style="margin-top:10px">'+W.heroFields('right',s.right_type,s.right_data||{})+'</div></div>';
+    h+='</div>';
+    var bvi=function(k,l){return '<div class="w-form-group"><label class="w-label">'+l+'</label><input class="w-input hero-bg-f" data-k="'+k+'" value="'+W.esc(dz[k]||'')+'" oninput="wontia.heroPreview()"/></div>'};
+    var bvm=function(k,l,mt){var id='hero-bg-'+k;return '<div class="w-form-group"><label class="w-label">'+l+'</label><div style="display:flex;gap:6px;align-items:center"><input id="'+id+'" class="w-input hero-bg-f" data-k="'+k+'" value="'+W.esc(dz[k]||'')+'" oninput="wontia.heroPreview()"/><button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.heroPickMedia(\''+id+'\',\''+mt+'\')">Elegir</button></div></div>'};
+    var bvn=function(k,l,min,max,step,def){var v=(dz[k]===undefined||dz[k]===null||dz[k]==='')?def:dz[k];return '<div class="w-form-group"><label class="w-label">'+l+'</label><input type="number" class="w-input hero-bg-f" data-k="'+k+'" min="'+min+'" max="'+max+'" step="'+step+'" value="'+W.esc(v)+'" oninput="wontia.heroPreview()"/></div>'};
+    var bvs=function(k,l,opts,def){var cur=String((dz[k]===undefined||dz[k]===null||dz[k]==='')?def:dz[k]);return '<div class="w-form-group"><label class="w-label">'+l+'</label><select class="w-select hero-bg-f" data-k="'+k+'" onchange="wontia.heroPreview()">'+opts.map(function(o){return '<option value="'+W.esc(o[0])+'"'+(cur===String(o[0])?' selected':'')+'>'+W.esc(o[1])+'</option>'}).join('')+'</select></div>'};
+    var bvc=function(k,l,def){var on=String((dz[k]===undefined||dz[k]===null||dz[k]==='')?def:dz[k])!=='0';return '<label style="font-size:11px;display:inline-flex;gap:6px;align-items:center;border:1px solid var(--w-border);border-radius:8px;padding:6px 8px;background:#fff;color:#333333"><input type="checkbox" class="hero-bg-f" data-k="'+k+'" '+(on?'checked':'')+' onchange="wontia.heroPreview()"/> '+l+'</label>'};
+    var bgType=String(dz.bg_type||'image');
+    h+='<div id="hero-bg-wrap" style="display:'+(layout==='background'?'':'none')+';margin-top:14px">';
+    h+='<div class="w-card"><h3>Fondo principal</h3><div style="font-size:12px;color:var(--w-muted);margin-bottom:10px">El fondo ocupa todo el banner. El contenido se coloca encima y conserva el configurador de texto.</div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">'
+      +'<div class="w-form-group"><label class="w-label">Tipo de fondo</label><select class="w-select hero-bg-f" id="hero-bg-type" data-k="bg_type" onchange="wontia.heroBgTypeChange()">'+[['image','Imagen'],['video','Video MP4'],['youtube','YouTube']].map(function(o){return '<option value="'+o[0]+'"'+(bgType===o[0]?' selected':'')+'>'+o[1]+'</option>'}).join('')+'</select></div>'
+      +'</div>'
+      +'<div data-bg-for="image">'+bvm('bg_image','Imagen de fondo (escritorio)','image')+bvm('bg_image_mobile','Imagen de fondo para móvil (opcional)','image')+bvi('bg_alt','Texto alternativo (si aporta información)')+'<div style="font-size:10.5px;color:#777;margin-top:-4px">Si no cargas una imagen móvil, se usará la de escritorio.</div></div>'
+      +'<div data-bg-for="video">'+bvm('bg_video','Video MP4','video')+'</div>'
+      +'<div data-bg-for="youtube">'+bvi('bg_yt','URL de YouTube')+'</div>'
+      +bvm('bg_poster','Poster / imagen de respaldo (opcional)','image')
+      +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-top:12px">'
+      +bvn('bg_x','Foco horizontal (0–100%)',0,100,1,50)
+      +bvn('bg_y','Foco vertical (0–100%)',0,100,1,50)
+      +bvn('bg_overlay','Oscurecimiento (0–80%)',0,80,1,45)
+      +bvs('bg_overlay_style','Estilo del overlay',[['dark','Oscuro general'],['left','Desde la izquierda'],['bottom','Desde abajo'],['none','Sin overlay']],'dark')
+      +bvs('content_align','Posición del contenido',[['left','Izquierda'],['center','Centro'],['right','Derecha']],'left')
+      +bvn('content_max','Ancho máximo del contenido (px)',320,900,10,560)
+      +'</div><div style="grid-column:1/-1;border-top:1px solid var(--w-border);padding-top:12px;margin-top:2px;background:transparent;color:#ffffff"><b style="font-size:12px;color:#ffffff">Contenido en móvil</b><p style="font-size:11px;color:#ffffff;margin:4px 0 8px">Hereda escritorio o personaliza solo la versión móvil. Si eliges personalizar, puedes ocultar elementos y ubicar el bloque arriba, centro o abajo.</p><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px">'
+      +bvs('mobile_mode','Modo móvil',[['inherit','Heredar escritorio'],['custom','Personalizar para móvil']],'inherit')
+      +bvs('mobile_valign','Posición vertical en móvil',[['start','Superior'],['center','Centro'],['end','Inferior']],'center')
+      +bvs('mobile_align','Alineación en móvil',[['left','Izquierda'],['center','Centro'],['right','Derecha']],'left')
+      +'</div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">'
+      +bvc('mobile_show_eyebrow','Eyebrow','1')
+      +bvc('mobile_show_title','Título','1')
+      +bvc('mobile_show_subtitle','Subtítulo','1')
+      +bvc('mobile_show_text','Texto descriptivo','1')
+      +bvc('mobile_show_cta','CTA principal','1')
+      +bvc('mobile_show_cta2','CTA secundario','1')
+      +bvc('mobile_cta_full','CTA a ancho completo','0')
+      +'</div></div></div>';
+    var bgContent=(s.left_data&&Object.keys(s.left_data).length?s.left_data:(s.right_data||{}));
+    h+='<div class="w-card" style="margin-top:14px"><h3>Contenido superpuesto</h3><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px"><span style="font-size:12px;color:var(--w-muted)">Puedes partir del contenido que ya tienes en una zona.</span><button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.heroFillBg(\'left\')">Usar zona izquierda</button><button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.heroFillBg(\'right\')">Usar zona derecha</button></div><div id="hero-bg-content-fields">'+W.heroFields('bg','text',bgContent)+'</div></div>';
     h+='</div>';
     h+='<div class="w-card" style="margin-top:14px"><div class="w-flex-between" style="flex-wrap:wrap;gap:8px"><h3 style="margin:0">Vista previa</h3><div class="w-flex w-gap-sm" id="hero-dev"><button type="button" class="w-btn w-btn-primary" data-dev="desktop" onclick="wontia.heroDevice(\'desktop\')">🖥 Escritorio</button><button type="button" class="w-btn w-btn-secondary" data-dev="tablet" onclick="wontia.heroDevice(\'tablet\')">▭ Tablet</button><button type="button" class="w-btn w-btn-secondary" data-dev="mobile" onclick="wontia.heroDevice(\'mobile\')">▯ Móvil</button></div></div><div id="hero-preview" style="margin-top:12px"></div></div>';
     h+='<div class="w-card" style="margin-top:14px"><h3>Publicación</h3><div style="font-size:12px;color:var(--w-muted)">Guardar mantiene el borrador sin alterar el sitio. Publicar solo funciona si ambas zonas tienen un tipo con motor disponible.</div><div class="w-flex w-gap-sm" style="margin-top:10px"><button class="w-btn w-btn-primary" onclick="wontia.heroPub('+s.id+')">🚀 Publicar</button><button class="w-btn w-btn-secondary" onclick="wontia.heroVersions('+s.id+')">🕘 Versiones</button></div><div id="hero-vers" style="margin-top:10px"></div></div>';
     app.innerHTML=h;
-    if(W.repInit)W.repInit([{key:'hattrs_left',type:'repeater'},{key:'hattrs_right',type:'repeater'},{key:'hdyn_left',type:'repeater'},{key:'hdyn_right',type:'repeater'},{key:'hsub_left',type:'repeater'},{key:'hsub_right',type:'repeater'}]);
+    if(W.repInit)W.repInit([{key:'hattrs_left',type:'repeater'},{key:'hattrs_right',type:'repeater'},{key:'hdyn_left',type:'repeater'},{key:'hdyn_right',type:'repeater'},{key:'hsub_left',type:'repeater'},{key:'hsub_right',type:'repeater'},{key:'hattrs_bg',type:'repeater'},{key:'hdyn_bg',type:'repeater'},{key:'hsub_bg',type:'repeater'}]);
+    W.heroBgTypeChange();
+    W.heroLayoutChange(layout);
     W.heroPreview();
 };
 W._heroDevice='desktop';
 W.heroDevice=function(d){W._heroDevice=d;document.querySelectorAll('#hero-dev [data-dev]').forEach(function(b){b.className='w-btn '+(b.getAttribute('data-dev')===d?'w-btn-primary':'w-btn-secondary')});W.heroPreview();};
 W.heroPreview=function(){
     var box=document.getElementById('hero-preview'); if(!box)return;
+    var layout=W._heroLayout||'split';
     var lt=((document.getElementById('hero-left-type')||{}).value)||'text';
     var rt=((document.getElementById('hero-right-type')||{}).value)||'text';
     var ld=W.heroCollect('left'), rd=W.heroCollect('right');
+    var bg=W.heroBg();
     var dev=W._heroDevice||'desktop';
     var w=dev==='desktop'?'100%':(dev==='tablet'?'768px':'380px');
     var dz={};document.querySelectorAll('.hero-df').forEach(function(el){dz[el.getAttribute('data-k')]=el.value});
@@ -1799,7 +2502,7 @@ W.heroPreview=function(){
     function phl(title,accent){title=title||'Título';accent=(accent||'').trim();if(!accent)return W.esc(title);var ii=title.toLowerCase().indexOf(accent.toLowerCase());if(ii<0)return W.esc(title);return W.esc(title.slice(0,ii))+'<span style="color:#F20D16">'+W.esc(title.slice(ii,ii+accent.length))+'</span>'+W.esc(title.slice(ii+accent.length));}
     function pattrs(d){var a=(d&&d.attrs)||[];if(!Array.isArray(a))return '';var r=a.filter(function(x){return x&&String(x.enabled)!=='0'&&((x.title||'')||(x.text||''))}).map(function(x){return '<li style="display:flex;gap:8px;font-size:12px;opacity:.9">'+(x.icon?'<span>'+W.esc(x.icon)+'</span>':'')+'<span>'+(x.title?'<b>'+W.esc(x.title)+'</b>':'')+(x.text?(x.title?' — ':'')+W.esc(x.text):'')+'</span></li>'}).join('');return r?'<ul style="list-style:none;padding:0;margin:10px 0 0;display:flex;flex-direction:column;gap:6px">'+r+'</ul>':'';}
     function blk(type,d){
-        if(type==='text'){var dt=d,tt=d.title,ta2=d.title_accent;if(String(d.dyn_enabled)==='1'&&Array.isArray(d.dyn_items)&&d.dyn_items.length){var f0=d.dyn_items[0]||{};tt=(f0.l1?(f0.l1+(f0.l2?'\n'+f0.l2:'')):(f0.text||d.title));ta2=f0.accent||'';}return '<div><div style="font-family:Sora;font-size:'+(dev==='mobile'?'22px':'30px')+';font-weight:800;line-height:1.1;white-space:pre-line">'+phl(tt,ta2)+(String(d.dyn_enabled)==='1'?' <span style="font-size:11px;opacity:.6;font-weight:600">[dinámico · '+W.esc(d.dyn_effect||'rollup')+']</span>':'')+'</div>'+(function(){var s=d.subtitle;if(String(d.dyn_sub_enabled)==='1'&&Array.isArray(d.dyn_sub_items)&&d.dyn_sub_items.length){s=(d.dyn_sub_items[0]||{}).text||s}return s?'<div style="margin-top:6px;opacity:.9">'+W.esc(s)+'</div>':''})()+(d.text?'<p style="margin-top:6px;opacity:.8;font-size:13px">'+W.esc(d.text)+'</p>':'')+((d.cta||d.cta2)?'<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">'+(d.cta?'<span style="background:'+W.esc(d.btn_bg||'#F20D16')+';color:'+W.esc(d.btn_tc||'#fff')+';border-radius:'+brad+';padding:9px 16px;font-weight:800;font-size:13px">'+W.esc(d.cta)+'</span>':'')+(d.cta2?'<span style="background:'+W.esc(d.btn2_bg||'rgba(255,255,255,.14)')+';border:1px solid rgba(255,255,255,.3);color:'+W.esc(d.btn2_tc||'#fff')+';border-radius:'+brad+';padding:9px 16px;font-weight:800;font-size:13px">'+W.esc(d.cta2)+'</span>':'')+'</div>':'')+pattrs(d)+'</div>';}
+        if(type==='text'){var dt=d,tt=d.title,ta2=d.title_accent;if(String(d.dyn_enabled)==='1'&&Array.isArray(d.dyn_items)&&d.dyn_items.length){var f0=d.dyn_items[0]||{};tt=(f0.l1?(f0.l1+(f0.l2?'\n'+f0.l2:'')):(f0.text||d.title));ta2=f0.accent||'';}return '<div class="sh-preview-copy"><div class="sh-preview-title" style="font-family:Sora;font-size:'+(dev==='mobile'?'22px':'30px')+';font-weight:800;line-height:1.1;white-space:pre-line">'+phl(tt,ta2)+(String(d.dyn_enabled)==='1'?' <span style="font-size:11px;opacity:.6;font-weight:600">[dinámico · '+W.esc(d.dyn_effect||'rollup')+']</span>':'')+'</div>'+(function(){var s=d.subtitle;if(String(d.dyn_sub_enabled)==='1'&&Array.isArray(d.dyn_sub_items)&&d.dyn_sub_items.length){s=(d.dyn_sub_items[0]||{}).text||s}return s?'<div class="sh-preview-subtitle" style="margin-top:6px;opacity:.9">'+W.esc(s)+'</div>':''})()+(d.text?'<p class="sh-preview-text" style="margin-top:6px;opacity:.8;font-size:13px">'+W.esc(d.text)+'</p>':'')+((d.cta||d.cta2)?'<div class="sh-preview-ctas" style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">'+(d.cta?'<span class="sh-preview-cta" style="background:'+W.esc(d.btn_bg||'#F20D16')+';color:'+W.esc(d.btn_tc||'#fff')+';border-radius:'+brad+';padding:9px 16px;font-weight:800;font-size:13px">'+W.esc(d.cta)+'</span>':'')+(d.cta2?'<span class="sh-preview-cta2" style="background:'+W.esc(d.btn2_bg||'rgba(255,255,255,.14)')+';border:1px solid rgba(255,255,255,.3);color:'+W.esc(d.btn2_tc||'#fff')+';border-radius:'+brad+';padding:9px 16px;font-weight:800;font-size:13px">'+W.esc(d.cta2)+'</span>':'')+'</div>':'')+pattrs(d)+'</div>';}
         if(type==='image')return d.image?('<img src="'+W.esc(d.image)+'" alt="" style="width:100%;border-radius:14px"/>'):'<div style="height:140px;background:#222;border-radius:14px"></div>';
         if(type==='video'){var lbl=(String(d.source)==='youtube')?'▶ YouTube':(d.video?'▶ Video (mp4)':'▶ Video');var pin=d.poster?('<img src="'+W.esc(d.poster)+'" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover"/>'):'';return '<div style="position:relative;aspect-ratio:16/9;background:#0c0c0c;border:1px solid rgba(255,255,255,.1);border-radius:14px;overflow:hidden">'+pin+'<div style="position:absolute;inset:0;display:grid;place-items:center;color:#fff;font-size:13px;font-weight:700;text-shadow:0 1px 5px rgba(0,0,0,.7)">'+lbl+'</div></div>';}
         if(type==='product')return '<div style="display:flex;gap:10px;align-items:center"><div style="width:60px;height:60px;background:#222;border-radius:10px"></div><b>'+W.esc(d.title||d.handle||'Producto')+'</b></div>';
@@ -1807,14 +2510,55 @@ W.heroPreview=function(){
         if(type==='guitar')return '<div style="padding:14px;background:#1b1b1b;border-radius:14px"><div style="display:flex;flex-direction:column;gap:8px">'+[0,1,2,3,4,5].map(function(){return '<div style="height:6px;background:#aaa;border-radius:999px"></div>'}).join('')+'</div><div style="margin-top:8px;font-size:12px;opacity:.85">🎸 Guitarra interactiva · Clean · Overdrive · Distortion · Fuzz</div></div>';
         return '<div style="opacity:.5;font-size:12px">Instrumento no disponible</div>';
     }
+    if(layout==='background'){
+        var bgt=bg.bg_type||'image';
+        var bgImage=(dev==='mobile'&&bg.bg_image_mobile)?bg.bg_image_mobile:bg.bg_image;
+        var bgHtml='';
+        if(bgt==='image'&&bgImage){
+            bgHtml='<img src="'+W.esc(bgImage)+'" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:'+(parseInt(bg.bg_x,10)||50)+'% '+(parseInt(bg.bg_y,10)||50)+'%"/>';
+        }else if(bgt==='video'){
+            if(bg.bg_poster)bgHtml='<img src="'+W.esc(bg.bg_poster)+'" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:'+(parseInt(bg.bg_x,10)||50)+'% '+(parseInt(bg.bg_y,10)||50)+'%"/>';
+            bgHtml+='<div style="position:absolute;inset:0;display:grid;place-items:center;color:#fff;font-size:13px;font-weight:700;text-shadow:0 1px 5px rgba(0,0,0,.7)">Video de fondo</div>';
+        }else if(bgt==='youtube'){
+            if(bg.bg_poster)bgHtml='<img src="'+W.esc(bg.bg_poster)+'" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:'+(parseInt(bg.bg_x,10)||50)+'% '+(parseInt(bg.bg_y,10)||50)+'%"/>';
+            bgHtml+='<div style="position:absolute;inset:0;display:grid;place-items:center;color:#fff;font-size:13px;font-weight:700;text-shadow:0 1px 5px rgba(0,0,0,.7)">YouTube de fondo</div>';
+        }else{
+            bgHtml='<div style="position:absolute;inset:0;background:#1b1b1b"></div><div style="position:absolute;inset:0;display:grid;place-items:center;color:#fff;font-size:12px;opacity:.7">Configura una imagen o video de fondo</div>';
+        }
+        var ov=Math.max(0,Math.min(80,parseInt(bg.bg_overlay,10)||0));var oa=ov/100;
+        var os=bg.bg_overlay_style||'dark';var ovCss='transparent';
+        if(os==='dark')ovCss='linear-gradient(180deg,rgba(0,0,0,'+(oa*.45)+') 0%,rgba(0,0,0,'+oa+') 100%)';
+        else if(os==='left')ovCss='linear-gradient(90deg,rgba(0,0,0,'+oa+') 0%,rgba(0,0,0,'+(oa*.55)+') 55%,rgba(0,0,0,0) 100%)';
+        else if(os==='bottom')ovCss='linear-gradient(0deg,rgba(0,0,0,'+oa+') 0%,rgba(0,0,0,'+(oa*.35)+') 58%,rgba(0,0,0,0) 100%)';
+        var ca=bg.content_align||'left';var cj=ca==='center'?'center':(ca==='right'?'flex-end':'flex-start');
+        var cva=({start:'flex-start',end:'flex-end'})[dz.valign]||'center';
+        var mobileCustom=dev==='mobile'&&bg.mobile_mode==='custom';
+        if(mobileCustom){
+            var mva=bg.mobile_valign||'center';cva=({start:'flex-start',end:'flex-end'})[mva]||'center';
+            ca=bg.mobile_align||'left';cj=ca==='center'?'center':(ca==='right'?'flex-end':'flex-start');
+        }
+        var cmax=Math.max(320,Math.min(900,parseInt(bg.content_max,10)||560));
+        var content=W.heroCollectFrom('hero-bg-content-fields','bg');
+        var mCss='';
+        if(mobileCustom){
+            [['mobile_show_title','title'],['mobile_show_subtitle','subtitle'],['mobile_show_text','text'],['mobile_show_cta','cta'],['mobile_show_cta2','cta2']].forEach(function(x){if(String(bg[x[0]]||'1')==='0')mCss+='.sh-preview-mobile .sh-preview-'+x[1]+'{display:none!important}';});
+            if(String(bg.mobile_cta_full||'0')==='1')mCss+='.sh-preview-mobile .sh-preview-ctas{flex-direction:column;align-items:stretch}.sh-preview-mobile .sh-preview-ctas span{width:100%;text-align:center}';
+            if(String(bg.mobile_show_title||'1')==='0'&&String(bg.mobile_show_subtitle||'1')==='0'&&String(bg.mobile_show_text||'1')==='0'&&String(bg.mobile_show_cta||'1')==='0'&&String(bg.mobile_show_cta2||'1')==='0')mCss+='.sh-preview-mobile .sh-preview-content{display:none!important}';
+        }
+        box.innerHTML=(mCss?'<style>'+mCss+'</style>':'')+'<div class="'+(mobileCustom?'sh-preview-mobile ':'')+'" style="margin:0 auto;max-width:'+w+';position:relative;min-height:280px;background:'+pbg+';color:#fff;border-radius:14px;overflow:hidden;display:flex;align-items:'+cva+';justify-content:'+cj+';padding:'+padt+'px '+padx+'px"><div style="position:absolute;inset:0;overflow:hidden">'+bgHtml+'<div style="position:absolute;inset:0;pointer-events:none;background:'+ovCss+'"></div></div><div class="sh-preview-content" style="position:relative;z-index:2;width:100%;max-width:'+cmax+'px;'+(ca==='center'?'text-align:center;margin:0 auto':(ca==='right'?'text-align:right;margin-left:auto':''))+'">'+blk('text',content)+'</div></div>';
+        return;
+    }
     box.innerHTML='<div style="margin:0 auto;max-width:'+w+';background:'+pbg+';color:#fff;border-radius:14px;padding:'+padt+'px '+padx+'px;display:grid;grid-template-columns:'+cols+';gap:16px;align-items:'+pva+'">'+blk(lt,ld)+blk(rt,rd)+'</div>';
 };
 W.heroSave=async function(){
     var s=W._heroCur||{};
-    var dz=Object.assign({},s.design||{});document.querySelectorAll('.hero-df').forEach(function(el){dz[el.getAttribute('data-k')]=el.value});
-    var body={id:s.id,name:(document.getElementById('hero-name')||{}).value||s.name,status:(document.getElementById('hero-status')||{}).value||'draft',layout:s.layout,
-      left_type:((document.getElementById('hero-left-type')||{}).value)||s.left_type,left_data:W.heroCollect('left'),
-      right_type:((document.getElementById('hero-right-type')||{}).value)||s.right_type,right_data:W.heroCollect('right'),design:dz};
+    var layout=W._heroLayout||'split';
+    var dz=Object.assign({},s.design||{});document.querySelectorAll('.hero-df').forEach(function(el){dz[el.getAttribute('data-k')]=el.value});Object.assign(dz,W.heroBg());
+    var body={id:s.id,name:(document.getElementById('hero-name')||{}).value||s.name,status:(document.getElementById('hero-status')||{}).value||'draft',layout:layout,
+      left_type:layout==='background'?'text':(((document.getElementById('hero-left-type')||{}).value)||s.left_type),
+      left_data:layout==='background'?W.heroCollectFrom('hero-bg-content-fields','bg'):W.heroCollect('left'),
+      right_type:layout==='background'?'none':(((document.getElementById('hero-right-type')||{}).value)||s.right_type),
+      right_data:layout==='background'?{}:W.heroCollect('right'),design:dz};
     var r=await W.api('/api/v1/admin/hero/slides',{method:'POST',body:body});
     if(r&&r.ok){W.notify('Slide guardado','success');W.renderHero();}else W.notify((r&&r.message)||'Error','error');
 };
@@ -2497,11 +3241,9 @@ W.brandSet=function(which,url){
     else { var f=document.getElementById('fav-preview'); if(f)f.innerHTML='<img src="'+url+'" style="width:32px;height:32px;object-fit:contain"/>'; }
     var box=document.getElementById('logo-lib'); if(box)box.style.display='none';
 };
-W.brandPick=async function(which){
-    var box=document.getElementById('logo-lib'); if(!box)return; box.style.display='block'; box.innerHTML='<div style="font-size:12px;color:var(--w-muted)">Cargando…</div>';
-    try{ var d=await W.api('/api/v1/admin/media?type=image'); var items=d.data||[]; }catch(e){ var items=[]; }
-    if(!items.length){ box.innerHTML='<div style="font-size:12px;color:var(--w-muted)">No hay imágenes en la biblioteca. Usa “Subir”.</div>'; return; }
-    box.innerHTML='<div style="font-size:11px;color:var(--w-muted);margin-bottom:6px">Elige una imagen:</div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:8px">'+items.map(function(m){return '<button type="button" onclick="wontia.brandSet(\''+which+'\',\''+W.esc(m.url)+'\')" title="'+W.esc(m.filename||'')+'" style="border:1px solid var(--w-border);border-radius:8px;overflow:hidden;background:none;cursor:pointer;aspect-ratio:1;padding:0"><img src="'+W.esc(m.url)+'" style="width:100%;height:100%;object-fit:cover"/></button>';}).join('')+'</div>';
+W.brandPick=function(which){
+    var box=document.getElementById('logo-lib');if(box)box.style.display='none';
+    W.openMediaExplorer({type:'image',title:'Elegir imagen de marca',onSelect:function(m){W.brandSet(which,m.url)}});
 };
 W.brandUpload=async function(input,which){
     var f=input.files&&input.files[0]; if(!f)return;
@@ -2727,7 +3469,7 @@ W.bmCard=function(it){
         }
     }else if(it.origin==='incubator'){
         if(it.installed){
-            actions+='<button class="w-btn w-btn-secondary w-btn-sm" onclick="location.hash=\'#seo-global-launch\'">Abrir panel</button>';
+            actions+='<button class="w-btn w-btn-secondary w-btn-sm" onclick="location.href=\'/admin.php?panel=seo-global-launch#seo-global-launch/resumen\'">Abrir panel</button>';
             actions+='<button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.sglDeactivate(this,\''+W.esc(it.name)+'\')">Desacoplar</button>';
         }else actions+='<button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.bmActivate(this)">Acoplar</button>';
     }
@@ -4923,6 +5665,7 @@ W.renderWWI=async function(tab,action){
     var color=st.status==='success'?'#34d399':(st.status==='running'?'#22d3ee':(st.status==='rolled_back'?'#f87171':'#8593ab'));
     var statusTxt=st.status==='running'?('Actualizando — '+(st.pct||0)+'%'):(st.status==='success'?'Sistema al día':(st.status==='rolled_back'?'Rollback aplicado':'Listo'));
     var html='<div style="margin-bottom:18px"><div style="font-size:20px;font-weight:800;letter-spacing:-.01em">WWI — Centro de Administración</div><div style="font-size:12px;color:var(--w-muted);margin-top:4px">Motor CMS + negocio (sitios, pedidos, dominios, saldos) + bricks + IA, todo en un solo lugar.</div></div>';
+    html+=tabsHtml;
     html+='<div class="w-stats">'
         +'<div class="w-stat-card"><div class="w-stat-value" style="color:'+color+'">'+W.esc(statusTxt)+'</div><div class="w-stat-label">Estado del sistema</div></div>'
         +'<div class="w-stat-card"><div class="w-stat-value">'+W.esc(st.commit||'—')+'</div><div class="w-stat-label">Versión desplegada</div></div>'
@@ -4968,7 +5711,7 @@ W.wwiLoadBricks=async function(slotId){
             +'<div style="font-size:11px;color:var(--w-muted);margin-top:6px;line-height:1.6">Motor SEO full-site: scan, generación IA de metadatos, autofix, deepfix, JSON-LD, auditoría y tracker de bots. Multi-tenant.</div>'
             +'<div style="display:flex;gap:8px;margin-top:10px">'
             +'<button class="w-btn '+(b.installed?'w-btn-secondary':'w-btn-primary')+' w-btn-sm" onclick="wontia.sglActivate()">'+(b.installed?'Reinstalar tablas':'Activar en este sitio')+'</button>'
-            +'<button class="w-btn w-btn-secondary w-btn-sm" onclick="location.hash=\'#seo-global-launch\'">Abrir panel</button>'
+            +'<button class="w-btn w-btn-secondary w-btn-sm" onclick="location.href=\'/admin.php?panel=seo-global-launch#seo-global-launch/resumen\'">Abrir panel</button>'
             +'</div></div>';
         el.innerHTML=html;
     }catch(e){el.innerHTML='<div style="font-size:12px;color:#f87171">No se pudo cargar la incubadora.</div>'}
@@ -4992,11 +5735,65 @@ W.wwiRunJobs=async function(){
 // ════════════════════════════════════════════════
 // SEO GLOBAL LAUNCH — brick panel
 // ════════════════════════════════════════════════
-W.renderSeoGlobalLaunch=async function(){
+W.renderSeoGlobalLaunch=async function(tab){
+    tab=(tab||'resumen');
+    W.sglLiveStop();
     var app=document.getElementById('wontia-app');
     app.innerHTML='<div style="text-align:center;padding:50px;color:var(--w-muted)">Cargando SEO Global Launch...</div>';
     var ov=(await W.api('/api/v1/admin/seo-global-launch')).data||{};
     var b=ov.brick||{}; var st=ov.stats||{};
+    var tabs=[['resumen','Resumen'],['monitoreo','Monitoreo en vivo'],['analitica','Analítica'],['mi-trafico','Mi tráfico'],['meta-ads','Pauta Meta'],['keywords','Keywords'],['tecnico','Técnico'],['integraciones','Integraciones'],['seguridad','Seguridad IP'],['redirecciones','Redirecciones'],['404s','404s'],['enlaces-rotos','Enlaces rotos']];
+    var tabsHtml='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">'+tabs.map(function(x){return '<button class="w-btn '+(tab===x[0]?'w-btn-primary':'w-btn-secondary')+'" onclick="location.hash=\'#seo-global-launch/'+x[0]+'\'">'+x[1]+'</button>'}).join('')+'</div>';
+    if(tab==='monitoreo'){
+        app.innerHTML='<div style="margin-bottom:18px"><div style="font-size:20px;font-weight:800;letter-spacing:-.01em">SEO Global Launch</div><div style="font-size:12px;color:var(--w-muted);margin-top:4px">Monitoreo en vivo · peticiones, respuestas y comportamiento del sitio</div></div>'+tabsHtml
+            +'<div id="sgl-live"><div class="sgl-live"><div class="sgl-live__top"><div class="sgl-live__brand"><span class="sgl-live__dot"></span><b>LIVE</b><span id="sgl-live-clock" class="sgl-live__clock">--:--:--</span></div><div class="sgl-live__controls"><button class="w-btn w-btn-secondary w-btn-sm" onclick="W.sglLiveFetch()">Actualizar</button><button class="w-btn w-btn-secondary w-btn-sm" id="sgl-live-pause" onclick="W.sglLiveToggle()">Pausar</button><button class="w-btn w-btn-secondary w-btn-sm" onclick="W.sglLiveClear()">Limpiar</button></div></div>'
+            +'<div class="sgl-live__stats" id="sgl-live-stats"><div class="sgl-live__stat"><b>—</b><span>Conectando</span></div></div>'
+            +'<div class="sgl-live__toolbar"><input id="sgl-live-filter" class="w-input" placeholder="Filtrar por ruta, IP, ciudad o dispositivo" oninput="W.sglLiveFilterRows()"/><select id="sgl-live-audience" class="w-select" onchange="W.sglLiveAudience()"><option value="client">Clientes</option><option value="internal">Yo</option><option value="bot">Bots</option><option value="all">Todos</option></select><select id="sgl-live-method" class="w-select" onchange="W.sglLiveFilterRows()"><option value="">Todos los métodos</option><option>GET</option><option>POST</option><option>PUT</option><option>PATCH</option><option>DELETE</option></select><select id="sgl-live-status" class="w-select" onchange="W.sglLiveFilterRows()"><option value="">Todos los estados</option><option value="2">2xx</option><option value="3">3xx</option><option value="4">4xx</option><option value="5">5xx</option></select><label class="sgl-live__auto"><input type="checkbox" id="sgl-live-autoscroll" checked/> Auto-scroll</label></div>'
+            +'<div id="sgl-term" class="sgl-term"><div class="sgl-term__empty">Conectando al flujo del servidor…</div></div>'
+            +'<div class="sgl-live__note">Por defecto se muestran <b>clientes</b>. El tráfico propio se marca con <b>YO</b> y se administra en <b>Mi tráfico</b>; no se suma a las métricas de clientes. Los bots se muestran aparte. Retención de 90 días. Las peticiones a estáticos, admin y beacons no se registran.</div></div></div>';
+        W.sglLiveStart();
+        return;
+    }
+    if(tab==='seguridad'){
+        app.innerHTML='<div style="margin-bottom:18px"><div style="font-size:20px;font-weight:800;letter-spacing:-.01em">SEO Global Launch</div><div style="font-size:12px;color:var(--w-muted);margin-top:4px">Inteligencia de IPs, bots y detección de ataques</div></div>'+tabsHtml+'<div id="sgl-security"><div class="w-card" style="text-align:center;padding:30px;color:var(--w-muted)">Analizando peticiones...</div></div>';
+        W.sglSecurityLoad();
+        return;
+    }
+    if(tab==='integraciones'){
+        app.innerHTML='<div style="margin-bottom:18px"><div style="font-size:20px;font-weight:800;letter-spacing:-.01em">SEO Global Launch</div><div style="font-size:12px;color:var(--w-muted);margin-top:4px">Integraciones con buscadores y medición externa</div></div>'+tabsHtml+'<div id="sgl-integrations"><div class="w-card" style="text-align:center;padding:30px;color:var(--w-muted)">Cargando integraciones...</div></div>';
+        W.sglIntegrationsLoad();
+        return;
+    }
+    if(tab==='analitica'){
+        app.innerHTML='<div style="margin-bottom:18px"><div style="font-size:20px;font-weight:800;letter-spacing:-.01em">SEO Global Launch</div><div style="font-size:12px;color:var(--w-muted);margin-top:4px">Analítica, embudo y oportunidades · excluye tráfico propio y bots</div></div>'+tabsHtml+'<div id="sgl-analytics"><div class="w-card" style="text-align:center;padding:30px;color:var(--w-muted)">Cargando analítica...</div></div>';
+        W.sglAnalyticsLoad();
+        return;
+    }
+    if(tab==='mi-trafico'){
+        app.innerHTML='<div style="margin-bottom:18px"><div style="font-size:20px;font-weight:800;letter-spacing:-.01em">Mi tráfico</div><div style="font-size:12px;color:var(--w-muted);margin-top:4px">Las visitas de este equipo se separan de los clientes y no contaminan la pauta</div></div>'+tabsHtml+'<div id="sgl-internal"><div class="w-card" style="text-align:center;padding:30px;color:var(--w-muted)">Analizando tráfico propio...</div></div>';
+        W.sglInternalLoad();
+        return;
+    }
+    if(tab==='meta-ads'){
+        app.innerHTML='<div style="margin-bottom:18px"><div style="font-size:20px;font-weight:800;letter-spacing:-.01em">Pauta Meta</div><div style="font-size:12px;color:var(--w-muted);margin-top:4px">Tráfico real de anuncios: fbclid, UTM, landings y conversiones</div></div>'+tabsHtml+'<div id="sgl-meta"><div class="w-card" style="text-align:center;padding:30px;color:var(--w-muted)">Cargando resultados de Meta...</div></div>';
+        W.sglMetaLoad();
+        return;
+    }
+    if(tab==='redirecciones'||tab==='404s'||tab==='enlaces-rotos'){
+        app.innerHTML='<div style="margin-bottom:18px"><div style="font-size:20px;font-weight:800;letter-spacing:-.01em">SEO Global Launch</div><div style="font-size:12px;color:var(--w-muted);margin-top:4px">Redirecciones, 404 y enlaces rotos</div></div>'+tabsHtml+'<div id="sgl-phase2"><div class="w-card" style="text-align:center;padding:30px;color:var(--w-muted)">Cargando...</div></div>';
+        W.sglPhase2Load(tab);
+        return;
+    }
+    if(tab==='keywords'){
+        app.innerHTML='<div style="margin-bottom:18px"><div style="font-size:20px;font-weight:800;letter-spacing:-.01em">SEO Global Launch</div><div style="font-size:12px;color:var(--w-muted);margin-top:4px">Keywords por producto y página · borradores, aprobación y control de saturación</div></div>'+tabsHtml+'<div id="sgl-keywords"><div class="w-card" style="text-align:center;padding:30px;color:var(--w-muted)">Cargando keywords...</div></div>';
+        W.sglKeywordsLoad();
+        return;
+    }
+    if(tab==='tecnico'){
+        app.innerHTML='<div style="margin-bottom:18px"><div style="font-size:20px;font-weight:800;letter-spacing:-.01em">SEO Global Launch</div><div style="font-size:12px;color:var(--w-muted);margin-top:4px">Brick v'+W.esc(b.version||'2.0.0')+' · Técnico y rastreo</div></div>'+tabsHtml+'<div id="sgl-tech"><div class="w-card" style="text-align:center;padding:30px;color:var(--w-muted)">Cargando configuración técnica...</div></div>';
+        W.sglTechLoad();
+        return;
+    }
     var html='<div style="margin-bottom:18px"><div style="font-size:20px;font-weight:800;letter-spacing:-.01em">🚀 SEO Global Launch</div>'
         +'<div style="font-size:12px;color:var(--w-muted);margin-top:4px">Motor SEO full-site de un clic: meta tags, JSON-LD, Open Graph, auditoría y auto-fix con IA. Brick v'+W.esc(b.version||'1.0.0')+' · <strong style="color:var(--w-text)">'+W.esc(st.site_url||'')+'</strong></div></div>';
     html+='<div class="w-stats">'
@@ -5084,6 +5881,602 @@ W.sglLoad=async function(kind,elId){
     }catch(e){el.innerHTML='<div style="font-size:12px;color:#f87171">Error cargando datos</div>'}
 };
 
+
+W.sglTechLoad=async function(){
+    var box=document.getElementById('sgl-tech'); if(!box)return;
+    var r=await W.api('/api/v1/admin/seo-global-launch/technical');
+    if(!r||!r.ok||!r.data){box.innerHTML='<div class="w-empty-state"><h3>No disponible</h3><p>'+W.esc((r&&r.message)||'No se pudo cargar el panel técnico.')+'</p></div>';return}
+    var d=r.data||{},c=d.config||{},pages=d.pages||[];
+    W._sglTech=d;
+    var h='<div class="w-card" style="margin-bottom:14px"><div class="w-flex-between" style="gap:10px;flex-wrap:wrap"><div><h3 style="margin:0">SEO técnico</h3><p style="font-size:12px;color:var(--w-muted);margin:5px 0 0">Sitemap, robots, canonical y hreflang por sitio. Las integraciones externas quedan fuera de esta fase.</p></div><button class="w-btn w-btn-secondary w-btn-sm" onclick="W.sglTechClearCache()">Limpiar cache</button></div>'
+        +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><a class="w-btn w-btn-secondary w-btn-sm" href="'+W.esc(d.sitemap_url||'#')+'" target="_blank" rel="noopener">Abrir sitemap</a><a class="w-btn w-btn-secondary w-btn-sm" href="'+W.esc(d.robots_url||'#')+'" target="_blank" rel="noopener">Abrir robots.txt</a></div>'
+        +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:14px">'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Sitemap activo</label><select class="w-input" id="sgl-enable-sitemap" style="width:100%"><option value="1"'+(c.enable_sitemap?' selected':'')+'>Sí</option><option value="0"'+(c.enable_sitemap?'':' selected')+'>No</option></select></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">robots.txt activo</label><select class="w-input" id="sgl-enable-robots" style="width:100%"><option value="1"'+(c.enable_robots?' selected':'')+'>Sí</option><option value="0"'+(c.enable_robots?'':' selected')+'>No</option></select></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Canonical administrable</label><select class="w-input" id="sgl-enable-canonical" style="width:100%"><option value="1"'+(c.enable_canonical?' selected':'')+'>Sí</option><option value="0"'+(c.enable_canonical?'':' selected')+'>No</option></select></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Hreflang activo</label><select class="w-input" id="sgl-enable-hreflang" style="width:100%"><option value="1"'+(c.enable_hreflang?' selected':'')+'>Sí</option><option value="0"'+(c.enable_hreflang?'':' selected')+'>No</option></select></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Cache SEO</label><select class="w-input" id="sgl-enable-cache" style="width:100%"><option value="1"'+(c.enable_cache?' selected':'')+'>Sí</option><option value="0"'+(c.enable_cache?'':' selected')+'>No</option></select></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">TTL cache (segundos)</label><input class="w-input" type="number" min="60" max="900" id="sgl-cache-ttl" value="'+(parseInt(c.sitemap_cache_ttl)||600)+'" style="width:100%"/></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Crawl-delay</label><input class="w-input" type="number" min="0" max="120" id="sgl-crawl" value="'+(parseInt(c.robots_crawl_delay)||0)+'" style="width:100%"/></div>'
+        +'</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px"><div><label style="font-size:11px;color:var(--w-muted)">Robots: Allow (una ruta por línea)</label><textarea class="w-input" id="sgl-robots-allow" rows="3" style="width:100%">'+W.esc(c.robots_allow||'')+'</textarea></div><div><label style="font-size:11px;color:var(--w-muted)">Robots: Disallow (una ruta por línea)</label><textarea class="w-input" id="sgl-robots-disallow" rows="3" style="width:100%">'+W.esc(c.robots_disallow||'')+'</textarea></div></div>'
+        +'<div style="margin-top:12px"><button class="w-btn w-btn-primary" onclick="W.sglTechSaveConfig()">Guardar configuración técnica</button><span id="sgl-tech-msg" role="status" aria-live="polite" style="font-size:11px;margin-left:8px;color:var(--w-muted)"></span></div></div>';
+    h+='<div class="w-card"><h3 style="margin:0 0 8px">Canonical · robots · hreflang</h3><p style="font-size:12px;color:var(--w-muted);margin:0 0 12px">Edita la configuración por URL. Hreflang: una línea por idioma con formato <code>es|https://...</code>.</p>';
+    if(!pages.length){h+='<div class="w-empty-state"><h3>Sin URLs</h3><p>Publica páginas o posts para administrar su SEO técnico.</p></div>';}
+    else{
+        h+='<div style="overflow:auto"><table class="w-table"><thead><tr><th>URL</th><th>Canonical</th><th>Robots</th><th>Hreflang</th><th></th></tr></thead><tbody>';
+        pages.forEach(function(p,i){
+            var langs=Object.keys(p.hreflang||{}).map(function(k){return k+'|'+(p.hreflang[k]||'')}).join('\n');
+            h+='<tr><td style="max-width:260px;word-break:break-all"><b>'+W.esc(p.title||'')+'</b><div style="font-size:10px;color:var(--w-muted)">'+W.esc(p.url)+'</div></td>'
+              +'<td><input class="w-input" id="sgl-canonical-'+i+'" value="'+W.esc(p.canonical_url||'')+'" placeholder="Automática" style="min-width:180px;font-size:11px"/></td>'
+              +'<td><select class="w-input" id="sgl-robots-'+i+'" style="font-size:11px"><option value=""'+(p.robots?'':' selected')+'>Automático</option><option value="index,follow"'+(p.robots==='index,follow'?' selected':'')+'>index,follow</option><option value="noindex,nofollow"'+(p.robots==='noindex,nofollow'?' selected':'')+'>noindex,nofollow</option><option value="index,nofollow"'+(p.robots==='index,nofollow'?' selected':'')+'>index,nofollow</option><option value="noindex,follow"'+(p.robots==='noindex,follow'?' selected':'')+'>noindex,follow</option></select></td>'
+              +'<td><textarea class="w-input" id="sgl-lang-'+i+'" rows="2" style="min-width:190px;font-size:11px">'+W.esc(langs)+'</textarea></td>'
+              +'<td><button class="w-btn w-btn-secondary w-btn-sm" onclick="W.sglTechSavePage('+i+')">Guardar</button></td></tr>';
+        });
+        h+='</tbody></table></div>';
+    }
+    h+='</div>';
+    box.innerHTML=h;
+};
+W.sglTechSaveConfig=async function(){
+    var v=function(id){var el=document.getElementById(id);return el?el.value:''};
+    var payload={enable_sitemap:v('sgl-enable-sitemap')==='1',enable_robots:v('sgl-enable-robots')==='1',enable_canonical:v('sgl-enable-canonical')==='1',enable_hreflang:v('sgl-enable-hreflang')==='1',enable_cache:v('sgl-enable-cache')==='1',sitemap_cache_ttl:parseInt(v('sgl-cache-ttl'))||600,robots_crawl_delay:parseInt(v('sgl-crawl'))||0,robots_allow:v('sgl-robots-allow'),robots_disallow:v('sgl-robots-disallow')};
+    var r=await W.api('/api/v1/admin/seo-global-launch/config',{method:'POST',body:payload});
+    var msg=document.getElementById('sgl-tech-msg');
+    if(r&&r.ok){if(msg){msg.textContent='Configuración guardada';msg.style.color='#0d7a58'}W.notify('Configuración técnica guardada','success');W.sglTechLoad()}else if(msg){msg.textContent=(r&&r.message)||'No se pudo guardar';msg.style.color='#b42318'}
+};
+W.sglTechSavePage=async function(i){
+    var d=W._sglTech||{},p=(d.pages||[])[i];if(!p)return;
+    var r=await W.api('/api/v1/admin/seo-global-launch/technical',{method:'POST',body:{url:p.url,page_type:p.type,canonical_url:document.getElementById('sgl-canonical-'+i).value,robots:document.getElementById('sgl-robots-'+i).value,hreflang:document.getElementById('sgl-lang-'+i).value}});
+    if(r&&r.ok){W.notify('Configuración guardada','success');W.sglTechLoad()}else W.notify((r&&r.message)||'No se pudo guardar','error');
+};
+W.sglTechClearCache=async function(){
+    var r=await W.api('/api/v1/admin/seo-global-launch/cache/clear',{method:'POST',body:{}});
+    if(r&&r.ok){W.notify(r.message||'Cache eliminada','success');W.sglTechLoad()}else W.notify((r&&r.message)||'No se pudo limpiar','error');
+};
+
+W.sglAnalyticsDays=30;
+W._sglKwFilters={q:'',status:'',type:''};W._sglKwAfter=0;W._sglKwPage=1;
+W.sglKeywordsLoad=async function(){
+    var box=document.getElementById('sgl-keywords');if(!box)return;
+    var f=W._sglKwFilters||{q:'',status:'',type:''};
+    var qs='?q='+encodeURIComponent(f.q||'')+'&status='+encodeURIComponent(f.status||'')+'&type='+encodeURIComponent(f.type||'')+'&page='+(W._sglKwPage||1);
+    var r=await W.api('/api/v1/admin/seo-global-launch/keywords'+qs);
+    if(!r||!r.ok){box.innerHTML='<div class="w-empty-state"><h3>Keywords no disponible</h3><p>'+W.esc((r&&r.message)||'No se pudo cargar.')+'</p></div>';return}
+    var d=r.data||{},s=d.stats||{},items=d.items||[];
+    var h='<div class="w-card" style="margin-bottom:14px"><div class="w-flex-between" style="gap:10px;flex-wrap:wrap"><div><h3 style="margin:0">Keywords y palabras clave</h3><p style="font-size:11px;color:var(--w-muted);margin:4px 0 0">Los keywords no son un factor de ranking de Google. Se publican solo tras aprobación y nunca modifican el contenido visible.</p></div><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="W.sglKeywordsPreview(this)">Previsualizar 10</button><button class="w-btn w-btn-primary w-btn-sm" type="button" onclick="W.sglKeywordsGenerate(this)">Generar 50 borradores</button></div></div>';
+    h+='<div class="sgl-live__stats" style="margin-top:12px">'+W.sglLiveStat(d.catalog_products||0,'Productos catálogo')+W.sglLiveStat(s.products||0,'Con keywords')+W.sglLiveStat(s.approved||0,'Aprobadas','#34d399')+W.sglLiveStat(s.draft||0,'Borradores','#fbbf24')+W.sglLiveStat((d.coverage||0)+'%','Cobertura')+'</div>';
+    h+='<div style="font-size:10px;color:var(--w-muted);margin-top:8px">Máximo '+W.esc(d.limit||8)+' términos por entidad. La generación automática solo crea borradores; no los publica.</div></div>';
+    h+='<div class="w-card" style="margin-bottom:14px"><h3 style="margin:0 0 8px">Añadir o editar manualmente</h3><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px">'
+        +'<div><label style="font-size:10px;color:var(--w-muted)">Tipo</label><select class="w-select" id="sgl-kw-type-new"><option value="product">Producto</option><option value="page">Página</option></select></div>'
+        +'<div><label style="font-size:10px;color:var(--w-muted)">Ruta o URL</label><input class="w-input" id="sgl-kw-path-new" placeholder="/producto/mi-producto o home"/></div>'
+        +'<div><label style="font-size:10px;color:var(--w-muted)">Título</label><input class="w-input" id="sgl-kw-title-new" placeholder="Nombre visible"/></div>'
+        +'<div style="grid-column:1/-1"><label style="font-size:10px;color:var(--w-muted)">Keywords (separadas por coma; máximo 8)</label><textarea class="w-input" id="sgl-kw-list-new" rows="2" placeholder="guitarra electrica, guitarra electrica fender"></textarea></div>'
+        +'<div><label style="font-size:10px;color:var(--w-muted)">Guardar como</label><select class="w-select" id="sgl-kw-status-new"><option value="draft">Borrador</option><option value="approved">Aprobado y visible</option></select></div>'
+        +'<div style="display:flex;align-items:end"><button class="w-btn w-btn-primary" type="button" onclick="W.sglKeywordsSave(this)">Guardar</button></div></div><div id="sgl-kw-msg" style="font-size:11px;color:var(--w-muted);margin-top:8px"></div></div>';
+    h+='<div class="w-card"><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:end;margin-bottom:10px"><div><label style="font-size:10px;color:var(--w-muted)">Buscar</label><input class="w-input" id="sgl-kw-q" value="'+W.esc(f.q||'')+'" placeholder="producto, ruta o keyword" onkeydown="if(event.key===\'Enter\')W.sglKeywordsFilter()"/></div><div><label style="font-size:10px;color:var(--w-muted)">Estado</label><select class="w-select" id="sgl-kw-status" onchange="W.sglKeywordsFilter()"><option value="">Todos</option><option value="draft"'+(f.status==='draft'?' selected':'')+'>Borrador</option><option value="approved"'+(f.status==='approved'?' selected':'')+'>Aprobado</option><option value="rejected"'+(f.status==='rejected'?' selected':'')+'>Rechazado</option></select></div><div><label style="font-size:10px;color:var(--w-muted)">Tipo</label><select class="w-select" id="sgl-kw-type" onchange="W.sglKeywordsFilter()"><option value="">Todos</option><option value="product"'+(f.type==='product'?' selected':'')+'>Producto</option><option value="page"'+(f.type==='page'?' selected':'')+'>Página</option></select></div><button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="W.sglKeywordsFilter()">Aplicar</button><button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="W.sglKeywordsBulk(\'approved\',this)">Aprobar seleccionadas</button><button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="W.sglKeywordsBulk(\'rejected\',this)">Rechazar seleccionadas</button></div>';
+    h+='<div style="font-size:11px;color:var(--w-muted);margin-bottom:8px">'+W.esc(d.total||0)+' registros · página '+W.esc(d.page||1)+'</div>';
+    if(!items.length){h+='<div class="w-empty-state"><h3>Sin keywords</h3><p>Genera borradores desde el catálogo o añade una página manualmente.</p></div>'}
+    else{h+='<div style="overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="text-align:left;color:var(--w-muted)"><th style="padding:6px"><input type="checkbox" onclick="W.sglKeywordsSelectAll(this)"/></th><th style="padding:6px">Entidad</th><th style="padding:6px">Keywords</th><th style="padding:6px">Origen</th><th style="padding:6px">Estado</th><th style="padding:6px">Acciones</th></tr></thead><tbody>';
+        items.forEach(function(x){var kws=Array.isArray(x.keywords)?x.keywords:[];var badge=x.status==='approved'?'#34d399':(x.status==='draft'?'#fbbf24':'#fb7185');h+='<tr style="border-top:1px solid var(--w-border);vertical-align:top"><td style="padding:6px"><input type="checkbox" class="sgl-kw-check" data-kw-id="'+W.esc(x.id)+'"/></td><td style="padding:6px"><b>'+W.esc(x.title||x.entity_key)+'</b><div style="color:var(--w-muted);font-size:10px;margin-top:2px">'+W.esc(x.entity_type)+' · /'+W.esc(x.entity_key)+'</div></td><td style="padding:6px;max-width:360px">'+kws.map(function(k){return '<span style="display:inline-block;background:var(--w-bg);border-radius:6px;padding:2px 5px;margin:1px">'+W.esc(k)+'</span>'}).join(' ')+'</td><td style="padding:6px">'+W.esc(x.source)+'</td><td style="padding:6px;color:'+badge+';font-weight:700">'+W.esc(x.status)+'</td><td style="padding:6px;white-space:nowrap"><button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="W.sglKeywordsEdit('+W.esc(x.id)+')">Editar</button> <button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="W.sglKeywordsSetStatus('+W.esc(x.id)+',\'approved\')">Aprobar</button> <button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="W.sglKeywordsSetStatus('+W.esc(x.id)+',\'rejected\')">Rechazar</button></td></tr>'});h+='</tbody></table></div>'}
+    var pages=Math.max(1,Math.ceil((d.total||0)/(d.per_page||50)));var current=d.page||1;
+    h+='<div style="display:flex;gap:6px;align-items:center;margin-top:10px"><button class="w-btn w-btn-secondary w-btn-sm" type="button" '+(current<=1?'disabled':'')+' onclick="W.sglKeywordsPage('+(current-1)+')">Anterior</button><span style="font-size:11px;color:var(--w-muted)">Página '+current+' de '+pages+'</span><button class="w-btn w-btn-secondary w-btn-sm" type="button" '+(current>=pages?'disabled':'')+' onclick="W.sglKeywordsPage('+(current+1)+')">Siguiente</button></div>';
+    h+='<div id="sgl-kw-samples" style="font-size:11px;color:var(--w-muted);margin-top:10px"></div></div>';
+    box.innerHTML=h;W._sglKwItems=items;
+};
+W.sglKeywordsEdit=function(id){
+    var x=(W._sglKwItems||[]).filter(function(v){return String(v.id)===String(id)})[0];if(!x)return;
+    var set=function(field,value){var el=document.getElementById(field);if(el)el.value=value||''};
+    set('sgl-kw-type-new',x.entity_type);set('sgl-kw-path-new',x.entity_key);set('sgl-kw-title-new',x.title);set('sgl-kw-list-new',(x.keywords||[]).join(', '));set('sgl-kw-status-new',x.status==='approved'?'approved':'draft');
+    var path=document.getElementById('sgl-kw-path-new');if(path)path.scrollIntoView({behavior:'smooth',block:'center'});
+};
+W.sglKeywordsFilter=function(){var v=function(id){var e=document.getElementById(id);return e?e.value:''};W._sglKwFilters={q:v('sgl-kw-q'),status:v('sgl-kw-status'),type:v('sgl-kw-type')};W._sglKwPage=1;W.sglKeywordsLoad()};
+W.sglKeywordsPage=function(page){W._sglKwPage=Math.max(1,parseInt(page)||1);W.sglKeywordsLoad()};
+W.sglKeywordsSave=async function(btn){
+    var v=function(id){var e=document.getElementById(id);return e?e.value:''};
+    var payload={entity_type:v('sgl-kw-type-new'),path:v('sgl-kw-path-new'),title:v('sgl-kw-title-new'),keywords:v('sgl-kw-list-new'),status:v('sgl-kw-status-new')};
+    if(btn)btn.disabled=true;var r=await W.api('/api/v1/admin/seo-global-launch/keywords',{method:'POST',body:payload});if(btn)btn.disabled=false;
+    var msg=document.getElementById('sgl-kw-msg');if(msg){msg.textContent=(r&&r.message)||(r&&r.ok?'Guardado':'No se pudo guardar');msg.style.color=r&&r.ok?'#0d7a58':'#b42318'}
+    if(r&&r.ok){W.notify(r.message||'Keywords guardadas','success');W.sglKeywordsLoad()}
+};
+W.sglKeywordsGenerate=async function(btn){
+    if(btn)btn.disabled=true;var r=await W.api('/api/v1/admin/seo-global-launch/keywords/generate',{method:'POST',body:{after_id:W._sglKwAfter||0,limit:50}});if(btn)btn.disabled=false;
+    if(!r||!r.ok){W.notify((r&&r.message)||'No se pudo generar','error');return}
+    W._sglKwAfter=r.last_id||W._sglKwAfter;W.notify('Borradores: '+(r.created||0)+' · revisados: '+(r.processed||0),'success');
+    if(r.samples&&r.samples.length){var box=document.getElementById('sgl-kw-samples');if(box)box.innerHTML='<b>Muestra generada:</b><pre style="white-space:pre-wrap;margin:6px 0">'+W.esc(JSON.stringify(r.samples,null,2))+'</pre>'}
+    W.sglKeywordsLoad();
+};
+W.sglKeywordsPreview=async function(btn){
+    if(btn)btn.disabled=true;var r=await W.api('/api/v1/admin/seo-global-launch/keywords/generate',{method:'POST',body:{preview:true,limit:10}});if(btn)btn.disabled=false;
+    var box=document.getElementById('sgl-kw-samples');if(box){box.innerHTML='<b>Previsualización:</b><pre style="white-space:pre-wrap;margin:6px 0">'+W.esc(JSON.stringify((r&&r.data&&r.data.items)||[],null,2))+'</pre>'}
+};
+W.sglKeywordsSetStatus=async function(id,status){
+    var r=await W.api('/api/v1/admin/seo-global-launch/keywords/'+(status==='approved'?'approve':'reject'),{method:'POST',body:{ids:[id]}});
+    if(r&&r.ok){W.notify(status==='approved'?'Keyword aprobada':'Keyword rechazada','success');W.sglKeywordsLoad()}else W.notify((r&&r.message)||'No se pudo actualizar','error')
+};
+W.sglKeywordsBulk=async function(status,btn){
+    var ids=Array.prototype.slice.call(document.querySelectorAll('.sgl-kw-check:checked')).map(function(e){return parseInt(e.getAttribute('data-kw-id'))}).filter(function(x){return x>0});
+    if(!ids.length){W.notify('Selecciona al menos una keyword','info');return}
+    if(!window.confirm('¿'+ (status==='approved'?'Aprobar':'Rechazar') +' '+ids.length+' keywords? Solo cambia el metadato, no el contenido.')) return;
+    if(btn)btn.disabled=true;var r=await W.api('/api/v1/admin/seo-global-launch/keywords/'+(status==='approved'?'approve':'reject'),{method:'POST',body:{ids:ids}});if(btn)btn.disabled=false;
+    if(r&&r.ok){W.notify('Actualizadas: '+(r.updated||0),'success');W.sglKeywordsLoad()}else W.notify((r&&r.message)||'No se pudo actualizar','error')
+};
+W.sglKeywordsSelectAll=function(el){document.querySelectorAll('.sgl-kw-check').forEach(function(x){x.checked=el.checked})};
+W.sglAnalyticsLoad=async function(){
+    var box=document.getElementById('sgl-analytics'); if(!box)return;
+    var days=W.sglAnalyticsDays||30;
+    var a=await W.api('/api/v1/admin/seo-global-launch/analytics?days='+days);
+    var o=await W.api('/api/v1/admin/seo-global-launch/opportunities?days='+days);
+    if(!a||!a.ok){box.innerHTML='<div class="w-empty-state"><h3>Sin datos</h3><p>'+W.esc((a&&a.message)||'No se pudo cargar la analítica.')+'</p></div>';return}
+    W._sglAnalytics=a; W._sglOpp=(o&&o.items)||[];
+    var t=a.traffic||{},ord=a.orders||{},cart=a.cart||{},seo=a.seo||{},fn=a.funnel||{};
+    var kpi=function(v,l,color){return '<div class="w-card" style="flex:1;min-width:130px;text-align:center;margin:0"><div style="font-size:22px;font-weight:800;'+(color?'color:'+color:'')+'">'+W.esc(v)+'</div><div style="font-size:10px;color:var(--w-muted);margin-top:4px">'+W.esc(l)+'</div></div>'};
+    var h='<div class="w-card" style="margin-bottom:14px"><div class="w-flex-between" style="gap:10px;flex-wrap:wrap"><div><h3 style="margin:0">Analítica del sitio</h3><p style="font-size:12px;color:var(--w-muted);margin:5px 0 0">Datos de los últimos '+days+' días. Excluye tráfico propio y bots. Visitantes únicos y páginas se calculan con el monitor de peticiones (90 días); los eventos y carritos de invitados solo se registran con consentimiento.</p></div><div style="display:flex;gap:6px;flex-wrap:wrap">'+(W._sglOpp.length?'<span class="w-badge" style="background:#fff7ed;color:#b45309">'+W._sglOpp.length+' oportunidades</span>':'')+'<select class="w-input" style="width:100px" onchange="W.sglAnalyticsDays=parseInt(this.value)||30;W.sglAnalyticsLoad()"><option value="7"'+(days===7?' selected':'')+'>7 días</option><option value="30"'+(days===30?' selected':'')+'>30 días</option><option value="90"'+(days===90?' selected':'')+'>90 días</option></select><button class="w-btn w-btn-secondary w-btn-sm" onclick="W.sglAnalyticsLoad()">Actualizar</button></div></div>'
+        +'<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px">'+kpi(W.num(t.sessions||0),'Sesiones')+kpi(W.num(t.views||0),'Visitas')+kpi(W.num(t.pages_per_session||0),'Páginas/sesión')+kpi(W.num(ord.paid||0),'Pedidos pagados','#0d7a58')+kpi(W.ocMoney(ord.revenue_cents||0,'COP'),'Ingresos')+kpi((cart.abandonment_rate||0)+'%','Abandono de pedidos','#b45309')+'</div>'
+        +'<div style="display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px solid var(--w-border)"><div style="font-size:11px;color:var(--w-muted)"><b style="color:var(--w-text)">Tráfico propio excluido:</b> '+W.num(t.internal_page_requests||0)+' vistas de servidor y '+W.num(t.internal_sessions||0)+' sesiones de evento marcadas como “yo”. No se suman a clientes ni a la pauta.</div><button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="location.hash=\'#seo-global-launch/mi-trafico\'">Abrir Mi tráfico</button></div></div>';
+    var table=function(title,rows,cols){
+        var x='<div class="w-card"><h3 style="margin:0 0 8px">'+title+'</h3>';
+        if(!rows||!rows.length)return x+'<div style="font-size:12px;color:var(--w-muted)">Sin datos en el período.</div></div>';
+        x+='<div style="overflow:auto"><table class="w-table"><thead><tr>'+cols.map(function(c){return '<th>'+W.esc(c[0])+'</th>'}).join('')+'</tr></thead><tbody>';
+        rows.forEach(function(r){x+='<tr>'+cols.map(function(c){return '<td style="max-width:300px;word-break:break-all">'+W.esc(c[1](r))+'</td>'}).join('')+'</tr>'});
+        return x+'</tbody></table></div></div>';
+    };
+    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">'
+        +table('Dispositivos',a.devices||[],[['Dispositivo',function(r){return r.device||'—'}],['Visitas',function(r){return W.num(r.visits||0)}]])
+        +table('Páginas más visitadas',a.top_pages||[],[['Página',function(r){return r.page_url||'—'}],['Visitas',function(r){return W.num(r.views||0)}],['Únicos',function(r){return W.num(r.visitors||0)}]])
+        +'</div>';
+    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">'
+        +table('Productos vendidos',a.products||[],[['Producto',function(r){return r.name||'—'}],['Unidades',function(r){return W.num(r.qty||0)}],['Monto',function(r){return W.ocMoney(r.amount_cents||0,'COP')}]])
+        +table('Categorías vendidas',a.categories||[],[['Categoría',function(r){return r.category||'—'}],['Unidades',function(r){return W.num(r.qty||0)}],['Monto',function(r){return W.ocMoney(r.amount_cents||0,'COP')}]])
+        +'</div>';
+    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">';
+    h+='<div class="w-card"><h3 style="margin:0 0 8px">Embudo</h3><div style="display:flex;gap:8px;flex-wrap:wrap">'+kpi(W.num(fn.product_view||0),'Producto visto')+kpi(W.num(fn.cart_add||0),'Al carrito')+kpi(W.num(fn.checkout_start||0),'Checkout')+kpi(W.num(fn.purchase||0),'Compra')+'</div><div style="font-size:11px;color:var(--w-muted);margin-top:8px">Solo sesiones con consentimiento y eventos instrumentados.</div></div>';
+    h+='<div class="w-card"><h3 style="margin:0 0 8px">Carrito y checkout</h3><div style="font-size:12px;line-height:1.8"><div><b>Carritos guardados:</b> '+W.num(cart.tracked_carts||0)+'</div><div><b>Valor guardado:</b> '+W.ocMoney(cart.value_cents||0,'COP')+'</div><div><b>Carritos de invitados:</b> '+W.num(cart.guest_carts||0)+' · '+W.num(cart.guest_items||0)+' ítems</div><div><b>Valor invitados:</b> '+W.ocMoney(cart.guest_value_cents||0,'COP')+'</div><div><b>Abandonos en checkout:</b> '+W.num(cart.checkout_abandons||0)+'</div><div><b>Abandonados +1h:</b> '+W.num(cart.abandoned_after_1h||0)+'</div><div><b>Pedidos pendientes:</b> '+W.num(ord.pending||0)+'</div><div><b>Pedidos fallidos:</b> '+W.num(ord.failed||0)+'</div><div style="font-size:11px;color:var(--w-muted);margin-top:5px">'+W.esc(cart.note||'')+'</div></div></div></div>';
+    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">'
+        +table('Enlaces más clicados',a.top_links||[],[['Destino',function(r){return r.target||'—'}],['Clics',function(r){return W.num(r.clicks||0)}]])
+        +table('Actividad por hora',a.hourly||[],[['Hora',function(r){return String(r.hour).padStart(2,'0')+':00'}],['Visitas',function(r){return W.num(r.views||0)}]])
+        +'</div>';
+    h+='<div class="w-card" style="margin-bottom:14px"><h3 style="margin:0 0 8px">Oportunidades y acciones</h3>';
+    if(!W._sglOpp.length)h+='<div style="font-size:12px;color:var(--w-muted)">No hay problemas críticos detectados en este período.</div>';
+    else{W._sglOpp.forEach(function(x){h+='<div style="display:flex;gap:10px;align-items:flex-start;justify-content:space-between;border-bottom:1px solid var(--w-border);padding:9px 0"><div><b style="font-size:12px">'+W.esc(x.title)+'</b><div style="font-size:11px;color:var(--w-muted);margin-top:3px">'+W.esc(x.detail)+'</div></div><button class="w-btn w-btn-secondary w-btn-sm" onclick="W.sglOppGo(\''+W.esc(x.action)+'\')">Resolver</button></div>'})}
+    h+='</div>';
+    var sen=a.sentiment||{}; h+='<div class="w-card" style="border-left:3px solid #cbd5e1"><h3 style="margin:0 0 6px">Sentimiento y causas de abandono</h3>'+(sen.available?'<div style="font-size:12px;line-height:1.8"><div><b>Reseñas analizadas:</b> '+W.num(sen.count||0)+'</div><div><b>Positivas:</b> '+W.num(sen.positive||0)+' ('+W.num(sen.positive_pct||0)+'%)</div><div><b>Neutrales:</b> '+W.num(sen.neutral||0)+'</div><div><b>Negativas:</b> '+W.num(sen.negative||0)+' ('+W.num(sen.negative_pct||0)+'%)</div><div style="font-size:11px;color:var(--w-muted);margin-top:5px">'+W.esc(sen.reason||'')+'</div></div>':'<p style="font-size:12px;color:var(--w-muted);margin:0">'+W.esc(sen.reason||'No hay fuente conectada.')+'</p>')+'<p style="font-size:11px;color:var(--w-muted);margin:8px 0 0">Las causas de abandono requieren encuesta o motivos declarados; no se infieren como hechos.</p></div>';
+    box.innerHTML=h;
+};
+// ── Mi tráfico (yo) ─────────────────────────────
+W.sglInternalDays=7;
+W.sglShortDate=function(v){if(!v)return '—';return String(v).replace('T',' ').slice(0,16)};
+W.sglKpi=function(v,l,color){return '<div class="w-card" style="flex:1;min-width:130px;text-align:center;margin:0"><div style="font-size:22px;font-weight:800;'+(color?'color:'+color:'')+'">'+W.esc(String(v))+'</div><div style="font-size:10px;color:var(--w-muted);margin-top:4px">'+W.esc(l)+'</div></div>'};
+W.sglInternalLoad=async function(){
+    var box=document.getElementById('sgl-internal'); if(!box)return;
+    var days=W.sglInternalDays||7;
+    var r=await W.api('/api/v1/admin/seo-global-launch/internal?days='+days);
+    if(!r||!r.ok||!r.data){box.innerHTML='<div class="w-empty-state"><h3>Mi tráfico no disponible</h3><p>'+W.esc((r&&r.message)||'No se pudo cargar el aislamiento de tráfico.')+'</p></div>';return}
+    var d=r.data,cur=d.current||{},cl=d.client||{},it=d.internal||{},sh=d.share||{};
+    var statusColor=cur.internal?'#0d7a58':'#b45309';
+    var statusText=cur.internal?'Este equipo está aislado como tráfico propio':'Este equipo aún no está marcado';
+    var h='<div class="w-card" style="margin-bottom:14px;border-left:4px solid '+statusColor+'"><div class="w-flex-between" style="gap:10px;flex-wrap:wrap"><div><div style="font-size:15px;font-weight:800;color:'+statusColor+'">'+W.esc(statusText)+'</div><div style="font-size:12px;color:var(--w-muted);margin-top:5px">'+(cur.internal?W.esc(cur.reason_label||cur.reason||'detectado'):'Marca este dispositivo para que tus visitas no cuenten como clientes, incluso si cierras la sesión de administrador.')+'</div><div style="font-size:11px;color:var(--w-muted);margin-top:5px">IP actual: <b>'+W.esc(cur.ip||'—')+'</b> · Sesión admin: <b>'+(cur.admin_session?'Sí':'No')+'</b> · Cookie de equipo: <b>'+(cur.cookie_marked?'Sí':'No')+'</b></div></div><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:flex-start"><select class="w-input" style="width:104px" onchange="W.sglInternalDays=parseInt(this.value)||7;W.sglInternalLoad()"><option value="1"'+(days===1?' selected':'')+'>24 h</option><option value="7"'+(days===7?' selected':'')+'>7 días</option><option value="30"'+(days===30?' selected':'')+'>30 días</option><option value="90"'+(days===90?' selected':'')+'>90 días</option></select><button class="w-btn w-btn-primary" type="button" onclick="W.sglInternalMark()">Marcar este dispositivo</button>'+(cur.cookie_marked?'<button class="w-btn w-btn-secondary" type="button" onclick="W.sglInternalUnmark()">Desmarcar</button>':'')+'<button class="w-btn w-btn-secondary" type="button" onclick="W.sglInternalAddIp()">Añadir mi IP actual</button></div></div></div>';
+    h+='<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">'+W.sglKpi(W.num(cl.requests||0),'Solicitudes clientes')+W.sglKpi(W.num(cl.page_views||0),'Vistas clientes')+W.sglKpi(W.num(cl.visitors||0),'Visitantes clientes')+W.sglKpi(W.num(it.requests||0),'Solicitudes mías','#b45309')+W.sglKpi(W.num(it.page_views||0),'Vistas mías','#b45309')+W.sglKpi((sh.page_views_pct||0)+'%','% de mis vistas','#b45309')+W.sglKpi(W.num(d.bots||0),'Bots (aparte)')+'</div>';
+    h+='<div class="w-card" style="margin-bottom:14px"><h3 style="margin:0 0 8px">Cómo se detecta “yo”</h3><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;font-size:12px"><div style="background:var(--w-surface);border:1px solid var(--w-border);border-radius:8px;padding:10px"><b>1 · Sesión de administrador</b><div style="color:var(--w-muted);margin-top:3px">Si estás logueado en el admin, tus visitas se marcan automáticamente.</div></div><div style="background:var(--w-surface);border:1px solid var(--w-border);border-radius:8px;padding:10px"><b>2 · Dispositivo firmado</b><div style="color:var(--w-muted);margin-top:3px">Cookie HMAC de larga duración. Es el sustituto real de la MAC, que no viaja en HTTP.</div></div><div style="background:var(--w-surface);border:1px solid var(--w-border);border-radius:8px;padding:10px"><b>3 · IP / CIDR</b><div style="color:var(--w-muted);margin-top:3px">Allowlist para tu red. Evita rangos amplios porque podrías ocultar clientes reales.</div></div></div><div style="font-size:11px;color:var(--w-muted);margin-top:8px">'+W.esc(d.mac_note||'')+'</div></div>';
+    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">';
+    h+='<div class="w-card"><h3 style="margin:0 0 8px">Motivos de detección</h3>';
+    if(!(d.reasons||[]).length)h+='<div style="font-size:12px;color:var(--w-muted)">Aún no hay tráfico propio en este período.</div>';
+    else{h+='<table class="w-table"><thead><tr><th>Motivo</th><th>Solicitudes</th><th>Vistas</th></tr></thead><tbody>';d.reasons.forEach(function(x){h+='<tr><td>'+W.esc(x.label||x.reason||'—')+'</td><td>'+W.num(x.requests||0)+'</td><td>'+W.num(x.page_views||0)+'</td></tr>'});h+='</tbody></table>'}
+    h+='</div><div class="w-card"><h3 style="margin:0 0 8px">Eventos propios</h3><div class="sgl-live__stats">'+W.sglLiveStat(W.num(it.events||0),'Eventos')+W.sglLiveStat(W.num(it.sessions||0),'Sesiones')+W.sglLiveStat(W.num(it.event_views||0),'Vistas')+W.sglLiveStat(W.num(it.interactions||0),'Clics')+W.sglLiveStat(W.num(it.submits||0),'Formularios')+W.sglLiveStat(W.num(it.analytics_views||0),'Vistas analytics')+'</div><div style="font-size:11px;color:var(--w-muted);margin-top:8px">Los eventos requieren consentimiento de analítica; las solicitudes del servidor se miden siempre.</div><div style="font-size:12px;margin-top:8px"><b>Pedidos internos:</b> '+W.num(it.orders||0)+'</div></div></div>';
+    h+='<div class="w-card" style="margin-bottom:14px"><div class="w-flex-between" style="gap:10px;flex-wrap:wrap"><div><h3 style="margin:0 0 6px">Allowlist de IP / CIDR</h3><div style="font-size:11px;color:var(--w-muted)">Solo se excluyen las IPs de esta lista. La IP actual se añade como /32 o /128.</div></div><div style="display:flex;gap:6px;flex-wrap:wrap"><input class="w-input" id="sgl-net-cidr" placeholder="190.84.116.204 o 190.84.0.0/16" style="min-width:220px"/><input class="w-input" id="sgl-net-label" placeholder="Etiqueta (casa, oficina)" style="min-width:150px"/><button class="w-btn w-btn-primary" type="button" onclick="W.sglInternalAddNetwork()">Añadir red</button></div></div>';
+    if(!(d.networks||[]).length)h+='<div style="font-size:12px;color:var(--w-muted);margin-top:10px">Sin IPs permitidas. Marca el dispositivo o añade tu IP actual.</div>';
+    else{h+='<div style="overflow:auto;margin-top:10px"><table class="w-table"><thead><tr><th>CIDR</th><th>Etiqueta</th><th>Creada</th><th></th></tr></thead><tbody>';d.networks.forEach(function(n){h+='<tr><td><b>'+W.esc(n.cidr)+'</b></td><td>'+W.esc(n.label||'—')+'</td><td>'+W.esc(W.sglShortDate(n.created_at))+'</td><td><button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="W.sglInternalDeleteNetwork('+n.id+')">Quitar</button></td></tr>'});h+='</tbody></table></div>'}
+    h+='<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:10px"><button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="W.sglInternalBackfill(true)">Previsualizar históricos</button><button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="W.sglInternalBackfill(false)">Reclasificar históricos</button><span id="sgl-backfill-msg" style="font-size:11px;color:var(--w-muted)"></span></div></div>';
+    h+='<div class="w-card" style="margin-bottom:14px"><h3 style="margin:0 0 8px">Dispositivos marcados</h3>';
+    if(!(d.devices||[]).length)h+='<div style="font-size:12px;color:var(--w-muted)">Aún no hay dispositivos marcados.</div>';
+    else{h+='<div style="overflow:auto"><table class="w-table"><thead><tr><th>Etiqueta</th><th>Estado</th><th>Último uso</th><th></th></tr></thead><tbody>';d.devices.forEach(function(x){h+='<tr><td><b>'+W.esc(x.label||'Este equipo')+'</b><div style="font-size:10px;color:var(--w-muted)">'+W.esc((x.user_agent||'').slice(0,90))+'</div></td><td style="color:'+(x.active?'#0d7a58':'#b42318')+';font-weight:700">'+(x.active?'Activo':'Revocado')+'</td><td>'+W.esc(W.sglShortDate(x.last_seen_at||x.created_at))+'</td><td>'+(x.active?'<button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="W.sglInternalRevokeDevice('+x.id+')">Revocar</button>':'')+'</td></tr>'});h+='</tbody></table></div>'}
+    h+='</div>';
+    h+='<div class="w-card" style="margin-bottom:14px"><h3 style="margin:0 0 8px">Últimas solicitudes propias</h3>';
+    if(!(d.latest||[]).length)h+='<div style="font-size:12px;color:var(--w-muted)">Sin solicitudes propias en el período.</div>';
+    else{h+='<div style="overflow:auto"><table class="w-table"><thead><tr><th>Hora</th><th>Ruta</th><th>Estado</th><th>Tipo</th><th>Motivo</th><th>IP</th></tr></thead><tbody>';d.latest.forEach(function(x){h+='<tr><td>'+W.esc(W.sglShortDate(x.created_at))+'</td><td style="max-width:300px;word-break:break-all">'+W.esc(x.path)+'</td><td>'+W.esc(String(x.status||0))+'</td><td>'+(x.is_page_view?'Vista':'Recurso')+'</td><td>'+W.esc(x.reason_label||x.reason||'—')+'</td><td>'+W.esc(x.ip||'—')+'</td></tr>'});h+='</tbody></table></div>'}
+    h+='</div>';
+    h+='<div class="w-card"><h3 style="margin:0 0 8px">Últimos eventos propios</h3>';
+    if(!(d.latest_events||[]).length)h+='<div style="font-size:12px;color:var(--w-muted)">Sin eventos propios. Si no aceptaste analítica, las visitas igual aparecen en las solicitudes del servidor.</div>';
+    else{h+='<div style="overflow:auto"><table class="w-table"><thead><tr><th>Hora</th><th>Tipo</th><th>Página</th><th>Motivo</th></tr></thead><tbody>';d.latest_events.forEach(function(x){h+='<tr><td>'+W.esc(W.sglShortDate(x.created_at))+'</td><td>'+W.esc(x.type)+'</td><td style="max-width:320px;word-break:break-all">'+W.esc(x.page_url||'—')+'</td><td>'+W.esc(x.reason_label||x.reason||'—')+'</td></tr>'});h+='</tbody></table></div>'}
+    h+='</div>';
+    box.innerHTML=h;
+};
+W.sglInternalMark=async function(){
+    var r=await W.api('/api/v1/admin/seo-global-launch/internal/device/mark',{method:'POST',body:{label:'Este equipo'}});
+    W.notify((r&&r.message)||(r&&r.ok?'Equipo marcado':'No se pudo marcar'),r&&r.ok?'success':'error');
+    if(r&&r.ok)W.sglInternalLoad();
+};
+W.sglInternalUnmark=async function(){
+    if(!window.confirm('¿Desmarcar este equipo? Volverá a contar como cliente hasta que lo marques de nuevo.'))return;
+    var r=await W.api('/api/v1/admin/seo-global-launch/internal/device/unmark',{method:'POST'});
+    W.notify((r&&r.message)||(r&&r.ok?'Equipo desmarcado':'No se pudo desmarcar'),r&&r.ok?'success':'error');
+    if(r&&r.ok)W.sglInternalLoad();
+};
+W.sglInternalAddIp=async function(){
+    var r=await W.api('/api/v1/admin/seo-global-launch/internal/networks',{method:'POST',body:{current:true,label:'Mi IP actual'}});
+    W.notify((r&&r.message)||(r&&r.ok?'IP añadida':'No se pudo añadir la IP'),r&&r.ok?'success':'error');
+    if(r&&r.ok)W.sglInternalLoad();
+};
+W.sglInternalAddNetwork=async function(){
+    var cidr=(document.getElementById('sgl-net-cidr')||{}).value||'';
+    var label=(document.getElementById('sgl-net-label')||{}).value||'';
+    if(!cidr.trim()){W.notify('Escribe una IP o un CIDR','info');return}
+    var r=await W.api('/api/v1/admin/seo-global-launch/internal/networks',{method:'POST',body:{cidr:cidr,label:label}});
+    W.notify((r&&r.message)||(r&&r.ok?'Red añadida':'No se pudo añadir la red'),r&&r.ok?'success':'error');
+    if(r&&r.ok)W.sglInternalLoad();
+};
+W.sglInternalDeleteNetwork=async function(id){
+    if(!window.confirm('¿Quitar esta red de la allowlist? Sus visitas volverán a contar como clientes hasta que la añadas de nuevo.'))return;
+    var r=await W.api('/api/v1/admin/seo-global-launch/internal/networks/'+id,{method:'DELETE'});
+    W.notify((r&&r.message)||(r&&r.ok?'Red eliminada':'No se pudo eliminar'),r&&r.ok?'success':'error');
+    if(r&&r.ok)W.sglInternalLoad();
+};
+W.sglInternalRevokeDevice=async function(id){
+    if(!window.confirm('¿Revocar este dispositivo? Dejará de estar aislado como tráfico propio.'))return;
+    var r=await W.api('/api/v1/admin/seo-global-launch/internal/devices/'+id+'/revoke',{method:'POST'});
+    W.notify((r&&r.message)||(r&&r.ok?'Dispositivo revocado':'No se pudo revocar'),r&&r.ok?'success':'error');
+    if(r&&r.ok)W.sglInternalLoad();
+};
+W.sglInternalBackfill=async function(dry){
+    if(!dry&&!window.confirm('Esto marcará como internos los históricos de las IPs permitidas. No se borra nada. ¿Continuar?'))return;
+    var msg=document.getElementById('sgl-backfill-msg');
+    if(msg)msg.textContent='Procesando...';
+    var r=await W.api('/api/v1/admin/seo-global-launch/internal/backfill',{method:'POST',body:{dry_run:!!dry}});
+    if(!r||!r.ok){if(msg)msg.textContent=(r&&r.message)||'No se pudo reclasificar';W.notify((r&&r.message)||'No se pudo reclasificar','error');return}
+    var c=r.counts||{};
+    var txt=(dry?'Potencial':'Reclasificado')+': '+W.num(c.live_requests||0)+' solicitudes, '+W.num(c.events||0)+' eventos, '+W.num(c.analytics_views||0)+' vistas analytics, '+W.num(c.orders||0)+' pedidos.';
+    if(msg)msg.textContent=txt;
+    W.notify(txt,dry?'info':'success');
+    if(!dry)W.sglInternalLoad();
+};
+
+// ── Pauta Meta ──────────────────────────────────
+W.sglMetaDays=30;
+W.sglMetaLoad=async function(){
+    var box=document.getElementById('sgl-meta'); if(!box)return;
+    var days=W.sglMetaDays||30;
+    var r=await W.api('/api/v1/admin/seo-global-launch/meta?days='+days);
+    if(!r||!r.ok){box.innerHTML='<div class="w-empty-state"><h3>Pauta Meta no disponible</h3><p>'+W.esc((r&&r.message)||'No se pudo cargar el reporte.')+'</p></div>';return}
+    W._sglMeta=r;
+    var s=r.summary||{},fn=r.funnel||{},oc=r.orders_context||{},notes=r.notes||[];
+    var h='<div class="w-card" style="margin-bottom:14px"><div class="w-flex-between" style="gap:10px;flex-wrap:wrap"><div><h3 style="margin:0">Resultados reales de Meta</h3><p style="font-size:12px;color:var(--w-muted);margin:5px 0 0">Pauta reconocida por <b>fbclid</b> o UTM de Meta con medio pagado. El tráfico propio y los bots están excluidos.</p></div><div style="display:flex;gap:6px;flex-wrap:wrap"><select class="w-input" style="width:110px" onchange="W.sglMetaDays=parseInt(this.value)||30;W.sglMetaLoad()"><option value="7"'+(days===7?' selected':'')+'>7 días</option><option value="14"'+(days===14?' selected':'')+'>14 días</option><option value="30"'+(days===30?' selected':'')+'>30 días</option><option value="90"'+(days===90?' selected':'')+'>90 días</option></select><button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="W.sglMetaBackfill()">Reconstruir atribución histórica</button><button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="W.sglMetaLoad()">Actualizar</button><button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="W.sglMetaExport()">Exportar CSV</button></div></div>';
+    h+='<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px">'+W.sglKpi(W.num(s.visits||0),'Visitas de pauta')+W.sglKpi(W.num(s.visitors||0),'Visitantes / sesiones')+W.sglKpi(W.num(s.sessions||0),'Sesiones')+W.sglKpi((s.share_pct||0)+'%','% del tráfico real','#0d7a58')+W.sglKpi(W.num(s.cart_adds||0),'Al carrito')+W.sglKpi(W.num(s.checkout_starts||0),'Checkout')+W.sglKpi(W.num(s.purchases||0),'Compras atribuidas','#0d7a58')+W.sglKpi(W.ocMoney(s.revenue_cents||0,'COP'),'Ingresos atribuidos')+'</div>';
+    h+='<div style="font-size:11px;color:var(--w-muted);margin-top:8px">Vistas clientes del período: '+W.num(s.total_client_views||0)+' · Landings de servidor en los últimos 90 días: '+W.num(s.landing_requests||0)+' solicitudes / '+W.num(s.landing_visitors||0)+' visitantes · Conversión atribuida: '+(s.conversion_pct||0)+'%</div></div>';
+    if(!r.has_data)h+='<div class="w-card" style="margin-bottom:14px;border-left:4px solid #b45309"><h3 style="margin:0 0 6px">Todavía no hay datos de Meta en este período</h3><p style="font-size:12px;color:var(--w-muted);margin:0">Abre un anuncio con <b>fbclid</b> o etiqueta la URL con <b>utm_source=facebook|ig|meta</b> y <b>utm_medium=paid_social|cpc</b>. Si la pauta ya corrió, pulsa <b>Reconstruir atribución histórica</b> para extraer UTM/fbclid de las URLs guardadas.</p></div>';
+    h+='<div class="w-card" style="margin-bottom:14px"><h3 style="margin:0 0 8px">Comparación por ventana</h3><div style="display:flex;gap:10px;flex-wrap:wrap">'+(r.ranges||[]).map(function(x){return W.sglKpi(W.num(x.visits||0),x.label+' · '+W.num(x.visitors||0)+' visitantes/sesiones · '+W.num(x.purchases||0)+' compras')}).join('')+'</div></div>';
+    var table=function(title,rows,cols){
+        var x='<div class="w-card" style="margin-bottom:14px"><h3 style="margin:0 0 8px">'+title+'</h3>';
+        if(!rows||!rows.length)return x+'<div style="font-size:12px;color:var(--w-muted)">Sin datos en el período.</div></div>';
+        x+='<div style="overflow:auto"><table class="w-table"><thead><tr>'+cols.map(function(c){return '<th>'+W.esc(c[0])+'</th>'}).join('')+'</tr></thead><tbody>';
+        rows.forEach(function(row){x+='<tr>'+cols.map(function(c){return '<td style="max-width:340px;word-break:break-all">'+W.esc(c[1](row))+'</td>'}).join('')+'</tr>'});
+        return x+'</tbody></table></div></div>';
+    };
+    h+=table('Campañas y anuncios',r.campaigns||[],[['Campaña',function(x){return x.campaign||'—'}],['Fuente / medio',function(x){return (x.source||'—')+' / '+(x.medium||'—')}],['Contenido',function(x){return x.content||'—'}],['Término',function(x){return x.term||'—'}],['Visitas',function(x){return W.num(x.visits||0)}],['Únicos',function(x){return W.num(x.visitors||0)}],['Sesiones',function(x){return W.num(x.sessions||0)}]]);
+    h+=table('Landings de la pauta',r.landing||[],[['Landing',function(x){return x.landing||'—'}],['Visitas',function(x){return W.num(x.visits||0)}],['Únicos',function(x){return W.num(x.visitors||0)}]]);
+    h+=table('Fuentes y medios',r.sources||[],[['Fuente',function(x){return x.source||'—'}],['Medio',function(x){return x.medium||'—'}],['Visitas',function(x){return W.num(x.visits||0)}],['Únicos',function(x){return W.num(x.visitors||0)}]]);
+    h+=table('Embudo por campaña (consentimiento)',r.campaign_funnel||[],[['Campaña',function(x){return x.campaign||'—'}],['Carrito',function(x){return W.num(x.cart_adds||0)}],['Checkout',function(x){return W.num(x.checkout_starts||0)}],['Compras',function(x){return W.num(x.purchases||0)}],['Ingresos',function(x){return W.ocMoney(x.revenue_cents||0,'COP')}]]);
+    h+=table('Evolución diaria',r.daily||[],[['Día',function(x){return x.day||'—'}],['Visitas',function(x){return W.num(x.visits||0)}],['Únicos',function(x){return W.num(x.visitors||0)}]]);
+    h+='<div class="w-card" style="margin-bottom:14px"><h3 style="margin:0 0 8px">Contexto del negocio (no atribuido)</h3><div class="sgl-live__stats">'+W.sglLiveStat(W.num(oc.paid||0),'Pedidos pagados')+W.sglLiveStat(W.ocMoney(oc.revenue_cents||0,'COP'),'Ingresos totales')+W.sglLiveStat(W.num(fn.product_views||0),'Productos vistos (pauta)')+W.sglLiveStat(W.num(fn.purchases||0),'Compras atribuidas')+'</div><div style="font-size:11px;color:var(--w-muted);margin-top:8px">Los pedidos pagados son contexto del período; no se atribuyen a Meta sin una señal de campaña.</div></div>';
+    h+='<div class="w-card"><h3 style="margin:0 0 6px">Cómo leer este reporte</h3><ul style="font-size:12px;color:var(--w-muted);line-height:1.8;margin:0;padding-left:18px">'+notes.map(function(n){return '<li>'+W.esc(n)+'</li>'}).join('')+'</ul></div>';
+    box.innerHTML=h;
+};
+W.sglMetaExport=function(){
+    var d=W._sglMeta||{},s=d.summary||{};
+    var lines=['Pauta Meta · '+ (d.days||W.sglMetaDays) +' días',''];
+    lines.push('Visitas,'+ (s.visits||0));
+    lines.push('Visitantes únicos,'+ (s.visitors||0));
+    lines.push('Sesiones,'+ (s.sessions||0));
+    lines.push('% del tráfico real,'+ (s.share_pct||0));
+    lines.push('Carrito,'+ (s.cart_adds||0));
+    lines.push('Checkout,'+ (s.checkout_starts||0));
+    lines.push('Compras atribuidas,'+ (s.purchases||0));
+    lines.push('Ingresos atribuidos (cents),'+ (s.revenue_cents||0));
+    lines.push('');
+    lines.push('Campaña,Fuente,Medio,Contenido,Término,Visitas,Únicos,Sesiones');
+    (d.campaigns||[]).forEach(function(x){
+        var row=[x.campaign,x.source,x.medium,x.content,x.term,x.visits,x.visitors,x.sessions];
+        lines.push(row.map(function(v){return '"'+String(v==null?'':v).replace(/"/g,'""')+'"'}).join(','));
+    });
+    var blob=new Blob(['\uFEFF'+lines.join('\n')],{type:'text/csv;charset=utf-8;'});
+    var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='pauta-meta-'+(d.days||W.sglMetaDays)+'d.csv';document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},500);
+};
+W.sglMetaBackfill=async function(){
+    if(!window.confirm('Reconstruir UTM/fbclid desde las URLs históricas ya guardadas. No inventa datos. ¿Continuar?'))return;
+    var r=await W.api('/api/v1/admin/seo-global-launch/meta/backfill',{method:'POST',body:{limit:5000}});
+    if(r&&r.ok){var u=r.updated||{};W.notify('Atribución reconstruida: '+(u.analytics_views||0)+' vistas y '+(u.seo_tracking_events||0)+' eventos','success');W.sglMetaLoad()}else W.notify((r&&r.message)||'No se pudo reconstruir','error');
+};
+
+W.sglOppGo=function(action){
+    if(action==='redirecciones'||action==='404s'||action==='enlaces-rotos'){location.hash='#seo-global-launch/'+action;return}
+    if(action==='generate'){W.sglAction('generate',null);return}
+    if(action==='pedidos'){location.hash='#order-center/pedidos';return}
+    if(action==='carrito'){W.notify('Abre la recuperación de carritos configurada en Tienda.','info');return}
+    W.notify('Instrumenta los eventos del funnel para resolver esta oportunidad.','info');
+};
+
+W._sglLive={timer:null,paused:false,lastId:0,items:[],busy:false};
+W.sglLiveStop=function(){
+    if(W._sglLive&&W._sglLive.timer){clearTimeout(W._sglLive.timer);W._sglLive.timer=null}
+};
+W.sglLiveStart=function(){
+    W._sglLive={timer:null,paused:false,lastId:0,items:[],busy:false};
+    var p=document.getElementById('sgl-live-pause'); if(p)p.textContent='Pausar';
+    W.sglLiveFetch(true);
+};
+W.sglLiveSchedule=function(){
+    if(!document.getElementById('sgl-live')||W._sglLive.paused)return;
+    if(W._sglLive.timer)clearTimeout(W._sglLive.timer);
+    W._sglLive.timer=setTimeout(function(){W.sglLiveFetch(false)},2000);
+};
+W.sglLiveToggle=function(){
+    W._sglLive.paused=!W._sglLive.paused;
+    var b=document.getElementById('sgl-live-pause'); if(b)b.textContent=W._sglLive.paused?'Reanudar':'Pausar';
+    if(!W._sglLive.paused)W.sglLiveFetch(false);
+};
+W.sglLiveClear=function(){
+    var t=document.getElementById('sgl-term'); if(t)t.innerHTML='';
+    W._sglLive.items=[];
+};
+W.sglLiveFilterRows=function(){
+    var q=(document.getElementById('sgl-live-filter')||{}).value||'';
+    var method=(document.getElementById('sgl-live-method')||{}).value||'';
+    var status=(document.getElementById('sgl-live-status')||{}).value||'';
+    q=q.toLowerCase().trim();
+    [].slice.call(document.querySelectorAll('#sgl-term .sgl-term__line')).forEach(function(row){
+        var text=(row.textContent||'').toLowerCase();
+        var ok=(!q||text.indexOf(q)>=0)&&(!method||row.getAttribute('data-method')===method)&&(!status||String(row.getAttribute('data-status')).charAt(0)===status);
+        row.style.display=ok?'':'none';
+    });
+};
+W.sglLiveStat=function(v,l,color){
+    return '<div class="sgl-live__stat"><b'+(color?' style="color:'+color+'"':'')+'>'+W.esc(String(v))+'</b><span>'+W.esc(l)+'</span></div>';
+};
+W.sglLiveAppend=function(items){
+    var term=document.getElementById('sgl-term'); if(!term)return;
+    var empty=term.querySelector('.sgl-term__empty'); if(empty)empty.remove();
+    items.forEach(function(x){
+        W._sglLive.items.push(x);
+        var line=document.createElement('div');
+        line.className='sgl-term__line';
+        line.setAttribute('data-method',x.method||'');
+        line.setAttribute('data-status',String(x.status||0));
+        var raw=(x.created_at||'').replace(' ','T');
+        if(raw&&!/[zZ]|[+-]\d\d:\d\d$/.test(raw))raw+='Z';
+        var dt=new Date(raw);
+        var hhmmss=isNaN(dt.getTime())?new Date().toLocaleTimeString('es-CO',{hour12:false}):dt.toLocaleTimeString('es-CO',{hour12:false});
+        var code=x.status||0;
+        var color=code>=500?'#fb7185':(code>=400?'#fbbf24':(code>=300?'#a5b4fc':'#6ee7b7'));
+        var bits=[x.ip||'IP —'];
+        if(x.city)bits.push(x.city);
+        else if(x.country)bits.push(x.country);
+        if(x.device)bits.push(x.device);
+        if(x.browser)bits.push(x.browser);
+        if(x.is_internal)bits.push('YO · '+(x.internal_reason||'interno'));
+        if(x.is_bot)bits.push('bot');
+        var lineText='['+hhmmss+'] '+(x.protocol||'HTTP/1.1')+' '+code+' '+W.esc(x.method||'GET')+' '+W.esc(x.path||'/')+'  '+(x.duration_ms||0)+'ms  '+W.esc(bits.join(' · '));
+        line.innerHTML='<span style="color:'+color+'">'+lineText+'</span>';
+        if(W._sglLive.items.length>250){W._sglLive.items.shift();if(term.firstChild)term.removeChild(term.firstChild)}
+        term.appendChild(line);
+    });
+    var auto=document.getElementById('sgl-live-autoscroll');
+    if(auto&&auto.checked)term.scrollTop=term.scrollHeight;
+    W.sglLiveFilterRows();
+};
+W.sglLiveAudience=function(){
+    W._sglLive.lastId=0;W._sglLive.items=[];
+    var term=document.getElementById('sgl-term');
+    if(term)term.innerHTML='<div class="sgl-term__empty">Cambiando de audiencia…</div>';
+    W.sglLiveFetch(true);
+};
+W.sglLiveFetch=async function(first){
+    if(W._sglLive.busy)return;
+    var box=document.getElementById('sgl-live'); if(!box)return;
+    W._sglLive.busy=true;
+    try{
+        var audience=(document.getElementById('sgl-live-audience')||{}).value||'client';
+        var r=await W.api('/api/v1/admin/seo-global-launch/live?after_id='+(first?0:W._sglLive.lastId)+'&limit=100&audience='+encodeURIComponent(audience));
+        var d=(r&&r.data)||{};
+        var items=d.items||[];
+        if(items.length){
+            W._sglLive.lastId=Math.max.apply(null,items.map(function(x){return x.id||0}));
+            W.sglLiveAppend(items);
+        }else if(first){
+            var term=document.getElementById('sgl-term');
+            if(term)term.innerHTML='<div class="sgl-term__empty">Sin peticiones para esta audiencia. Cambia el filtro o espera tráfico.</div>';
+        }
+        var s=d.stats||{},cs=d.client_stats||{},is=d.internal_stats||{},bs=d.bot_stats||{};
+        var stats=document.getElementById('sgl-live-stats');
+        if(stats){
+            stats.innerHTML=W.sglLiveStat(s.requests||0,'Solicitudes')+W.sglLiveStat(s.page_views||0,'Vistas de página')+W.sglLiveStat(s.unique_visitors||0,'Visitantes')+W.sglLiveStat(s.ok||0,'2xx','#6ee7b7')+W.sglLiveStat((s.client_errors||0)+(s.server_errors||0),'4xx/5xx','#fb7185')+W.sglLiveStat((s.avg_ms||0)+' ms','Latencia media')+W.sglLiveStat((s.mobile||0)+'M · '+(s.desktop||0)+'D · '+(s.tablet||0)+'T · '+(s.tv||0)+'TV','Dispositivos')+W.sglLiveStat(cs.requests||0,'Clientes 24h')+W.sglLiveStat(is.requests||0,'Yo 24h','#b45309')+W.sglLiveStat(bs.requests||0,'Bots 24h','#fbbf24');
+        }
+        var clock=document.getElementById('sgl-live-clock'); if(clock)clock.textContent=new Date().toLocaleTimeString('es-CO',{hour12:false});
+    }catch(e){
+        var term=document.getElementById('sgl-term');
+        if(first&&term)term.innerHTML='<div class="sgl-term__empty">No se pudo conectar con el monitor. Revisa la sesión o las tablas del brick.</div>';
+    }finally{
+        W._sglLive.busy=false;
+        W.sglLiveSchedule();
+    }
+};
+W._sglSec={data:null};
+W.sglSecurityLoad=async function(){
+    var box=document.getElementById('sgl-security'); if(!box)return;
+    var r=await W.api('/api/v1/admin/seo-global-launch/security?window=3600');
+    if(!r||!r.ok){box.innerHTML='<div class="w-empty-state"><h3>No disponible</h3><p>'+W.esc((r&&r.message)||'No se pudo cargar seguridad IP.')+'</p></div>';return}
+    W._sglSec.data=r;
+    var ind=r.individual||[],camps=r.campaigns||[],blocks=r.blocked||[];
+    var color=function(v){return v>=70?'#fb7185':(v>=40?'#fbbf24':'#34d399')};
+    var h='<div class="w-card" style="margin-bottom:14px"><div class="w-flex-between" style="gap:10px;flex-wrap:wrap"><div><h3 style="margin:0">Seguridad IP</h3><p style="font-size:12px;color:var(--w-muted);margin:5px 0 0">Analiza IPs, verifica bots, detecta campañas distribuidas y bloquea el tráfico ofensivo. El bloqueo es de aplicación.</p></div><button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="W.sglSecurityLoad()">Actualizar</button></div>'
+        +'<div class="sgl-live__stats" style="margin-top:12px">'+W.sglLiveStat(r.events||0,'Peticiones analizadas')+W.sglLiveStat(ind.length,'IPs con señales')+W.sglLiveStat(camps.length,'Campañas')+W.sglLiveStat(blocks.length,'IPs bloqueadas','#fb7185')+'</div>'
+        +'<div style="display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-top:12px"><input class="w-input" id="sgl-sec-ip" placeholder="IP a analizar, por ejemplo 74.7.227.157" style="flex:1;min-width:220px"/><button class="w-btn w-btn-primary" type="button" onclick="W.sglSecScan()">Escanear IP</button>'+(ind[0]?'<button class="w-btn w-btn-secondary" type="button" onclick="W.sglSecScan(\''+W.esc(ind[0].ip)+'\')">Escanear la principal</button>':'')+'</div><div id="sgl-sec-scan-result" style="margin-top:12px"></div></div>';
+    h+='<div class="w-card" style="margin-bottom:14px"><h3 style="margin:0 0 8px">IPs con señales en la última hora</h3>';
+    if(!ind.length)h+='<div style="font-size:12px;color:var(--w-muted)">Sin señales suficientes. El monitor seguirá acumulando datos.</div>';
+    else{
+        h+='<div style="overflow:auto"><table class="w-table"><thead><tr><th>IP</th><th>Ubicación</th><th>Peticiones</th><th>Error</th><th>Riesgo</th><th></th></tr></thead><tbody>';
+        ind.slice(0,20).forEach(function(x){
+            h+='<tr><td style="font-family:var(--w-font-mono);font-size:11px">'+W.esc(x.ip)+(x.bot>0?' <span style="font-size:9px;color:#fbbf24">bot</span>':'')+'</td><td style="font-size:11px">'+W.esc([x.city,x.country].filter(Boolean).join(', ')||'—')+(x.asn?'<div style="font-size:9px;color:var(--w-muted)">'+W.esc(x.asn)+'</div>':'')+'</td><td>'+W.num(x.requests||0)+'</td><td>'+W.num(x.errors||0)+'</td><td><b style="color:'+color(x.score||0)+'">'+W.num(x.score||0)+'</b><div style="font-size:9px;color:var(--w-muted)">'+W.esc(x.verdict||'')+'</div></td><td style="white-space:nowrap"><button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="W.sglSecScan(\''+W.esc(x.ip)+'\')">Escanear</button> <button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="W.sglSecBlock(\''+W.esc(x.ip)+'\')">Bloquear</button></td></tr>';
+        });
+        h+='</tbody></table></div>';
+    }
+    h+='</div>';
+    h+='<div class="w-card" style="margin-bottom:14px"><h3 style="margin:0 0 8px">Campañas distribuidas</h3><p style="font-size:11px;color:var(--w-muted);margin:0 0 10px">Agrupa la misma técnica (User-Agent + ruta) desde varias IPs, incluyendo VPN/proxy cuando el proveedor lo reporta.</p>';
+    if(!camps.length)h+='<div style="font-size:12px;color:var(--w-muted)">No hay campañas con los umbrales actuales.</div>';
+    else{
+        camps.forEach(function(x,i){
+            h+='<div style="border:1px solid var(--w-border);border-radius:10px;padding:10px;margin-bottom:8px"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><div><b style="font-size:12px">'+W.esc(x.reason||'Firma repetida')+'</b><div style="font-size:11px;color:var(--w-muted);margin-top:3px">'+W.esc(x.signature||'')+' · '+W.num(x.ip_count||0)+' IPs · '+W.num(x.requests||0)+' peticiones · '+W.num(x.errors||0)+' errores</div><div style="font-size:10px;color:var(--w-muted);margin-top:4px;word-break:break-all">'+W.esc((x.ips||[]).slice(0,8).join(', '))+((x.ips||[]).length>8?'…':'')+'</div></div><div style="text-align:right"><div style="font-size:18px;font-weight:800;color:'+color(x.risk||0)+'">'+W.num(x.risk||0)+'</div>'+(x.kind==='bot_distribuido'?'<span style="font-size:10px;color:#34d399">Bot conocido · no bloquear automáticamente</span>':'<button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="W.sglSecBlockCampaign('+i+')">Bloquear IPs</button>')+'</div></div></div>';
+        });
+    }
+    h+='</div>';
+    h+='<div class="w-card"><h3 style="margin:0 0 8px">IPs bloqueadas</h3>';
+    if(!blocks.length)h+='<div style="font-size:12px;color:var(--w-muted)">No hay bloqueos activos.</div>';
+    else{
+        h+='<div style="overflow:auto"><table class="w-table"><thead><tr><th>IP</th><th>Motivo</th><th>Creado</th><th>Expira</th><th></th></tr></thead><tbody>';
+        blocks.forEach(function(x){h+='<tr><td style="font-family:var(--w-font-mono);font-size:11px">'+W.esc(x.ip)+'</td><td style="font-size:11px">'+W.esc(x.reason||'')+'</td><td style="font-size:10px">'+W.esc(x.created_at||'')+'</td><td style="font-size:10px">'+W.esc(x.expires_at||'Permanente')+'</td><td><button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="W.sglSecUnblock(\''+W.esc(x.ip)+'\')">Desbloquear</button></td></tr>'});
+        h+='</tbody></table></div>';
+    }
+    h+='<p style="font-size:10px;color:var(--w-muted);line-height:1.5;margin:10px 0 0">Los datos de IP son internos y visibles solo para administradores. La geolocalización/proxy es una estimación del proveedor; el bloqueo de aplicación no reemplaza un firewall perimetral.</p></div>';
+    box.innerHTML=h;
+};
+W.sglSecScan=async function(ip){
+    ip=(ip||((document.getElementById('sgl-sec-ip')||{}).value)||'').trim();
+    var out=document.getElementById('sgl-sec-scan-result'); if(!out)return;
+    if(!ip){W.notify('Escribe una IP válida','error');return}
+    out.innerHTML='<div class="w-card" style="margin:0;padding:12px;color:var(--w-muted);font-size:12px">Consultando '+W.esc(ip)+'…</div>';
+    var r=await W.api('/api/v1/admin/seo-global-launch/ip?ip='+encodeURIComponent(ip));
+    if(!r||!r.ok){out.innerHTML='<div class="w-card" style="margin:0;padding:12px;color:#fb7185">'+W.esc((r&&r.message)||'No se pudo analizar la IP.')+'</div>';return}
+    var i=r.intel||{},a=r.activity||{},b=r.bot||{},ev=(r.evidence||[]).map(function(x){return '<li>'+W.esc(x)+'</li>'}).join('');
+    var col=r.score>=70?'#fb7185':(r.score>=40?'#fbbf24':'#34d399');
+    var where=[i.city,i.region,i.country].filter(Boolean).join(', ')||'No disponible';
+    var botTxt=b.verified?'Verificado por DNS inverso':(b.claimed?'Declarado, no verificado':'No identificado');
+    var h='<div class="w-card" style="margin:0;border-left:3px solid '+col+'"><div class="w-flex-between" style="gap:8px;flex-wrap:wrap"><div><h3 style="margin:0;font-family:var(--w-font-mono)">'+W.esc(r.ip)+'</h3><div style="font-size:11px;color:var(--w-muted);margin-top:4px">'+W.esc(where)+' · '+W.esc(i.isp||i.org||'ISP no disponible')+' · '+W.esc(i.asn||'ASN no disponible')+'</div></div><div style="text-align:right"><div style="font-size:22px;font-weight:800;color:'+col+'">'+W.num(r.score||0)+'</div><div style="font-size:10px;color:var(--w-muted)">'+W.esc(r.verdict||'')+'</div></div></div>'
+        +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin-top:10px;font-size:11px"><div><b>ISP:</b> '+W.esc(i.isp||'—')+'</div><div><b>Org:</b> '+W.esc(i.org||'—')+'</div><div><b>Proxy/VPN:</b> '+(i.proxy?'Sí (indicio)':'No reportado')+'</div><div><b>Hosting:</b> '+(i.hosting?'Sí':'No')+'</div><div><b>Bot:</b> '+W.esc(botTxt)+'</div><div><b>DNS inverso:</b> '+W.esc(b.reverse_host||'—')+'</div><div><b>Peticiones:</b> '+W.num(a.requests||0)+'</div><div><b>Errores:</b> '+W.num(a.errors||0)+'</div><div><b>Rutas sensibles:</b> '+W.num(a.sensitive||0)+'</div><div><b>Rutas únicas:</b> '+W.num(a.unique_paths||0)+'</div></div>'
+        +(ev?'<ul style="font-size:11px;color:var(--w-muted);margin:9px 0">'+ev+'</ul>':'')
+        +'<p style="font-size:11px;color:var(--w-muted);margin:0">'+W.esc(r.recommendation||'')+'</p>'
+        +(a.paths&&a.paths.length?'<div style="font-size:10px;color:var(--w-muted);margin-top:6px">Rutas: '+W.esc(a.paths.join(', '))+'</div>':'')
+        +'<div style="margin-top:10px">'+(r.blocked?'<button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="W.sglSecUnblock(\''+W.esc(r.ip)+'\')">Desbloquear IP</button>':'<button class="w-btn w-btn-primary w-btn-sm" type="button" onclick="W.sglSecBlock(\''+W.esc(r.ip)+'\')">Bloquear IP</button>')+'</div></div>';
+    out.innerHTML=h;
+};
+W.sglSecBlock=function(ip){
+    var reason=window.prompt('Motivo del bloqueo para '+ip, 'Ataque o abuso detectado desde el monitor SEO');
+    if(reason===null)return;
+    var hours=window.prompt('Duración en horas (0 = permanente)', '24');
+    if(hours===null)return;
+    W.api('/api/v1/admin/seo-global-launch/ip/block',{method:'POST',body:{ip:ip,reason:reason,hours:parseInt(hours,10)||0}}).then(function(r){
+        if(r&&r.ok){W.notify('IP bloqueada','success');W.sglSecurityLoad()}else W.notify((r&&r.message)||'No se pudo bloquear','error');
+    });
+};
+W.sglSecUnblock=function(ip){
+    W.confirm('¿Desbloquear '+ip+'?',function(){
+        W.api('/api/v1/admin/seo-global-launch/ip/unblock',{method:'POST',body:{ip:ip}}).then(function(r){
+            if(r&&r.ok){W.notify('IP desbloqueada','success');W.sglSecurityLoad()}else W.notify((r&&r.message)||'No se pudo desbloquear','error');
+        });
+    });
+};
+W.sglSecBlockCampaign=function(index){
+    var d=W._sglSec&&W._sglSec.data||{},c=(d.campaigns||[])[index]; if(!c)return;
+    W.confirm('¿Bloquear '+c.ip_count+' IPs de esta campaña?',function(){
+        W.api('/api/v1/admin/seo-global-launch/ip/block-bulk',{method:'POST',body:{ips:c.ips||[],reason:'Campaña distribuida: '+c.reason+' ('+c.signature+')',hours:24}}).then(function(r){
+            if(r&&r.ok){W.notify('IPs bloqueadas: '+(r.blocked||0),'success');W.sglSecurityLoad()}else W.notify((r&&r.message)||'No se pudo bloquear','error');
+        });
+    });
+};
+W._sglInt={};
+W.sglIntegrationsLoad=async function(){
+    var box=document.getElementById('sgl-integrations'); if(!box)return;
+    var r=await W.api('/api/v1/admin/seo-global-launch/integrations');
+    if(!r||!r.ok||!r.data){box.innerHTML='<div class="w-empty-state"><h3>No disponible</h3><p>'+W.esc((r&&r.message)||'No se pudieron cargar las integraciones.')+'</p></div>';return}
+    var d=r.data||{}; W._sglInt=d;
+    var badge=function(on){return '<span class="w-badge" style="background:'+(on?'rgba(52,211,153,.12)':'rgba(148,163,184,.12)')+';color:'+(on?'#34d399':'#94a3b8')+'">'+(on?'CONFIGURADA':'SIN CONFIGURAR')+'</span>'};
+    var h='<div class="w-card" style="margin-bottom:14px"><div class="w-flex-between" style="gap:10px;flex-wrap:wrap"><div><h3 style="margin:0">Integraciones</h3><p style="font-size:12px;color:var(--w-muted);margin:5px 0 0">Conecta el sitio con buscadores y medición externa. Los secretos se guardan cifrados y no se vuelven a mostrar.</p></div><span style="font-size:10px;color:var(--w-muted)">Sitio: '+W.esc(d.site_url||'')+'</span></div>'
+        +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-top:14px">'
+        +'<div class="w-card" style="margin:0;padding:13px"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b>IndexNow</b>'+badge(d.indexnow&&d.indexnow.configured)+'</div><p style="font-size:11px;color:var(--w-muted);line-height:1.5;margin:6px 0 8px">Avisa a Bing, Yandex y otros motores compatibles cuando publiques URLs.</p><label class="w-label">Clave</label><div style="display:flex;gap:6px"><input class="w-input" id="sgl-int-indexnow" value="'+W.esc((d.indexnow&&d.indexnow.key)||'')+'" placeholder="Se genera al guardar" style="flex:1;min-width:0"/><button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="W.sglIntGenerate()">Generar</button></div><button class="w-btn w-btn-secondary w-btn-sm" style="margin-top:8px" type="button" onclick="W.sglIntRun(\'indexnow\',this)">Enviar sitemap</button></div>'
+        +'<div class="w-card" style="margin:0;padding:13px"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b>PageSpeed Insights</b>'+badge(d.pagespeed&&d.pagespeed.configured)+'</div><p style="font-size:11px;color:var(--w-muted);line-height:1.5;margin:6px 0 8px">Mide rendimiento, SEO, accesibilidad y buenas prácticas del sitio.</p><label class="w-label">API key de Google</label><input class="w-input" id="sgl-int-pagespeed" type="password" autocomplete="new-password" placeholder="'+(d.pagespeed&&d.pagespeed.configured?W.esc(d.pagespeed.masked) : 'Pega la API key')+'" style="width:100%"/><div style="display:flex;gap:6px;margin-top:8px"><button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="W.sglIntRun(\'pagespeed\',this,\'mobile\')">Probar móvil</button><button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="W.sglIntRun(\'pagespeed\',this,\'desktop\')">Probar escritorio</button></div></div>'
+        +'<div class="w-card" style="margin:0;padding:13px"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b>Google Search Console</b>'+badge(d.gsc&&d.gsc.configured)+'</div><p style="font-size:11px;color:var(--w-muted);line-height:1.5;margin:6px 0 8px">Cuenta de servicio con acceso a la propiedad. Debe añadirse como usuario en Search Console.</p><label class="w-label">Propiedad</label><input class="w-input" id="sgl-int-gsc-property" value="'+W.esc((d.gsc&&d.gsc.property)||'')+'" placeholder="https://sonika.com.co/" style="width:100%"/><label class="w-label" style="margin-top:8px;display:block">JSON de cuenta de servicio</label><textarea class="w-input" id="sgl-int-gsc-json" rows="3" placeholder="'+(d.gsc&&d.gsc.configured?'Configurada · pega un JSON nuevo para reemplazar':'Pega el JSON de la cuenta de servicio')+'" style="width:100%;font-family:var(--w-font-mono);font-size:10px"></textarea><div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap"><button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="W.sglIntRun(\'gsc_test\',this)">Probar</button><button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="W.sglIntRun(\'gsc_sitemap\',this)">Enviar sitemap</button></div></div>'
+        +'<div class="w-card" style="margin:0;padding:13px"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b>Bing Webmaster</b>'+badge(d.bing&&d.bing.configured)+'</div><p style="font-size:11px;color:var(--w-muted);line-height:1.5;margin:6px 0 8px">Envía el sitemap y consulta las propiedades verificadas en Bing.</p><label class="w-label">API key</label><input class="w-input" id="sgl-int-bing" type="password" autocomplete="new-password" placeholder="'+(d.bing&&d.bing.configured?W.esc(d.bing.masked) : 'Pega la API key de Bing')+'" style="width:100%"/><div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap"><button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="W.sglIntRun(\'bing_test\',this)">Probar</button><button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="W.sglIntRun(\'bing_sitemap\',this)">Enviar sitemap</button></div></div>'
+        +'</div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px"><button class="w-btn w-btn-primary" type="button" onclick="W.sglIntSave()">Guardar integraciones</button><span id="sgl-int-msg" role="status" aria-live="polite" style="font-size:11px;color:var(--w-muted)">'+(d.last_saved_at?'Guardado: '+W.esc(d.last_saved_at):'')+'</span></div><div id="sgl-int-result" style="margin-top:10px"></div></div>';
+    box.innerHTML=h;
+};
+W.sglIntGenerate=function(){
+    var a=new Uint8Array(16); (window.crypto&&crypto.getRandomValues)?crypto.getRandomValues(a):a.fill(Math.floor(Math.random()*256)); var s=''; a.forEach(function(b){s+=('0'+b.toString(16)).slice(-2)}); var el=document.getElementById('sgl-int-indexnow'); if(el)el.value=s;
+};
+W.sglIntSave=async function(){
+    var v=function(id){var e=document.getElementById(id);return e?e.value:''};
+    var msg=document.getElementById('sgl-int-msg');
+    if(msg){msg.textContent='Guardando…';msg.style.color='var(--w-muted)'}
+    var r=await W.api('/api/v1/admin/seo-global-launch/integrations',{method:'POST',body:{indexnow_key:v('sgl-int-indexnow'),pagespeed_key:v('sgl-int-pagespeed'),gsc_property:v('sgl-int-gsc-property'),gsc_service_json:v('sgl-int-gsc-json'),bing_key:v('sgl-int-bing')}});
+    if(r&&r.ok){if(msg){msg.textContent='Guardado';msg.style.color='#0d7a58'}W.notify('Integraciones guardadas','success');W.sglIntegrationsLoad()}else if(msg){msg.textContent=(r&&r.message)||'No se pudo guardar';msg.style.color='#b42318'}
+};
+W.sglIntRun=async function(provider,btn,strategy){
+    var out=document.getElementById('sgl-int-result'); if(out)out.innerHTML='<div style="font-size:12px;color:var(--w-muted)">Ejecutando '+W.esc(provider)+'…</div>';
+    if(btn){btn.disabled=true;btn.style.opacity=.5}
+    var r=await W.api('/api/v1/admin/seo-global-launch/integrations/run',{method:'POST',body:{provider:provider,strategy:strategy||'mobile'}});
+    if(btn){btn.disabled=false;btn.style.opacity=1}
+    if(!out)return;
+    var color=r&&r.ok?'#34d399':((r&&r.status==='skipped')?'#fbbf24':'#fb7185');
+    var detail='';
+    if(r){
+        if(r.message)detail+='<div>'+W.esc(r.message)+'</div>';
+        if(r.http)detail+='<div style="font-size:11px;color:var(--w-muted)">HTTP '+W.esc(r.http)+'</div>';
+        if(r.submitted)detail+='<div style="font-size:11px;color:var(--w-muted)">URLs enviadas: '+W.num(r.submitted)+'</div>';
+        if(r.performance!==undefined)detail+='<div style="font-size:11px">Rendimiento: <b>'+W.esc(r.performance)+'</b> · SEO: <b>'+W.esc(r.seo)+'</b> · Accesibilidad: <b>'+W.esc(r.accessibility)+'</b></div>';
+        if(r.sites&&r.sites.length)detail+='<div style="font-size:11px;color:var(--w-muted)">Propiedades: '+W.esc(r.sites.slice(0,5).join(', '))+'</div>';
+    }
+    out.innerHTML='<div class="w-card" style="margin:0;padding:11px;border-left:3px solid '+color+'">'+detail+'</div>';
+};
+W.sglPhase2Load=async function(tab){
+    var box=document.getElementById('sgl-phase2'); if(!box)return;
+    if(tab==='redirecciones'){
+        var r=await W.api('/api/v1/admin/seo-global-launch/redirects');
+        var list=(r&&r.data&&r.data.redirects)||[];
+        var h='<div class="w-card" style="margin-bottom:14px"><h3 style="margin:0 0 10px">Redirecciones</h3><p style="font-size:12px;color:var(--w-muted);margin:0 0 12px">Redirecciones 301/302 con detección de bucles. Los cambios se aplican inmediatamente en el sitio.</p>'
+          +'<div style="display:grid;grid-template-columns:1fr 1.3fr 120px auto;gap:8px;align-items:end"><div><label style="font-size:11px;color:var(--w-muted)">Desde (ruta)</label><input class="w-input" id="sgl-redir-from" placeholder="/ruta-antigua" style="width:100%"/></div><div><label style="font-size:11px;color:var(--w-muted)">Hacia (URL o ruta)</label><input class="w-input" id="sgl-redir-to" placeholder="/ruta-nueva" style="width:100%"/></div><div><label style="font-size:11px;color:var(--w-muted)">Código</label><select class="w-input" id="sgl-redir-status" style="width:100%"><option value="301">301</option><option value="302">302</option></select></div><button class="w-btn w-btn-primary" onclick="wontia.sglRedirSave()">Agregar</button></div>'
+          +'<div style="margin-top:12px"><label style="font-size:11px;color:var(--w-muted)">Importar CSV (from,to[,301|302])</label><textarea class="w-input" id="sgl-redir-csv" rows="3" style="width:100%;font-family:monospace" placeholder="/viejo,/nuevo,301"></textarea><button class="w-btn w-btn-secondary w-btn-sm" style="margin-top:7px" onclick="wontia.sglRedirImport()">Importar CSV</button></div></div>';
+        if(!list.length) h+='<div class="w-empty-state"><h3>Sin redirecciones</h3><p>Crea la primera para evitar enlaces rotos.</p></div>';
+        else{
+            h+='<div class="w-card" style="padding:0;overflow:auto"><table class="w-table"><thead><tr><th>Desde</th><th>Hacia</th><th>Código</th><th>Hits</th><th>Último hit</th><th></th></tr></thead><tbody>';
+            list.forEach(function(x){h+='<tr><td style="font-family:monospace;font-size:11px;max-width:260px;word-break:break-all">'+W.esc(x.from_path)+'</td><td style="max-width:280px;word-break:break-all">'+W.esc(x.to_url)+'</td><td>'+W.esc(x.status_code)+'</td><td>'+W.num(x.hits||0)+'</td><td style="white-space:nowrap">'+W.esc(String(x.last_hit_at||'—').slice(0,16))+'</td><td><button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.sglRedirDelete('+x.id+')">Eliminar</button></td></tr>'});
+            h+='</tbody></table></div>';
+        }
+        box.innerHTML=h;
+        return;
+    }
+    if(tab==='404s'){
+        var r=await W.api('/api/v1/admin/seo-global-launch/404s');
+        var list=(r&&r.data&&r.data.items)||[];
+        var h='<div class="w-card" style="margin-bottom:14px"><div class="w-flex-between" style="gap:10px;flex-wrap:wrap"><div><h3 style="margin:0">Monitor de 404s</h3><p style="font-size:12px;color:var(--w-muted);margin:5px 0 0">URLs no encontradas que pueden convertirse en redirecciones.</p></div><button class="w-btn w-btn-secondary w-btn-sm" onclick="W.sglPhase2Load(\'404s\')">Recargar</button></div></div>';
+        if(!list.length) h+='<div class="w-empty-state"><h3>Sin 404s registrados</h3><p>El monitor empezará a registrar URLs no encontradas.</p></div>';
+        else{
+            h+='<div class="w-card" style="padding:0;overflow:auto"><table class="w-table"><thead><tr><th>URL</th><th>Hits</th><th>Última visita</th><th>Referrer</th><th></th></tr></thead><tbody>';
+            list.forEach(function(x){h+='<tr><td style="font-family:monospace;font-size:11px;max-width:300px;word-break:break-all">'+W.esc(x.url)+'</td><td>'+W.num(x.hits||0)+'</td><td style="white-space:nowrap">'+W.esc(String(x.last_seen||'—').slice(0,16))+'</td><td style="max-width:200px;word-break:break-all;font-size:10px">'+W.esc(x.referrer||'—')+'</td><td style="white-space:nowrap"><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.sgl404Promote(\''+W.esc(x.url)+'\')">Crear redirect</button> <button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.sgl404Delete('+x.id+')">Quitar</button></td></tr>'});
+            h+='</tbody></table></div>';
+        }
+        box.innerHTML=h;
+        return;
+    }
+    var r=await W.api('/api/v1/admin/seo-global-launch/broken-links');
+    var list=(r&&r.data&&r.data.items)||[];
+    var h='<div class="w-card" style="margin-bottom:14px"><div class="w-flex-between" style="gap:10px;flex-wrap:wrap"><div><h3 style="margin:0">Enlaces rotos</h3><p style="font-size:12px;color:var(--w-muted);margin:5px 0 0">Rastreo interno por lotes con timeout de 5 s. Solo enlaces del dominio del sitio.</p></div><button class="w-btn w-btn-primary w-btn-sm" onclick="W.sglBrokenScan(this)">Escanear lote</button></div><div id="sgl-broken-msg" style="font-size:11px;color:var(--w-muted);margin-top:8px"></div></div>';
+    if(!list.length) h+='<div class="w-empty-state"><h3>Sin enlaces rotos</h3><p>Ejecuta un escaneo para comprobar los enlaces internos.</p></div>';
+    else{
+        h+='<div class="w-card" style="padding:0;overflow:auto"><table class="w-table"><thead><tr><th>Origen</th><th>Destino</th><th>Estado</th><th>Error</th><th>Comprobado</th></tr></thead><tbody>';
+        list.forEach(function(x){h+='<tr><td style="max-width:250px;word-break:break-all;font-size:11px">'+W.esc(x.source_url)+'</td><td style="max-width:250px;word-break:break-all;font-size:11px">'+W.esc(x.target_url)+'</td><td>'+W.esc(x.status_code||'0')+'</td><td>'+W.esc(x.error||'—')+'</td><td style="white-space:nowrap">'+W.esc(String(x.checked_at||'—').slice(0,16))+'</td></tr>'});
+        h+='</tbody></table></div>';
+    }
+    box.innerHTML=h;
+};
+W.sglRedirSave=async function(){
+    var v=function(id){var el=document.getElementById(id);return el?el.value:''};
+    var r=await W.api('/api/v1/admin/seo-global-launch/redirects',{method:'POST',body:{from_path:v('sgl-redir-from'),to_url:v('sgl-redir-to'),status_code:parseInt(v('sgl-redir-status'))||301,is_active:1}});
+    if(r&&r.ok){W.notify('Redirección guardada','success');W.sglPhase2Load('redirecciones')}else W.notify((r&&r.message)||'No se pudo guardar','error');
+};
+W.sglRedirDelete=function(id){W.confirm('¿Eliminar esta redirección?',async function(){var r=await W.api('/api/v1/admin/seo-global-launch/redirects/'+id,{method:'DELETE'});if(r&&r.ok){W.notify('Redirección eliminada','success');W.sglPhase2Load('redirecciones')}else W.notify((r&&r.message)||'No se pudo eliminar','error')})};
+W.sglRedirImport=async function(){
+    var el=document.getElementById('sgl-redir-csv');var csv=el?el.value:'';
+    var r=await W.api('/api/v1/admin/seo-global-launch/redirects/import',{method:'POST',body:{csv:csv}});
+    if(r&&r.ok){W.notify('Importadas: '+(r.created||0),'success');W.sglPhase2Load('redirecciones')}else W.notify((r&&r.message)||'No se pudo importar','error');
+};
+W.sgl404Delete=async function(id){var r=await W.api('/api/v1/admin/seo-global-launch/404s/'+id,{method:'DELETE'});if(r&&r.ok){W.notify('Registro eliminado','success');W.sglPhase2Load('404s')}else W.notify((r&&r.message)||'No se pudo eliminar','error')};
+W.sgl404Promote=function(url){W._sgl404Url=url;location.hash='#seo-global-launch/redirecciones';setTimeout(function(){var f=document.getElementById('sgl-redir-from');if(f)f.value=url},500)};
+W.sglBrokenScan=async function(btn){if(btn){btn.disabled=true;btn.textContent='Escaneando...'}var r=await W.api('/api/v1/admin/seo-global-launch/broken-links/scan',{method:'POST',body:{}});if(btn){btn.disabled=false;btn.textContent='Escanear lote'}var m=document.getElementById('sgl-broken-msg');if(m)m.textContent=r&&r.ok?('Revisados: '+(r.checked||0)+' · rotos: '+(r.broken||0)):(r&&r.message||'Error');if(r&&r.ok)W.sglPhase2Load('enlaces-rotos')};
 
 W.refreshJobsBadge=async function(){
     var b=document.getElementById('w-jobs-badge');
@@ -5254,7 +6647,7 @@ W.renderStore=async function(tab){
     tab=tab||'productos';
     W.state.storeTab=tab;
     var app=document.getElementById('wontia-app');
-    var tabs=[['productos','Productos'],['categorias','Categorías'],['pedidos','Pedidos'],['envios','Envíos'],['resenas','Reseñas'],['devoluciones','Devoluciones'],['cupones','Cupones'],['config','Configuración']];
+    var tabs=[['productos','Productos'],['contenido','Contenido'],['categorias','Categorías'],['pedidos','Pedidos'],['envios','Envíos'],['resenas','Reseñas'],['devoluciones','Devoluciones'],['cupones','Cupones'],['addi','Addi'],['config','Configuración']];
     var bar='<div class="w-brick-tabs">';
     tabs.forEach(function(t){bar+='<button class="w-brick-tab'+(tab===t[0]?' active':'')+'" onclick="wontia.storeGo(\''+t[0]+'\')">'+t[1]+'</button>'});
     bar+='<div style="flex:1"></div><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.storeEnsure()">Setup Tables</button></div>';
@@ -5264,7 +6657,7 @@ W.renderStore=async function(tab){
         document.getElementById('store-content').innerHTML='<div class="w-empty-state"><h3>Tienda no inicializada</h3><p>Crea las tablas de la tienda para empezar a vender.</p><button class="w-btn w-btn-primary" style="margin-top:12px" onclick="wontia.storeEnsure()">Crear tablas de la tienda</button></div>';
         return;
     }
-    var fns={productos:W.storeProducts,categorias:W.storeCategories,pedidos:W.storeOrders,envios:W.storeZones,resenas:W.storeReviews,devoluciones:W.storeReturns,cupones:W.storeCoupons,config:W.storeSettings};
+    var fns={productos:W.storeProducts,contenido:W.storeContentAudit,categorias:W.storeCategories,pedidos:W.storeOrders,envios:W.storeShipping,resenas:W.storeReviews,devoluciones:W.storeReturns,cupones:W.storeCoupons,addi:W.storeAddi,config:W.storeSettings};
     (fns[tab]||W.storeProducts)();
 };
 
@@ -5347,6 +6740,367 @@ W.storeEnsure=async function(){
     else W.notify((r.data&&r.data.message)||'Error al crear tablas','error');
 };
 
+W.storeContentAudit=async function(page){
+    page=Math.max(0,parseInt(page||0,10)||0);
+    var el=document.getElementById('store-content');
+    if(!el)return;
+    var qEl=document.getElementById('store-content-q');
+    var iEl=document.getElementById('store-content-issue');
+    var fEl=document.getElementById('store-content-format');
+    var sEl=document.getElementById('store-content-sort');
+    var q=qEl?qEl.value:'';
+    var issue=iEl?iEl.value:'';
+    var format=fEl?fEl.value:'';
+    var sort=sEl?sEl.value:'score';
+    var limit=50;
+    W._clExportFilters={q:q,filter:(issue==='empty'?'empty':'all'),status:'',vendor:''};
+    var yta=new URLSearchParams(location.search).get('yta');
+    if(yta){W.notify(yta==='ok'?'Canal de YouTube conectado':'No se pudo conectar YouTube: '+new URLSearchParams(location.search).get('msg'),yta==='ok'?'success':'error');try{history.replaceState(null,'',location.pathname+'?panel=store'+location.hash)}catch(e){}}
+    el.innerHTML='<div style="padding:34px;text-align:center;color:var(--w-muted)">Analizando el catálogo editorial…</div>';
+    var r=await W.api('/api/v1/admin/store/content-audit?limit='+limit+'&offset='+(page*limit)+'&q='+encodeURIComponent(q)+'&issue='+encodeURIComponent(issue)+'&format='+encodeURIComponent(format)+'&sort='+encodeURIComponent(sort));
+    if(!r.ok||!r.data){
+        el.innerHTML='<div class="w-empty-state"><h3>No se pudo cargar la auditoría</h3><p>'+W.esc((r.data&&r.data.message)||'Revisa los logs del servidor.')+'</p></div>';
+        return;
+    }
+    var d=r.data,s=d.summary||{},rows=d.rows||[],total=+d.total||0;
+    function fmt(n){return (+n||0).toLocaleString('es-CO')}
+    function metric(label,value,color){
+        return '<div style="padding:12px 14px;border:1px solid var(--w-border);border-radius:12px;background:var(--w-surface)"><div style="font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--w-muted)">'+label+'</div><div style="font-size:22px;font-weight:800;line-height:1.1;margin-top:4px;'+(color?'color:'+color:'')+'">'+value+'</div></div>';
+    }
+    function options(list,current){
+        var out='';
+        list.forEach(function(item){
+            out+='<option value="'+W.esc(item[0])+'"'+(item[0]===current?' selected':'')+'>'+W.esc(item[1])+'</option>';
+        });
+        return out;
+    }
+    var issueOptions=[['','Todas las alertas'],['empty','Sin descripción'],['only_text','Solo texto'],['no_specs','Sin ficha técnica'],['no_video','Sin video'],['inline_styles','Estilos inline'],['too_long','Muy larga'],['too_short','Muy corta'],['long_text','Texto extenso']];
+    var formatOptions=[['','Todos los formatos'],['video','Con video'],['image','Con imagen'],['table','Con tabla'],['list','Con lista'],['styled','Con estilos inline'],['only_text','Solo texto']];
+    var sortOptions=[['score','Peor score primero'],['chars_desc','Más largas primero'],['chars_asc','Más cortas primero'],['title','Título A-Z'],['recent','Handle A-Z']];
+    var buckets=['0-39','40-59','60-79','80-100'];
+    var h='<div class="w-card" style="padding:18px;margin-bottom:14px">'
+        +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap">'
+        +'<div><h2 style="margin:0;font-size:20px">Contenido editorial</h2><p style="margin:6px 0 0;color:var(--w-muted);font-size:12.5px;max-width:700px;line-height:1.55">Auditoría de las '+fmt(s.total)+' descripciones del catálogo. Detecta vacíos, solo texto, falta de ficha o video, estilos heredados y textos demasiado largos antes de que lleguen al cliente.</p></div>'
+        +'<div style="display:flex;gap:8px;flex-wrap:wrap">'
+        +'<button class="w-btn w-btn-primary" onclick="wontia.storeContentLab()">🧪 Abrir Content Fix Lab</button>'
+        +'<button class="w-btn w-btn-secondary" onclick="wontia.storeContentLabExport()">⬇ Descargar .xls</button>'
+        +'<button class="w-btn w-btn-secondary" onclick="wontia.storeContentLabMicheScan()">🔄 Escanear Miche</button>'
+        +'<button class="w-btn '+(d.enabled?'w-btn-primary':'w-btn-secondary')+'" onclick="wontia.storeContentToggle('+(d.enabled?1:0)+')">'+(d.enabled?'● Normalizador activo':'○ Normalizador desactivado')+'</button>'
+        +'<button class="w-btn w-btn-secondary" onclick="wontia.storeContentAudit('+page+')">↻ Actualizar</button>'
+        +'</div></div>'
+        +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:10px;margin-top:16px">'
+        +metric('Productos',fmt(s.total))
+        +metric('Con descripción',fmt(s.with_description))
+        +metric('Sin descripción',fmt(s.empty),s.empty?'#B45309':'')
+        +metric('Solo texto',fmt(s.only_text))
+        +metric('Con video',fmt(s.video))
+        +metric('Score promedio',fmt(s.avg_score)+'/100')
+        +'</div>'
+        +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:12px;align-items:center">'
+        +'<span style="font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--w-muted);margin-right:4px">Salud editorial</span>';
+    buckets.forEach(function(b){
+        var count=(s.score_buckets&&s.score_buckets[b])||0;
+        var color=b==='0-39'?'#B42318':(b==='40-59'?'#B45309':(b==='60-79'?'#2563EB':'#067647'));
+        h+='<span style="display:inline-flex;align-items:center;gap:6px;border:1px solid var(--w-border);border-radius:999px;padding:4px 9px;font-size:11px;font-weight:700;color:var(--w-text)"><i style="width:7px;height:7px;border-radius:50%;background:'+color+';display:inline-block"></i>'+b+' · '+fmt(count)+'</span>';
+    });
+    h+='</div></div>'
+        +'<div class="w-card" style="padding:12px;margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">'
+        +'<input class="w-input" id="store-content-q" style="width:270px" placeholder="Buscar producto, handle o marca…" value="'+W.esc(q)+'" onkeydown="if(event.key===\'Enter\'){wontia.storeContentAudit(0)}"/>'
+        +'<select class="w-input" id="store-content-issue" style="width:185px" onchange="wontia.storeContentAudit(0)">'+options(issueOptions,issue)+'</select>'
+        +'<select class="w-input" id="store-content-format" style="width:175px" onchange="wontia.storeContentAudit(0)">'+options(formatOptions,format)+'</select>'
+        +'<select class="w-input" id="store-content-sort" style="width:185px" onchange="wontia.storeContentAudit(0)">'+options(sortOptions,sort)+'</select>'
+        +'<button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.storeContentAudit(0)">Filtrar</button>'
+        +'<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.storeContentReset()">Limpiar</button>'
+        +'<span style="margin-left:auto;font-size:12px;color:var(--w-muted)">'+fmt(total)+' resultados</span></div>';
+    if(!rows.length){
+        h+='<div class="w-empty-state"><h3>Sin resultados</h3><p>Prueba otro filtro o limpia la búsqueda.</p></div>';
+        el.innerHTML=h;
+        return;
+    }
+    h+='<div class="w-card" style="padding:0;overflow:auto"><table class="w-table" style="width:100%;min-width:880px"><thead><tr style="text-align:left;color:var(--w-muted);font-size:10.5px;text-transform:uppercase;letter-spacing:.05em"><th style="padding:11px 12px">Producto</th><th style="padding:11px 12px">Formato</th><th style="padding:11px 12px">Caracteres</th><th style="padding:11px 12px">Score</th><th style="padding:11px 12px">Alertas</th><th style="padding:11px 12px"></th></tr></thead><tbody>';
+    rows.forEach(function(x){
+        var score=+x.score||0;
+        var color=score<40?'#B42318':(score<70?'#B45309':'#067647');
+        var formats=[];
+        if(x.has_video)formats.push('Video');
+        if(x.has_table)formats.push('Tabla');
+        else if(x.has_list)formats.push('Lista');
+        if(x.has_image)formats.push('Imagen');
+        if(x.only_text)formats.push('Solo texto');
+        if(x.inline_styles)formats.push('Estilos');
+        var formatHtml=formats.length?formats.map(function(f){return '<span style="display:inline-block;border:1px solid var(--w-border);border-radius:6px;padding:2px 6px;font-size:10px;font-weight:700;margin:1px 2px 1px 0;color:var(--w-text)">'+W.esc(f)+'</span>'}).join(''):'<span style="color:var(--w-muted)">—</span>';
+        var issueHtml=(x.issues||[]).slice(0,3).map(function(t){return '<span style="display:inline-block;background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:6px;padding:2px 6px;font-size:10px;font-weight:700;margin:1px 2px 1px 0">'+W.esc(t)+'</span>'}).join('')||'<span style="color:#067647;font-size:11px;font-weight:700">Sin alertas</span>';
+        h+='<tr>'
+            +'<td style="padding:10px 12px;max-width:330px"><a href="'+W.esc(x.url)+'" target="_blank" rel="noopener" style="font-weight:800;color:var(--w-text);text-decoration:none">'+W.esc(x.title||x.handle)+'</a><div style="font-size:10.5px;color:var(--w-muted);margin-top:2px">'+W.esc(x.handle)+(x.vendor?' · '+W.esc(x.vendor):'')+'</div></td>'
+            +'<td style="padding:10px 12px">'+formatHtml+'</td>'
+            +'<td style="padding:10px 12px;white-space:nowrap"><b style="font-size:13px">'+fmt(x.chars)+'</b><div style="font-size:10px;color:var(--w-muted)">'+fmt(x.words)+' palabras</div></td>'
+            +'<td style="padding:10px 12px;min-width:90px"><b style="font-size:13px;color:'+color+'">'+score+'</b><span style="display:block;height:4px;background:var(--w-border);border-radius:99px;margin-top:4px;overflow:hidden"><i style="display:block;height:100%;width:'+score+'%;background:'+color+'"></i></span></td>'
+            +'<td style="padding:10px 12px;max-width:260px">'+issueHtml+'</td>'
+            +'<td style="padding:10px 12px;white-space:nowrap"><a class="w-btn w-btn-secondary w-btn-sm" href="'+W.esc(x.url)+'" target="_blank" rel="noopener">Ver ficha</a></td>'
+            +'</tr>';
+    });
+    h+='</tbody></table></div>';
+    var pages=Math.ceil(total/limit);
+    if(pages>1){
+        h+='<div style="display:flex;justify-content:center;gap:8px;align-items:center;margin-top:14px;flex-wrap:wrap">'
+            +'<button class="w-btn w-btn-secondary w-btn-sm" '+(page<=0?'disabled':'')+' onclick="wontia.storeContentAudit('+(page-1)+')">‹ Anterior</button>'
+            +'<span style="font-size:12px;color:var(--w-muted)">Página '+(page+1)+' de '+pages+'</span>'
+            +'<button class="w-btn w-btn-secondary w-btn-sm" '+(page>=pages-1?'disabled':'')+' onclick="wontia.storeContentAudit('+(page+1)+')">Siguiente ›</button></div>';
+    }
+    el.innerHTML=h;
+};
+
+W.storeContentReset=function(){
+    var q=document.getElementById('store-content-q');
+    var issue=document.getElementById('store-content-issue');
+    var format=document.getElementById('store-content-format');
+    var sort=document.getElementById('store-content-sort');
+    if(q)q.value='';
+    if(issue)issue.value='';
+    if(format)format.value='';
+    if(sort)sort.value='score';
+    W.storeContentAudit(0);
+};
+
+W.storeContentToggle=async function(current){
+    var next=current?'0':'1';
+    var r=await W.api('/api/v1/admin/store/settings',{method:'PUT',body:{product_content_v2:next}});
+    if(r.ok){
+        W.notify(next==='1'?'Normalizador editorial activado':'Normalizador editorial desactivado','success');
+        W.storeContentAudit(0);
+    } else {
+        W.notify((r.data&&r.data.message)||'No se pudo cambiar el normalizador','error');
+    }
+};
+
+// ── Content Fix Lab ─────────────────────────────
+W._clState={page:0,filter:'empty',status:'',q:'',vendor:''};
+W._clJob=null;
+W.clKpi=function(v,l,c){return '<div class="w-card" style="flex:1;min-width:125px;text-align:center;margin:0"><div style="font-size:22px;font-weight:800;'+(c?'color:'+c:'')+'">'+W.esc(String(v))+'</div><div style="font-size:10px;color:var(--w-muted);margin-top:4px">'+W.esc(l)+'</div></div>'};
+W.clBadge=function(text,color){return '<span style="display:inline-block;border:1px solid '+color+'33;background:'+color+'11;color:'+color+';border-radius:999px;padding:2px 7px;font-size:10px;font-weight:800">'+W.esc(text)+'</span>'};
+W.storeContentLab=async function(page,filter,status,q,vendor){
+    page=Math.max(0,parseInt(page||0,10)||0);
+    if(filter!==undefined)W._clState.filter=filter;
+    if(status!==undefined)W._clState.status=status;
+    if(q!==undefined)W._clState.q=q;
+    if(vendor!==undefined)W._clState.vendor=vendor;
+    W._clState.page=page;
+    W._clExportFilters={q:W._clState.q,filter:W._clState.filter,status:W._clState.status,vendor:W._clState.vendor};
+    var el=document.getElementById('store-content'); if(!el)return;
+    el.innerHTML='<div style="padding:34px;text-align:center;color:var(--w-muted)">Cargando Content Fix Lab…</div>';
+    var qs='?limit=50&offset='+(page*50)+'&filter='+encodeURIComponent(W._clState.filter)+'&status='+encodeURIComponent(W._clState.status)+'&q='+encodeURIComponent(W._clState.q)+'&vendor='+encodeURIComponent(W._clState.vendor);
+    var res=await Promise.all([
+        W.api('/api/v1/admin/store/content-lab/summary'),
+        W.api('/api/v1/admin/store/content-lab/items'+qs),
+        W.api('/api/v1/admin/store/content-lab/video/status').catch(function(){return{ok:false}})
+    ]);
+    var sum=(res[0]&&res[0].data)||{}, d=(res[1]&&res[1].data)||{}, video=(res[2]&&res[2].data)||{};
+    var rows=d.items||[],total=+d.total||0;
+    var yt=video.youtube||{};
+    var h='<div class="w-card" style="padding:18px;margin-bottom:14px"><div class="w-flex-between" style="gap:12px;flex-wrap:wrap"><div><div style="font-size:11px;color:var(--w-muted)">Tienda › Contenido › Content Fix Lab</div><h2 style="margin:2px 0 0;font-size:20px">🧪 Content Fix Lab</h2><p style="margin:6px 0 0;color:var(--w-muted);font-size:12.5px;max-width:760px;line-height:1.55">Investigación en dominios oficiales, verificación exacta del producto, generación con TIA y publicación con rollback. Nada se aplica sin confirmación humana.</p></div><div style="display:flex;gap:7px;flex-wrap:wrap"><button class="w-btn w-btn-secondary" onclick="wontia.storeContentAudit(0)">← Auditoría</button><button class="w-btn w-btn-secondary" onclick="wontia.storeContentLabExport()">⬇ .xls</button><button class="w-btn w-btn-secondary" onclick="wontia.storeContentLabMicheScan()">🔄 Miche</button><button class="w-btn '+(yt.connected?'w-btn-primary':'w-btn-secondary')+'" onclick="wontia.storeContentLabYoutube()">'+(yt.connected?'● YouTube conectado':'Conectar YouTube')+'</button></div></div>';
+    h+='<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px">'+W.clKpi(W.num(sum.products||0),'Productos')+W.clKpi(W.num(sum.empty||0),'Sin descripción','#B45309')+W.clKpi(W.num(sum.needs_review||0),'Por confirmar','#B45309')+W.clKpi(W.num(sum.generated||0),'Generadas','#2563EB')+W.clKpi(W.num(sum.applied||0),'Aplicadas','#067647')+W.clKpi(W.num(sum.miche_updates||0),'Miche actualizó','#7C3AED')+W.clKpi((video.yt_dlp?'✓':'✗')+' / '+(video.ffmpeg?'✓':'✗'),'yt-dlp / ffmpeg',video.yt_dlp&&video.ffmpeg?'#067647':'#B42318')+'</div></div>';
+    h+='<div class="w-card" style="padding:12px;margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">'
+        +'<input class="w-input" id="cl-q" style="width:280px" placeholder="Buscar producto, handle, marca o SKU…" value="'+W.esc(W._clState.q)+'" onkeydown="if(event.key===\'Enter\'){wontia.storeContentLab(0,undefined,undefined,this.value)}"/>'
+        +'<select class="w-input" id="cl-filter" style="width:150px" onchange="wontia.storeContentLab(0,this.value)"><option value="empty"'+(W._clState.filter==='empty'?' selected':'')+'>Sin descripción</option><option value="all"'+(W._clState.filter==='all'?' selected':'')+'>Todo el catálogo</option></select>'
+        +'<select class="w-input" id="cl-status" style="width:185px" onchange="wontia.storeContentLab(0,undefined,this.value)"><option value="">Todos los estados</option><option value="no_job"'+(W._clState.status==='no_job'?' selected':'')+'>Sin iniciar</option><option value="needs_review"'+(W._clState.status==='needs_review'?' selected':'')+'>Por confirmar</option><option value="generated"'+(W._clState.status==='generated'?' selected':'')+'>Generadas</option><option value="applied"'+(W._clState.status==='applied'?' selected':'')+'>Aplicadas</option><option value="miche_update"'+(W._clState.status==='miche_update'?' selected':'')+'>Miche actualizó</option><option value="failed"'+(W._clState.status==='failed'?' selected':'')+'>Sin coincidencia</option></select>'
+        +'<button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.storeContentLab(0,undefined,undefined,document.getElementById(\'cl-q\').value)">Filtrar</button>'
+        +'<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.storeContentLab(0,\'empty\',\'\',\'\',\'\')">Limpiar</button>'
+        +'<span style="margin-left:auto;font-size:12px;color:var(--w-muted)">'+W.num(total)+' productos</span></div>';
+    if(!rows.length){h+='<div class="w-empty-state"><h3>Sin productos en este filtro</h3><p>Prueba “Todo el catálogo” o cambia el estado.</p></div>';el.innerHTML=h;return}
+    h+='<div class="w-card" style="padding:0;overflow:auto"><table class="w-table" style="width:100%;min-width:980px"><thead><tr style="text-align:left;color:var(--w-muted);font-size:10.5px;text-transform:uppercase;letter-spacing:.05em"><th style="padding:10px 12px">Producto</th><th style="padding:10px 12px">Score / alertas</th><th style="padding:10px 12px">Laboratorio</th><th style="padding:10px 12px">Confianza</th><th style="padding:10px 12px">Fuente</th><th style="padding:10px 12px">Video</th><th style="padding:10px 12px"></th></tr></thead><tbody>';
+    rows.forEach(function(x){
+        var score=+x.score||0,color=score<40?'#B42318':(score<70?'#B45309':'#067647');
+        var issues=(x.issues||[]).slice(0,3).map(function(t){return '<span style="display:inline-block;background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:6px;padding:1px 5px;font-size:9.5px;font-weight:700;margin:1px 2px 1px 0">'+W.esc(t)+'</span>'}).join('')||'<span style="color:#067647;font-size:10.5px;font-weight:700">Sin alertas</span>';
+        var st=x.job_status,stColor=st==='applied'?'#067647':(st==='generated'?'#2563EB':(st==='needs_review'?'#B45309':(st==='failed'?'#B42318':'#667085')));
+        var actions='';
+        if(x.job_id)actions+='<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.storeContentLabOpen('+x.job_id+')">Abrir</button> ';
+        else actions+='<button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.storeContentLabResearch('+x.id+',this)">Investigar</button> ';
+        if(st==='generated')actions+='<button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.storeContentLabApply('+x.job_id+')">Aplicar</button> ';
+        if(st==='applied')actions+='<a class="w-btn w-btn-secondary w-btn-sm" href="'+W.esc(x.live_url)+'" target="_blank" rel="noopener">Ver vivo</a>';
+        h+='<tr><td style="padding:10px 12px;max-width:300px"><a href="'+W.esc(x.live_url)+'" target="_blank" rel="noopener" style="font-weight:800;color:var(--w-text);text-decoration:none">'+W.esc(x.name)+'</a><div style="font-size:10.5px;color:var(--w-muted);margin-top:2px">'+W.esc(x.handle)+(x.vendor?' · '+W.esc(x.vendor):'')+'</div></td>'
+            +'<td style="padding:10px 12px;min-width:150px"><b style="color:'+color+'">'+score+'</b> <span style="font-size:10px;color:var(--w-muted)">/100 · '+W.num(x.description_chars)+' car.</span><div style="margin-top:3px">'+issues+'</div></td>'
+            +'<td style="padding:10px 12px">'+W.clBadge(x.job_status_label||'Sin iniciar',stColor)+'</td>'
+            +'<td style="padding:10px 12px;min-width:90px">'+(x.confidence?('<b>'+x.confidence+'%</b><span style="display:block;height:4px;background:var(--w-border);border-radius:99px;margin-top:3px;overflow:hidden"><i style="display:block;height:100%;width:'+x.confidence+'%;background:'+(x.confidence>=85?'#067647':'#B45309')+'"></i></span>'):'<span style="color:var(--w-muted)">—</span>')+'</td>'
+            +'<td style="padding:10px 12px;max-width:220px;word-break:break-all">'+(x.source_url?'<a href="'+W.esc(x.source_url)+'" target="_blank" rel="noopener" style="font-size:10.5px">'+W.esc(x.source_domain||'fuente')+'</a>':'<span style="color:var(--w-muted);font-size:10.5px">—</span>')+'</td>'
+            +'<td style="padding:10px 12px">'+(x.youtube_url?'<a href="'+W.esc(x.youtube_url)+'" target="_blank" rel="noopener" style="font-size:10.5px">YouTube</a>':'<span style="font-size:10.5px;color:var(--w-muted)">'+W.esc(x.video_status||'none')+'</span>')+'</td>'
+            +'<td style="padding:10px 12px;white-space:nowrap">'+actions+'</td></tr>';
+    });
+    h+='</tbody></table></div>';
+    var pages=Math.ceil(total/50);
+    if(pages>1){h+='<div style="display:flex;justify-content:center;gap:8px;align-items:center;margin-top:14px"><button class="w-btn w-btn-secondary w-btn-sm" '+(page<=0?'disabled':'')+' onclick="wontia.storeContentLab('+(page-1)+')">‹ Anterior</button><span style="font-size:12px;color:var(--w-muted)">Página '+(page+1)+' de '+pages+'</span><button class="w-btn w-btn-secondary w-btn-sm" '+(page>=pages-1?'disabled':'')+' onclick="wontia.storeContentLab('+(page+1)+')">Siguiente ›</button></div>'}
+    el.innerHTML=h;
+};
+W.storeContentLabResearch=async function(productId,btn){
+    if(btn){btn.disabled=true;btn.textContent='Investigando…'}
+    W.notify('Buscando en dominios oficiales y verificando identidad…','info');
+    var r=await W.api('/api/v1/admin/store/content-lab/research',{method:'POST',body:{product_id:productId}});
+    if(btn){btn.disabled=false;btn.textContent='Investigar'}
+    if(r&&r.job){W.notify(r.message||'Investigación completada',r.ok?'success':'error');W.storeContentLabOpen(r.job.id)}
+    else W.notify((r&&r.message)||'No se pudo investigar','error');
+    W.storeContentLab(W._clState.page);
+};
+W.storeContentLabOpen=async function(jobId){
+    var r=await W.api('/api/v1/admin/store/content-lab/job/'+jobId);
+    if(!r||!r.ok||!r.data){W.notify((r&&r.message)||'No se pudo abrir el trabajo','error');return}
+    var j=r.data.job,acts=r.data.activity||[],video=r.data.video||{};
+    W._clJob=j;
+    var yt=video.youtube||{};
+    var stageDone=function(k){return (k==='sources'&&(j.source_url||(j.candidates||[]).length))||(k==='source_review'&&['verified','generated','applied'].indexOf(j.status)>-1)||(k==='extract'&&j.source_text)||(k==='generate'&&j.generated_html)||(k==='review'&&j.generated_html)||(k==='apply'&&j.status==='applied')||(k==='video'&&j.video_status!=='none')};
+    var stageHtml=Object.keys(j.stages||{}).map(function(k){var done=stageDone(k);return '<span style="display:inline-flex;align-items:center;gap:5px;border:1px solid var(--w-border);border-radius:999px;padding:3px 8px;font-size:10.5px;font-weight:700;background:'+(done?'#ecfdf3':'#fff')+';color:'+(done?'#067647':'#667085')+'">'+(done?'●':'○')+' '+W.esc(j.stages[k])+'</span>'}).join(' ');
+    var body='<div style="max-height:70vh;overflow:auto;padding-right:4px">';
+    body+='<div class="w-card" style="margin-bottom:12px;padding:12px"><div style="font-size:13px;font-weight:800">'+W.esc(j.title||j.handle)+'</div><div style="font-size:11px;color:var(--w-muted);margin-top:3px">'+W.esc(j.vendor||'')+' · '+W.esc(j.product_type||'')+' · Handle: '+W.esc(j.handle)+'</div><div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:8px">'+stageHtml+'</div></div>';
+    if(j.source_url){body+='<div class="w-card" style="margin-bottom:12px;padding:12px;border-left:3px solid #067647"><div style="font-size:11px;color:var(--w-muted);text-transform:uppercase;font-weight:800;letter-spacing:.06em">Fuente confirmada</div><div style="font-size:12px;margin-top:4px"><a href="'+W.esc(j.source_url)+'" target="_blank" rel="noopener">'+W.esc(j.source_title||j.source_domain)+'</a></div><div style="font-size:10.5px;color:var(--w-muted);margin-top:3px">Confianza '+W.num(j.confidence||0)+'% · '+W.esc(j.source_domain||'')+'</div></div>'}
+    var cands=j.candidates||[];
+    if(cands.length){
+        body+='<div class="w-card" style="margin-bottom:12px;padding:12px"><h3 style="margin:0 0 6px;font-size:13px">Fuentes candidatas</h3><div style="font-size:11px;color:var(--w-muted);margin-bottom:8px">Solo se puede confirmar una fuente que haya pasado las reglas de identidad. Las rechazadas no se pueden aplicar.</div>';
+        cands.forEach(function(c,i){
+            var conf=+c.confidence||0,color=c.status==='verified'?'#067647':(c.status==='needs_review'?'#B45309':'#B42318');
+            var ev=c.evidence||{},missing=(ev.missing||[]).slice(0,4),conflicts=(ev.conflicts||[]).slice(0,3);
+            body+='<div style="border:1px solid var(--w-border);border-radius:10px;padding:10px;margin-bottom:8px;background:#fff"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><div><b style="font-size:12px">'+W.esc(c.title||c.domain||c.url)+'</b><div style="font-size:10.5px;color:var(--w-muted);word-break:break-all"><a href="'+W.esc(c.url)+'" target="_blank" rel="noopener">'+W.esc(c.url)+'</a></div></div><div style="text-align:right">'+W.clBadge(c.status==='verified'?'Verificada':(c.status==='needs_review'?'Revisar':'Rechazada'),color)+'<div style="font-size:10.5px;color:var(--w-muted);margin-top:3px">'+conf+'% · '+W.esc(c.page_type||'')+'</div></div></div>';
+            if(missing.length)body+='<div style="font-size:10px;color:#B42318;margin-top:5px">Faltan tokens: '+W.esc(missing.join(', '))+'</div>';
+            if(conflicts.length)body+='<div style="font-size:10px;color:#B42318;margin-top:5px">Conflictos: '+W.esc(conflicts.join(', '))+'</div>';
+            if(c.error)body+='<div style="font-size:10px;color:#B42318;margin-top:5px">'+W.esc(c.error)+'</div>';
+            if(c.status!=='rejected'&&['verified','generated','applied'].indexOf(j.status)===-1)body+='<div style="margin-top:7px"><button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.storeContentLabConfirm('+j.id+','+i+')">Confirmar esta fuente</button></div>';
+            body+='</div>';
+        });
+        body+='</div>';
+    }
+    body+='<div class="w-card" style="margin-bottom:12px;padding:12px"><h3 style="margin:0 0 6px;font-size:13px">URL oficial manual</h3><div style="font-size:11px;color:var(--w-muted);margin-bottom:6px">Si la marca bloquea bots o no está en el mapa, pega la URL exacta de la ficha oficial. El sistema volverá a verificar identidad.</div><div style="display:flex;gap:6px;flex-wrap:wrap"><input class="w-input" id="cl-manual-url" placeholder="https://www.fabricante.com/producto/…" style="flex:1;min-width:260px"/><button class="w-btn w-btn-secondary" onclick="wontia.storeContentLabManual('+j.id+')">Analizar URL</button></div></div>';
+    if(['verified','generated','applied'].indexOf(j.status)>-1){
+        body+='<div class="w-card" style="margin-bottom:12px;padding:12px"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><div><h3 style="margin:0;font-size:13px">Descripción generada</h3><div style="font-size:11px;color:var(--w-muted);margin-top:3px">Score editorial: '+W.num(j.generated_score||0)+'/100 · '+(j.ai_model?W.esc(j.ai_model):'sin modelo')+'</div></div><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.storeContentLabGenerate('+j.id+')">✨ '+(j.generated_html?'Regenerar con TIA':'Generar con TIA')+'</button>'+(j.generated_html?'<button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.storeContentLabApply('+j.id+')">Aplicar en el sitio</button>':'')+'</div></div>';
+        if(j.generated_preview)body+='<div style="margin-top:10px;border:1px solid var(--w-border);border-radius:10px;padding:12px;max-height:380px;overflow:auto;background:#fff;font-size:13px;line-height:1.65">'+j.generated_preview+'</div>';
+        body+='</div>';
+    }
+    var md=j.miche_data||{};
+    body+='<div class="w-card" style="margin-bottom:12px;padding:12px"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><div><h3 style="margin:0;font-size:13px">Comparación con Miche</h3><div style="font-size:11px;color:var(--w-muted);margin-top:3px">'+(md.miche_quality?('Nuestra: '+W.num(md.ours&&md.ours.score||0)+'/100 · Miche: '+W.num(md.miche_quality.score||0)+'/100'):'Sin comparar todavía')+'</div></div><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.storeContentLabMiche('+j.id+')">Comparar ahora</button>'+(md.recommendation&&md.recommendation.action==='replace'?'<button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.storeContentLabMicheApply('+j.id+')">Usar Miche</button>':'')+'</div></div>';
+    if(md.recommendation)body+='<div style="font-size:11px;margin-top:7px;color:'+(md.recommendation.action==='replace'?'#B45309':'#067647')+'">'+W.esc(md.recommendation.label||'')+'</div>';
+    body+='</div>';
+    var vids=j.source_videos||[];
+    body+='<div class="w-card" style="margin-bottom:12px;padding:12px"><h3 style="margin:0 0 6px;font-size:13px">Video oficial</h3><div style="font-size:11px;color:var(--w-muted);margin-bottom:6px">No se usan hotlinks. El video se descarga a un sandbox privado y solo se publica si SONIKA tiene derechos. '+(yt.connected?'YouTube conectado.':'YouTube no conectado.')+'</div>';
+    if(vids.length){vids.forEach(function(v,i){body+='<div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;border-top:1px dashed var(--w-border);padding:6px 0"><div style="font-size:11px"><b>'+W.esc(v.provider||'video')+'</b> · '+W.esc(v.title||v.id||'')+'<div style="word-break:break-all;color:var(--w-muted);font-size:10px">'+W.esc(v.url||'')+'</div></div><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.storeContentLabVideoPrepare('+j.id+','+i+')">Descargar a sandbox</button></div>'})}
+    else body+='<div style="font-size:11px;color:var(--w-muted)">No se detectaron videos en la ficha oficial.</div>';
+    if(j.video_file)body+='<div style="font-size:11px;margin-top:7px;color:#067647;word-break:break-all">Sandbox: '+W.esc(j.video_file)+' · '+W.esc(j.video_status||'')+'</div>';
+    if(j.youtube_url)body+='<div style="font-size:11px;margin-top:7px"><a href="'+W.esc(j.youtube_url)+'" target="_blank" rel="noopener">Ver en YouTube</a></div>';
+    if(j.video_file&&!j.youtube_url&&yt.connected)body+='<div style="margin-top:7px"><button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.storeContentLabVideoUpload('+j.id+')">Subir a YouTube @sonikaCO</button></div>';
+    if(!yt.connected)body+='<div style="margin-top:7px"><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.storeContentLabYoutube()">Conectar YouTube</button></div>';
+    body+='<label style="display:flex;gap:6px;align-items:flex-start;font-size:10.5px;color:var(--w-muted);margin-top:7px"><input type="checkbox" id="cl-rights" style="width:auto;margin-top:2px"/> Confirmo que SONIKA tiene autorización para reutilizar y subir este video.</label></div>';
+    if(acts.length){body+='<div class="w-card" style="padding:12px"><h3 style="margin:0 0 6px;font-size:13px">Actividad</h3><div style="max-height:180px;overflow:auto">';acts.forEach(function(a){body+='<div style="font-size:10.5px;border-bottom:1px dashed var(--w-border);padding:4px 0"><b>'+W.esc(a.action)+'</b> · '+W.esc(a.status)+' · <span style="color:var(--w-muted)">'+W.esc(String(a.created_at||'').replace('T',' ').slice(0,16))+' · '+W.esc(a.actor||'')+'</span><div style="color:var(--w-muted)">'+W.esc(a.detail||'')+'</div></div>'});body+='</div></div>'}
+    body+='</div>';
+    var actions='<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cerrar</button>';
+    if(j.status==='applied')actions+='<a class="w-btn w-btn-primary" href="'+W.esc(j.live_url||'#')+'" target="_blank" rel="noopener">Ver en vivo</a><button class="w-btn w-btn-danger" onclick="wontia.storeContentLabRollback('+j.id+')">Revertir</button>';
+    W.modal('Content Fix Lab · '+W.esc(String(j.title||j.handle||'')),body,actions);
+};
+W.storeContentLabConfirm=async function(jobId,index){
+    if(!window.confirm('¿Confirmas que esta fuente oficial es EXACTAMENTE el mismo producto? Se guardará esta decisión en la evidencia.'))return;
+    var r=await W.api('/api/v1/admin/store/content-lab/source',{method:'POST',body:{job_id:jobId,index:index,confirm:true}});
+    W.notify((r&&r.message)||'Fuente confirmada',r&&r.ok?'success':'error');if(r&&r.ok)W.storeContentLabOpen(jobId);
+};
+W.storeContentLabManual=async function(jobId){
+    var url=(document.getElementById('cl-manual-url')||{}).value||'';
+    if(!url.trim()){W.notify('Pega una URL oficial','info');return}
+    W.notify('Analizando URL oficial…','info');
+    var r=await W.api('/api/v1/admin/store/content-lab/source',{method:'POST',body:{job_id:jobId,manual_url:url,confirm:true}});
+    W.notify((r&&r.message)||'URL analizada',r&&r.ok?'success':'error');if(r&&r.job)W.storeContentLabOpen(r.job.id);
+};
+W.storeContentLabGenerate=async function(jobId){
+    W.notify('TIA está redactando la descripción con la fuente verificada…','info');
+    var r=await W.api('/api/v1/admin/store/content-lab/generate',{method:'POST',body:{job_id:jobId}});
+    W.notify((r&&r.message)||'Generación completada',r&&r.ok?'success':'error');if(r&&r.job)W.storeContentLabOpen(jobId);
+};
+W.storeContentLabApply=async function(jobId){
+    if(!window.confirm('¿Aplicar esta descripción al producto y publicarla en el sitio? Se guardará una revisión para poder revertir.'))return;
+    var r=await W.api('/api/v1/admin/store/content-lab/apply',{method:'POST',body:{job_id:jobId}});
+    W.notify((r&&r.message)||'Aplicada',r&&r.ok?'success':'error');if(r&&r.ok&&r.live_url){window.open(r.live_url,'_blank');W.storeContentLabOpen(jobId)}
+};
+W.storeContentLabRollback=async function(jobId){
+    if(!window.confirm('¿Revertir a la descripción anterior?'))return;
+    var r=await W.api('/api/v1/admin/store/content-lab/rollback',{method:'POST',body:{job_id:jobId}});
+    W.notify((r&&r.message)||'Revertida',r&&r.ok?'success':'error');if(r&&r.ok)W.storeContentLabOpen(jobId);
+};
+W.storeContentLabMiche=async function(jobId){
+    W.notify('Consultando la ficha de Miche…','info');
+    var r=await W.api('/api/v1/admin/store/content-lab/miche',{method:'POST',body:{job_id:jobId}});
+    W.notify((r&&r.message)||'Comparación lista',r&&r.ok?'success':'error');if(r&&r.data)W.storeContentLabOpen(jobId);
+};
+W.storeContentLabMicheApply=async function(jobId){
+    if(!window.confirm('¿Reemplazar nuestra descripción por la de Miche? Solo se hace si Miche es más completa.'))return;
+    var r=await W.api('/api/v1/admin/store/content-lab/miche/apply',{method:'POST',body:{job_id:jobId}});
+    W.notify((r&&r.message)||'Miche aplicada',r&&r.ok?'success':'error');if(r&&r.ok)W.storeContentLabOpen(jobId);
+};
+W.storeContentLabMicheScan=async function(){
+    W.notify('Escaneando actualizaciones de contenido en Miche…','info');
+    var r=await W.api('/api/v1/admin/store/content-lab/miche/scan',{method:'POST',body:{limit:250}});
+    if(!r||!r.ok){W.notify((r&&r.message)||'No se pudo escanear Miche','error');return}
+    var items=r.items||[];
+    var body='<div style="max-height:60vh;overflow:auto">'+(items.length?'<table class="w-table" style="width:100%"><thead><tr><th>Producto</th><th>Miche</th><th>Nuestra</th><th>Recomendación</th><th></th></tr></thead><tbody>'+items.map(function(x){return '<tr><td>'+W.esc(x.name)+'</td><td>'+W.num(x.miche_score)+'/100</td><td>'+W.num(x.ours_score)+'/100</td><td>'+(x.recommendation==='replace'?'Reemplazar por Miche':'Mantener la nuestra')+'</td><td><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.closeModal();wontia.storeContentLabOpen('+x.job_id+')">Abrir</button></td></tr>'}).join('')+'</tbody></table>':'<div style="font-size:12px;color:var(--w-muted)">No se detectaron actualizaciones de contenido en esta página de Miche.</div>')+'</div>';
+    W.modal('Actualizaciones de Miche',body,'<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cerrar</button>');
+    W.storeContentLab(W._clState.page);
+};
+W.storeContentLabVideoPrepare=async function(jobId,index){
+    if(!window.confirm('Vas a descargar el video oficial a un sandbox privado. Confirma que SONIKA tiene derechos para reutilizarlo. ¿Continuar?'))return;
+    W.notify('Descargando video al sandbox… puede tardar unos minutos','info');
+    var r=await W.api('/api/v1/admin/store/content-lab/video/prepare',{method:'POST',body:{job_id:jobId,index:index,rights:true}});
+    W.notify((r&&r.message)||'Video preparado',r&&r.ok?'success':'error');if(r&&r.ok)W.storeContentLabOpen(jobId);
+};
+W.storeContentLabVideoUpload=async function(jobId){
+    var rights=!!(document.getElementById('cl-rights')&&document.getElementById('cl-rights').checked);
+    if(!rights){W.notify('Marca la confirmación de derechos antes de subir','info');return}
+    if(!window.confirm('¿Subir este video a la cuenta de YouTube de SONIKA como público?'))return;
+    W.notify('Subiendo video a YouTube…','info');
+    var r=await W.api('/api/v1/admin/store/content-lab/video/upload',{method:'POST',body:{job_id:jobId,rights:true}});
+    W.notify((r&&r.message)||'Video subido',r&&r.ok?'success':'error');if(r&&r.ok)W.storeContentLabOpen(jobId);
+};
+W.storeContentLabYoutube=async function(){
+    var r=await W.api('/api/v1/admin/store/content-lab/youtube');
+    var d=(r&&r.data)||{};
+    var body='<div style="font-size:12px;line-height:1.7">'
+        +'<div><b>Estado:</b> '+(d.connected?'Conectado':'No conectado')+'</div>'
+        +(d.channel_title?'<div><b>Canal:</b> '+W.esc(d.channel_title)+'</div>':'')
+        +'<div style="font-size:11px;color:var(--w-muted);margin-top:6px">Callback OAuth: <code>'+W.esc(d.redirect_uri||'')+'</code></div>'
+        +'<div style="margin-top:10px;padding:10px;border:1px dashed var(--w-border);border-radius:8px"><b>Credenciales de Google Cloud</b><div style="font-size:11px;color:var(--w-muted);margin:3px 0 7px">Crea un OAuth Client (Web) con el callback de arriba y pega Client ID/Secret. Luego autoriza el canal @sonikaCO.</div><input class="w-input" id="yt-client-id" placeholder="Client ID" value="'+W.esc(d.client_id||'')+'" style="width:100%;margin-bottom:6px"/><input class="w-input" id="yt-client-secret" placeholder="Client Secret (se guarda cifrado)" type="password" style="width:100%;margin-bottom:6px"/><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.storeContentLabYouTubeSave()">Guardar credenciales</button></div>'
+        +'<div style="margin-top:10px;padding:10px;border:1px dashed var(--w-border);border-radius:8px"><b>Cookies para descargar de YouTube</b><div style="font-size:11px;color:var(--w-muted);margin:3px 0 7px">Google bloquea las descargas anónimas. Exporta un <code>cookies.txt</code> (formato Netscape) desde una sesión de YouTube y súbelo. Se guarda fuera del webroot. Úsalo solo con videos sobre los que SONIKA tenga derechos.</div><input type="file" id="yt-cookies" accept=".txt" style="font-size:11px;margin-bottom:6px"/><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.storeContentLabYouTubeCookies()">Subir cookies</button><span style="font-size:11px;color:'+(d.cookies_configured?'#067647':'#B45309')+';margin-left:8px">'+(d.cookies_configured?'● Cookies configuradas':'○ Sin cookies')+'</span></div>'
+        +'<div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap"><button class="w-btn w-btn-primary" onclick="wontia.storeContentLabYouTubeConnect()">Conectar YouTube</button>'+(d.connected?'<button class="w-btn w-btn-danger" onclick="wontia.storeContentLabYouTubeDisconnect()">Desconectar</button>':'')+'</div>'
+        +'</div>';
+    W.modal('YouTube · cuenta SONIKA',body,'<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cerrar</button>');
+};
+W.storeContentLabYouTubeSave=async function(){
+    var id=(document.getElementById('yt-client-id')||{}).value||'';
+    var secret=(document.getElementById('yt-client-secret')||{}).value||'';
+    var r=await W.api('/api/v1/admin/store/content-lab/youtube/credentials',{method:'POST',body:{client_id:id,client_secret:secret}});
+    W.notify((r&&r.message)||'Credenciales guardadas',r&&r.ok?'success':'error');
+};
+W.storeContentLabYouTubeCookies=async function(){
+    var input=document.getElementById('yt-cookies');
+    if(!input||!input.files||!input.files[0]){W.notify('Selecciona el archivo cookies.txt','info');return}
+    var fd=new FormData();fd.append('cookies',input.files[0]);
+    try{
+        var res=await fetch('/api/v1/admin/store/content-lab/youtube/cookies',{method:'POST',body:fd,credentials:'same-origin',headers:W.token?{Authorization:'Bearer '+W.token}:{}});
+        var d=await res.json();
+        W.notify((d&&d.message)||(res.ok?'Cookies guardadas':'No se pudieron guardar'),res.ok?'success':'error');
+        if(res.ok)W.storeContentLabYoutube();
+    }catch(e){W.notify('No se pudieron subir las cookies: '+e.message,'error')}
+};
+W.storeContentLabYouTubeConnect=async function(){
+    var r=await W.api('/api/v1/admin/store/content-lab/youtube/start',{method:'POST'});
+    if(r&&r.ok&&r.url){window.location.href=r.url}else W.notify((r&&r.message)||'No se pudo iniciar OAuth','error');
+};
+W.storeContentLabYouTubeDisconnect=async function(){
+    if(!window.confirm('¿Desconectar la cuenta de YouTube?'))return;
+    var r=await W.api('/api/v1/admin/store/content-lab/youtube/disconnect',{method:'POST'});
+    W.notify((r&&r.message)||'Desconectado',r&&r.ok?'success':'error');W.closeModal();
+};
+W.storeContentLabExport=async function(){
+    var f=W._clExportFilters||{filter:'empty'};
+    var qs=new URLSearchParams({filter:f.filter||'empty',q:f.q||'',status:f.status||'',vendor:f.vendor||''}).toString();
+    try{
+        var res=await fetch('/api/v1/admin/store/content-lab/export.xls?'+qs,{credentials:'same-origin',headers:W.token?{Authorization:'Bearer '+W.token}:{}});
+        if(!res.ok)throw new Error('HTTP '+res.status);
+        var blob=await res.blob();
+        var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='sonika-contenido-'+new Date().toISOString().slice(0,10)+'.xls';document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},600);
+        W.notify('Lista .xls descargada','success');
+    }catch(e){W.notify('No se pudo descargar el .xls: '+e.message,'error')}
+};
+
 W.storeProducts=function(){
     var el=document.getElementById('store-content');
     el.innerHTML='<div class="w-flex-between w-mb-lg" style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:16px">'
@@ -5364,7 +7118,7 @@ W.storeProductsLoad=async function(){
     var st=document.getElementById('store-p-status')?document.getElementById('store-p-status').value:'';
     var list=document.getElementById('store-p-list');
     if(!list)return;
-    var r=await W.api('/api/v1/admin/store/products?search='+encodeURIComponent(q)+'&status='+encodeURIComponent(st)+'&limit=200');
+    var r=await W.api('/api/v1/admin/store/products?search='+encodeURIComponent(q)+'&status='+encodeURIComponent(st)+'&limit=5000');
     var rows=r.data||[];
     if(!rows.length){list.innerHTML='<div class="w-empty-state"><h3>Sin productos</h3><p>Crea tu primer producto para empezar a vender.</p></div>';return}
     var html='<div class="w-card" style="padding:0;overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="text-align:left;color:var(--w-muted);font-size:11px;text-transform:uppercase;letter-spacing:.05em">'
@@ -5587,10 +7341,12 @@ W.storeOrderDetail=async function(id){
     var body='<div style="font-size:13px;line-height:1.9">'
         +'<div><strong>Cliente:</strong> '+W.esc(o.customer_name||'')+' · '+W.esc(o.customer_email||'')+' · '+W.esc(o.customer_phone||'')+'</div>'
         +'<div><strong>Entrega:</strong> '+W.esc([addr.line1,addr.city,addr.region].filter(function(x){return x}).join(', '))+'</div>'
+        +(addr.department_code?'<div style="font-size:11px;color:var(--w-muted)">DANE '+W.esc(addr.department_code)+' / '+W.esc(addr.municipality_code||'')+(o.shipping_carrier?' · '+W.esc(o.shipping_carrier):'')+'</div>':'')
+        +(o.shipping_eta_min_days&&o.shipping_eta_max_days?'<div style="font-size:11px;color:var(--w-muted)">Entrega estimada: '+W.esc(o.shipping_eta_min_days)+'-'+W.esc(o.shipping_eta_max_days)+' días</div>':'')
         +(o.notes?'<div><strong>Notas:</strong> '+W.esc(o.notes)+'</div>':'')
         +'<div style="margin-top:12px">'+items+'</div>'
         +'<div style="display:flex;justify-content:space-between;padding:6px 0"><span>Subtotal</span><span>$'+W.num((o.subtotal_cents/100))+'</span></div>'
-        +'<div style="display:flex;justify-content:space-between;padding:6px 0"><span>Envío</span><span>$'+W.num((o.shipping_cents/100))+'</span></div>'
+        +'<div style="display:flex;justify-content:space-between;padding:6px 0"><span>Envío</span><span>'+(o.shipping_cents>0?'$'+W.num((o.shipping_cents/100)):'Gratis')+'</span></div>'
         +'<div style="display:flex;justify-content:space-between;padding:6px 0;font-weight:800;font-size:15px"><span>Total</span><span>$'+W.num((o.total_cents/100))+'</span></div>'
         +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px">'
         +'<div><label style="font-size:11px;color:var(--w-muted)">Estado del pago</label><select class="w-input" id="so-pay" style="width:100%">'+['pending','paid','failed','refunded'].map(function(s){return '<option value="'+s+'"'+(o.payment_status===s?' selected':'')+'>'+s+'</option>'}).join('')+'</select></div>'
@@ -5606,56 +7362,533 @@ W.storeOrderSave=async function(id){
     if(r.ok){W.notify('Pedido actualizado','success');W.closeModal();W.storeOrdersLoad()}
 };
 
-W.storeZones=async function(){
+W.storeShipping=async function(tab){
+    W._shippingTab=tab||W._shippingTab||'cobertura';
     var el=document.getElementById('store-content');
-    var r=await W.api('/api/v1/admin/store/zones');
-    var rows=r.data||[];
-    var html='<div style="display:flex;justify-content:space-between;margin-bottom:16px"><h3 style="margin:0">Zonas de envío</h3><button class="w-btn w-btn-primary" onclick="wontia.storeZoneEditor()">+ Nueva zona</button></div>';
-    if(!rows.length){html+='<div class="w-empty-state"><h3>Sin zonas de envío</h3><p>Define zonas y costos para calcular el envío en el checkout.</p></div>'}
-    else{
-        html+='<div class="w-card" style="padding:0"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="text-align:left;color:var(--w-muted);font-size:11px;text-transform:uppercase"><th style="padding:12px 14px">Zona</th><th style="padding:12px 14px">Regiones</th><th style="padding:12px 14px">Costo</th><th style="padding:12px 14px">Gratis desde</th><th style="padding:12px 14px">Entrega</th><th style="padding:12px 14px"></th></tr></thead><tbody>';
-        rows.forEach(function(z){
-            html+='<tr style="border-top:1px solid var(--w-border)"><td style="padding:12px 14px;font-weight:600">'+W.esc(z.name)+'</td><td style="padding:12px 14px;color:var(--w-muted)">'+W.esc(z.regions||'—')+'</td>'
-                +'<td style="padding:12px 14px">$'+W.num((z.cost_cents/100))+'</td><td style="padding:12px 14px">'+(z.free_over_cents>0?'$'+W.num((z.free_over_cents/100)):'—')+'</td>'
-                +'<td style="padding:12px 14px;color:var(--w-muted)">'+W.esc(z.eta_days||'—')+'</td>'
-                +'<td style="padding:12px 14px;text-align:right;white-space:nowrap"><button class="w-btn w-btn-secondary w-btn-sm" onclick=\'wontia.storeZoneEditor('+JSON.stringify(z)+')\'>Editar</button> '
-                +'<button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.storeZoneDelete('+z.id+')">Eliminar</button></td></tr>';
-        });
-        html+='</tbody></table></div>';
-    }
-    el.innerHTML=html;
+    el.innerHTML='<div class="w-empty-state"><h3>Cargando envíos</h3><p>Consultando cobertura y tarifas.</p></div>';
+    var r=await W.api('/api/v1/admin/store/shipping/overview');
+    if(!r.ok||!r.data){el.innerHTML='<div class="w-empty-state"><h3>No se pudo cargar Envíos</h3><p>'+W.esc(r.message||'Intenta de nuevo.')+'</p></div>';return}
+    W._shipping=r.data;
+    if(!W._shippingDept&&W._shipping.departments&&W._shipping.departments.length)W._shippingDept=W._shipping.departments[0].code;
+    W.shippingRender();
 };
 
-W.storeZoneEditor=function(z){
-    z=z||{id:0,name:'',regions:'',cost_cents:0,free_over_cents:0,eta_days:'',is_active:1};
-    var body='<div><label style="font-size:11px;color:var(--w-muted)">Nombre *</label><input class="w-input" id="sz-name" value="'+W.esc(z.name)+'" placeholder="Ej: Nacional / Medellín" style="width:100%"/></div>'
-        +'<div style="margin-top:12px"><label style="font-size:11px;color:var(--w-muted)">Regiones cubiertas</label><input class="w-input" id="sz-regions" value="'+W.esc(z.regions||'')+'" placeholder="Ej: Antioquia, Cundinamarca" style="width:100%"/></div>'
-        +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">'
-        +'<div><label style="font-size:11px;color:var(--w-muted)">Costo (centavos)</label><input class="w-input" type="number" id="sz-cost" value="'+(z.cost_cents||0)+'" style="width:100%"/></div>'
-        +'<div><label style="font-size:11px;color:var(--w-muted)">Gratis desde (centavos, 0=nunca)</label><input class="w-input" type="number" id="sz-free" value="'+(z.free_over_cents||0)+'" style="width:100%"/></div>'
-        +'<div><label style="font-size:11px;color:var(--w-muted)">Tiempo de entrega</label><input class="w-input" id="sz-eta" value="'+W.esc(z.eta_days||'')+'" placeholder="Ej: 2-4 días" style="width:100%"/></div>'
-        +'<div><label style="font-size:11px;color:var(--w-muted)">Activa</label><select class="w-input" id="sz-active" style="width:100%"><option value="1"'+(z.is_active==1?' selected':'')+'>Sí</option><option value="0"'+(z.is_active!=1?' selected':'')+'>No</option></select></div></div>';
-    W.modal(z.id?('Editar zona #'+z.id):'Nueva zona de envío',body,'<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cancelar</button><button class="w-btn w-btn-primary" onclick="wontia.storeZoneSave('+(z.id||0)+')">Guardar</button>');
+W.shippingTab=function(tab){W._shippingTab=tab||'cobertura';W.shippingRender()};
+
+W.shippingRender=function(){
+    var el=document.getElementById('store-content');if(!el)return;
+    var d=W._shipping||{},s=d.stats||{},tab=W._shippingTab||'cobertura';
+    var h='<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:16px">'
+        +'<div><h3 style="margin:0">Envíos</h3><p style="margin:5px 0 0;color:var(--w-muted);font-size:12px">Cobertura nacional, tarifas y tiempos de entrega.</p></div>'
+        +'<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="w-btn w-btn-secondary" onclick="wontia.storeShipping()">Actualizar</button><button class="w-btn w-btn-primary" onclick="wontia.shippingRateEditor()">+ Nueva tarifa</button></div></div>';
+    h+='<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:16px">'
+        +W.shippingStat('Cobertura',(s.covered_departments||0)+'/'+(s.departments||0),'departamentos')
+        +W.shippingStat('Municipios',W.num(s.municipalities||0),'en la base DANE')
+        +W.shippingStat('Tarifas activas',W.num(s.active_rates||0),(s.municipality_rates||0)+' excepciones municipales')
+        +W.shippingStat('Cobertura nacional',(s.coverage_pct||0)+'%',(s.covered_municipalities||0)+' municipios')
+        +'</div>';
+    h+='<div style="display:flex;gap:8px;border-bottom:1px solid var(--w-border);margin-bottom:14px">'
+        +W.shippingTabBtn('cobertura','Cobertura',tab)
+        +W.shippingTabBtn('tarifas','Tarifas',tab)
+        +'</div>';
+    h+=tab==='tarifas'?W.shippingRatesHtml():W.shippingCoverageHtml();
+    el.innerHTML=h;
 };
 
-W.storeZoneSave=async function(id){
-    var v=function(s){return document.querySelector(s).value};
-    var payload={id:id||undefined,name:v('#sz-name'),regions:v('#sz-regions'),cost_cents:parseInt(v('#sz-cost'))||0,free_over_cents:parseInt(v('#sz-free'))||0,eta_days:v('#sz-eta'),is_active:parseInt(v('#sz-active'))};
-    var r=await W.api(id?('/api/v1/admin/store/zones/'+id):'/api/v1/admin/store/zones',{method:id?'PUT':'POST',body:payload});
-    if(r.ok){W.notify('Zona guardada','success');W.closeModal();W.storeZones()}
+W.shippingStat=function(label,value,note){
+    return '<div class="w-card" style="padding:13px 14px"><div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--w-muted);font-weight:700">'+W.esc(label)+'</div><div style="font-size:22px;font-weight:800;margin-top:5px">'+W.esc(value)+'</div><div style="font-size:11px;color:var(--w-muted);margin-top:2px">'+W.esc(note||'')+'</div></div>';
 };
 
-W.storeZoneDelete=function(id){
-    W.confirm('¿Eliminar esta zona de envío?',async function(){
-        var r=await W.api('/api/v1/admin/store/zones/'+id,{method:'DELETE'});
-        if(r.ok){W.notify('Zona eliminada','success');W.storeZones()}
+W.shippingTabBtn=function(id,label,current){
+    return '<button class="w-btn '+(current===id?'w-btn-primary':'w-btn-secondary')+'" style="margin-bottom:-1px;border-radius:8px 8px 0 0" onclick="wontia.shippingTab(\''+id+'\')">'+W.esc(label)+'</button>';
+};
+
+W.shippingCoverageHtml=function(){
+    var d=W._shipping||{},depts=d.departments||[],current=W._shippingDept||'',detail=W._shippingDetail;
+    var h='<div style="display:grid;grid-template-columns:minmax(260px,.8fr) minmax(0,1.7fr);gap:14px;align-items:start">';
+    h+='<div class="w-card" style="padding:0;overflow:hidden"><div style="padding:11px 12px;border-bottom:1px solid var(--w-border)"><input class="w-input" id="ship-search" placeholder="Buscar departamento..." oninput="wontia.shippingFilter(this.value)" style="width:100%"/></div><div id="ship-depts" style="max-height:620px;overflow:auto">';
+    depts.forEach(function(dept){
+        var active=String(dept.code)===String(current);
+        h+='<button type="button" data-ship-dept="'+W.esc((dept.name||'').toLowerCase())+'" onclick="wontia.shippingDept(\''+dept.code+'\')" style="width:100%;text-align:left;border:0;border-bottom:1px solid var(--w-border);background:'+(active?'var(--w-soft,#f5f5f7)':'transparent')+';padding:10px 12px;cursor:pointer;font:inherit"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b style="font-size:12px">'+W.esc(dept.name)+'</b><span style="font-size:10px;color:var(--w-muted)">'+W.esc(String(dept.municipalities||0))+'</span></div><div style="margin-top:3px;font-size:10px;color:'+(dept.covered?'#15803d':'#b91c1c')+'">'+(dept.covered?'● '+(dept.rate_name||'Cubierto'):'● Sin cobertura')+(dept.exceptions?' · '+dept.exceptions+' excepción(es)':'')+'</div></button>';
     });
+    h+='</div></div><div class="w-card" style="padding:0;overflow:hidden">';
+    if(!detail){h+='<div class="w-empty-state" style="padding:46px 18px"><h3>Selecciona un departamento</h3><p>Consulta sus municipios y tarifas.</p></div>'}
+    else{
+        var dep=detail.department||{},municipalities=detail.municipalities||[];
+        h+='<div style="padding:13px 14px;border-bottom:1px solid var(--w-border);display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap"><div><b style="font-size:14px">'+W.esc(dep.name||'')+'</b><div style="font-size:11px;color:var(--w-muted);margin-top:2px">'+municipalities.length+' municipios · tarifa '+(detail.department_rate?'departamental':(detail.national?'nacional':'sin cobertura'))+'</div></div><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.shippingRateEditor(0,{department_code:\''+W.esc(dep.code||'')+'\'})">+ Tarifa departamento</button></div>';
+        h+='<div style="padding:8px 12px;border-bottom:1px solid var(--w-border)"><input class="w-input" id="ship-mun-search" placeholder="Buscar municipio o código DANE..." oninput="wontia.shippingMunFilter(this.value)" style="width:100%"/></div>';
+        h+='<div style="max-height:560px;overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="text-align:left;color:var(--w-muted);font-size:10px;text-transform:uppercase"><th style="padding:9px 12px">Municipio</th><th style="padding:9px 12px">DANE</th><th style="padding:9px 12px">Tarifa</th><th style="padding:9px 12px">Entrega</th><th style="padding:9px 12px">Origen</th><th style="padding:9px 12px"></th></tr></thead><tbody>';
+        municipalities.forEach(function(m){
+            var origin={municipio:'Municipio',departamento:'Departamento',nacional:'Nacional'}[m.rate_source]||'Sin cobertura';
+            h+='<tr data-ship-mun="'+W.esc(((m.name||'')+' '+(m.code||'')).toLowerCase())+'" style="border-top:1px solid var(--w-border)"><td style="padding:8px 12px"><b>'+W.esc(m.name)+'</b>'+(m.is_capital==1?' <span style="font-size:9px;color:var(--w-muted)">capital</span>':'')+'</td><td style="padding:8px 12px;color:var(--w-muted)">'+W.esc(m.code)+'</td><td style="padding:8px 12px">'+(m.cost_cents!=null?'$'+W.num(m.cost_cents/100):'—')+'</td><td style="padding:8px 12px;color:var(--w-muted)">'+(m.eta_min_days&&m.eta_max_days?m.eta_min_days+'-'+m.eta_max_days+' días':'—')+'</td><td style="padding:8px 12px"><span style="font-size:10px;padding:3px 7px;border-radius:999px;background:'+(m.covered?'#dcfce7':'#fee2e2')+';color:'+(m.covered?'#166534':'#991b1b')+'">'+W.esc(origin)+'</span></td><td style="padding:8px 12px;text-align:right"><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.shippingRateEditor('+(m.has_exception?m.rate_id:0)+',{department_code:\''+W.esc(dep.code||'')+'\',municipality_code:\''+W.esc(m.code)+'\'})">'+(m.has_exception?'Editar':'Excepción')+'</button></td></tr>';
+        });
+        h+='</tbody></table></div>';
+    }
+    h+='</div></div>';
+    return h;
+};
+
+W.shippingRatesHtml=function(){
+    var rates=(W._shipping&&W._shipping.rates)||[];
+    if(!rates.length)return '<div class="w-empty-state"><h3>Sin tarifas</h3><p>Crea una tarifa nacional o por departamento.</p></div>';
+    var h='<div class="w-card" style="padding:0;overflow:hidden"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="text-align:left;color:var(--w-muted);font-size:10px;text-transform:uppercase"><th style="padding:11px 13px">Tarifa</th><th style="padding:11px 13px">Cobertura</th><th style="padding:11px 13px">Transportadora</th><th style="padding:11px 13px">Costo</th><th style="padding:11px 13px">Gratis desde</th><th style="padding:11px 13px">Entrega</th><th style="padding:11px 13px">Estado</th><th style="padding:11px 13px"></th></tr></thead><tbody>';
+    rates.forEach(function(r){
+        var scope={nacional:'Nacional',departamento:'Departamento',municipio:'Municipio'}[r.scope]||r.scope;
+        var where=r.scope==='municipio'?((r.municipality_name||'')+', '+(r.department_name||'')):(r.scope==='departamento'?(r.department_name||''):'Todo Colombia');
+        h+='<tr style="border-top:1px solid var(--w-border)"><td style="padding:10px 13px;font-weight:700">'+W.esc(r.name)+'</td><td style="padding:10px 13px"><span style="font-size:10px;padding:2px 6px;border-radius:999px;background:#eef2ff;color:#3730a3">'+W.esc(scope)+'</span><div style="font-size:10px;color:var(--w-muted);margin-top:3px">'+W.esc(where)+'</div></td><td style="padding:10px 13px;color:var(--w-muted)">'+W.esc(r.carrier||'—')+'</td><td style="padding:10px 13px">$'+W.num((r.cost_cents||0)/100)+'</td><td style="padding:10px 13px">'+(r.free_over_cents!=null?'$'+W.num(r.free_over_cents/100):'Umbral global')+'</td><td style="padding:10px 13px;color:var(--w-muted)">'+(r.eta_min_days&&r.eta_max_days?r.eta_min_days+'-'+r.eta_max_days+' días':'—')+'</td><td style="padding:10px 13px">'+(r.is_active==1?'<span style="color:#15803d">Activa</span>':'<span style="color:#b91c1c">Inactiva</span>')+'</td><td style="padding:10px 13px;text-align:right;white-space:nowrap"><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.shippingRateEditor('+r.id+')">Editar</button> <button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.shippingRateDelete('+r.id+')">Eliminar</button></td></tr>';
+    });
+    return h+'</tbody></table></div>';
+};
+
+W.shippingFilter=function(value){
+    value=String(value||'').toLowerCase();
+    document.querySelectorAll('[data-ship-dept]').forEach(function(el){el.style.display=el.getAttribute('data-ship-dept').indexOf(value)>-1?'':'none'});
+};
+
+W.shippingMunFilter=function(value){
+    value=String(value||'').toLowerCase();
+    document.querySelectorAll('[data-ship-mun]').forEach(function(el){el.style.display=el.getAttribute('data-ship-mun').indexOf(value)>-1?'':'none'});
+};
+
+W.shippingDept=async function(code){
+    W._shippingDept=code;W._shippingDetail=null;W.shippingRender();
+    var r=await W.api('/api/v1/admin/store/shipping/municipalities?department='+encodeURIComponent(code));
+    if(r.ok&&r.data){W._shippingDetail=r.data;W.shippingRender()}
+};
+
+W.shippingRateEditor=function(id,prefill){
+    prefill=prefill||{};
+    var rate=null,rates=(W._shipping&&W._shipping.rates)||[];
+    if(id)rates.forEach(function(r){if(String(r.id)===String(id))rate=r});
+    var isEdit=!!rate;
+    var scope=rate?({nacional:'national',departamento:'department',municipio:'municipality'}[rate.scope]||'national'):'national';
+    if(prefill.municipality_code)scope='municipality';else if(prefill.department_code)scope='department';
+    var dept=rate&&rate.department_code?String(rate.department_code):(prefill.department_code||'');
+    var mun=rate&&rate.municipality_code?String(rate.municipality_code):(prefill.municipality_code||'');
+    var depts=(W._shipping&&W._shipping.departments)||[];
+    var options='<option value="">Selecciona</option>'+depts.map(function(d){return '<option value="'+W.esc(d.code)+'"'+(String(d.code)===String(dept)?' selected':'')+'>'+W.esc(d.name)+'</option>'}).join('');
+    var body='<div><label style="font-size:11px;color:var(--w-muted)">Nombre de la tarifa *</label><input class="w-input" id="sr-name" value="'+W.esc(rate?rate.name:(prefill.name||''))+'" placeholder="Ej: Nacional / Eje Cafetero / Medellín" style="width:100%"/></div>'
+        +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px"><div><label style="font-size:11px;color:var(--w-muted)">Cobertura</label><select class="w-input" id="sr-scope" onchange="wontia.shippingScope()" style="width:100%"><option value="national"'+(scope==='national'?' selected':'')+'>Nacional</option><option value="department"'+(scope==='department'?' selected':'')+'>Departamento</option><option value="municipality"'+(scope==='municipality'?' selected':'')+'>Municipio</option></select></div><div><label style="font-size:11px;color:var(--w-muted)">Transportadora</label><input class="w-input" id="sr-carrier" value="'+W.esc(rate?rate.carrier:'')+'" placeholder="Ej: Servientrega" style="width:100%"/></div></div>'
+        +'<div id="sr-dept-wrap" style="margin-top:12px;display:none"><label style="font-size:11px;color:var(--w-muted)">Departamento</label><select class="w-input" id="sr-dept" onchange="wontia.shippingScope()" style="width:100%">'+options+'</select></div>'
+        +'<div id="sr-mun-wrap" style="margin-top:12px;display:none"><label style="font-size:11px;color:var(--w-muted)">Municipio</label><select class="w-input" id="sr-mun" style="width:100%"><option value="'+W.esc(mun)+'">Cargando...</option></select></div>'
+        +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px"><div><label style="font-size:11px;color:var(--w-muted)">Costo COP *</label><input class="w-input" type="number" min="0" step="100" id="sr-cost" value="'+W.esc(String(rate?Math.round((rate.cost_cents||0)/100):''))+'" style="width:100%"/></div><div><label style="font-size:11px;color:var(--w-muted)">Gratis desde COP</label><input class="w-input" type="number" min="0" step="1000" id="sr-free" value="'+W.esc(rate&&rate.free_over_cents!=null?String(Math.round(rate.free_over_cents/100)):'')+'" placeholder="Vacío = umbral global" style="width:100%"/><small style="color:var(--w-muted);font-size:10px">Vacío usa el umbral global. 0 = nunca gratis.</small></div></div>'
+        +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px"><div><label style="font-size:11px;color:var(--w-muted)">Entrega mínima (días)</label><input class="w-input" type="number" min="1" max="60" id="sr-eta-min" value="'+W.esc(String(rate&&rate.eta_min_days?rate.eta_min_days:2))+'" style="width:100%"/></div><div><label style="font-size:11px;color:var(--w-muted)">Entrega máxima (días)</label><input class="w-input" type="number" min="1" max="60" id="sr-eta-max" value="'+W.esc(String(rate&&rate.eta_max_days?rate.eta_max_days:5))+'" style="width:100%"/></div></div>'
+        +'<div style="display:flex;gap:18px;flex-wrap:wrap;margin-top:12px"><label style="font-size:12px;display:flex;gap:7px;align-items:center"><input type="checkbox" id="sr-cod" '+(rate&&rate.cod_enabled==0?'':'checked')+'/> Contraentrega disponible</label><label style="font-size:12px;display:flex;gap:7px;align-items:center"><input type="checkbox" id="sr-active" '+((!rate||rate.is_active==1)?'checked':'')+'/> Tarifa activa</label></div>';
+    W.modal(isEdit?'Editar tarifa':'Nueva tarifa de envío',body,'<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cancelar</button><button class="w-btn w-btn-primary" onclick="wontia.shippingRateSave('+(rate?rate.id:0)+')">Guardar tarifa</button>');
+    W._shippingEditor={dept:dept,mun:mun,scope:scope};
+    setTimeout(function(){W.shippingScope()},0);
+};
+
+W.shippingScope=async function(){
+    var scopeEl=document.getElementById('sr-scope');if(!scopeEl)return;
+    var scope=scopeEl.value,deptWrap=document.getElementById('sr-dept-wrap'),munWrap=document.getElementById('sr-mun-wrap'),deptEl=document.getElementById('sr-dept');
+    deptWrap.style.display=scope==='national'?'none':'block';
+    munWrap.style.display=scope==='municipality'?'block':'none';
+    if(scope==='national')return;
+    var dept=deptEl.value||(W._shippingEditor&&W._shippingEditor.dept)||'';
+    if(!dept)return;
+    var munEl=document.getElementById('sr-mun');if(!munEl)return;
+    var selected=(W._shippingEditor&&W._shippingEditor.mun)||munEl.value||'';
+    munEl.innerHTML='<option value="">Cargando municipios...</option>';
+    if(scope!=='municipality')return;
+    var r=await W.api('/api/v1/public/shipping/municipalities?department='+encodeURIComponent(dept));
+    if(!r.ok||!Array.isArray(r.data)){munEl.innerHTML='<option value="">No se pudieron cargar</option>';return}
+    munEl.innerHTML='<option value="">Selecciona el municipio</option>'+r.data.map(function(m){return '<option value="'+W.esc(m.code)+'"'+(String(m.code)===String(selected)?' selected':'')+'>'+W.esc(m.name)+'</option>'}).join('');
+    W._shippingEditor.mun='';
+};
+
+W.shippingRateSave=async function(id){
+    var val=function(x){var el=document.getElementById(x);return el?el.value:''};
+    var payload={scope:val('sr-scope'),name:val('sr-name').trim(),department_code:val('sr-dept'),municipality_code:val('sr-mun'),carrier:val('sr-carrier').trim(),cost_cents:Math.round((parseFloat(val('sr-cost'))||0)*100),eta_min_days:parseInt(val('sr-eta-min'))||2,eta_max_days:parseInt(val('sr-eta-max'))||5,cod_enabled:document.getElementById('sr-cod')&&document.getElementById('sr-cod').checked?1:0,is_active:document.getElementById('sr-active')&&document.getElementById('sr-active').checked?1:0};
+    var free=String(val('sr-free')).trim();payload.free_over_cents=free===''?null:Math.round((parseFloat(free)||0)*100);
+    if(id)payload.id=id;
+    if(!payload.name){W.notify('Escribe un nombre para la tarifa','error');return}
+    if(payload.scope!=='national'&&!payload.department_code){W.notify('Selecciona un departamento','error');return}
+    if(payload.scope==='municipality'&&!payload.municipality_code){W.notify('Selecciona un municipio','error');return}
+    var r=await W.api(id?('/api/v1/admin/store/shipping/rates/'+id):'/api/v1/admin/store/shipping/rates',{method:id?'PUT':'POST',body:payload});
+    if(r.ok){W.notify('Tarifa guardada','success');W.closeModal();W._shippingDetail=null;W.storeShipping(W._shippingTab)}
+};
+
+W.shippingRateDelete=function(id){
+    W.confirm('¿Eliminar esta tarifa de envío?',async function(){
+        var r=await W.api('/api/v1/admin/store/shipping/rates/'+id,{method:'DELETE'});
+        if(r.ok){W.notify('Tarifa eliminada','success');W._shippingDetail=null;W.storeShipping(W._shippingTab)}
+    });
+};
+
+W.storeAddi=async function(){
+    var el=document.getElementById('store-content');
+    el.innerHTML='<div class="w-empty-state"><h3>Cargando Addi</h3><p>Consultando configuración y transacciones.</p></div>';
+    var r=await W.api('/api/v1/admin/addi/overview');
+    if(!r.ok||!r.data){el.innerHTML='<div class="w-empty-state"><h3>No se pudo cargar Addi</h3><p>'+W.esc(r.message||'Intenta de nuevo.')+'</p></div>';return}
+    W._addi=r.data;
+    var s=W._addi.settings||{},st=W._addi.stats||{},lc=s.last_config||{};
+    var h='<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:16px"><div><h3 style="margin:0">Addi · pago a cuotas</h3><p style="margin:5px 0 0;color:var(--w-muted);font-size:12px">Brick de integración con Addi para originar créditos desde el checkout.</p></div><div style="display:flex;gap:8px"><button class="w-btn w-btn-secondary" onclick="wontia.storeAddiTest()">Probar conexión</button><button class="w-btn w-btn-primary" onclick="wontia.storeAddiSave()">Guardar configuración</button></div></div>';
+    h+='<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:16px">'
+        +W.addiStat('Estado',s.configured?(s.enabled?'Activo':'Desactivado'):'Sin configurar',s.environment_label||'')
+        +W.addiStat('Transacciones',W.num(st.total||0),(st.approved||0)+' aprobadas')
+        +W.addiStat('Monto aprobado','$'+W.num((st.amount_cents||0)/100),'crédito Addi')
+        +W.addiStat('Compra permitida',lc.minAmount!=null?('$'+W.num(lc.minAmount)+' - $'+W.num(lc.maxAmount||0)):'Consultar',lc.isActiveAlly?'Ally activo':'Ally inactivo')
+        +'</div>';
+    if(!s.configured)h+='<div class="w-card" style="border-left:3px solid #d97706;background:#fffbeb;margin-bottom:14px"><b>Configura las credenciales de Addi</b><p style="font-size:12px;color:#92400e;margin:5px 0 0">Sin ally slug, client ID y client secret el método no aparecerá en el checkout.</p></div>';
+    else if(lc&&lc.isActiveAlly===false)h+='<div class="w-card" style="border-left:3px solid #dc2626;background:#fef2f2;margin-bottom:14px"><b>Addi reporta el ally como inactivo</b><p style="font-size:12px;color:#991b1b;margin:5px 0 0">El método se ocultará en el checkout hasta que Addi active el comercio o marques “Forzar visible”. Última consulta: '+W.esc(s.last_config_at||'—')+'</p></div>';
+    h+='<div class="w-card" style="padding:16px;margin-bottom:14px"><h3 style="margin:0 0 12px">Credenciales y conexión</h3><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Integración</label><select class="w-input" id="ad-enabled" style="width:100%"><option value="1"'+(s.enabled?' selected':'')+'>Activa</option><option value="0"'+(s.enabled?'':' selected')+'>Inactiva</option></select></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Ambiente</label><select class="w-input" id="ad-env" style="width:100%"><option value="staging"'+(s.environment==='staging'?' selected':'')+'>Staging</option><option value="production"'+(s.environment==='production'?' selected':'')+'>Producción</option></select></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Ally slug *</label><input class="w-input" id="ad-ally" value="'+W.esc(s.ally_slug||'')+'" placeholder="slug-del-comercio" style="width:100%"/></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Client ID *</label><input class="w-input" id="ad-client" value="'+W.esc(s.client_id||'')+'" style="width:100%"/></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Client secret '+(s.client_secret_set?'(guardado)':'(sin configurar)')+'</label><input class="w-input" type="password" id="ad-secret" value="" placeholder="'+(s.client_secret_set?'••••••••':'Pega el secreto')+'" style="width:100%"/></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Usuario callback</label><input class="w-input" id="ad-cb-user" value="'+W.esc(s.callback_user||'')+'" style="width:100%"/></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Contraseña callback '+(s.callback_password_set?'(guardada)':'(sin configurar)')+'</label><div style="display:flex;gap:6px"><input class="w-input" type="password" id="ad-cb-pass" value="" placeholder="'+(s.callback_password_set?'••••••••':'Configura una contraseña')+'" style="width:100%"/><button type="button" class="w-btn w-btn-secondary" onclick="wontia.addiGenPass()">Generar</button></div></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">URL callback (Basic Auth)</label><input class="w-input" id="ad-callback" value="'+W.esc(s.callback_url||'')+'" style="width:100%"/></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">URL redirección</label><input class="w-input" id="ad-redirect" value="'+W.esc(s.redirection_url||'')+'" style="width:100%"/></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Logo (URL)</label><input class="w-input" id="ad-logo" value="'+W.esc(s.logo_url||'')+'" style="width:100%"/></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Etiqueta checkout</label><input class="w-input" id="ad-label" value="'+W.esc(s.label||'Paga con Addi')+'" style="width:100%"/></div>'
+        +'</div><div style="display:flex;gap:18px;flex-wrap:wrap;margin-top:12px"><label style="font-size:12px;display:flex;gap:7px;align-items:center"><input type="checkbox" id="ad-force" '+(s.force_visible?'checked':'')+'/> Forzar visible si Addi está inactivo</label><label style="font-size:12px;display:flex;gap:7px;align-items:center"><input type="checkbox" id="ad-widget" '+(s.widget_enabled?'checked':'')+'/> Mostrar widget en productos</label></div></div>';
+    h+='<div class="w-card" style="padding:16px;margin-bottom:14px"><h3 style="margin:0 0 10px">Widget de producto</h3><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px"><div><label style="font-size:11px;color:var(--w-muted)">Título</label><input class="w-input" id="ad-widget-title" value="'+W.esc(s.widget_title||'')+'" style="width:100%"/></div><div><label style="font-size:11px;color:var(--w-muted)">Estilos JSON (opcional)</label><input class="w-input" id="ad-widget-styles" value="'+W.esc(s.widget_styles||'')+'" placeholder="{\"widget\":{\"fontFamily\":\"system-ui\"}}" style="width:100%"/></div></div><p style="font-size:11px;color:var(--w-muted);margin:8px 0 0">Se inserta como &lt;addi-widget&gt; en la ficha de producto. Script: widgets.addi.com/bundle.min.js</p></div>';
+    h+='<div class="w-card" style="border-left:3px solid '+(s.enabled?'#dc2626':'#6b7280')+';background:'+(s.enabled?'#fef2f2':'#f3f4f6')+';margin-bottom:14px"><b>'+(s.enabled?'¿Addi no fue aprobado?':'Addi deshabilitado')+'</b><p style="font-size:12px;color:'+(s.enabled?'#991b1b':'#374151')+';margin:5px 0 0">'+(s.enabled?'Desactívalo para ocultarlo por completo del checkout y de las fichas de producto.':'No se mostrará en el checkout ni en las fichas de producto. Puedes reactivarlo cuando Addi apruebe el comercio.')+'</p>'+(s.enabled?'<button class="w-btn w-btn-danger w-btn-sm" style="margin-top:10px" onclick="wontia.storeAddiDisable()">Desactivar Addi</button>':'')+'</div>';
+    var rows=W._addi.transactions||[];
+    h+='<div class="w-card" style="padding:0;overflow:hidden"><div style="padding:14px 16px;border-bottom:1px solid var(--w-border);display:flex;justify-content:space-between;align-items:center"><h3 style="margin:0">Transacciones Addi</h3><span style="font-size:11px;color:var(--w-muted)">'+rows.length+' registradas</span></div>';
+    if(!rows.length)h+='<div class="w-empty-state" style="padding:30px"><h3>Sin transacciones</h3><p>Las solicitudes de crédito aparecerán aquí.</p></div>';
+    else{h+='<div style="overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="text-align:left;color:var(--w-muted);font-size:10px;text-transform:uppercase"><th style="padding:10px 14px">Pedido</th><th style="padding:10px 14px">Cliente</th><th style="padding:10px 14px">Monto</th><th style="padding:10px 14px">Estado</th><th style="padding:10px 14px">Application</th><th style="padding:10px 14px">Fecha</th><th style="padding:10px 14px"></th></tr></thead><tbody>';
+      rows.forEach(function(t){var col=W.addiStatusClass(t.status);h+='<tr style="border-top:1px solid var(--w-border)"><td style="padding:9px 14px"><b>'+W.esc(t.order_number||'—')+'</b></td><td style="padding:9px 14px;color:var(--w-muted)">'+W.esc(t.customer_name||t.customer_email||'—')+'</td><td style="padding:9px 14px">$'+W.num((t.amount_cents||0)/100)+'</td><td style="padding:9px 14px"><span style="padding:2px 7px;border-radius:999px;font-size:10px;font-weight:700;background:'+col.bg+';color:'+col.fg+'">'+W.esc(t.status||'—')+'</span></td><td style="padding:9px 14px;color:var(--w-muted);font-size:10px">'+W.esc(t.application_id||'—')+'</td><td style="padding:9px 14px;color:var(--w-muted);font-size:10px">'+W.esc((t.created_at||'').slice(0,16))+'</td><td style="padding:9px 14px;text-align:right">'+(t.status==='APPROVED'?'<button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.addiCancel(\''+W.esc(t.order_uuid)+'\')">Cancelar</button>':'')+'</td></tr>'});
+      h+='</tbody></table></div>';}
+    h+='</div>';
+    el.innerHTML=h;
+};
+W.addiStat=function(label,value,note){return '<div class="w-card" style="padding:12px 14px"><div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--w-muted);font-weight:700">'+W.esc(label)+'</div><div style="font-size:19px;font-weight:800;margin-top:4px">'+W.esc(value)+'</div><div style="font-size:10px;color:var(--w-muted);margin-top:2px">'+W.esc(note||'')+'</div></div>'};
+W.addiStatusClass=function(status){if(status==='APPROVED')return {bg:'#dcfce7',fg:'#166534'};if(status==='ERROR'||status==='REJECTED'||status==='DECLINED'||status==='ABANDONED'||status==='INTERNAL_ERROR')return {bg:'#fee2e2',fg:'#991b1b'};return {bg:'#fef3c7',fg:'#92400e'}};
+W.storeAddiSave=async function(){
+    var v=function(id){var el=document.getElementById(id);return el?el.value:''};
+    var c=function(id){var el=document.getElementById(id);return !!(el&&el.checked)};
+    var payload={enabled:v('ad-enabled')==='1',environment:v('ad-env'),ally_slug:v('ad-ally'),client_id:v('ad-client'),callback_user:v('ad-cb-user'),callback_url:v('ad-callback'),redirection_url:v('ad-redirect'),logo_url:v('ad-logo'),label:v('ad-label'),force_visible:c('ad-force'),widget_enabled:c('ad-widget'),widget_title:v('ad-widget-title'),widget_styles:v('ad-widget-styles')};
+    var secret=v('ad-secret'),cbpass=v('ad-cb-pass');if(secret)payload.client_secret=secret;if(cbpass)payload.callback_password=cbpass;
+    var r=await W.api('/api/v1/admin/addi/settings',{method:'PUT',body:payload});
+    if(r.ok){W.notify('Configuración de Addi guardada','success');W.storeAddi()}else W.notify((r.message||'No se pudo guardar Addi'),'error');
+};
+W.storeAddiDisable=async function(){
+    var sel=document.getElementById('ad-enabled');
+    if(sel)sel.value='0';
+    await W.storeAddiSave();
+};
+W.storeAddiTest=async function(){
+    var r=await W.api('/api/v1/admin/addi/test',{method:'POST',body:{}});
+    var d=r.data||{};var cfg=d.config&&d.config.data?d.config.data:{};var h='<div style="font-size:13px;line-height:1.8"><div><b>Ambiente:</b> '+W.esc(d.environment||'—')+'</div><div><b>Configurado:</b> '+(d.configured?'Sí':'No')+'</div><div><b>Ally activo:</b> '+(cfg.isActiveAlly?'Sí':'No')+'</div><div><b>Mínimo:</b> '+(cfg.minAmount!=null?'$'+W.num(cfg.minAmount):'—')+'</div><div><b>Máximo:</b> '+(cfg.maxAmount!=null?'$'+W.num(cfg.maxAmount):'—')+'</div><div><b>Addi Pay Now:</b> '+(cfg.isActivePayNow?'Sí':'No')+'</div><div><b>Auth:</b> '+(d.auth&&d.auth.ok?'OK':(d.auth&&d.auth.message?W.esc(d.auth.message):'No probado'))+'</div><div><b>Callback:</b> '+W.esc(d.callback_url||'—')+'</div></div>';
+    if(!d.ok)h='<div class="w-empty-state" style="padding:18px"><b>La prueba encontró un problema</b><p>'+W.esc((r.message||(d.config&&d.config.message)||'Revisa las credenciales.'))+'</p></div>'+h;
+    W.modal('Prueba de conexión Addi',h,'<button class="w-btn w-btn-primary" onclick="wontia.closeModal()">Cerrar</button>');
+};
+W.addiGenPass=function(){var chars='ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%*?-_';var a=new Uint32Array(32);if(window.crypto&&crypto.getRandomValues)crypto.getRandomValues(a);var s='';for(var i=0;i<32;i++)s+=chars[(a[i]||Math.floor(Math.random()*chars.length))%chars.length];var el=document.getElementById('ad-cb-pass');if(el)el.value=s;};
+W.addiCancel=function(uuid){W.confirm('¿Solicitar cancelación total de este crédito Addi? Solo se permite una cancelación por transacción.',async function(){var r=await W.api('/api/v1/admin/addi/cancel/'+encodeURIComponent(uuid),{method:'POST',body:{}});if(r.ok){W.notify(r.message||'Cancelación solicitada','success');W.storeAddi()}else W.notify(r.message||'No se pudo cancelar','error')})};
+
+W.storeLogoMethods=[['breb','Bre-B'],['addi','Addi'],['request','WhatsApp / pago asistido'],['mercadopago','Mercado Pago'],['epayco','ePayco']];
+W.storeLogoCard=function(id,label,url,custom){
+    url=url||'';
+    return '<div class="w-card" style="padding:12px;margin:0"><div style="display:flex;gap:10px;align-items:center;margin-bottom:8px"><div style="width:92px;height:48px;border:1px solid var(--w-border);border-radius:9px;background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden"><img id="ss-logo-prev-'+id+'" src="'+W.esc(url)+'" alt="" style="max-width:100%;max-height:100%;object-fit:contain;display:'+(url?'block':'none')+'"/><span id="ss-logo-empty-'+id+'" style="font-size:10px;color:var(--w-muted);display:'+(url?'none':'block')+'">Sin logo</span></div><div style="flex:1;min-width:0"><b style="font-size:12px">'+W.esc(label)+'</b><input class="w-input" id="ss-logo-'+id+'" value="'+W.esc(url)+'" placeholder="https://... o /assets/uploads/..." oninput="wontia.storeLogoPreview(\''+id+'\')" style="width:100%;font-size:11px;margin-top:5px"/></div></div><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><input type="file" accept="image/*" onchange="wontia.storeLogoUpload(\''+id+'\',this)" style="font-size:10px;max-width:150px"/><button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.storeLogoRemove(\''+id+'\')">Quitar</button>'+(custom?'<button type="button" class="w-btn w-btn-danger w-btn-sm" onclick="wontia.storeLogoRemoveMethod('+id+')">Eliminar método</button>':'')+'</div></div>';
+};
+W.storeLogoPreview=function(id){var v=document.getElementById('ss-logo-'+id),img=document.getElementById('ss-logo-prev-'+id),empty=document.getElementById('ss-logo-empty-'+id);if(!v||!img)return;var u=v.value.trim();img.src=u;img.style.display=u?'block':'none';if(empty)empty.style.display=u?'none':'block';};
+W.storeLogoRemove=function(id){var v=document.getElementById('ss-logo-'+id);if(v)v.value='';W.storeLogoPreview(id);W.storeLogoSave()};
+W.storeLogoSave=async function(){
+    var logos={};W.storeLogoMethods.forEach(function(pair){var el=document.getElementById('ss-logo-'+pair[0]);var u=el?el.value.trim():'';if(u)logos[pair[0]]=u});
+    var r=await W.api('/api/v1/admin/store/settings',{method:'PUT',body:{store_payment_logos:JSON.stringify(logos),store_payment_logo_methods:JSON.stringify(W.storeLogoCustom||[]),store_payment_logo_methods:JSON.stringify(W.storeLogoCustom||[])}});
+    if(r.ok)W.notify('Logos de pago guardados','success');else W.notify((r&&r.message)||'No se pudieron guardar los logos','error');
+};
+W.storeLogoUpload=async function(id,input){
+    var file=input&&input.files&&input.files[0];if(!file)return;
+    if(file.size>12*1024*1024){W.notify('La imagen supera 12 MB','error');input.value='';return}
+    var fd=new FormData();fd.append('file',file);fd.append('alt_text','Logo de pago '+id);
+    var r=await W.api('/api/v1/admin/media/upload',{method:'POST',body:fd});
+    var u=r&&r.ok&&r.data?(r.data.url||(r.data.data&&r.data.data.url)||''):'';
+    if(!u){W.notify((r&&(r.message||(r.data&&r.data.message)))||'No se pudo subir el logo','error');input.value='';return}
+    var v=document.getElementById('ss-logo-'+id);if(v){v.value=u;W.storeLogoPreview(id)}
+    await W.storeLogoSave();input.value='';
+};
+
+W.storeLogoCustom=[];
+W.storeLogoSelect=function(){
+    var sel=document.getElementById('ss-logo-method-select');
+    var name=document.getElementById('ss-logo-attach-name');
+    var url=document.getElementById('ss-logo-attach-url');
+    var id=sel?sel.value:'';
+    if(!id){if(name)name.textContent='Selecciona un método para vincular su logo';if(url)url.value='';W.storeLogoAttachPreview();return}
+    var pair=(W.storeLogoMethods||[]).filter(function(x){return String(x[0])===String(id)})[0]||['',''];
+    var card=document.getElementById('ss-logo-'+id);
+    if(name)name.textContent='Logo para '+(pair[1]||id);
+    if(url)url.value=card?card.value:'';
+    W.storeLogoAttachPreview();
+};
+W.storeLogoAttachPreview=function(){
+    var url=document.getElementById('ss-logo-attach-url');
+    var img=document.getElementById('ss-logo-attach-prev');
+    if(!url||!img)return;
+    var u=url.value.trim();
+    img.src=u;
+    img.style.display=u?'block':'none';
+};
+W.storeLogoAttach=async function(){
+    var sel=document.getElementById('ss-logo-method-select');
+    var id=sel?sel.value:'';
+    if(!id){W.notify('Selecciona un método de pago','error');return}
+    var card=document.getElementById('ss-logo-'+id);
+    var fileInput=document.getElementById('ss-logo-attach-file');
+    if(fileInput&&fileInput.files&&fileInput.files[0]){
+        if(card)card.value='';
+        await W.storeLogoUpload(id,fileInput);
+        W.storeLogoSelect();
+        return;
+    }
+    var url=document.getElementById('ss-logo-attach-url');
+    if(!url||!card){W.notify('No se encontró el método seleccionado','error');return}
+    card.value=url.value.trim();
+    W.storeLogoPreview(id);
+    await W.storeLogoSave();
+    W.storeLogoSelect();
+};
+W.storeLogoAddMethod=async function(){
+    var input=document.getElementById('ss-logo-method-label');
+    var label=input?input.value.trim():'';
+    if(label.length<2){W.notify('Escribe un nombre de al menos 2 caracteres','error');return}
+    var base='custom-'+String(label).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,40);
+    if(base==='custom-')base='custom-'+Date.now();
+    var id=base,n=2,used=function(v){return (W.storeLogoMethods||[]).some(function(x){return String(x[0])===v})};
+    while(used(id)){id=base+'-'+(n++)}
+    var custom=(W.storeLogoCustom||[]).concat([{id:id,label:label}]);
+    var r=await W.api('/api/v1/admin/store/settings',{method:'PUT',body:{store_payment_logo_methods:JSON.stringify(custom)}});
+    if(r&&r.ok){W.notify('Método manual agregado','success');W.storeSettings()}else W.notify((r&&r.message)||'No se pudo agregar el método','error');
+};
+W.storeLogoRemoveMethod=function(id){
+    W.confirm('¿Eliminar este método manual del administrador de logos?',async function(){
+        var custom=(W.storeLogoCustom||[]).filter(function(x){return String(x.id)!==String(id)});
+        var r=await W.api('/api/v1/admin/store/settings',{method:'PUT',body:{store_payment_logo_methods:JSON.stringify(custom)}});
+        if(r&&r.ok){W.notify('Método eliminado','success');W.storeSettings()}else W.notify((r&&r.message)||'No se pudo eliminar el método','error');
+    });
+};
+
+W.catalogBrands=[];
+W.salesCategories=[];
+W.salesSelected=[];
+W.catalogSelected=[];
+W.catalogBrandCount=function(name){var n=String(name||'').trim().toLowerCase();for(var i=0;i<W.catalogBrands.length;i++){if(String(W.catalogBrands[i].name||'').trim().toLowerCase()===n)return W.catalogBrands[i].count||0}return 0};
+W.catalogRenderChips=function(){
+    var box=document.getElementById('ss-cat-chips'),count=document.getElementById('ss-cat-count');if(!box)return;
+    if(!W.catalogSelected.length){box.innerHTML='<span style="font-size:11px;color:var(--w-muted)">Sin marcas seleccionadas. La tienda mostrará todo el catálogo.</span>'}
+    else{box.innerHTML=W.catalogSelected.map(function(name,i){return '<span draggable="true" ondragstart="wontia.catalogDragStart(event,'+i+')" ondragover="event.preventDefault()" ondrop="wontia.catalogDrop(event,'+i+')" style="display:inline-flex;align-items:center;gap:6px;padding:6px 8px;border:1px solid var(--w-border);border-radius:9px;background:#fff;color:#333333;font-size:11px;font-weight:700;cursor:grab"><span style="color:#9ca3af;letter-spacing:-2px">::</span><span>'+W.esc(name)+'</span><small style="color:#333333;font-weight:600">'+W.catalogBrandCount(name)+'</small><button type="button" class="w-btn w-btn-secondary w-btn-sm" style="padding:1px 5px;min-height:auto" onclick="wontia.catalogMove('+i+',-1)" title="Subir">↑</button><button type="button" class="w-btn w-btn-secondary w-btn-sm" style="padding:1px 5px;min-height:auto" onclick="wontia.catalogMove('+i+',1)" title="Bajar">↓</button><button type="button" class="w-btn w-btn-danger w-btn-sm" style="padding:1px 6px;min-height:auto" onclick="wontia.catalogRemove('+i+')" title="Quitar">×</button></span>'}).join('')}
+    if(count)count.textContent=W.catalogSelected.length+'/10 marcas';
+};
+W.catalogAdd=function(name){
+    name=String(name||'').trim();if(!name)return;
+    var match=null;for(var i=0;i<W.catalogBrands.length;i++){if(String(W.catalogBrands[i].name||'').trim().toLowerCase()===name.toLowerCase()){match=W.catalogBrands[i];break}}
+    var canonical=match?match.name:name;
+    if(W.catalogSelected.some(function(x){return String(x).toLowerCase()===canonical.toLowerCase()})){W.notify('Esa marca ya está seleccionada','info');return}
+    if(W.catalogSelected.length>=10){W.notify('Máximo 10 marcas destacadas','error');return}
+    W.catalogSelected.push(canonical);
+    var input=document.getElementById('ss-cat-brand-input');if(input)input.value='';
+    W.catalogRenderChips();
+};
+W.catalogRemove=function(i){W.catalogSelected.splice(i,1);W.catalogRenderChips()};
+W.catalogMove=function(i,delta){var j=i+delta;if(j<0||j>=W.catalogSelected.length)return;var t=W.catalogSelected[i];W.catalogSelected[i]=W.catalogSelected[j];W.catalogSelected[j]=t;W.catalogRenderChips()};
+W.catalogDragStart=function(e,i){W._catalogDrag=i;try{e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',String(i))}catch(x){}};
+W.catalogDrop=function(e,i){e.preventDefault();var from=W._catalogDrag;if(from==null||from===i)return;var t=W.catalogSelected.splice(from,1)[0];W.catalogSelected.splice(i,0,t);W._catalogDrag=null;W.catalogRenderChips()};
+W.catalogTop=function(){var sorted=W.catalogBrands.slice().sort(function(a,b){return (b.count||0)-(a.count||0)});W.catalogSelected=sorted.slice(0,10).map(function(x){return x.name});W.catalogRenderChips()};
+W.catalogClear=function(){W.catalogSelected=[];W.catalogRenderChips()};
+W.catalogSortOptions=[
+    ['catalog','Orden original del catálogo'],
+    ['name_asc','Nombre A–Z'],
+    ['name_desc','Nombre Z–A'],
+    ['price_desc','Precio: mayor a menor'],
+    ['price_asc','Precio: menor a mayor'],
+    ['brand','Marca A–Z'],
+    ['guitars_amps','Guitarras y amplificadores'],
+    ['pianos_amps','Pianos y amplificadores'],
+    ['basses_amps','Bajos y amplificadores'],
+    ['gpb_interleaved','Guitarras, pianos y bajos intercalados'],
+    ['guitars_basses','Guitarras y bajos'],
+    ['guitars_basses_amps','Guitarras, bajos y amplificadores'],
+    ['guitars_pianos_basses','Guitarras, pianos y bajos'],
+    ['guitars_pianos_basses_amps','Guitarras, pianos, bajos y amplificadores'],
+    ['guitars_amps_interleaved','Guitarras y amplificadores intercalados'],
+    ['band','Banda completa: guitarras, bajos, pianos, batería y audio'],
+    ['stage','Sonido para escenario'],
+    ['studio','Estudio y grabación'],
+    ['acoustic','Acústicos y clásicos'],
+    ['percussion_audio','Percusión y audio'],
+    ['winds_accordions','Vientos y acordeones'],
+    ['dj_production','DJ y producción']
+];
+W.catalogPanel=function(s){
+    var sort=s.store_catalog_sort||'catalog',mode=s.store_catalog_mode||'all';
+    var showSales=String(s.store_show_sales===undefined?'1':s.store_show_sales)!=='0';
+    var salesSelected=Array.isArray(W.salesSelected)?W.salesSelected:[];
+    var salesChecks=(W.salesCategories||[]).map(function(c){return '<label style="font-size:11px;display:inline-flex;gap:6px;align-items:center;border:1px solid var(--w-border);border-radius:8px;padding:6px 8px;background:#fff;color:#333333"><input type="checkbox" class="ss-sales-cat" value="'+W.esc(c.slug)+'"'+(salesSelected.indexOf(String(c.slug))>=0?' checked':'')+'/> '+W.esc(c.name)+'</label>'}).join('');
+    return '<div class="w-card" id="store-catalog-panel" style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap"><div><h3 style="margin:0">Menú TIENDA · organización del catálogo</h3><p style="font-size:12px;color:var(--w-muted);margin:5px 0 0">Define el orden, la selección de marcas y el escaparate de la tienda. Los cambios se aplican en la pestaña <b>TODOS</b> de <b>/tienda</b>.</p></div><a class="w-btn w-btn-secondary w-btn-sm" href="/tienda" target="_blank" rel="noopener">Ver tienda</a></div>'
+        +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px">'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Ordenar productos</label><select class="w-input" id="ss-cat-sort" style="width:100%">'+W.catalogSortOptions.map(function(o){return '<option value="'+W.esc(o[0])+'"'+(sort===o[0]?' selected':'')+'>'+W.esc(o[1])+'</option>'}).join('')+'</select></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Escaparate</label><select class="w-input" id="ss-cat-mode" style="width:100%"><option value="all"'+(mode==='all'?' selected':'')+'>Todo el catálogo</option><option value="offers"'+(mode==='offers'?' selected':'')+'>Solo ofertas y promociones</option><option value="brands"'+(mode==='brands'?' selected':'')+'>Solo marcas seleccionadas</option><option value="mix"'+(mode==='mix'?' selected':'')+'>Mix: marcas seleccionadas + ofertas</option></select></div>'
+        +'</div>'
+        +'<p style="font-size:10.5px;color:var(--w-muted);margin:9px 0 0">Las colecciones de varios grupos se mezclan de forma equilibrada para que la primera página no quede dominada por una sola categoría.</p>'
+        +'<div style="display:flex;gap:18px;flex-wrap:wrap;margin-top:12px"><label style="font-size:12px;display:flex;gap:7px;align-items:center"><input type="checkbox" id="ss-cat-hide" '+((s.store_catalog_hide_out_of_stock==='1')?'checked':'')+'/> Ocultar agotados</label><label style="font-size:12px;display:flex;gap:7px;align-items:center"><input type="checkbox" id="ss-cat-tags" '+((s.store_catalog_show_tags!=='0')?'checked':'')+'/> Mostrar etiquetas de marcas en la tienda</label><label style="font-size:12px;display:flex;gap:7px;align-items:center"><input type="checkbox" id="ss-cat-oos-add" '+((s.store_oos_disable_add!=='0')?'checked':'')+'/> Deshabilitar Agregar cuando esté agotado</label></div>'
+        +'<div style="margin-top:14px;padding:12px;border:1px solid var(--w-border);border-radius:10px;background:#fff;color:#333333"><div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap"><div><b style="font-size:12px;color:#333333">Vendidos el mes pasado</b><p style="font-size:11px;color:#333333;margin:4px 0 0">Un clic para mostrar u ocultar la etiqueta en las tarjetas y fichas. Si no seleccionas categorías, se muestra en todos los productos.</p></div><label style="font-size:12px;display:flex;gap:7px;align-items:center;white-space:nowrap;color:#333333"><input type="checkbox" id="ss-sales-enabled" onchange="wontia.salesToggle(this.checked)" '+(showSales?'checked':'')+'/> Mostrar etiqueta</label></div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">'+salesChecks+'</div><div style="font-size:10.5px;color:#333333;margin-top:7px">Opcional: marca categorías para limitar la etiqueta. Sin categorías marcadas = todos los productos.</div></div>'
+        +'<div style="margin-top:14px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><label style="font-size:11px;color:var(--w-muted)">Marcas destacadas para TIENDA <span id="ss-cat-count" style="font-weight:800;color:var(--w-text)"></span></label><div style="display:flex;gap:6px;flex-wrap:wrap"><button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.catalogTop()">Top 10 por inventario</button><button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.catalogClear()">Limpiar</button></div></div>'
+        +'<div style="display:flex;gap:7px;margin-top:8px;flex-wrap:wrap"><input class="w-input" id="ss-cat-brand-input" list="ss-cat-brand-list" placeholder="Escribe una marca y pulsa Enter" style="flex:1;min-width:220px" onkeydown="if(event.key===\'Enter\'){event.preventDefault();wontia.catalogAdd(this.value)}"/><datalist id="ss-cat-brand-list">'+W.catalogBrands.map(function(b){return '<option value="'+W.esc(b.name)+'">'+W.esc(b.count+' productos')+'</option>'}).join('')+'</datalist><button type="button" class="w-btn w-btn-primary w-btn-sm" onclick="wontia.catalogAdd(document.getElementById(\'ss-cat-brand-input\').value)">+ Agregar</button></div>'
+        +'<div id="ss-cat-chips" style="display:flex;gap:7px;flex-wrap:wrap;margin-top:9px"></div><p style="font-size:10.5px;color:var(--w-muted);margin:7px 0 0">Máximo 10. Arrastra las etiquetas o usa ↑ ↓ para cambiar su orden. Se guardan como parte de la configuración de la tienda.</p></div>'
+        +'<div style="margin-top:14px"><button type="button" class="w-btn w-btn-primary" onclick="wontia.storeSettingsSave()">Guardar organización</button></div></div>';
+};
+W.recSlots=[
+    ['strings','Cuerdas'],['strap','Correas'],['picks','Púas'],['cable','Cables'],['tuner','Afinadores'],
+    ['stand','Bases y soportes'],['amp','Amplificadores'],['pedal','Pedales'],['mic','Micrófonos'],
+    ['case','Fundas y estuches'],['power','Fuentes'],['accessory','Accesorios generales'],
+    ['bench','Bancos'],['headphones','Audífonos'],['capo','Capos'],['sticks','Baquetas'],
+    ['practice_pad','Practice pads'],['ear_protection','Protección auditiva'],['xlr','Cables XLR'],
+    ['mic_stand','Pies de micrófono'],['interface','Interfaces'],['metronome','Metrónomos']
+];
+W.recData=function(s){
+    var out={enabled:true,title:'Completa tu sonido',subtitle:'Productos que combinan con tu compra',max:3,max_more:6,mode:'smart',show_reasons:true,hide_out_of_stock:true,no_repeat:true,fill_fallback:true,disabled_slots:[],discount_enabled:true,rounding:100,stackable:true};
+    try{var r=JSON.parse(s.store_recommendations||'{}')||{};Object.keys(r).forEach(function(k){out[k]=r[k]})}catch(e){}
+    return out;
+};
+W.recommendationPanel=function(s){
+    var r=W.recData(s), disabled=Array.isArray(r.disabled_slots)?r.disabled_slots:[];
+    var slotChecks=W.recSlots.map(function(x){return '<label style="font-size:11px;display:inline-flex;gap:6px;align-items:center;border:1px solid var(--w-border);border-radius:8px;padding:6px 8px;background:#fff;color:#333"><input type="checkbox" class="ss-rec-slot" value="'+x[0]+'"'+(disabled.indexOf(x[0])<0?' checked':'')+'/> '+W.esc(x[1])+'</label>'}).join('');
+    return '<div class="w-card" id="store-recommendations-panel" style="margin-bottom:14px">'
+        +'<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap"><div><h3 style="margin:0">Productos recomendados en el carrito</h3><p style="font-size:12px;color:var(--w-muted);margin:5px 0 0">Sugerencias de venta cruzada con descuento progresivo. Se muestran debajo de los productos del carrito.</p></div><span style="font-size:10px;font-weight:800;padding:4px 8px;border-radius:999px;background:#f1f5e8;color:#556B2F">Brick ecommerce</span></div>'
+        +'<div style="display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-top:14px">'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Título</label><input class="w-input" id="ss-rec-title" value="'+W.esc(r.title)+'" style="width:100%"/></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Activar módulo</label><select class="w-input" id="ss-rec-enabled" style="width:100%"><option value="1"'+(r.enabled?' selected':'')+'>Sí, mostrar recomendados</option><option value="0"'+(r.enabled?'':' selected')+'>No, ocultar</option></select></div>'
+        +'<div style="grid-column:1/-1"><label style="font-size:11px;color:var(--w-muted)">Subtítulo</label><input class="w-input" id="ss-rec-subtitle" value="'+W.esc(r.subtitle)+'" style="width:100%"/></div>'
+        +'</div>'
+        +'<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:12px">'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Tarjetas visibles</label><select class="w-input" id="ss-rec-max" style="width:100%">'+[1,2,3].map(function(n){return '<option value="'+n+'"'+(Number(r.max)===n?' selected':'')+'>'+n+'</option>'}).join('')+'</select></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Máximo con Ver más</label><select class="w-input" id="ss-rec-more" style="width:100%">'+[3,4,5,6,8,9,10,12].map(function(n){return '<option value="'+n+'"'+(Number(r.max_more)===n?' selected':'')+'>'+n+'</option>'}).join('')+'</select></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Modo</label><select class="w-input" id="ss-rec-mode" style="width:100%"><option value="smart"'+(r.mode==='smart'?' selected':'')+'>Equilibrado</option><option value="essentials"'+(r.mode==='essentials'?' selected':'')+'>Solo esenciales</option><option value="mix"'+(r.mode==='mix'?' selected':'')+'>Mix completo</option></select></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Redondeo del descuento</label><select class="w-input" id="ss-rec-round" style="width:100%">'+[10,50,100].map(function(n){return '<option value="'+n+'"'+(Number(r.rounding)===n?' selected':'')+'>$'+n+'</option>'}).join('')+'</select></div>'
+        +'</div>'
+        +'<div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:12px">'
+        +'<label style="font-size:12px;display:flex;gap:7px;align-items:center"><input type="checkbox" id="ss-rec-reasons" '+(r.show_reasons?'checked':'')+'/> Mostrar motivo de la sugerencia</label>'
+        +'<label style="font-size:12px;display:flex;gap:7px;align-items:center"><input type="checkbox" id="ss-rec-oos" '+(r.hide_out_of_stock?'checked':'')+'/> Ocultar agotados</label>'
+        +'<label style="font-size:12px;display:flex;gap:7px;align-items:center"><input type="checkbox" id="ss-rec-norepeat" '+(r.no_repeat?'checked':'')+'/> No repetir productos del carrito</label>'
+        +'<label style="font-size:12px;display:flex;gap:7px;align-items:center"><input type="checkbox" id="ss-rec-fill" '+(r.fill_fallback?'checked':'')+'/> Completar con accesorios populares</label>'
+        +'</div>'
+        +'<div style="margin-top:14px;padding:11px 12px;border:1px solid #dfe8cc;border-radius:9px;background:#f7faf1"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center"><div style="font-size:12px;color:#46552c"><b>Descuento de venta cruzada</b><br><span style="font-size:10.5px">0,5% al artículo más caro · 1% al intermedio · 1,5% al más barato. Solo los 3 primeros recomendados agregados desde este módulo.</span></div><label style="font-size:12px;display:flex;gap:7px;align-items:center;color:#46552c"><input type="checkbox" id="ss-rec-discount" '+(r.discount_enabled?'checked':'')+'/> Activo</label></div>'
+        +'<div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:7px;font-size:10.5px;color:#556B2F"><span>Mínimo $100</span><span>Acumulable con cupón y Bre-B</span><span>Se recalcula en el servidor</span></div></div>'
+        +'<div style="margin-top:14px"><label style="font-size:11px;color:var(--w-muted)">Tipos de sugerencia desactivados</label><p style="font-size:10.5px;color:var(--w-muted);margin:3px 0 7px">Desmarca una categoría para dejar de sugerirla en todas las combinaciones.</p><div style="display:flex;gap:6px;flex-wrap:wrap">'+slotChecks+'</div></div>'
+        +'<div style="margin-top:14px"><button type="button" class="w-btn w-btn-primary" onclick="wontia.storeSettingsSave()">Guardar configuración</button></div>'
+        +'</div>';
+};
+W.recPayload=function(){
+    var v=function(id){var el=document.getElementById(id);return el?el.value:''};
+    var c=function(id){var el=document.getElementById(id);return !!(el&&el.checked)};
+    var disabled=[];document.querySelectorAll('.ss-rec-slot').forEach(function(x){if(!x.checked)disabled.push(x.value)});
+    return {enabled:v('#ss-rec-enabled')==='1',title:v('#ss-rec-title'),subtitle:v('#ss-rec-subtitle'),max:parseInt(v('#ss-rec-max'))||3,max_more:parseInt(v('#ss-rec-more'))||12,mode:v('#ss-rec-mode')||'smart',show_reasons:c('ss-rec-reasons'),hide_out_of_stock:c('ss-rec-oos'),no_repeat:c('ss-rec-norepeat'),fill_fallback:c('ss-rec-fill'),disabled_slots:disabled,discount_enabled:c('ss-rec-discount'),rounding:parseInt(v('#ss-rec-round'))||100,stackable:true};
+};
+W.socialProofData=function(s){
+    var out={enabled:true,position:'bottom-left',animation_in:'slide-up',animation_out:'fade',interval_min:300,interval_max:300,initial_delay:12,visible_seconds:8,age_min:1,age_max:60,theme:'light',accent:'#F20D16',dismissible:true,product_link:true,names:[],cities:[],products:[],categories:[]};
+    try{var r=JSON.parse(s.store_social_proof||'{}')||{};Object.keys(r).forEach(function(k){out[k]=r[k]})}catch(e){}
+    ['names','cities','products','categories'].forEach(function(k){out[k]=Array.isArray(out[k])?out[k]:[]});
+    return out;
+};
+W.socialProofPanel=function(s){
+    var d=W.socialProofData(s);
+    W.spData=d;
+    var st=s.social_proof_stats||{};
+    var combos=parseInt(st.combinations)||0;
+    var opt=function(value,label,current){return '<option value="'+W.esc(value)+'"'+(String(current)===String(value)?' selected':'')+'>'+W.esc(label)+'</option>'};
+    var text=function(id,value,rows,placeholder){return '<textarea class="w-input" id="'+id+'" rows="'+(rows||5)+'" placeholder="'+W.esc(placeholder||'')+'" style="width:100%;font-family:inherit;resize:vertical">'+W.esc((value||[]).join('\n'))+'</textarea>'};
+    var statusColor=st.minimum_met?'#0d7a58':'#b45309';
+    var sourceLabel=st.source==='manual'?'lista editable':(st.source==='catalog'?'catálogo de productos':'lista de respaldo');
+    var citySourceLabel=st.city_source==='shipping'?'módulo Envíos':(st.city_source==='manual'?'lista editable':'respaldo');
+    return '<div class="w-card" id="store-social-proof-panel" style="margin-bottom:14px">'
+        +'<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap"><div><h3 style="margin:0">Prueba social flotante</h3><p style="font-size:12px;color:var(--w-muted);margin:5px 0 0">Una etiqueta discreta que aparece desde abajo, muestra una compra reciente y se desvanece. Usa el catálogo real y nombres de ejemplo editables.</p></div><span style="font-size:10px;font-weight:800;padding:4px 8px;border-radius:999px;background:#fff3cd;color:#8a6d00">Experimental</span></div>'
+        +'<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:14px">'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Activo</label><select class="w-input" id="ss-sp-enabled" style="width:100%">'+opt('1','Sí',d.enabled?'1':'0')+opt('0','No',d.enabled?'1':'0')+'</select></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Posición</label><select class="w-input" id="ss-sp-position" style="width:100%">'+opt('bottom-left','Abajo izquierda',d.position)+opt('bottom-right','Abajo derecha',d.position)+opt('bottom-center','Abajo centro',d.position)+'</select></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Tema</label><select class="w-input" id="ss-sp-theme" style="width:100%">'+opt('light','Claro',d.theme)+opt('dark','Oscuro',d.theme)+'</select></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Color de acento</label><input class="w-input" type="color" id="ss-sp-accent" value="'+W.esc(d.accent)+'" style="width:100%;height:38px;padding:3px"/></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Entrada</label><select class="w-input" id="ss-sp-in" style="width:100%">'+opt('slide-up','Subir desde abajo',d.animation_in)+opt('fade','Desvanecer',d.animation_in)+opt('scale','Escalar',d.animation_in)+'</select></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Salida</label><select class="w-input" id="ss-sp-out" style="width:100%">'+opt('fade','Desvanecer',d.animation_out)+opt('slide-down','Bajar',d.animation_out)+opt('scale','Escalar',d.animation_out)+'</select></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Cada (segundos)</label><div style="display:flex;gap:6px"><input class="w-input" type="number" min="300" id="ss-sp-min" value="'+(parseInt(d.interval_min)||300)+'" style="width:50%"/><input class="w-input" type="number" min="300" id="ss-sp-max" value="'+(parseInt(d.interval_max)||300)+'" style="width:50%"/></div></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Visible (segundos)</label><input class="w-input" type="number" min="3" max="60" id="ss-sp-visible" value="'+(parseInt(d.visible_seconds)||8)+'" style="width:100%"/></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Primer aviso (segundos)</label><input class="w-input" type="number" min="5" max="120" id="ss-sp-initial" value="'+(parseInt(d.initial_delay)||12)+'" style="width:100%"/></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Antigüedad (segundos)</label><div style="display:flex;gap:6px"><input class="w-input" type="number" min="1" max="60" id="ss-sp-age-min" value="'+(parseInt(d.age_min)||1)+'" style="width:50%"/><input class="w-input" type="number" min="1" max="60" id="ss-sp-age-max" value="'+(parseInt(d.age_max)||60)+'" style="width:50%"/></div></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Enlace al producto</label><select class="w-input" id="ss-sp-link" style="width:100%">'+opt('1','Sí',d.product_link?'1':'0')+opt('0','No',d.product_link?'1':'0')+'</select></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Botón cerrar</label><select class="w-input" id="ss-sp-dismiss" style="width:100%">'+opt('1','Sí',d.dismissible?'1':'0')+opt('0','No',d.dismissible?'1':'0')+'</select></div>'
+        +'</div>'
+        +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px">'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Nombres (uno por línea)</label>'+text('ss-sp-names',d.names,5,'María Fernanda Gutiérrez')+'</div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Ciudades y municipios (vacío = todos los del módulo Envíos)</label>'+text('ss-sp-cities',d.cities,5,'Vacío = todos los municipios del módulo Envíos')+'<p style="font-size:10.5px;color:var(--w-muted);margin:4px 0 0">Si lo dejas vacío se usan todos los municipios de Colombia cargados en Envíos.</p></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Productos (vacío = catálogo completo)</label>'+text('ss-sp-products',d.products,5,'Nombre del producto | Categoría | /producto/slug')+'<p style="font-size:10.5px;color:var(--w-muted);margin:4px 0 0">Si lo dejas vacío se usan los productos reales del catálogo. Para editarlos usa una línea por producto: nombre | categoría | URL.</p></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Categorías permitidas (vacío = todas)</label>'+text('ss-sp-categories',d.categories,5,'Guitarras y amplificadores')+'<p style="font-size:10.5px;color:var(--w-muted);margin:4px 0 0">Filtra los productos del catálogo por categoría. Una categoría por línea.</p></div>'
+        +'</div>'
+        +'<div style="margin-top:12px;padding:10px 12px;border:1px solid var(--w-border);border-radius:9px;background:#fbfcff"><div style="display:flex;gap:16px;flex-wrap:wrap;font-size:11.5px;color:#334155"><span><b style="color:'+statusColor+'">'+W.num(combos)+'</b> combinaciones</span><span>'+W.num(st.names||d.names.length)+' nombres</span><span>'+W.num(st.products||0)+' productos ('+W.esc(sourceLabel)+')</span><span>'+W.num(st.cities||d.cities.length)+' ciudades ('+W.esc(citySourceLabel)+')</span></div><div style="font-size:10.5px;color:'+statusColor+';margin-top:5px">'+(st.minimum_met?'Cumple el mínimo de 500 combinaciones.':'Ajusta nombres, productos o categorías para superar 500 combinaciones.')+'</div></div>'
+        +'<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button type="button" class="w-btn w-btn-secondary" onclick="wontia.socialProofPreview()">Probar banner guardado</button><button type="button" class="w-btn w-btn-primary" onclick="wontia.storeSettingsSave()">Guardar configuración</button><span style="font-size:10.5px;color:var(--w-muted)">El primer aviso aparece a los '+(parseInt(d.initial_delay)||12)+' s; después respeta el intervalo mínimo de 5 minutos.</span></div>'
+        +'<div id="ss-sp-preview" style="margin-top:10px;font-size:12px;color:var(--w-muted)"></div>'
+        +'</div>';
+};
+W.socialProofPayload=function(){
+    var v=function(id){var el=document.getElementById(id);return el?el.value:''};
+    var lines=function(id){return v(id).split(/\r?\n/).map(function(x){return x.trim()}).filter(Boolean)};
+    return {enabled:v('#ss-sp-enabled')==='1',position:v('#ss-sp-position'),animation_in:v('#ss-sp-in'),animation_out:v('#ss-sp-out'),interval_min:parseInt(v('#ss-sp-min'))||300,interval_max:parseInt(v('#ss-sp-max'))||300,initial_delay:parseInt(v('#ss-sp-initial'))||12,visible_seconds:parseInt(v('#ss-sp-visible'))||8,age_min:parseInt(v('#ss-sp-age-min'))||1,age_max:parseInt(v('#ss-sp-age-max'))||60,theme:v('#ss-sp-theme'),accent:v('#ss-sp-accent'),dismissible:v('#ss-sp-dismiss')==='1',product_link:v('#ss-sp-link')==='1',names:lines('#ss-sp-names'),cities:lines('#ss-sp-cities'),products:lines('#ss-sp-products'),categories:lines('#ss-sp-categories')};
+};
+W.socialProofPreview=async function(){
+    var box=document.getElementById('ss-sp-preview');
+    if(!box)return;
+    box.innerHTML='<span style="color:#64748b">Consultando una combinación...</span>';
+    var r=await W.api('/api/v1/public/store/social-proof?preview=1');
+    var d=(r&&r.data)||null;
+    if(!r||!r.ok||!d){box.innerHTML='<span style="color:#b42318">No se pudo generar la vista previa. Guarda y activa el banner primero.</span>';return}
+    box.innerHTML='<div style="display:inline-flex;gap:8px;align-items:flex-start;background:#fff;border:1px solid #e7e7e7;border-radius:12px;padding:10px 12px;box-shadow:0 6px 18px rgba(16,29,58,.08);max-width:420px"><span style="width:8px;height:8px;border-radius:99px;background:'+W.esc(d.accent||'#F20D16')+';margin-top:5px"></span><div><div style="font-size:9px;letter-spacing:.12em;font-weight:800;color:#7a8494">COMPRA RECIENTE</div><div style="font-size:12.5px;color:#171717;line-height:1.35"><b>'+W.esc(d.name)+'</b> de '+W.esc(d.city)+' ha comprado: <b>'+W.esc(d.product)+'</b></div><div style="font-size:10.5px;color:#8791a0;margin-top:3px">hace '+W.num(d.age_seconds)+' segundos</div></div></div>';
+};
+
+W.impactNoteData=function(s){
+    var out={enabled:true,label:'Impacto SONIKA',interval:9,phrases:[]};
+    try{var r=JSON.parse(s.store_impact_note||'{}')||{};Object.keys(r).forEach(function(k){out[k]=r[k]})}catch(e){}
+    out.phrases=Array.isArray(out.phrases)?out.phrases:[];
+    return out;
+};
+W.impactNotePanel=function(s){
+    var d=W.impactNoteData(s);W.impactData=d;
+    return '<div class="w-card" id="store-impact-note-panel" style="margin-bottom:14px">'
+        +'<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap"><div><h3 style="margin:0">Impacto SONIKA en ficha y carrito</h3><p style="font-size:12px;color:var(--w-muted);margin:5px 0 0">Aviso informativo de la donación del 10% de utilidades. Rota automáticamente entre las frases que definas, sin interrumpir la compra.</p></div><span style="font-size:10px;font-weight:800;padding:4px 8px;border-radius:999px;background:#fff1f2;color:#9a4a51">Impacto</span></div>'
+        +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:14px">'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Activo</label><select class="w-input" id="ss-impact-enabled" style="width:100%"><option value="1"'+(d.enabled?' selected':'')+'>Sí</option><option value="0"'+(d.enabled?'':' selected')+'>No</option></select></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Etiqueta</label><input class="w-input" id="ss-impact-label" value="'+W.esc(d.label||'Impacto SONIKA')+'" style="width:100%"/></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Rotar cada (segundos)</label><input class="w-input" type="number" min="4" max="60" id="ss-impact-interval" value="'+(parseInt(d.interval)||9)+'" style="width:100%"/></div>'
+        +'</div>'
+        +'<div style="margin-top:12px"><label style="font-size:11px;color:var(--w-muted)">Frases (una por línea, máximo 8)</label><textarea class="w-input" id="ss-impact-phrases" rows="7" placeholder="Cada vez que compras donaremos el 10%..." style="width:100%;font-family:inherit;resize:vertical">'+W.esc((d.phrases||[]).join('\n'))+'</textarea><p style="font-size:10.5px;color:var(--w-muted);margin:4px 0 0">La primera frase se muestra al cargar; las demás rotan automáticamente. El aviso aparece en la ficha de producto y en el carrito.</p></div>'
+        +'<div style="margin-top:10px;padding:10px 12px;border:1px solid #f1dcdf;border-left:2px solid #f3c4c7;border-radius:9px;background:#fcfcfc;color:#66717f;font-size:11.5px;line-height:1.45;max-width:620px"><div style="font-size:8.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#9a4a51;margin-bottom:3px">'+W.esc(d.label||'Impacto SONIKA')+'</div><div id="ss-impact-preview">'+W.esc((d.phrases||[])[0]||'Escribe una frase para verla aquí.')+'</div></div>'
+        +'<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button type="button" class="w-btn w-btn-secondary" onclick="wontia.impactNotePreview()">Probar rotación</button><button type="button" class="w-btn w-btn-primary" onclick="wontia.storeSettingsSave()">Guardar configuración</button><span style="font-size:10.5px;color:var(--w-muted)">También puedes desactivarlo cuando quieras.</span></div>'
+        +'</div>';
+};
+W.impactNotePayload=function(){
+    var v=function(id){var el=document.getElementById(id);return el?el.value:''};
+    var phrases=v('#ss-impact-phrases').split(/\r?\n/).map(function(x){return x.trim()}).filter(Boolean);
+    return {enabled:v('#ss-impact-enabled')==='1',label:v('#ss-impact-label'),interval:parseInt(v('#ss-impact-interval'))||9,phrases:phrases};
+};
+W.impactNotePreview=function(){
+    var box=document.getElementById('ss-impact-preview');
+    if(!box)return;
+    var d=W.impactNotePayload(),phrases=(d.phrases||[]);
+    if(!phrases.length){box.textContent='Escribe al menos una frase.';return}
+    var i=0;box.textContent=phrases[0];
+    if(W._impactPrevTimer)clearInterval(W._impactPrevTimer);
+    W._impactPrevTimer=setInterval(function(){i=(i+1)%phrases.length;box.textContent=phrases[i]},2000);
 };
 
 W.storeSettings=async function(){
     var el=document.getElementById('store-content');
     var r=await W.api('/api/v1/admin/store/settings');
+    var cb=await W.api('/api/v1/admin/store/catalog-brands');
+    var cc=await W.api('/api/v1/admin/store/catalog-categories');
+    var lm=await W.api('/api/v1/admin/store/payment-logo-methods');
     var s=r.data||{},methods=r.methods||[];
+    var lmData=(lm&&lm.ok&&lm.data)||{};
+    if(Array.isArray(lmData.methods)&&lmData.methods.length)W.storeLogoMethods=lmData.methods.map(function(x){return [String(x.id),String(x.label||x.id)]});
+    W.storeLogoCustom=Array.isArray(lmData.custom)?lmData.custom:[];
+    W.catalogBrands=(cb&&cb.data)||[];
+    W.salesCategories=(cc&&cc.data)||[];
+    W.salesSelected=[];try{W.salesSelected=JSON.parse(s.store_show_sales_categories||'[]')||[]}catch(e){}
+    W.salesSelected=Array.isArray(W.salesSelected)?W.salesSelected:[];
+    W.catalogSelected=[];try{W.catalogSelected=JSON.parse(s.store_catalog_brands||'[]')||[]}catch(e){}
+    W.catalogSelected=Array.isArray(W.catalogSelected)?W.catalogSelected.slice(0,10):[];
+    var logos={};try{logos=JSON.parse(s.store_payment_logos||'{}')||{}}catch(e){}
     var pm=['wompi','cod','manual'];
     var body='<div class="w-card"><h3 style="margin-top:0">Tienda</h3>'
         +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'
@@ -5694,13 +7927,44 @@ W.storeSettings=async function(){
         +'<div class="w-card" style="margin-top:14px"><h3 style="margin-top:0">Monedas</h3><div style="font-size:12px;color:var(--w-muted);margin-bottom:8px">La moneda base se cobra; las demás son referenciales (conversión por tasa). JSON: [{"code":"USD","label":"USD","symbol":"US$","rate":0.00025}]</div><textarea class="w-input" id="ss-currencies" rows="3" style="width:100%;font-family:monospace">'+W.esc(s.store_currencies||'')+'</textarea></div>'
         +'<div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap"><button class="w-btn w-btn-primary" onclick="wontia.storeSettingsSave()">Guardar configuración</button>'
         +'<button class="w-btn w-btn-secondary" onclick="wontia.storeMaintenance()">Liberar stock de pedidos vencidos</button></div>';
-    el.innerHTML=body;
+    var logoOptions=(W.storeLogoMethods||[]).map(function(pair){return '<option value="'+W.esc(pair[0])+'">'+W.esc(pair[1])+'</option>'}).join('');
+    var logosSection='<div class="w-card" id="store-payment-logos" style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap"><div><h3 style="margin:0">Logos de métodos de pago</h3><p style="font-size:12px;color:var(--w-muted);margin:5px 0 0">Detecta los métodos instalados, permite crear métodos manuales ilimitados y relacionar cada logo con su método.</p></div><button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.storeLogoSave()">Guardar logos</button></div>'
+        +'<div style="margin-top:14px;padding:12px;border:1px solid var(--w-border);border-radius:10px;background:#fbfcff">'
+        +'<div style="display:grid;grid-template-columns:1.3fr 1fr auto;gap:8px;align-items:end">'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Método instalado</label><select class="w-input" id="ss-logo-method-select" onchange="wontia.storeLogoSelect()" style="width:100%"><option value="">Selecciona un método...</option>'+logoOptions+'</select></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Crear método manual</label><input class="w-input" id="ss-logo-method-label" placeholder="Nombre del método" style="width:100%"/></div>'
+        +'<button type="button" class="w-btn w-btn-primary w-btn-sm" onclick="wontia.storeLogoAddMethod()">+ Crear método</button>'
+        +'</div>'
+        +'<div style="display:grid;grid-template-columns:1.3fr 1fr auto;gap:8px;align-items:end;margin-top:9px">'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Logo del método</label><input class="w-input" id="ss-logo-attach-url" placeholder="https://... o /assets/uploads/..." oninput="wontia.storeLogoAttachPreview()" style="width:100%"/></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Subir imagen</label><input type="file" id="ss-logo-attach-file" accept="image/*" style="font-size:10px;width:100%"/></div>'
+        +'<button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.storeLogoAttach()">Vincular logo</button>'
+        +'</div>'
+        +'<div style="display:flex;gap:10px;align-items:center;margin-top:9px"><span style="font-size:11px;color:var(--w-muted)" id="ss-logo-attach-name">Selecciona un método para vincular su logo</span><img id="ss-logo-attach-prev" alt="" style="max-height:34px;max-width:120px;display:none;object-fit:contain"/></div>'
+        +'</div>'
+        +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(245px,1fr));gap:10px;margin-top:12px">'+W.storeLogoMethods.map(function(pair){var isCustom=(W.storeLogoCustom||[]).some(function(x){return String(x.id)===String(pair[0])});return W.storeLogoCard(pair[0],pair[1],logos[pair[0]]||'',isCustom)}).join('')+'</div></div>';
+    el.innerHTML=logosSection+W.catalogPanel(s)+W.recommendationPanel(s)+W.socialProofPanel(s)+W.impactNotePanel(s)+body;
+    W.catalogRenderChips();
 };
 
+W.salesToggle=async function(on){
+    var r=await W.api('/api/v1/admin/store/settings',{method:'PUT',body:{store_show_sales:on?1:0}});
+    if(r&&r.ok)W.notify(on?'Etiqueta de vendidos visible':'Etiqueta de vendidos oculta','success');
+    else W.notify('No se pudo cambiar la visibilidad','error');
+};
 W.storeSettingsSave=async function(){
     var v=function(s){return document.querySelector(s).value};
     var methods=[];document.querySelectorAll('.ss-pm').forEach(function(c){if(c.checked)methods.push(c.value)});
-    var payload={store_enabled:v('#ss-enabled'),store_currency:v('#ss-currency'),store_whatsapp:v('#ss-whatsapp'),store_notify_email:v('#ss-notify'),
+    var salesCats=[];document.querySelectorAll('.ss-sales-cat').forEach(function(c){if(c.checked)salesCats.push(c.value)});
+    var logos={};W.storeLogoMethods.forEach(function(pair){var el=document.getElementById('ss-logo-'+pair[0]);var u=el?el.value.trim():'';if(u)logos[pair[0]]=u});
+    var payload={store_enabled:v('#ss-enabled'),store_currency:v('#ss-currency'),store_whatsapp:v('#ss-whatsapp'),store_notify_email:v('#ss-notify'),store_payment_logos:JSON.stringify(logos),
+        store_catalog_sort:v('#ss-cat-sort'),store_catalog_mode:v('#ss-cat-mode'),store_catalog_brands:JSON.stringify(W.catalogSelected||[]),
+        store_catalog_hide_out_of_stock:(document.getElementById('ss-cat-hide')&&document.getElementById('ss-cat-hide').checked)?1:0,
+        store_catalog_show_tags:(document.getElementById('ss-cat-tags')&&document.getElementById('ss-cat-tags').checked)?1:0,
+        store_oos_disable_add:(document.getElementById('ss-cat-oos-add')&&document.getElementById('ss-cat-oos-add').checked)?1:0,
+        store_show_sales:(document.getElementById('ss-sales-enabled')&&document.getElementById('ss-sales-enabled').checked)?1:0,
+        store_show_sales_categories:JSON.stringify(salesCats),
+        store_recommendations:JSON.stringify(W.recPayload()),store_social_proof:JSON.stringify(W.socialProofPayload()),store_impact_note:JSON.stringify(W.impactNotePayload()),
         store_min_order_cents:parseInt(v('#ss-min'))||0,store_terms_url:v('#ss-terms'),store_shipping_note:v('#ss-shipnote'),
         store_max_orders_hour_ip:parseInt(v('#ss-max-ip'))||8,store_max_orders_hour_email:parseInt(v('#ss-max-email'))||4,
         store_reviews_auto_approve:v('#ss-rev-auto'),store_reviews_require_purchase:v('#ss-rev-buy'),
@@ -5804,11 +8068,732 @@ W.ocVerPedido=async function(id){
     W.modal('Pedido '+(o.order_number||('#'+o.id)),h,'<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cerrar</button>');
 };
 
+W.renderDirectory=async function(){
+    var app=document.getElementById('wontia-app'); if(!app)return;
+    app.innerHTML='<div style="padding:30px;text-align:center;color:var(--w-muted)">Cargando reseñas...</div>';
+    var r=await W.api('/api/v1/admin/directory/reviews');
+    var d=(r&&r.data)||{}; var pending=d.pending||[]; var reviews=d.reviews||[];
+    var pr=await W.api('/api/v1/admin/directory/profiles');
+    var pd=(pr&&pr.data)||{}; var pendingProfiles=pd.pending||[];
+    var h='<div class="w-flex-between" style="flex-wrap:wrap;gap:8px;margin-bottom:12px"><div><div style="font-size:11px;color:var(--w-muted)">Directorio Sonika</div><h3 style="margin:0">Perfiles y reseñas</h3><div style="font-size:12px;color:var(--w-muted);margin-top:3px">Aprueba perfiles para publicarlos y verificar su identidad. Aprueba reseñas para publicarlas; el Top 10 se calcula con reseñas aprobadas.</div></div><button class="w-btn w-btn-secondary" onclick="W.renderDirectory()">Actualizar</button></div>';
+    h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:14px"><div class="w-card" style="padding:14px"><div style="font-size:11px;color:var(--w-muted)">Perfiles pendientes</div><div style="font:800 26px Sora,sans-serif">'+pendingProfiles.length+'</div></div><div class="w-card" style="padding:14px"><div style="font-size:11px;color:var(--w-muted)">Reseñas pendientes</div><div style="font:800 26px Sora,sans-serif">'+pending.length+'</div></div><div class="w-card" style="padding:14px"><div style="font-size:11px;color:var(--w-muted)">Regla</div><div style="font-size:12px;color:var(--w-muted);line-height:1.5">Aprobar perfil = activo, verificado y puntos. Aprobar reseña = visible y verificada.</div></div></div>';
+    h+='<div style="margin-top:4px"><h3 style="margin:0 0 8px">Perfiles pendientes</h3>';
+    if(!pendingProfiles.length){h+='<div style="font-size:12px;color:var(--w-muted);margin-bottom:14px">Sin perfiles pendientes.</div>';}
+    else{
+        h+='<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:18px">';
+        pendingProfiles.forEach(function(x){h+='<div class="w-card" style="padding:13px"><div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap"><div style="flex:1;min-width:220px"><div style="font-weight:800">'+W.esc(x.display_name)+' <span style="font-size:10px;color:var(--w-muted);font-weight:600">'+W.esc(x.status)+'</span></div><div style="font-size:12px;color:var(--w-muted);margin-top:2px">'+W.esc(x.category||'')+' · '+W.esc(x.city||'')+' · '+W.esc(x.owner_email||x.email||'')+'</div><div style="font-size:12px;line-height:1.55;margin-top:6px;color:#555">'+W.esc(String(x.bio||'').slice(0,260))+'</div></div><div class="w-flex w-gap-sm" style="flex-wrap:wrap"><button class="w-btn w-btn-primary w-btn-sm" onclick="W.dirProfileModerate('+x.id+',\'approved\')">Aprobar y publicar</button><button class="w-btn w-btn-danger w-btn-sm" onclick="W.dirProfileModerate('+x.id+',\'rejected\')">Rechazar</button></div></div></div>';});
+        h+='</div>';
+    }
+    h+='</div>';
+    h+='<div style="margin-top:12px"><h3 style="margin:0 0 8px">Reseñas pendientes</h3>';
+    if(!pending.length){h+='<div class="w-empty-state"><h3>Sin reseñas pendientes</h3><p>Cuando un cliente envíe una reseña, aparecerá aquí.</p></div>';}
+    else{
+        h+='<div style="display:flex;flex-direction:column;gap:10px">';
+        pending.forEach(function(x){
+            h+='<div class="w-card" style="padding:14px"><div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap"><div style="flex:1;min-width:220px"><div style="font-weight:800">'+W.esc(x.profile_ref)+'</div><div style="font-size:12px;color:var(--w-muted);margin-top:2px">'+W.esc(x.reviewer_name)+' · '+W.esc(x.reviewer_email)+' · '+(x.service_date?W.esc(x.service_date):'sin fecha')+'</div><div style="color:#f5a623;margin-top:5px">'+'★'.repeat(Math.max(1,Math.min(5,parseInt(x.rating,10)||1)))+'</div><div style="font-size:13px;line-height:1.6;margin-top:7px;white-space:pre-line">'+W.esc(x.body||'')+'</div><div style="font-size:11px;color:var(--w-muted);margin-top:6px">Puntualidad '+W.esc(x.punctuality)+'/5 · Calidad '+W.esc(x.quality)+'/5 · Profesionalismo '+W.esc(x.professionalism)+'/5 · Comunicación '+W.esc(x.communication)+'/5</div></div><div class="w-flex w-gap-sm" style="flex-wrap:wrap"><button class="w-btn w-btn-primary w-btn-sm" onclick="W.dirModerate('+x.id+',\'approved\')">Aprobar y verificar</button><button class="w-btn w-btn-danger w-btn-sm" onclick="W.dirModerate('+x.id+',\'rejected\')">Rechazar</button></div></div></div>';
+        });
+        h+='</div>';
+    }
+    h+='<div style="margin-top:22px"><h3 style="margin:0 0 8px">Últimas reseñas</h3>';
+    if(!reviews.length)h+='<div style="font-size:12px;color:var(--w-muted)">Sin reseñas registradas.</div>';
+    else{
+        h+='<div style="display:flex;flex-direction:column;gap:6px">';
+        reviews.slice(0,30).forEach(function(x){var color=x.status==='approved'?'#0d7a58':(x.status==='rejected'?'#b42318':'#8a6d00');h+='<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:var(--w-card);border:1px solid var(--w-border);border-radius:9px;padding:9px 11px;font-size:12px"><b>'+W.esc(x.profile_ref)+'</b><span>'+W.esc(x.reviewer_name)+'</span><span style="color:#f5a623">'+'★'.repeat(Math.max(1,Math.min(5,parseInt(x.rating,10)||1)))+'</span><span style="color:'+color+';font-weight:800;text-transform:uppercase;font-size:10px">'+W.esc(x.status)+'</span><span style="flex:1"></span><span style="color:var(--w-muted)">'+W.esc(String(x.created_at||'').slice(0,16))+'</span></div>'});
+        h+='</div>';
+    }
+    h+='</div>';
+    app.innerHTML=h;
+};
+W.dirModerate=async function(id,status){
+    var r=await W.api('/api/v1/admin/directory/reviews/'+id+'/moderate',{method:'POST',body:{status:status}});
+    if(r&&r.ok){W.notify(status==='approved'?'Reseña aprobada y verificada':'Reseña rechazada','success');W.renderDirectory();}
+    else W.notify((r&&r.message)||'No se pudo moderar','error');
+};
+W.dirProfileModerate=async function(id,status){
+    var r=await W.api('/api/v1/admin/directory/profiles/'+id+'/moderate',{method:'POST',body:{status:status}});
+    if(r&&r.ok){W.notify(status==='approved'?'Perfil publicado y verificado':'Perfil rechazado','success');W.renderDirectory();}
+    else W.notify((r&&r.message)||'No se pudo moderar el perfil','error');
+};
+W.renderToques=async function(){
+    var app=document.getElementById('wontia-app'); if(!app)return;
+    app.innerHTML='<div style="padding:30px;text-align:center;color:var(--w-muted)">Cargando toques...</div>';
+    var r=await W.api('/api/v1/admin/directory/toques'); var d=(r&&r.data)||{}; var list=d.toques||[]; var profiles=(d.profiles||[]).filter(function(p){return p.verified&&p.source==='directory'});
+    var h='<div class="w-flex-between" style="flex-wrap:wrap;gap:8px;margin-bottom:12px"><div><div style="font-size:11px;color:var(--w-muted)">Directorio Sonika</div><h3 style="margin:0">Toques</h3><div style="font-size:12px;color:var(--w-muted);margin-top:3px">Oportunidades para músicos. Los toques curados solo se invitan a perfiles con rango Escenario o superior.</div></div><div class="w-flex w-gap-sm"><a class="w-btn w-btn-secondary" href="/directorio/toques" target="_blank">Ver público</a><button class="w-btn w-btn-secondary" onclick="W.renderToques()">Actualizar</button></div></div>';
+    h+='<div class="w-card" style="padding:14px;margin-bottom:14px"><h3 style="margin:0 0 8px">Nuevo toque</h3><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px"><input class="w-input" id="tq-title" placeholder="Título del toque"/><input class="w-input" id="tq-city" placeholder="Ciudad"/><input class="w-input" id="tq-date" type="date"/><input class="w-input" id="tq-instrument" placeholder="Instrumento"/><input class="w-input" id="tq-genre" placeholder="Género"/><input class="w-input" id="tq-budget" placeholder="Presupuesto (opcional)"/><select class="w-select" id="tq-type"><option value="open">Toque abierto</option><option value="curated">Toque curado</option></select></div><textarea class="w-textarea" id="tq-desc" placeholder="Descripción del toque" style="margin-top:8px;min-height:70px"></textarea><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><input class="w-input" id="tq-name" placeholder="Organizador" style="flex:1;min-width:160px"/><input class="w-input" id="tq-email" placeholder="Correo del organizador" style="flex:1;min-width:200px"/><button class="w-btn w-btn-primary" onclick="W.toqueCreate()">Publicar toque</button></div></div>';
+    if(!list.length){h+='<div class="w-empty-state"><h3>Sin toques</h3><p>Crea el primero.</p></div>';}
+    else{
+        h+='<div style="display:flex;flex-direction:column;gap:8px">';
+        list.forEach(function(x){
+            var opts=profiles.map(function(p){return '<option value="'+p.id+'">'+W.esc(p.name)+' · '+W.esc(p.rank_key||'')+'</option>'}).join('');
+            h+='<div class="w-card" style="padding:13px"><div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap"><div style="flex:1;min-width:220px"><div style="font-weight:800">'+W.esc(x.title)+' <span class="w-badge" style="font-size:9px">'+W.esc(String(x.status).toUpperCase())+'</span></div><div style="font-size:12px;color:var(--w-muted);margin-top:2px">'+W.esc(x.city||'')+' · '+(x.event_date?W.esc(x.event_date):'sin fecha')+' · '+W.esc(x.instrument||'')+' · '+W.esc(x.toque_type)+'</div><div style="font-size:12px;color:#555;margin-top:5px">'+W.esc(String(x.description||'').slice(0,220))+'</div></div><div class="w-flex w-gap-sm" style="flex-wrap:wrap;align-items:center"><select class="w-select" id="tq-prof-'+x.id+'" style="min-width:190px"><option value="">Invitar perfil...</option>'+opts+'</select><button class="w-btn w-btn-secondary w-btn-sm" onclick="W.toqueInvite('+x.id+')">Invitar</button>'+(x.status==='open'?'<button class="w-btn w-btn-danger w-btn-sm" onclick="W.toqueStatus('+x.id+',\'closed\')">Cerrar</button>':'')+'</div></div></div>';
+        });
+        h+='</div>';
+    }
+    app.innerHTML=h;
+};
+W.toqueCreate=async function(){
+    var v=function(id){return (document.getElementById(id)||{}).value||''};
+    var body={title:v('tq-title'),city:v('tq-city'),event_date:v('tq-date'),instrument:v('tq-instrument'),genre:v('tq-genre'),budget:v('tq-budget'),toque_type:v('tq-type'),description:v('tq-desc'),organizer_name:v('tq-name'),organizer_email:v('tq-email')};
+    var r=await W.api('/api/v1/admin/directory/toques',{method:'POST',body:body});
+    if(r&&r.ok){W.notify('Toque publicado','success');W.renderToques();}else W.notify((r&&r.message)||'No se pudo crear el toque','error');
+};
+W.toqueInvite=async function(id){
+    var el=document.getElementById('tq-prof-'+id);var pid=el?el.value:'';
+    if(!pid){W.notify('Selecciona un perfil','error');return;}
+    var r=await W.api('/api/v1/admin/directory/toques/'+id+'/invite',{method:'POST',body:{profile_id:pid}});
+    if(r&&r.ok)W.notify(r.message||'Invitación registrada','success');else W.notify((r&&r.message)||'No se pudo invitar','error');
+};
+W.toqueStatus=async function(id,status){
+    var r=await W.api('/api/v1/admin/directory/toques/'+id+'/moderate',{method:'POST',body:{status:status}});
+    if(r&&r.ok){W.notify('Toque actualizado','success');W.renderToques();}else W.notify((r&&r.message)||'No se pudo actualizar','error');
+};
+W.renderMonyas=async function(){
+    var app=document.getElementById('wontia-app'); if(!app)return;
+    app.innerHTML='<div style="padding:30px;text-align:center;color:var(--w-muted)">Cargando moñas...</div>';
+    var r=await W.api('/api/v1/admin/directory/monyas'); var d=(r&&r.data)||{}; var list=d.monyas||[]; var profiles=(d.profiles||[]).filter(function(p){return p.source==='directory'});
+    var leaders=profiles.filter(function(p){return ['referente','legado'].indexOf(String(p.rank_key))>=0});
+    var invite=profiles.filter(function(p){return ['escenario','referente','legado'].indexOf(String(p.rank_key))>=0});
+    var h='<div class="w-flex-between" style="flex-wrap:wrap;gap:8px;margin-bottom:12px"><div><div style="font-size:11px;color:var(--w-muted)">Directorio Sonika</div><h3 style="margin:0">Moñas</h3><div style="font-size:12px;color:var(--w-muted);margin-top:3px">Crear una moña requiere un líder Referente o Legado. Invitar requiere rango Escenario o superior.</div></div><div class="w-flex w-gap-sm"><a class="w-btn w-btn-secondary" href="/directorio/monas" target="_blank">Ver público</a><button class="w-btn w-btn-secondary" onclick="W.renderMonyas()">Actualizar</button></div></div>';
+    h+='<div class="w-card" style="padding:14px;margin-bottom:14px"><h3 style="margin:0 0 8px">Nueva moña</h3>'+(leaders.length?'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px"><input class="w-input" id="mn-name" placeholder="Nombre de la moña"/><input class="w-input" id="mn-city" placeholder="Ciudad"/><input class="w-input" id="mn-genre" placeholder="Género"/><select class="w-select" id="mn-leader"><option value="">Líder (Referente/Legado)</option>'+leaders.map(function(p){return '<option value="'+p.id+'">'+W.esc(p.name)+' · '+W.esc(p.rank_key)+'</option>'}).join('')+'</select></div><textarea class="w-textarea" id="mn-desc" placeholder="Descripción" style="margin-top:8px;min-height:65px"></textarea><button class="w-btn w-btn-primary" style="margin-top:8px" onclick="W.monyaCreate()">Crear moña</button>':'<div style="font-size:12px;color:var(--w-muted)">Todavía no hay perfiles con rango Referente o Legado. Primero deben acumular puntos y verificaciones.</div>')+'</div>';
+    if(!list.length){h+='<div class="w-empty-state"><h3>Sin moñas</h3><p>Cuando exista una, aparecerá aquí.</p></div>';}
+    else{
+        h+='<div style="display:flex;flex-direction:column;gap:8px">';
+        list.forEach(function(x){
+            var opts=invite.map(function(p){return '<option value="'+p.id+'">'+W.esc(p.name)+' · '+W.esc(p.rank_key)+'</option>'}).join('');
+            h+='<div class="w-card" style="padding:13px"><div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap"><div style="flex:1;min-width:220px"><div style="font-weight:800">'+W.esc(x.name)+' <span class="w-badge" style="font-size:9px">'+W.esc(String(x.status).toUpperCase())+'</span></div><div style="font-size:12px;color:var(--w-muted);margin-top:2px">'+W.esc(x.city||'')+' · '+W.esc(x.genre||'')+' · Líder: '+W.esc(x.leader_name||'—')+'</div><div style="font-size:12px;color:#555;margin-top:5px">'+W.esc(String(x.description||'').slice(0,220))+'</div></div><div class="w-flex w-gap-sm" style="flex-wrap:wrap;align-items:center"><select class="w-select" id="mn-prof-'+x.id+'" style="min-width:190px"><option value="">Invitar perfil...</option>'+opts+'</select><button class="w-btn w-btn-secondary w-btn-sm" onclick="W.monyaInvite('+x.id+')">Invitar</button></div></div></div>';
+        });
+        h+='</div>';
+    }
+    app.innerHTML=h;
+};
+W.monyaCreate=async function(){
+    var v=function(id){return (document.getElementById(id)||{}).value||''};
+    var body={name:v('mn-name'),city:v('mn-city'),genre:v('mn-genre'),leader_profile_id:v('mn-leader'),description:v('mn-desc')};
+    var r=await W.api('/api/v1/admin/directory/monyas',{method:'POST',body:body});
+    if(r&&r.ok){W.notify('Moña creada','success');W.renderMonyas();}else W.notify((r&&r.message)||'No se pudo crear la moña','error');
+};
+W.monyaInvite=async function(id){
+    var el=document.getElementById('mn-prof-'+id);var pid=el?el.value:'';
+    if(!pid){W.notify('Selecciona un perfil','error');return;}
+    var r=await W.api('/api/v1/admin/directory/monyas/'+id+'/invite',{method:'POST',body:{profile_id:pid,role:'Músico'}});
+    if(r&&r.ok)W.notify('Invitación registrada','success');else W.notify((r&&r.message)||'No se pudo invitar','error');
+};
+W.renderSistecredito=async function(){
+    var app=document.getElementById('wontia-app'); if(!app)return;
+    app.innerHTML='<div class="w-card"><div style="text-align:center;padding:40px;color:var(--w-muted)">Cargando Sistecrédito...</div></div>';
+    var r=await W.api('/api/v1/admin/sistecredito/overview');
+    if(!r||!r.ok||!r.data){app.innerHTML='<div class="w-empty-state"><h3>No disponible</h3><p>'+W.esc((r&&r.message)||'No se pudo cargar el panel de Sistecrédito.')+'</p></div>';return}
+    var d=r.data||{},s=d.settings||{},st=d.stats||{},items=d.intents||[];
+    var badge=s.configured?'<span style="font-size:10px;font-weight:800;padding:4px 8px;border-radius:999px;background:#ecfdf5;color:#047857">Configurado</span>':'<span style="font-size:10px;font-weight:800;padding:4px 8px;border-radius:999px;background:#fff7ed;color:#b45309">Sin configurar</span>';
+    var env=String(s.environment||'staging');
+    var flash=W._scFlash||null;W._scFlash=null;
+    var connColor=s.configured?'#0d9f72':'#b45309';
+    var connLabel=s.configured?'Sitio configurado':'Configuración pendiente';
+    var h='<div class="w-card"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap"><div><div style="font-size:11px;color:var(--w-muted)">Pagos</div><h3 style="margin:0">Sistecrédito</h3><p style="font-size:12px;color:var(--w-muted);margin:5px 0 0">Panel administrativo de la integración. Se muestra en el checkout cuando el método está activo y las credenciales están completas.</p></div><div class="w-flex w-gap-sm">'+badge+'<span style="font-size:10px;font-weight:800;padding:4px 8px;border-radius:999px;background:#f1f5f9;color:#475569">'+W.esc(env)+'</span></div></div></div>';
+    h+=(flash?'<div class="w-card" style="margin-top:12px;border-left:3px solid #0d9f72;background:#f0fdf4;color:#065f46"><b>'+W.esc(flash.text)+'</b> <span style="font-size:11px;color:#047857">'+W.esc(flash.at)+'</span></div>':'');
+    h+='<div class="w-card" style="margin-top:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span style="width:10px;height:10px;border-radius:99px;background:'+connColor+';box-shadow:0 0 0 4px rgba(100,116,139,.12)"></span><div><b style="font-size:12px">'+connLabel+'</b><div style="font-size:11px;color:var(--w-muted)">'+(s.configured?'Vendor ID, Store ID y Subscription Key completos. La verificación real se hará al habilitar el checkout.':'Completa Vendor ID, Store ID y Subscription Key para vincular el sitio.')+'</div></div>'+(s.last_saved_at?'<span style="margin-left:auto;font-size:10.5px;color:var(--w-muted)">Último guardado: '+W.esc(s.last_saved_at)+'</span>':'')+'</div>';
+    h+='<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px">'+W.ocKpi('Intenciones',st.intents||0)+W.ocKpi('Pendientes',st.pending||0,'#b45309')+W.ocKpi('Aprobadas',st.approved||0,'#0d7a58')+W.ocKpi('Fallidas / expiradas',st.failed||0,'#b42318')+W.ocKpi('Eventos',st.events||0)+'</div>';
+    h+='<div class="w-card" style="margin-top:14px"><div class="w-flex-between" style="gap:10px;flex-wrap:wrap"><div><h3 style="margin:0">Configuración</h3><p style="font-size:12px;color:var(--w-muted);margin:5px 0 0">Credenciales enmascaradas y almacenadas cifradas. No se exponen al frontend.</p></div><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.renderSistecredito()">Actualizar</button></div>';
+    h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:14px">'
+      +'<div><label style="font-size:11px;color:var(--w-muted)">Habilitación</label><select class="w-input" id="sc-enabled" style="width:100%"><option value="0"'+(s.enabled==='1'?'':' selected')+'>Deshabilitado</option><option value="1"'+(s.enabled==='1'?' selected':'')+'>Habilitado en panel</option></select></div>'
+      +'<div><label style="font-size:11px;color:var(--w-muted)">Ambiente</label><select class="w-input" id="sc-env" style="width:100%"><option value="staging"'+(env==='staging'?' selected':'')+'>Staging</option><option value="production"'+(env==='production'?' selected':'')+'>Producción</option></select></div>'
+      +'<div><label style="font-size:11px;color:var(--w-muted)">SCOrigen</label><input class="w-input" id="sc-origen" value="'+W.esc(s.sc_origen||'Staging')+'" style="width:100%"/></div>'
+      +'<div><label style="font-size:11px;color:var(--w-muted)">PaymentMethodId (fijo)</label><input class="w-input" value="2" disabled style="width:100%;background:#f8fafc;color:#333333;opacity:1;-webkit-text-fill-color:#333333"/></div>'
+      +'<div><label style="font-size:11px;color:var(--w-muted)">Moneda (fija)</label><input class="w-input" value="COP" disabled style="width:100%;background:#f8fafc;color:#333333;opacity:1;-webkit-text-fill-color:#333333"/></div>'
+      +'<div><label style="font-size:11px;color:var(--w-muted)">Vendor ID</label><input class="w-input" id="sc-vendor-id" value="'+W.esc(s.vendor_id||'')+'" style="width:100%" autocomplete="off"/></div>'
+      +'<div><label style="font-size:11px;color:var(--w-muted)">Subscription Key '+(s.subscription_key_set?'(guardado)':'(sin configurar)')+'</label><input class="w-input" type="password" id="sc-subscription-key" placeholder="'+(s.subscription_key_set?'Nueva Subscription Key (opcional)':'Escribe la Subscription Key')+'" style="width:100%" autocomplete="new-password"/></div>'
+      +'<div><label style="font-size:11px;color:var(--w-muted)">Store ID</label><input class="w-input" id="sc-store-id" value="'+W.esc(s.store_id||'')+'" style="width:100%"/></div>'
+      +'<div><label style="font-size:11px;color:var(--w-muted)">URL de retorno</label><input class="w-input" id="sc-redirect" value="'+W.esc(s.redirect_url||'')+'" placeholder="https://sonika.com.co/pedido/{uuid}" style="width:100%"/></div>'
+      +'<div><label style="font-size:11px;color:var(--w-muted)">URL de notificación</label><input class="w-input" id="sc-notify" value="'+W.esc(s.notification_url||'')+'" placeholder="https://sonika.com.co/api/..." style="width:100%"/></div>'
+      +'<div><label style="font-size:11px;color:var(--w-muted)">Timeout (segundos)</label><input class="w-input" type="number" min="5" max="120" id="sc-timeout" value="'+(parseInt(s.timeout_seconds)||25)+'" style="width:100%"/></div>'
+      +'</div><div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="w-btn w-btn-primary" id="sc-save" onclick="wontia.sistecreditoSave()">Guardar configuración</button><span id="sc-save-status" role="status" aria-live="polite" style="font-size:11px;font-weight:700;color:var(--w-muted)"></span><span style="font-size:10.5px;color:var(--w-muted)">El checkout se habilita solo con el método activo y las credenciales completas.</span></div></div>';
+    h+='<div class="w-card" style="margin-top:14px"><div class="w-flex-between" style="gap:10px;flex-wrap:wrap"><div><h3 style="margin:0">Intenciones de pago</h3><p style="font-size:12px;color:var(--w-muted);margin:5px 0 0">Trazabilidad de `_id`, redirect y verificación de estado.</p></div><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.renderSistecredito()">Recargar</button></div>';
+    if(!items.length){h+='<div class="w-empty-state" style="margin-top:12px"><h3>Sin intenciones registradas</h3><p>Aquí aparecerán las intenciones cuando se habilite el checkout Sistecrédito.</p></div>';}
+    else{
+        h+='<div style="overflow:auto;margin-top:12px"><table class="w-table"><thead><tr><th>Pedido</th><th>_id</th><th>Monto</th><th>Estado</th><th>Verificado</th><th>Fecha</th><th></th></tr></thead><tbody>';
+        items.forEach(function(x){h+='<tr><td><b>'+W.esc(x.order_number||('#'+x.order_id))+'</b></td><td style="font-family:monospace;font-size:11px">'+W.esc(x.provider_payment_id||'—')+'</td><td>'+W.ocMoney(x.amount_cents,x.currency)+'</td><td>'+W.esc(x.status||'')+'</td><td>'+W.esc(x.last_checked_at||'—')+'</td><td style="white-space:nowrap">'+W.esc(String(x.created_at||'').slice(0,16))+'</td><td><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.sistecreditoIntent('+x.id+')">Ver</button></td></tr>'});
+        h+='</tbody></table></div>';
+    }
+    h+='</div>';
+    app.innerHTML=h;
+};
+W.sistecreditoSave=async function(){
+    var v=function(id){var el=document.getElementById(id);return el?el.value:''};
+    var btn=document.getElementById('sc-save');
+    var status=document.getElementById('sc-save-status');
+    var say=function(text,color){if(status){status.textContent=text;status.style.color=color||'var(--w-muted)'}};
+    if(btn){btn.disabled=true;btn.textContent='Guardando...'}
+    say('Guardando configuración...','#64748b');
+    var payload={enabled:v('#sc-enabled')==='1',environment:v('#sc-env'),sc_origen:v('#sc-origen'),vendor_id:v('#sc-vendor-id'),subscription_key:v('#sc-subscription-key'),store_id:v('#sc-store-id'),redirect_url:v('#sc-redirect'),notification_url:v('#sc-notify'),timeout_seconds:parseInt(v('#sc-timeout'))||25};
+    try{
+        var r=await W.api('/api/v1/admin/sistecredito/settings',{method:'PUT',body:payload});
+        if(r&&r.ok){W._scFlash={text:'Configuración guardada correctamente',at:new Date().toLocaleString()};W.renderSistecredito();return}
+        say((r&&r.message)||'No se pudo guardar la configuración.', '#b42318');
+    }catch(e){say('No se pudo conectar con el servidor. Intenta de nuevo.', '#b42318');}
+    if(btn){btn.disabled=false;btn.textContent='Guardar configuración'}
+};
+W.sistecreditoIntent=async function(id){
+    var r=await W.api('/api/v1/admin/sistecredito/intents/'+id);
+    if(!r||!r.ok||!r.data){W.notify((r&&r.message)||'No disponible','error');return}
+    var x=r.data||{},h='<div style="font-size:12.5px;line-height:1.65;max-height:65vh;overflow:auto"><div><b>Pedido:</b> '+W.esc(x.order_number||('#'+x.order_id))+'</div><div><b>_id:</b> '+W.esc(x.provider_payment_id||'—')+'</div><div><b>Estado:</b> '+W.esc(x.status||'')+'</div><div><b>Monto:</b> '+W.ocMoney(x.amount_cents,x.currency)+'</div><div><b>Última consulta:</b> '+W.esc(x.last_checked_at||'—')+'</div><div style="margin-top:10px"><b>Eventos</b></div>';
+    if(!(x.events||[]).length)h+='<p style="color:var(--w-muted)">Sin eventos.</p>';
+    else (x.events||[]).forEach(function(e){h+='<div style="border-bottom:1px solid var(--w-border);padding:5px 0"><b>'+W.esc(e.verified_status||e.provider_status||'')+'</b> · '+W.esc(e.validation_result||'')+'<div style="font-size:11px;color:var(--w-muted)">'+W.esc(e.received_at||'')+'</div></div>'});
+    h+='</div>';
+    W.modal('Intención de pago',h,'<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cerrar</button>');
+};
+
+W._ciuTab='ciu';
+W.renderTiaCommandCenter=async function(tab){
+    tab=tab||'ciu';
+    W._ciuTab=tab;
+    W.sglLiveStop();
+    var app=document.getElementById('wontia-app');
+    var tabs=[['ciu','Centro de Información Universal'],['training','Training Room'],['learning','Aprendizaje'],['simulation','Sales Lab'],['profit','Rentabilidad'],['interacciones','Interacciones vs resultados'],['fuentes','Fuentes'],['sin-respuesta','Preguntas sin respuesta']];
+    var bar='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">'+tabs.map(function(t){return '<button class="w-btn '+(tab===t[0]?'w-btn-primary':'w-btn-secondary')+'" onclick="location.hash=\'#tia-command-center/'+t[0]+'\'">'+W.esc(t[1])+'</button>'}).join('')+'</div>';
+    app.innerHTML='<div style="margin-bottom:18px"><div style="font-size:20px;font-weight:800;letter-spacing:-.01em">TIA Command Center</div><div style="font-size:12px;color:var(--w-muted);margin-top:4px">Centro de Información Universal (CIU) · conocimiento exacto de SONIKA</div></div>'+bar+'<div id="ciu-body"><div class="w-card" style="text-align:center;padding:30px;color:var(--w-muted)">Cargando CIU...</div></div>';
+    W.ciuLoad(tab);
+};
+W.ciuLoad=async function(tab){
+    tab=tab||W._ciuTab||'ciu';
+    W._ciuTab=tab;
+    var box=document.getElementById('ciu-body'); if(!box)return;
+    if(tab==='training'){W.trainingLoad();return}
+    if(tab==='learning'){W.tiaLearningLoad();return}
+    if(tab==='simulation'){W.tiaSimulationLoad();return}
+    if(tab==='profit'){W.tiaProfitLoad();return}
+    if(tab==='interacciones'){W.tiaInteractionsLoad();return}
+    if(tab==='sin-respuesta'){W.ciuQuestions();return}
+    var r=await W.api('/api/v1/admin/ciu/overview');
+    if(!r||!r.ok){box.innerHTML='<div class="w-empty-state"><h3>CIU no disponible</h3><p>'+W.esc((r&&r.message)||'No se pudo cargar el Centro de Información Universal.')+'</p></div>';return}
+    var d=r, by=d.by_type||{}, run=d.last_run||{};
+    var h='<div class="sgl-live__stats" style="margin-bottom:14px">'
+        +W.sglLiveStat(d.documents||0,'Documentos activos')
+        +W.sglLiveStat(by.product||0,'Productos')
+        +W.sglLiveStat(by.category||0,'Categorías')
+        +W.sglLiveStat((by.page||0)+(by.policy||0),'Páginas y políticas')
+        +W.sglLiveStat((by.section||0)+(by.block||0),'Secciones')
+        +W.sglLiveStat(d.stale||0,'Obsoletos',(d.stale||0)>0?'#fbbf24':'#34d399')
+        +W.sglLiveStat(d.unanswered||0,'Sin respuesta','#fbbf24')
+        +W.sglLiveStat(run.finished_at?String(run.finished_at).slice(0,19):'—','Última sync')
+        +'</div>';
+    h+='<div class="w-card" style="margin-bottom:14px"><div class="w-flex-between" style="gap:10px;flex-wrap:wrap"><div><h3 style="margin:0">Buscar en el CIU</h3><p style="font-size:12px;color:var(--w-muted);margin:5px 0 0">Prueba una pregunta como “¿Qué garantía tiene un acordeón Hohner?”.</p></div><button class="w-btn w-btn-primary" type="button" onclick="W.ciuSync(this)">Sincronizar CIU</button></div><div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:12px"><input class="w-input" id="ciu-search" placeholder="Buscar producto, categoría, política o sección" style="flex:1;min-width:220px" onkeydown="if(event.key===\'Enter\')W.ciuSearch()"/><button class="w-btn w-btn-secondary" type="button" onclick="W.ciuSearch()">Buscar</button></div><div id="ciu-search-results" style="margin-top:12px"></div></div>';
+    h+='<div class="w-card" style="margin-bottom:14px"><h3 style="margin:0 0 8px">Fuentes</h3><div style="overflow:auto"><table class="w-table"><thead><tr><th>Fuente</th><th>Documentos</th><th>Estado</th><th>Última sync</th></tr></thead><tbody>';
+    (d.sources||[]).forEach(function(s){h+='<tr><td>'+W.esc(s.label||s.source_key)+'</td><td>'+W.num(s.doc_count||0)+'</td><td><span style="font-size:10px;color:'+(s.status==='ok'?'#34d399':(s.status==='empty'?'#fbbf24':'#fb7185'))+'">'+W.esc(s.status||'')+'</span></td><td style="font-size:10px">'+W.esc(s.last_sync_at||'—')+'</td></tr>'});
+    h+='</tbody></table></div>'+(run.summary?'<div style="font-size:10px;color:var(--w-muted);margin-top:8px">'+W.esc(JSON.stringify(run.summary))+'</div>':'')+'</div>';
+    h+='<div class="w-card"><h3 style="margin:0 0 8px">Documentos recientes</h3><p style="font-size:11px;color:var(--w-muted);margin:0 0 10px">El CIU se construye desde el catálogo y el CMS. No modifica productos ni precios.</p><button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="W.ciuSearch(\'producto\')">Ver productos</button></div>';
+    box.innerHTML=h;
+};
+W.ciuSync=async function(btn){
+    if(btn){btn.disabled=true;btn.textContent='Sincronizando...'}
+    var r=await W.api('/api/v1/admin/ciu/sync',{method:'POST'});
+    if(btn){btn.disabled=false;btn.textContent='Sincronizar CIU'}
+    if(r&&r.ok){W.notify('CIU sincronizado: '+(r.documents||0)+' documentos','success')}else W.notify((r&&r.message)||(r&&r.errors&&r.errors[0])||'No se pudo sincronizar','error');
+    W.ciuLoad(W._ciuTab);
+};
+W.ciuSearch=async function(q){
+    var input=document.getElementById('ciu-search');
+    q=typeof q==='string'?q:((input&&input.value)||'');
+    q=(q||'').trim();
+    if(!q){W.notify('Escribe qué quieres buscar','error');return}
+    var out=document.getElementById('ciu-search-results'); if(!out)return;
+    out.innerHTML='<div style="font-size:12px;color:var(--w-muted)">Buscando...</div>';
+    var r=await W.api('/api/v1/admin/ciu/search?q='+encodeURIComponent(q)+'&limit=8');
+    var rows=(r&&r.data)||[];
+    if(!rows.length){out.innerHTML='<div style="font-size:12px;color:var(--w-muted)">Sin coincidencias en el CIU.</div>';return}
+    out.innerHTML=rows.map(function(x){return '<div style="border-bottom:1px solid var(--w-border);padding:8px 0"><div style="display:flex;gap:8px;justify-content:space-between;align-items:flex-start"><div><b style="font-size:12px">'+W.esc(x.title)+'</b> <span class="w-badge" style="font-size:9px">'+W.esc(x.type)+'</span><div style="font-size:11px;color:var(--w-muted);margin-top:3px">'+W.esc(x.snippet||'')+'</div></div><button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="W.ciuDoc('+x.id+')">Ver</button></div></div>'}).join('');
+};
+W.ciuDoc=async function(id){
+    var r=await W.api('/api/v1/admin/ciu/documents/'+id);
+    if(!r||!r.ok){W.notify('No se pudo abrir el documento','error');return}
+    var d=r.data||{};
+    var title='<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b>'+W.esc(d.title)+'</b><span class="w-badge">'+W.esc(d.type)+'</span></div><div style="font-size:11px;color:var(--w-muted);margin:5px 0 10px">'+W.esc(d.url||'')+'</div>';
+    W.modal('CIU · documento', title+'<pre style="white-space:pre-wrap;max-height:55vh;overflow:auto;font-size:11px;line-height:1.6;background:var(--w-bg2);border:1px solid var(--w-border);border-radius:8px;padding:10px">'+W.esc(d.content||'')+'</pre>', '<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cerrar</button>'+(d.url?' <a class="w-btn w-btn-primary" href="'+W.esc(d.url)+'" target="_blank" rel="noopener">Abrir en el sitio</a>':''));
+};
+W.ciuQuestions=async function(){
+    var box=document.getElementById('ciu-body'); if(!box)return;
+    var r=await W.api('/api/v1/admin/ciu/questions?unmatched=1&limit=100');
+    var rows=(r&&r.data)||[];
+    var h='<div class="w-card"><div class="w-flex-between" style="gap:10px;flex-wrap:wrap"><div><h3 style="margin:0">Preguntas sin respuesta</h3><p style="font-size:12px;color:var(--w-muted);margin:5px 0 0">Sirven para detectar productos, políticas o secciones que faltan en el CIU.</p></div><button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="W.ciuQuestions()">Actualizar</button></div>';
+    if(!rows.length)h+='<div class="w-empty-state" style="padding:18px"><p>Sin preguntas pendientes.</p></div>';
+    else{h+='<div style="overflow:auto;margin-top:12px"><table class="w-table"><thead><tr><th>Pregunta</th><th>Fecha</th></tr></thead><tbody>';rows.forEach(function(x){h+='<tr><td style="font-size:12px">'+W.esc(x.question)+'</td><td style="font-size:10px">'+W.esc(x.created_at||'')+'</td></tr>'});h+='</tbody></table></div>'}
+    h+='</div>';box.innerHTML=h;
+};
+W._training=null;
+W.attRows=function(rows){
+    rows=rows||[];
+    if(!rows.length)return '<div style="font-size:11px;color:var(--w-muted)">Sin escenarios para esa búsqueda.</div>';
+    return rows.map(function(x){return '<div style="border-left:3px solid #7c3aed;padding:6px 9px;margin-bottom:6px"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><b style="font-size:11px">'+W.esc(x.question||'')+'</b><span style="font-size:9px;color:var(--w-muted)">'+W.esc(x.category||'')+' · P'+W.esc(String(x.priority||0))+'</span></div><div style="font-size:10px;color:var(--w-muted);margin-top:2px">Objetivo: '+W.esc(x.goal||'')+'</div><div style="font-size:10px;margin-top:3px">Pregunta: '+W.esc(x.ask||'-')+'</div><div style="font-size:10px">Siguiente: '+W.esc(x.next_step||'-')+' · Cierre: '+W.esc(x.close_type||'-')+'</div></div>'}).join('');
+};
+W.attentionSearch=async function(){
+    var q=(document.getElementById('tr-att-q')||{}).value||'';
+    var out=document.getElementById('tr-att-list');if(!out)return;
+    out.innerHTML='<div style="font-size:11px;color:var(--w-muted)">Buscando...</div>';
+    var r=await W.api('/api/v1/admin/ciu/attention?limit=50&q='+encodeURIComponent(q));
+    out.innerHTML=(r&&r.ok)?W.attRows(r.data||[]):'<div style="font-size:11px;color:#fb7185">'+W.esc((r&&r.message)||'No se pudo buscar')+'</div>';
+};
+W.trainingLoad=async function(){
+    var box=document.getElementById('ciu-body'); if(!box)return;
+    var r=await W.api('/api/v1/admin/ciu/training');
+    if(!r||!r.ok){box.innerHTML='<div class="w-empty-state"><h3>Training Room no disponible</h3><p>'+W.esc((r&&r.message)||'No se pudo cargar el comportamiento de TIA.')+'</p></div>';return}
+    W._training=r;
+    var roles=r.roles||[],intents=r.intents||[],sents=r.sentiments||[],rules=r.rules||[],cases=r.cases||[],attStats=r.attention_stats||{},attPreview=r.attention_preview||[];
+    var h='<div class="w-card" style="margin-bottom:14px"><div class="w-flex-between" style="gap:10px;flex-wrap:wrap"><div><h3 style="margin:0">Training Room</h3><p style="font-size:12px;color:var(--w-muted);margin:5px 0 0">Define cómo piensa, siente y actúa TIA antes de responder. Los cambios se aplican al siguiente mensaje del chat.</p></div><button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="W.trainingLoad()">Actualizar</button></div>'
+        +'<div class="sgl-live__stats" style="margin-top:12px">'+W.sglLiveStat(roles.length,'Roles')+W.sglLiveStat(intents.length,'Intenciones')+W.sglLiveStat(sents.length,'Emociones')+W.sglLiveStat(roles.filter(function(x){return x.is_active}).length,'Roles activos')+W.sglLiveStat(rules.length,'Reglas activas')+W.sglLiveStat(cases.length,'Casos por revisar')+W.sglLiveStat(attStats.total||0,'Escenarios de atención')+'</div></div>';
+    h+='<div class="w-card" style="margin-bottom:14px"><h3 style="margin:0 0 8px">Simulador de comportamiento</h3><p style="font-size:12px;color:var(--w-muted);margin:0 0 10px">Escribe un mensaje real de cliente. Verás intención, emoción, rol, confianza y si TIA debe derivar a humano.</p><div style="display:flex;gap:7px;flex-wrap:wrap"><input class="w-input" id="tr-sim-msg" placeholder="Ej.: estoy molesto, mi pedido no llegó y necesito una persona" style="flex:1;min-width:240px" onkeydown="if(event.key===\'Enter\')W.trainingSimulate()"/><button class="w-btn w-btn-primary" type="button" onclick="W.trainingSimulate()">Simular</button></div><div id="tr-sim-result" style="margin-top:12px"></div></div>';
+    h+='<div class="w-card" style="margin-bottom:14px"><div class="w-flex-between" style="gap:8px;flex-wrap:wrap"><div><h3 style="margin:0 0 4px">Roles de TIA</h3><p style="font-size:11px;color:var(--w-muted);margin:0">Cada intención elige un rol; una emoción fuerte puede cambiar el rol a conciliador.</p></div><button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="W.trainingNewRole()">+ Nuevo rol</button></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-top:10px">';
+    roles.forEach(function(x){h+='<div class="w-card" style="margin:0;padding:12px"><div style="display:flex;justify-content:space-between;gap:6px"><b>'+W.esc(x.name)+'</b><span class="w-badge" style="font-size:9px;background:'+(x.is_active?'rgba(52,211,153,.12)':'rgba(148,163,184,.12)')+';color:'+(x.is_active?'#34d399':'#94a3b8')+'">'+(x.is_active?'ACTIVO':'OFF')+'</span></div><div style="font-size:11px;color:var(--w-muted);margin-top:5px">'+W.esc(x.mission||'Sin misión')+'</div><div style="font-size:10px;color:var(--w-muted);margin-top:5px">Tono: '+W.esc(x.tone||'—')+'</div><button class="w-btn w-btn-secondary w-btn-sm" style="margin-top:8px" type="button" onclick="W.trainingEditRole(\''+W.esc(x.slug)+'\')">Editar rol</button></div>'});
+    h+='</div></div>';
+    h+='<div class="w-card" style="margin-bottom:14px"><div class="w-flex-between" style="gap:8px;flex-wrap:wrap"><div><h3 style="margin:0 0 4px">Intenciones y playbooks</h3><p style="font-size:11px;color:var(--w-muted);margin:0">La intención decide el rol, las reglas de respuesta y el nivel de derivación.</p></div><button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="W.trainingNewIntent()">+ Nueva intención</button></div><div style="overflow:auto;margin-top:10px"><table class="w-table"><thead><tr><th>Intención</th><th>Rol</th><th>Derivación</th><th>Prioridad</th><th></th></tr></thead><tbody>';
+    intents.forEach(function(x){h+='<tr><td><b style="font-size:11px">'+W.esc(x.name)+'</b><div style="font-size:9px;color:var(--w-muted)">'+W.esc(x.slug)+'</div></td><td style="font-size:11px">'+W.esc(x.role_slug)+'</td><td style="font-size:10px">'+W.esc(x.handoff)+'</td><td style="font-size:10px">'+W.num(x.priority||0)+'</td><td><button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="W.trainingEditIntent(\''+W.esc(x.slug)+'\')">Editar</button></td></tr>'});
+    h+='</tbody></table></div></div>';
+    h+='<div class="w-card" style="margin-bottom:14px"><div class="w-flex-between" style="gap:8px;flex-wrap:wrap"><div><h3 style="margin:0 0 4px">Emociones y detección</h3><p style="font-size:11px;color:var(--w-muted);margin:0">Palabras, frases y ajuste de respuesta. Las emociones marcadas como escalables pueden forzar derivación.</p></div><button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="W.trainingNewSentiment()">+ Nueva emoción</button></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-top:10px">';
+    sents.forEach(function(x){h+='<div class="w-card" style="margin:0;padding:12px;border-left:3px solid '+(x.color||'#94a3b8')+'"><div style="display:flex;justify-content:space-between;gap:6px"><b>'+W.esc(x.name)+'</b>'+(x.escalate?'<span class="w-badge" style="font-size:9px;background:#fb718522;color:#fb7185">ESCALA</span>':'')+'</div><div style="font-size:10px;color:var(--w-muted);margin-top:5px">'+W.esc((x.keywords||[]).slice(0,7).join(', '))+'</div><div style="font-size:11px;margin-top:5px">'+W.esc(x.adjustment||'')+'</div><button class="w-btn w-btn-secondary w-btn-sm" style="margin-top:8px" type="button" onclick="W.trainingEditSentiment(\''+W.esc(x.slug)+'\')">Editar emoción</button></div>'});
+    h+='</div></div>';
+    var objs=r.objections||[];
+    h+='<div class="w-card" style="margin-bottom:14px"><div class="w-flex-between" style="gap:8px;flex-wrap:wrap"><div><h3 style="margin:0 0 4px">Objeciones y respuestas</h3><p style="font-size:11px;color:var(--w-muted);margin:0">Detecta la objeción real, responde con empatía y propone el siguiente paso.</p></div><button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="W.trainingNewObjection()">+ Nueva objeción</button></div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-top:10px">';
+    if(!objs.length)h+='<div style="font-size:11px;color:var(--w-muted)">Sin objeciones registradas.</div>';
+    objs.forEach(function(x){h+='<div class="w-card" style="margin:0;padding:12px;border-left:3px solid '+(x.escalate?'#fb7185':'#fbbf24')+'"><div style="display:flex;justify-content:space-between;gap:6px"><b>'+W.esc(x.name)+'</b>'+(x.escalate?'<span class="w-badge" style="font-size:9px;background:#fb718522;color:#fb7185">ESCALA</span>':'')+'</div><div style="font-size:10px;color:var(--w-muted);margin-top:5px">'+W.esc((x.phrases||[]).slice(0,4).join(', '))+'</div><div style="font-size:11px;margin-top:5px">'+W.esc(x.empathy||'')+'</div><button class="w-btn w-btn-secondary w-btn-sm" style="margin-top:8px" type="button" onclick="W.trainingEditObjection(\''+W.esc(x.slug)+'\')">Editar objeción</button></div>'});
+    h+='</div></div>';
+
+    h+='<div class="w-card" style="margin-bottom:14px"><h3 style="margin:0 0 4px">Reglas activas que TIA consulta antes de responder</h3><p style="font-size:11px;color:var(--w-muted);margin:0 0 9px">Se guardan en tia_playbook_rules y se incluyen en el comportamiento; los casos reales pendientes se guardan en tia_learning_insights y requieren aprobación humana.</p>';
+    if(!rules.length)h+='<div style="font-size:11px;color:var(--w-muted)">Sin reglas activas.</div>';
+    rules.forEach(function(x){h+='<div style="display:flex;gap:8px;align-items:flex-start;padding:7px 0;border-bottom:1px solid var(--w-border)"><span style="font-size:9px;font-weight:800;color:#059669;background:#ecfdf5;border-radius:9px;padding:3px 6px">ACTIVA</span><span style="font-size:11px;line-height:1.5">'+W.esc(x.rule_text||'')+'</span></div>'});
+    if(cases.length){h+='<div style="margin-top:14px"><h4 style="margin:0 0 4px">Casos reales pendientes</h4>';cases.forEach(function(x){var recs=(x.recommendations||[]).map(function(v){return v.training_rule||v.next_play||''}).filter(Boolean);h+='<div style="border-left:3px solid #f59e0b;padding:7px 9px;margin-top:7px"><b style="font-size:11px">'+W.esc(x.title)+'</b><div style="font-size:10px;color:var(--w-muted);margin-top:2px">'+W.esc(x.diagnosis||'')+'</div><div style="font-size:10px;margin-top:4px">'+W.esc(recs.join(' · '))+'</div><button class="w-btn w-btn-primary w-btn-sm" style="margin-top:6px" type="button" onclick="W.tiaApplyTrainingCase('+x.id+',this)">Aplicar como regla</button></div>'});h+='</div>'}
+    h+='</div>';
+    h+='<div class="w-card" style="margin-bottom:14px"><div class="w-flex-between" style="gap:8px;flex-wrap:wrap"><div><h3 style="margin:0 0 4px">Catálogo de atención</h3><p style="font-size:11px;color:var(--w-muted);margin:0">Preguntas, objeciones, emociones y planes de respuesta. TIA usa el escenario más cercano antes de responder.</p></div><span style="font-size:10px;font-weight:800;color:#7c3aed">'+(attStats.total||0)+' escenarios</span></div>';
+    var cats=attStats.categories||{};h+='<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:9px">'+Object.keys(cats).map(function(k){return '<span style="font-size:9.5px;padding:3px 7px;border:1px solid var(--w-border);border-radius:999px;color:var(--w-muted)">'+W.esc(k)+' '+cats[k]+'</span>'}).join('')+'</div>';
+    h+='<div style="display:flex;gap:7px;margin-top:10px;flex-wrap:wrap"><input class="w-input" id="tr-att-q" placeholder="Buscar pregunta, objeción o categoría" style="flex:1;min-width:220px" onkeydown="if(event.key===\'Enter\')W.attentionSearch()"/><button class="w-btn w-btn-secondary" type="button" onclick="W.attentionSearch()">Buscar</button></div><div id="tr-att-list" style="margin-top:9px">'+W.attRows(attPreview)+'</div></div>';
+    h+='<div class="w-card"><h3 style="margin:0 0 8px">Últimos cambios de entrenamiento</h3><div style="font-size:11px;color:var(--w-muted)">'+((r.events||[]).length?r.events.map(function(e){return W.esc(e.entity+' · '+e.action+' · '+(e.username||'')+' · '+(e.created_at||''))}).join('<br>'):'Sin cambios registrados.')+'</div></div>';
+    box.innerHTML=h;
+};
+W.trainingSimulate=async function(){
+    var msg=(document.getElementById('tr-sim-msg')||{}).value||'';
+    var out=document.getElementById('tr-sim-result'); if(!out)return;
+    if(!msg.trim()){W.notify('Escribe un mensaje para simular','error');return}
+    out.innerHTML='<div style="font-size:12px;color:var(--w-muted)">Analizando...</div>';
+    var r=await W.api('/api/v1/admin/ciu/training/simulate',{method:'POST',body:{message:msg,page:'/tienda'}});
+    if(!r||!r.ok){out.innerHTML='<div style="font-size:12px;color:#fb7185">No se pudo simular.</div>';return}
+    var s=r.sentiment||{},i=r.intent||{},role=r.role||{};
+    out.innerHTML='<div class="w-card" style="margin:0;padding:12px;border-left:3px solid '+(s.color||'#94a3b8')+'"><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;font-size:11px"><div><b>Intención:</b> '+W.esc(i.name||'')+'</div><div><b>Emoción:</b> '+W.esc(s.name||'')+'</div><div><b>Rol:</b> '+W.esc(role.name||'')+'</div><div><b>Etapa:</b> '+W.esc(r.stage||'—')+'</div><div><b>Objeción:</b> '+W.esc((r.objection&&r.objection.name)||'—')+'</div><div><b>Siguiente:</b> '+W.esc(r.next_action||'—')+'</div><div><b>Confianza:</b> '+W.esc(String(r.confidence||0))+'%</div><div><b>Derivación:</b> '+W.esc(r.handoff||'none')+'</div><div><b>¿Aclarar?:</b> '+(r.clarify?'Sí':'No')+'</div></div><pre style="white-space:pre-wrap;font-size:11px;line-height:1.5;background:var(--w-bg2);border:1px solid var(--w-border);border-radius:8px;padding:9px;margin-top:9px">'+W.esc(r.directive||'')+'</pre></div>';
+};
+W.trainingEditRole=function(slug){
+    var x=(W._training.roles||[]).filter(function(v){return v.slug===slug})[0]||{slug:slug};
+    W.modal('Training Room · '+W.esc(x.name||'Rol'),'<div class="w-form-group"><label class="w-label">Slug</label><input class="w-input" id="tr-role-slug" value="'+W.esc(x.slug||'')+'" '+(x.slug?'readonly':'')+'/></div><div class="w-form-group"><label class="w-label">Nombre</label><input class="w-input" id="tr-role-name" value="'+W.esc(x.name||'')+'"/></div><div class="w-form-group"><label class="w-label">Misión</label><textarea class="w-input" id="tr-role-mission" rows="2">'+W.esc(x.mission||'')+'</textarea></div><div class="w-form-group"><label class="w-label">Tono</label><textarea class="w-input" id="tr-role-tone" rows="2">'+W.esc(x.tone||'')+'</textarea></div><div class="w-form-group"><label class="w-label">Restricciones</label><textarea class="w-input" id="tr-role-restrictions" rows="3">'+W.esc(x.restrictions||'')+'</textarea></div><div class="w-form-group"><label class="w-label">Prompt de comportamiento</label><textarea class="w-input" id="tr-role-prompt" rows="3">'+W.esc(x.system_prompt||'')+'</textarea></div><div class="w-form-group"><label class="w-label">Objetivo de negocio</label><textarea class="w-input" id="tr-role-business" rows="2">'+W.esc(x.business_goal||'')+'</textarea></div><div class="w-form-group"><label class="w-label">Responsabilidades</label><textarea class="w-input" id="tr-role-responsibilities" rows="4">'+W.esc(x.responsibilities||'')+'</textarea></div><div class="w-form-group"><label class="w-label">Flujo de conversación</label><textarea class="w-input" id="tr-role-flow" rows="4">'+W.esc(x.conversation_flow||'')+'</textarea></div><div class="w-form-group"><label class="w-label">Acciones permitidas</label><textarea class="w-input" id="tr-role-actions" rows="3">'+W.esc(x.allowed_actions||'')+'</textarea></div><div class="w-form-group"><label class="w-label">Reglas de escalamiento</label><textarea class="w-input" id="tr-role-escalation" rows="3">'+W.esc(x.escalation_rules||'')+'</textarea></div><div class="w-form-group"><label class="w-label">Disparadores de handoff</label><textarea class="w-input" id="tr-role-handoff" rows="2">'+W.esc(x.handoff_triggers||'')+'</textarea></div><div class="w-form-group"><label class="w-label">Fuentes de conocimiento</label><textarea class="w-input" id="tr-role-sources" rows="2">'+W.esc(x.knowledge_sources||'')+'</textarea></div><div class="w-form-group"><label class="w-label">Frases modelo</label><textarea class="w-input" id="tr-role-samples" rows="3">'+W.esc(x.sample_phrases||'')+'</textarea></div><div class="w-form-group"><label class="w-label">KPIs</label><textarea class="w-input" id="tr-role-kpis" rows="2">'+W.esc(x.kpis||'')+'</textarea></div><label style="font-size:11px"><input type="checkbox" id="tr-role-active" '+(x.is_active!==false?'checked':'')+'/> Activo</label>','<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cancelar</button><button class="w-btn w-btn-primary" onclick="W.trainingSaveRole()">Guardar rol</button>');
+};
+W.trainingSaveRole=function(){
+    var v=function(id){return (document.getElementById(id)||{}).value||''};
+    W.api('/api/v1/admin/ciu/training/role',{method:'POST',body:{slug:v('tr-role-slug'),name:v('tr-role-name'),mission:v('tr-role-mission'),tone:v('tr-role-tone'),restrictions:v('tr-role-restrictions'),system_prompt:v('tr-role-prompt'),business_goal:v('tr-role-business'),responsibilities:v('tr-role-responsibilities'),conversation_flow:v('tr-role-flow'),allowed_actions:v('tr-role-actions'),escalation_rules:v('tr-role-escalation'),handoff_triggers:v('tr-role-handoff'),knowledge_sources:v('tr-role-sources'),sample_phrases:v('tr-role-samples'),kpis:v('tr-role-kpis'),is_active:!!(document.getElementById('tr-role-active')||{}).checked}}).then(function(r){if(r&&r.ok){W.closeModal();W.notify('Rol guardado','success');W.trainingLoad()}else W.notify((r&&r.message)||'No se pudo guardar','error')});
+};
+W.trainingNewRole=function(){W.trainingEditRole('')};
+W.trainingEditIntent=function(slug){
+    var x=(W._training.intents||[]).filter(function(v){return v.slug===slug})[0]||{slug:slug};
+    var roles=(W._training.roles||[]).map(function(v){return '<option value="'+W.esc(v.slug)+'"'+(x.role_slug===v.slug?' selected':'')+'>'+W.esc(v.name)+'</option>'}).join('');
+    W.modal('Training Room · '+W.esc(x.name||'Intención'),'<div class="w-form-group"><label class="w-label">Slug</label><input class="w-input" id="tr-intent-slug" value="'+W.esc(x.slug||'')+'" '+(x.slug?'readonly':'')+'/></div><div class="w-form-group"><label class="w-label">Nombre</label><input class="w-input" id="tr-intent-name" value="'+W.esc(x.name||'')+'"/></div><div class="w-form-group"><label class="w-label">Rol</label><select class="w-input" id="tr-intent-role">'+roles+'</select></div><div class="w-form-group"><label class="w-label">Ejemplos (una frase por línea)</label><textarea class="w-input" id="tr-intent-examples" rows="3">'+W.esc((x.examples||[]).join('\n'))+'</textarea></div><div class="w-form-group"><label class="w-label">Palabras clave (una por línea)</label><textarea class="w-input" id="tr-intent-keywords" rows="3">'+W.esc((x.keywords||[]).join('\n'))+'</textarea></div><div class="w-form-group"><label class="w-label">Playbook</label><textarea class="w-input" id="tr-intent-playbook" rows="3">'+W.esc(x.playbook||'')+'</textarea></div><div class="w-form-group"><label class="w-label">Derivación</label><select class="w-input" id="tr-intent-handoff"><option value="none"'+(x.handoff==='none'?' selected':'')+'>No derivar</option><option value="suggest"'+(x.handoff==='suggest'?' selected':'')+'>Sugerir humano</option><option value="required"'+(x.handoff==='required'?' selected':'')+'>Obligatorio humano</option></select></div><div class="w-form-group"><label class="w-label">Prioridad</label><input class="w-input" id="tr-intent-priority" type="number" value="'+(x.priority||0)+'"/></div><label style="font-size:11px"><input type="checkbox" id="tr-intent-active" '+(x.is_active!==false?'checked':'')+'/> Activa</label>','<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cancelar</button><button class="w-btn w-btn-primary" onclick="W.trainingSaveIntent()">Guardar intención</button>');
+};
+W.trainingSaveIntent=function(){
+    var v=function(id){return (document.getElementById(id)||{}).value||''};
+    W.api('/api/v1/admin/ciu/training/intent',{method:'POST',body:{slug:v('tr-intent-slug'),name:v('tr-intent-name'),role_slug:v('tr-intent-role'),examples:v('tr-intent-examples'),keywords:v('tr-intent-keywords'),playbook:v('tr-intent-playbook'),handoff:v('tr-intent-handoff'),priority:parseInt(v('tr-intent-priority'))||0,is_active:!!(document.getElementById('tr-intent-active')||{}).checked}}).then(function(r){if(r&&r.ok){W.closeModal();W.notify('Intención guardada','success');W.trainingLoad()}else W.notify((r&&r.message)||'No se pudo guardar','error')});
+};
+W.trainingNewIntent=function(){W.trainingEditIntent('')};
+W.trainingEditSentiment=function(slug){
+    var x=(W._training.sentiments||[]).filter(function(v){return v.slug===slug})[0]||{slug:slug};
+    W.modal('Training Room · '+W.esc(x.name||'Emoción'),'<div class="w-form-group"><label class="w-label">Slug</label><input class="w-input" id="tr-sent-slug" value="'+W.esc(x.slug||'')+'" '+(x.slug?'readonly':'')+'/></div><div class="w-form-group"><label class="w-label">Nombre</label><input class="w-input" id="tr-sent-name" value="'+W.esc(x.name||'')+'"/></div><div class="w-form-group"><label class="w-label">Palabras clave (una por línea)</label><textarea class="w-input" id="tr-sent-keywords" rows="3">'+W.esc((x.keywords||[]).join('\n'))+'</textarea></div><div class="w-form-group"><label class="w-label">Frases (una por línea)</label><textarea class="w-input" id="tr-sent-phrases" rows="2">'+W.esc((x.phrases||[]).join('\n'))+'</textarea></div><div class="w-form-group"><label class="w-label">Ajuste de respuesta</label><textarea class="w-input" id="tr-sent-adjustment" rows="3">'+W.esc(x.adjustment||'')+'</textarea></div><div class="w-form-group"><label class="w-label">Color</label><input class="w-input" id="tr-sent-color" value="'+W.esc(x.color||'#94a3b8')+'"/></div><label style="font-size:11px"><input type="checkbox" id="tr-sent-escalate" '+(x.escalate?'checked':'')+'/> Escalar a humano</label> <label style="font-size:11px;margin-left:10px"><input type="checkbox" id="tr-sent-active" '+(x.is_active!==false?'checked':'')+'/> Activa</label>','<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cancelar</button><button class="w-btn w-btn-primary" onclick="W.trainingSaveSentiment()">Guardar emoción</button>');
+};
+W.trainingSaveSentiment=function(){
+    var v=function(id){return (document.getElementById(id)||{}).value||''};
+    W.api('/api/v1/admin/ciu/training/sentiment',{method:'POST',body:{slug:v('tr-sent-slug'),name:v('tr-sent-name'),keywords:v('tr-sent-keywords'),phrases:v('tr-sent-phrases'),adjustment:v('tr-sent-adjustment'),color:v('tr-sent-color'),escalate:!!(document.getElementById('tr-sent-escalate')||{}).checked,is_active:!!(document.getElementById('tr-sent-active')||{}).checked}}).then(function(r){if(r&&r.ok){W.closeModal();W.notify('Emoción guardada','success');W.trainingLoad()}else W.notify((r&&r.message)||'No se pudo guardar','error')});
+};
+W.trainingNewSentiment=function(){W.trainingEditSentiment('')};
+W.trainingEditObjection=function(slug){
+    var x=(W._training.objections||[]).filter(function(v){return v.slug===slug})[0]||{slug:slug};
+    W.modal('Training Room · '+W.esc(x.name||'Objeción'),'<div class="w-form-group"><label class="w-label">Slug</label><input class="w-input" id="tr-obj-slug" value="'+W.esc(x.slug||'')+'" '+(x.slug?'readonly':'')+'/></div><div class="w-form-group"><label class="w-label">Nombre</label><input class="w-input" id="tr-obj-name" value="'+W.esc(x.name||'')+'"/></div><div class="w-form-group"><label class="w-label">Frases que la activan (una por línea)</label><textarea class="w-input" id="tr-obj-phrases" rows="3">'+W.esc((x.phrases||[]).join('\n'))+'</textarea></div><div class="w-form-group"><label class="w-label">Empatía</label><textarea class="w-input" id="tr-obj-empathy" rows="2">'+W.esc(x.empathy||'')+'</textarea></div><div class="w-form-group"><label class="w-label">Respuesta</label><textarea class="w-input" id="tr-obj-response" rows="3">'+W.esc(x.response||'')+'</textarea></div><div class="w-form-group"><label class="w-label">Siguiente paso</label><textarea class="w-input" id="tr-obj-next" rows="2">'+W.esc(x.next_step||'')+'</textarea></div><label style="font-size:11px"><input type="checkbox" id="tr-obj-escalate" '+(x.escalate?'checked':'')+'/> Escalar a humano</label> <label style="font-size:11px;margin-left:10px"><input type="checkbox" id="tr-obj-active" '+(x.is_active!==false?'checked':'')+'/> Activa</label>','<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cancelar</button><button class="w-btn w-btn-primary" onclick="W.trainingSaveObjection()">Guardar objeción</button>');
+};
+W.trainingSaveObjection=function(){
+    var v=function(id){return (document.getElementById(id)||{}).value||''};
+    W.api('/api/v1/admin/ciu/training/objection',{method:'POST',body:{slug:v('tr-obj-slug'),name:v('tr-obj-name'),phrases:v('tr-obj-phrases'),empathy:v('tr-obj-empathy'),response:v('tr-obj-response'),next_step:v('tr-obj-next'),escalate:!!(document.getElementById('tr-obj-escalate')||{}).checked,is_active:!!(document.getElementById('tr-obj-active')||{}).checked}}).then(function(r){if(r&&r.ok){W.closeModal();W.notify('Objeción guardada','success');W.trainingLoad()}else W.notify((r&&r.message)||'No se pudo guardar','error')});
+};
+W.trainingNewObjection=function(){W.trainingEditObjection('')};
+W._simRun=null;W._simRunning=false;
+W.tiaSimulationLoad=async function(){
+    var box=document.getElementById('ciu-body');if(!box)return;
+    var r=await W.api('/api/v1/admin/ciu/simulation');
+    if(!r||!r.ok){box.innerHTML='<div class="w-empty-state"><h3>Sales Lab no disponible</h3><p>'+W.esc((r&&r.message)||'No se pudo cargar.')+'</p></div>';return}
+    var l=r.latest;var sc=l?parseFloat(l.score)||0:0;
+    var h='<div class="w-card" style="margin-bottom:14px"><div class="w-flex-between" style="gap:10px;flex-wrap:wrap"><div><h3 style="margin:0">Sales Lab · 100 conversaciones</h3><p style="font-size:11px;color:var(--w-muted);margin:4px 0 0">Simulación interna con clientes sintéticos: agradables, difíciles, enojados y crisis. No afecta clientes reales.</p></div><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="w-btn w-btn-primary w-btn-sm" id="sim-start" type="button" onclick="W.simStart(this)">Ejecutar 100 conversaciones</button><button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="W.tiaSimulationLoad()">Actualizar</button></div></div>';
+    if(l){h+='<div class="sgl-live__stats" style="margin-top:12px">'+W.sglLiveStat(sc.toFixed(1)+'%','Score global')+W.sglLiveStat(l.passed||0,'Aprobadas','#34d399')+W.sglLiveStat(l.failed||0,'Por revisar','#fb7185')+W.sglLiveStat(l.progress||0+'%','Progreso')+'</div><div style="height:6px;background:#eee;border-radius:99px;overflow:hidden;margin-top:10px"><div id="sim-progress" style="height:100%;width:'+(l.progress||0)+'%;background:#8b5cf6"></div></div>'}
+    h+='<div style="margin-top:10px"><pre id="sim-terminal" style="max-height:250px;overflow:auto;background:#111827;color:#d1fae5;border-radius:8px;padding:10px;font:10.5px/1.45 ui-monospace,Menlo,monospace;white-space:pre-wrap">'+(l?(l.logs||[]).map(function(x){return '['+(x.t||'')+'] ['+(x.level||'info')+'] '+(x.message||'')}).join('\n'):'Sales Lab listo. Ejecuta las 100 conversaciones.')+'</pre></div></div>';
+    h+='<div class="w-card" style="margin-bottom:14px"><div class="w-flex-between" style="gap:8px;flex-wrap:wrap"><div><h3 style="margin:0 0 4px">Prompt maestro</h3><p style="font-size:11px;color:var(--w-muted);margin:0">Aplícalo después de revisar la simulación para reforzar el comportamiento de TIA.</p></div><button class="w-btn '+(r.prompt_applied?'w-btn-secondary':'w-btn-primary')+' w-btn-sm" type="button" onclick="W.simApplyPrompt(this)">'+(r.prompt_applied?'Prompt aplicado · reaplicar':'Aplicar prompt maestro')+'</button></div></div>';
+    if(l&&(l.results||[]).length){var fails=(l.results||[]).filter(function(x){return !x.passed});h+='<div class="w-card"><h3 style="margin:0 0 8px">Fallos que debe revisar</h3>'+(fails.length?fails.slice(0,20).map(function(x){return '<div style="font-size:11px;padding:6px 0;border-bottom:1px solid var(--w-border)"><b>'+W.esc(x.id)+' · '+W.esc(x.persona)+' · '+W.esc(x.mood)+'</b> · '+x.score+'%<div style="color:var(--w-muted);margin-top:2px">'+W.esc((x.checks||[]).join(' · '))+'</div></div>'}).join(''):'<div style="font-size:11px;color:#059669">Sin fallos en esta simulación.</div>')+'</div>'}
+    box.innerHTML=h;if(l){W._simRun=l.id;W.simRender(l)}
+};
+W.simRender=function(run){
+    if(!run)return;var pre=document.getElementById('sim-terminal');if(pre){pre.textContent=(run.logs||[]).map(function(x){return '['+(x.t||'')+'] ['+(x.level||'info')+'] '+(x.message||'')}).join('\n');pre.scrollTop=pre.scrollHeight}var bar=document.getElementById('sim-progress');if(bar)bar.style.width=(run.progress||0)+'%';
+};
+W.simStart=async function(btn){
+    if(W._simRunning)return;W._simRunning=true;if(btn)btn.disabled=true;
+    var r=await W.api('/api/v1/admin/ciu/simulation/run',{method:'POST',body:{}});
+    if(!r||!r.ok){W._simRunning=false;if(btn)btn.disabled=false;W.notify((r&&r.message)||'No se pudo iniciar','error');return}
+    W._simRun=r.run_id;W._simRunTotal=r.total_steps||100;W.simStep(btn);
+};
+W.simStep=async function(btn){
+    if(!W._simRun)return;
+    var r=await W.api('/api/v1/admin/ciu/simulation/run/'+W._simRun+'/step',{method:'POST',body:{}});
+    if(!r||!r.ok){W._simRunning=false;if(btn)btn.disabled=false;W.notify((r&&r.message)||'La simulación se detuvo','error');return}
+    W.simRender(r.run);
+    if(r.run&&r.run.status==='running'){setTimeout(function(){W.simStep(btn)},180);return}
+    W._simRunning=false;if(btn)btn.disabled=false;W.notify(r.run&&r.run.status==='completed'?'Simulación completada':'Simulación finalizada','success');
+};
+W.simApplyPrompt=async function(btn){
+    if(btn)btn.disabled=true;var r=await W.api('/api/v1/admin/ciu/simulation/prompt',{method:'POST',body:{}});if(btn)btn.disabled=false;if(r&&r.ok){W.notify('Prompt maestro aplicado','success');W.tiaSimulationLoad()}else W.notify((r&&r.message)||'No se pudo aplicar','error');
+};
+W.tiaLearningLoad=async function(){
+    var box=document.getElementById('ciu-body');if(!box)return;
+    var r=await W.api('/api/v1/admin/ciu/learning');
+    if(!r||!r.ok){box.innerHTML='<div class="w-empty-state"><h3>Learning Center no disponible</h3><p>'+W.esc((r&&r.message)||'No se pudo cargar.')+'</p></div>';return}
+    var score=Math.max(0,Math.min(100,parseFloat(r.score)||0));
+    var h='<div class="w-card" style="margin-bottom:14px"><div class="w-flex-between" style="gap:12px;flex-wrap:wrap"><div><h3 style="margin:0">Aprendizaje de TIA</h3><p style="font-size:11px;color:var(--w-muted);margin:4px 0 0">Qué sabe, qué le falta y qué debe entrenar. Medición interna 0–100.</p></div><button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="W.tiaLearningLoad()">Actualizar</button><button class="w-btn w-btn-primary w-btn-sm" id="learning-start" type="button" onclick="W.learningStart(this)">Iniciar aprendizaje faltante</button></div><div style="margin-top:10px"><div style="height:6px;background:#eee;border-radius:99px;overflow:hidden"><div id="learning-progress" style="height:100%;width:0;background:#8b5cf6;transition:width .2s"></div></div><pre id="learning-terminal" style="margin-top:8px;max-height:220px;overflow:auto;background:#111827;color:#d1fae5;border-radius:8px;padding:10px;font:10.5px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap">Listo para iniciar el aprendizaje faltante.</pre></div>';
+    h+='<div style="display:flex;gap:20px;align-items:center;flex-wrap:wrap;margin-top:14px"><div style="width:132px;height:132px;border-radius:50%;background:conic-gradient(#8b5cf6 0 '+score+'%,#e9e5f5 '+score+'% 100%);display:grid;place-items:center;flex:0 0 132px"><div style="width:100px;height:100px;border-radius:50%;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center"><b style="font-size:28px;line-height:1;color:#333333">'+score.toFixed(1)+'%</b><span style="font-size:10px;color:var(--w-muted)">'+W.esc(r.level||'')+'</span></div></div><div style="flex:1;min-width:230px">';
+    (r.components||[]).forEach(function(c){h+='<div style="margin-bottom:7px"><div style="display:flex;justify-content:space-between;font-size:10.5px"><span>'+W.esc(c.label)+' <span style="color:var(--w-muted)">('+W.esc(c.detail)+')</span></span><b style="color:#333333">'+(c.no_data?'Sin datos':c.score+'%')+'</b></div><div style="height:5px;background:#eee;border-radius:99px;overflow:hidden"><div style="height:100%;width:'+c.score+'%;background:'+(c.no_data?'#cbd5e1':(c.score>=80?'#34d399':(c.score>=50?'#8b5cf6':'#fb7185')))+'"></div></div></div>'});
+    h+='</div></div></div>';
+    if((r.history||[]).length){h+='<div class="w-card" style="margin-bottom:14px"><h3 style="margin:0 0 8px">Evolución</h3><div style="display:flex;gap:5px;align-items:end;height:72px;overflow-x:auto;padding-bottom:2px">'+r.history.slice().reverse().map(function(x){return '<div title="'+W.esc(x.date)+' · '+x.score+'%" style="min-width:20px;height:'+Math.max(4,x.score)+'%;background:#8b5cf6;border-radius:3px 3px 0 0"></div>'}).join('')+'</div><div style="font-size:10px;color:var(--w-muted);margin-top:4px">'+W.esc(r.history[0]&&r.history[0].date||'')+' · últimos 30 días</div></div>'}
+    h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px"><div class="w-card"><h3 style="margin:0 0 6px">Qué le falta</h3>'+((r.gaps||[]).length?(r.gaps||[]).map(function(x){return '<div style="font-size:11px;padding:5px 0;border-bottom:1px solid var(--w-border)"><b>'+W.esc(x.label)+'</b> · '+x.score+'%<div style="color:var(--w-muted)">'+W.esc(x.detail)+'</div></div>'}).join(''):'<div style="font-size:11px;color:#059669">Sin brechas críticas.</div>')+'</div><div class="w-card"><h3 style="margin:0 0 6px">Qué entrenar</h3>'+((r.recommendations||[]).length?(r.recommendations||[]).map(function(x){return '<div style="font-size:11px;padding:5px 0;border-bottom:1px solid var(--w-border)"><b style="color:#8b5cf6">'+W.esc(x.priority)+'</b> '+W.esc(x.action)+'</div>'}).join(''):'<div style="font-size:11px;color:#059669">Sin recomendaciones pendientes.</div>')+'</div></div>';
+    h+='<div class="w-card" style="margin-bottom:14px"><h3 style="margin:0 0 4px">Manuales y fuentes de atención</h3><p style="font-size:11px;color:var(--w-muted);margin:0 0 9px">TIA usará estos manuales como contexto de tono, objeciones y protocolos. No reemplazan precios, stock ni políticas del catálogo.</p><div style="display:grid;grid-template-columns:1.8fr 1fr;gap:8px"><input class="w-input" id="learning-url" placeholder="https://... manual de atención"/><input class="w-input" id="learning-title" placeholder="Título opcional"/></div><div style="display:flex;gap:7px;margin-top:7px;flex-wrap:wrap"><button class="w-btn w-btn-primary w-btn-sm" type="button" onclick="W.learningIngestUrl(this)">Aprender URL</button><input type="file" id="learning-file" accept=".txt,.md,.csv,.json,.html,.htm" style="font-size:11px"/><button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="W.learningUpload(this)">Subir archivo</button><span id="learning-status" style="font-size:11px;color:var(--w-muted)"></span></div>';
+    h+='<div style="overflow:auto;margin-top:10px"><table class="w-table"><thead><tr><th>Título</th><th>Tipo</th><th>Origen</th><th></th></tr></thead><tbody>'+((r.sources||[]).length?(r.sources||[]).map(function(x){return '<tr><td>'+W.esc(x.title)+'</td><td>'+W.esc(x.source_type)+'</td><td style="max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+W.esc(x.url||'Archivo')+'</td><td><button class="w-btn w-btn-danger w-btn-sm" type="button" onclick="W.learningDeleteSource('+x.id+')">Quitar</button></td></tr>'}).join(''):'<tr><td colspan="4" style="color:var(--w-muted)">Sin manuales cargados.</td></tr>')+'</tbody></table></div></div>';
+    h+='<div class="w-card"><h3 style="margin:0 0 4px">Corregir comportamiento</h3><p style="font-size:11px;color:var(--w-muted);margin:0 0 9px">Describe qué hizo mal y qué debe hacer en su lugar. Se convierte en una regla activa.</p><textarea class="w-input" id="learning-bad" rows="2" placeholder="Comportamiento inadecuado: por ejemplo, repite el mismo listado y no explica la diferencia." style="width:100%"></textarea><textarea class="w-input" id="learning-good" rows="2" placeholder="Comportamiento deseado: por ejemplo, reconocer una vez, comparar con datos reales y ofrecer ficha o especialista." style="width:100%;margin-top:7px"></textarea><button class="w-btn w-btn-primary w-btn-sm" style="margin-top:7px" type="button" onclick="W.learningCommand(this)">Aplicar corrección</button></div>';
+    box.innerHTML=h;
+};
+W._learningJob=null;
+W._learningRunning=false;
+W.learningRenderJob=function(job){
+    if(!job)return;
+    var pre=document.getElementById('learning-terminal');
+    if(pre){pre.textContent=(job.logs||[]).map(function(x){return '['+(x.t||'')+'] ['+(x.level||'info')+'] '+(x.message||'')}).join('\n');pre.scrollTop=pre.scrollHeight}
+    var bar=document.getElementById('learning-progress');if(bar)bar.style.width=(job.progress||0)+'%';
+};
+W.learningStart=async function(btn){
+    if(W._learningRunning)return;
+    W._learningRunning=true;if(btn)btn.disabled=true;
+    var pre=document.getElementById('learning-terminal');if(pre)pre.textContent='Creando proceso de aprendizaje...';
+    var r=await W.api('/api/v1/admin/ciu/learning/run',{method:'POST',body:{}});
+    if(!r||!r.ok){W._learningRunning=false;if(btn)btn.disabled=false;W.notify((r&&r.message)||'No se pudo iniciar','error');return}
+    W._learningJob=r.job_id;
+    W.learningStep(btn);
+};
+W.learningStep=async function(btn){
+    if(!W._learningJob)return;
+    var r=await W.api('/api/v1/admin/ciu/learning/run/'+W._learningJob+'/step',{method:'POST',body:{}});
+    if(!r||!r.ok){W._learningRunning=false;if(btn)btn.disabled=false;W.notify((r&&r.message)||'El proceso se detuvo','error');return}
+    W.learningRenderJob(r.job);
+    if(r.job&&r.job.status==='running'){setTimeout(function(){W.learningStep(btn)},280);return}
+    W._learningRunning=false;if(btn)btn.disabled=false;
+    if(r.job&&r.job.status==='completed')W.notify('Aprendizaje instalado y probado','success');
+    else W.notify('El aprendizaje no pasó la prueba. Revisa la terminal.','error');
+};
+W._learningStatus=function(text){var el=document.getElementById('learning-status');if(el)el.textContent=text||''};
+W.learningIngestUrl=async function(btn){
+    var v=function(id){return (document.getElementById(id)||{}).value||''};
+    if(btn)btn.disabled=true;W._learningStatus('Leyendo URL...');
+    var r=await W.api('/api/v1/admin/ciu/learning/url',{method:'POST',body:{url:v('learning-url'),title:v('learning-title')}});
+    if(btn)btn.disabled=false;W._learningStatus((r&&r.message)||'');
+    if(r&&r.ok)W.tiaLearningLoad();
+};
+W.learningUpload=async function(btn){
+    var f=document.getElementById('learning-file');if(!f||!f.files||!f.files[0]){W.notify('Selecciona un archivo','error');return}
+    var fd=new FormData();fd.append('file',f.files[0]);
+    if(btn)btn.disabled=true;W._learningStatus('Procesando archivo...');
+    var r=await W.api('/api/v1/admin/ciu/learning/upload',{method:'POST',body:fd});
+    if(btn)btn.disabled=false;W._learningStatus((r&&r.message)||'');
+    if(r&&r.ok)W.tiaLearningLoad();
+};
+W.learningCommand=async function(btn){
+    var v=function(id){return (document.getElementById(id)||{}).value||''};
+    if(btn)btn.disabled=true;
+    var r=await W.api('/api/v1/admin/ciu/learning/command',{method:'POST',body:{bad:v('learning-bad'),good:v('learning-good')}});
+    if(btn)btn.disabled=false;W.notify((r&&r.message)||(r&&r.ok?'Corrección aplicada':'No se pudo aplicar'),r&&r.ok?'success':'error');
+    if(r&&r.ok)W.tiaLearningLoad();
+};
+W.learningDeleteSource=async function(id){if(!confirm('¿Quitar este manual del aprendizaje?'))return;var r=await W.api('/api/v1/admin/ciu/learning/sources/'+id,{method:'DELETE'});if(r&&r.ok)W.tiaLearningLoad()};
+W.tiaProfitLoad=async function(){
+    var box=document.getElementById('ciu-body');if(!box)return;
+    var period=(document.getElementById('pr-period')||{}).value||new Date().toISOString().slice(0,7);
+    var r=await W.api('/api/v1/admin/ciu/profit?period='+encodeURIComponent(period));
+    if(!r||!r.ok){box.innerHTML='<div class="w-empty-state"><h3>Rentabilidad no disponible</h3><p>'+W.esc((r&&r.message)||'No se pudo cargar.')+'</p></div>';return}
+    var p=r.policy||{},rev=r.revenue||{};
+    var cats=[['financial','Financiero'],['operational','Operativo'],['tax','Fiscal'],['administrative','Administrativo'],['marketing','Marketing'],['returns','Devoluciones'],['logistics','Logística'],['other','Otro']];
+    var h='<div class="w-card" style="margin-bottom:14px"><div class="w-flex-between" style="gap:8px;flex-wrap:wrap"><div><h3 style="margin:0">Rentabilidad manual</h3><p style="font-size:11px;color:var(--w-muted);margin:4px 0 0">Datos internos. El cliente nunca ve costos, márgenes ni campañas.</p></div><div style="display:flex;gap:6px;align-items:end"><div><label class="w-label">Período</label><input class="w-input" id="pr-period" type="month" value="'+W.esc(period)+'" style="width:150px"/></div><button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="W.tiaProfitLoad()">Ver</button></div></div>';
+    h+='<div class="sgl-live__stats" style="margin-top:12px">'+W.sglLiveStat(W.ocMoney(rev.total_cents||0,'COP'),'Ingreso atribuido')+W.sglLiveStat(W.ocMoney(r.gross_margin_cents||0,'COP'),'Margen bruto','#34d399')+W.sglLiveStat(W.ocMoney(r.operating_costs_cents||0,'COP'),'Costos manuales')+W.sglLiveStat(W.ocMoney(r.campaign_spend_cents||0,'COP'),'Campañas')+W.sglLiveStat(W.ocMoney(r.net_profit_cents||0,'COP'),'Utilidad neta estimada',(r.net_profit_cents||0)>=0?'#34d399':'#fb7185')+W.sglLiveStat((r.net_margin_pct||0)+'%','Margen neto')+W.sglLiveStat(W.ocMoney(r.net_target_cents||0,'COP'),'Meta neta')+'</div>';
+    h+='<div style="font-size:11px;color:var(--w-muted);margin-top:8px">Gap contra meta: <b style="color:'+((r.net_gap_cents||0)>=0?'#059669':'#b42318')+'">'+W.ocMoney(r.net_gap_cents||0,'COP')+'</b> · Acordeones excluidos: '+W.ocMoney(rev.excluded_accordion_cents||0,'COP')+' · Sin producto: '+W.ocMoney(rev.unknown_cents||0,'COP')+'</div></div>';
+    h+='<div class="w-card" style="margin-bottom:14px"><h3 style="margin:0 0 8px">Política</h3><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px"><div><label class="w-label">Margen bruto %</label><input class="w-input" id="pr-gross" type="number" step="0.1" value="'+(p.gross_margin_pct||20)+'"/></div><div><label class="w-label">Meta neta %</label><input class="w-input" id="pr-net" type="number" step="0.1" value="'+(p.net_target_pct||5)+'"/></div><div><label style="font-size:11px;display:block;margin-top:22px"><input type="checkbox" id="pr-breb" '+(p.breb_included?'checked':'')+'/> Bre-B incluido</label><label style="font-size:11px;display:block;margin-top:6px"><input type="checkbox" id="pr-acc" '+(p.accordion_excluded?'checked':'')+'/> Excluir acordeones</label></div></div><button class="w-btn w-btn-primary w-btn-sm" style="margin-top:9px" type="button" onclick="W.profitSavePolicy()">Guardar política</button></div>';
+    h+='<div class="w-card" style="margin-bottom:14px"><h3 style="margin:0 0 4px">Costos del período</h3><p style="font-size:11px;color:var(--w-muted);margin:0 0 9px">Financieros, operativos, fiscales, administrativos, devoluciones, logística u otros. No dupliques marketing aquí si lo cargas en campañas.</p><div style="display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:8px"><select class="w-input" id="pc-cat">'+cats.map(function(c){return '<option value="'+c[0]+'">'+c[1]+'</option>'}).join('')+'</select><input class="w-input" id="pc-label" placeholder="Descripción"/><input class="w-input" id="pc-amount" type="number" step="1" placeholder="Monto COP"/></div><div style="display:flex;gap:8px;margin-top:7px"><input class="w-input" id="pc-notes" placeholder="Nota opcional" style="flex:1"/><button class="w-btn w-btn-primary w-btn-sm" type="button" onclick="W.profitAddCost(\''+W.esc(period)+'\')">Agregar costo</button></div>';
+    h+='<div style="overflow:auto;margin-top:10px"><table class="w-table"><thead><tr><th>Categoría</th><th>Descripción</th><th>Monto</th><th></th></tr></thead><tbody>'+((r.costs||[]).length?(r.costs||[]).map(function(x){return '<tr><td>'+W.esc(x.category)+'</td><td>'+W.esc(x.label)+'</td><td>'+W.ocMoney(x.amount_cents,'COP')+'</td><td><button class="w-btn w-btn-danger w-btn-sm" type="button" onclick="W.profitDelCost('+x.id+')">Eliminar</button></td></tr>'}).join(''):'<tr><td colspan="4" style="color:var(--w-muted)">Sin costos cargados.</td></tr>')+'</tbody></table></div></div>';
+    h+='<div class="w-card" style="margin-bottom:14px"><h3 style="margin:0 0 4px">Costos de producto y acordeones</h3><p style="font-size:11px;color:var(--w-muted);margin:0 0 9px">Carga SKU/referencia y costo real. Se usa para acordeones y futuros cálculos por producto.</p><div style="display:grid;grid-template-columns:1fr 1.4fr 1fr;gap:8px"><input class="w-input" id="pp-ref" placeholder="SKU / referencia"/><input class="w-input" id="pp-title" placeholder="Nombre del producto"/><input class="w-input" id="pp-cost" type="number" step="1" placeholder="Costo COP"/></div><div style="display:flex;gap:8px;margin-top:7px"><input class="w-input" id="pp-notes" placeholder="Nota opcional" style="flex:1"/><button class="w-btn w-btn-primary w-btn-sm" type="button" onclick="W.profitAddProductCost()">Guardar costo</button></div>';
+    h+='<div style="overflow:auto;margin-top:10px"><table class="w-table"><thead><tr><th>Referencia</th><th>Producto</th><th>Costo</th><th></th></tr></thead><tbody>'+((r.product_costs||[]).length?(r.product_costs||[]).map(function(x){return '<tr><td>'+W.esc(x.product_ref)+'</td><td>'+W.esc(x.product_title||'-')+'</td><td>'+W.ocMoney(x.cost_cents,'COP')+'</td><td><button class="w-btn w-btn-danger w-btn-sm" type="button" onclick="W.profitDelProductCost('+x.id+')">Eliminar</button></td></tr>'}).join(''):'<tr><td colspan="4" style="color:var(--w-muted)">Sin costos de producto.</td></tr>')+'</tbody></table></div></div>';
+    h+='<div class="w-card"><h3 style="margin:0 0 4px">Campañas de marketing</h3><p style="font-size:11px;color:var(--w-muted);margin:0 0 9px">Inversión real del período. Se resta de la utilidad neta.</p><div style="display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:8px"><input class="w-input" id="pm-name" placeholder="Campaña"/><input class="w-input" id="pm-channel" placeholder="Canal"/><input class="w-input" id="pm-spend" type="number" step="1" placeholder="Gasto COP"/></div><div style="display:flex;gap:8px;margin-top:7px"><input class="w-input" id="pm-notes" placeholder="Nota opcional" style="flex:1"/><button class="w-btn w-btn-primary w-btn-sm" type="button" onclick="W.profitAddCampaign(\''+W.esc(period)+'\')">Agregar campaña</button></div>';
+    h+='<div style="overflow:auto;margin-top:10px"><table class="w-table"><thead><tr><th>Campaña</th><th>Canal</th><th>Gasto</th><th></th></tr></thead><tbody>'+((r.campaigns||[]).length?(r.campaigns||[]).map(function(x){return '<tr><td>'+W.esc(x.name)+'</td><td>'+W.esc(x.channel||'-')+'</td><td>'+W.ocMoney(x.spend_cents,'COP')+'</td><td><button class="w-btn w-btn-danger w-btn-sm" type="button" onclick="W.profitDelCampaign('+x.id+')">Eliminar</button></td></tr>'}).join(''):'<tr><td colspan="4" style="color:var(--w-muted)">Sin campañas cargadas.</td></tr>')+'</tbody></table></div></div>';
+    box.innerHTML=h;
+};
+W._profitCents=function(v){return Math.round((parseFloat(v)||0)*100)};
+W.profitSavePolicy=async function(){
+    var r=await W.api('/api/v1/admin/ciu/profit/policy',{method:'POST',body:{gross_margin_pct:parseFloat((document.getElementById('pr-gross')||{}).value)||20,net_target_pct:parseFloat((document.getElementById('pr-net')||{}).value)||5,breb_included:!!(document.getElementById('pr-breb')||{}).checked,accordion_excluded:!!(document.getElementById('pr-acc')||{}).checked}});
+    if(r&&r.ok){W.notify('Política guardada','success');W.tiaProfitLoad()}else W.notify((r&&r.message)||'No se pudo guardar','error');
+};
+W.profitAddCost=async function(period){
+    var v=function(id){return (document.getElementById(id)||{}).value||''};
+    var r=await W.api('/api/v1/admin/ciu/profit/costs',{method:'POST',body:{period:period,category:v('pc-cat'),label:v('pc-label'),amount_cents:W._profitCents(v('pc-amount')),notes:v('pc-notes')}});
+    if(r&&r.ok){W.tiaProfitLoad()}else W.notify((r&&r.message)||'No se pudo guardar','error');
+};
+W.profitDelCost=async function(id){if(!confirm('¿Eliminar este costo?'))return;var r=await W.api('/api/v1/admin/ciu/profit/costs/'+id,{method:'DELETE'});if(r&&r.ok)W.tiaProfitLoad()};
+W.profitAddProductCost=async function(){
+    var v=function(id){return (document.getElementById(id)||{}).value||''};
+    var r=await W.api('/api/v1/admin/ciu/profit/product-costs',{method:'POST',body:{product_ref:v('pp-ref'),product_title:v('pp-title'),cost_cents:W._profitCents(v('pp-cost')),notes:v('pp-notes')}});
+    if(r&&r.ok){W.tiaProfitLoad()}else W.notify((r&&r.message)||'No se pudo guardar','error');
+};
+W.profitDelProductCost=async function(id){if(!confirm('¿Eliminar este costo?'))return;var r=await W.api('/api/v1/admin/ciu/profit/product-costs/'+id,{method:'DELETE'});if(r&&r.ok)W.tiaProfitLoad()};
+W.profitAddCampaign=async function(period){
+    var v=function(id){return (document.getElementById(id)||{}).value||''};
+    var r=await W.api('/api/v1/admin/ciu/profit/campaigns',{method:'POST',body:{period:period,name:v('pm-name'),channel:v('pm-channel'),spend_cents:W._profitCents(v('pm-spend')),notes:v('pm-notes')}});
+    if(r&&r.ok){W.tiaProfitLoad()}else W.notify((r&&r.message)||'No se pudo guardar','error');
+};
+W.profitDelCampaign=async function(id){if(!confirm('¿Eliminar esta campaña?'))return;var r=await W.api('/api/v1/admin/ciu/profit/campaigns/'+id,{method:'DELETE'});if(r&&r.ok)W.tiaProfitLoad()};
+W.tiaInteractionsLoad=async function(){
+    var box=document.getElementById('ciu-body'); if(!box)return;
+    var r=await W.api('/api/v1/admin/ciu/interactions?days=30');
+    if(!r||!r.ok){box.innerHTML='<div class="w-empty-state"><h3>Sin datos</h3><p>'+W.esc((r&&r.message)||'No se pudieron cargar las interacciones.')+'</p></div>';return}
+    var s=r.stats||{};
+    var labels={started:'Sin resultado',product_click:'Clic en producto',cart:'Agregó al carrito',checkout:'Inició checkout',paid:'Pedido pagado'};
+    var color=function(v){return v==='paid'?'#34d399':(v==='checkout'?'#22d3ee':(v==='cart'?'#fbbf24':(v==='product_click'?'#a5b4fc':'#94a3b8')))};
+    var h='<div class="w-card" style="margin-bottom:14px"><div class="w-flex-between" style="gap:10px;flex-wrap:wrap"><div><h3 style="margin:0">Interacciones vs resultados</h3><p style="font-size:12px;color:var(--w-muted);margin:5px 0 0">Cada conversación se conecta con clics, carrito, checkout y compra. Sin datos inventados.</p></div><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="W.tiaInteractionsLoad()">Actualizar</button><button class="w-btn w-btn-primary w-btn-sm" type="button" onclick="W.tiaAnalyzeInteractions(this)">Analizar con IA</button></div></div>'
+        +'<div class="sgl-live__stats" style="margin-top:12px">'+W.sglLiveStat(s.interactions||0,'Interacciones')+W.sglLiveStat(s.product_click||0,'Clic en producto')+W.sglLiveStat(s.cart||0,'Carritos')+W.sglLiveStat(s.checkout||0,'Checkouts')+W.sglLiveStat(s.paid||0,'Pedidos pagados','#34d399')+W.sglLiveStat((s.conversion_rate||0)+'%','Conversión')+W.sglLiveStat(W.ocMoney(s.revenue_cents||0,'COP'),'Ingresos')+W.sglLiveStat(s.no_conversion||0,'Sin resultado')+'</div>'
+                 +'<div id="tia-analysis-result" style="margin-top:12px"></div></div>';
+    var e=r.economics||{};
+    h+='<div class="w-card" style="margin-bottom:14px"><h3 style="margin:0 0 8px">Rentabilidad atribuida a TIA</h3><div class="sgl-live__stats">'+W.sglLiveStat(W.ocMoney(e.attributed_revenue_cents||0,'COP'),'Ingreso atribuido','#34d399')+W.sglLiveStat(W.ocMoney(e.gross_margin_cents||0,'COP'),'Margen bruto estimado','#34d399')+W.sglLiveStat(W.ocMoney(e.net_target_cents||0,'COP'),'Meta neta 5%')+W.sglLiveStat(W.ocMoney(e.available_cost_cents||0,'COP'),'Disponible para costos')+W.sglLiveStat(W.ocMoney(e.avg_ticket_cents||0,'COP'),'Ticket promedio')+W.sglLiveStat(e.attributed_orders||0,'Pedidos atribuidos')+'</div><p style="font-size:11px;color:var(--w-muted);margin:8px 0 0">'+W.esc(e.margin_note||'')+'</p>'+((e.excluded_revenue_cents||e.unknown_revenue_cents)?'<p style="font-size:10px;color:var(--w-muted);margin:4px 0 0">Excluido: acordeones '+W.ocMoney(e.excluded_revenue_cents||0,'COP')+' · sin producto identificado '+W.ocMoney(e.unknown_revenue_cents||0,'COP')+'</p>':'')+'</div>';
+    var fb=r.feedback||{};
+    h+='<div class="w-card" style="margin-bottom:14px"><h3 style="margin:0 0 8px">Satisfacción del chat</h3><div class="sgl-live__stats">'+W.sglLiveStat((fb.positive_pct||0)+'%','Respuestas útiles','#34d399')+W.sglLiveStat(fb.positive||0,'Útiles')+W.sglLiveStat(fb.negative||0,'No útiles')+W.sglLiveStat(fb.total||0,'Valoraciones')+'</div>'+((fb.reasons||[]).length?'<div style="font-size:11px;color:var(--w-muted);margin-top:8px">Motivos de insatisfacción: '+W.esc((fb.reasons||[]).map(function(x){return (x.reason||'')+' ('+x.count+')'}).join(' · '))+'</div>':'<div style="font-size:11px;color:var(--w-muted);margin-top:8px">Aún no hay motivos de insatisfacción registrados.</div>')+'</div>';
+    if((r.experiments||[]).length){
+        h+='<div class="w-card" style="margin-bottom:14px"><div class="w-flex-between" style="gap:8px;flex-wrap:wrap"><div><h3 style="margin:0">Experimentos A/B</h3><p style="font-size:11px;color:var(--w-muted);margin:4px 0 0">Prueba el CTA del aviso proactivo y mide clics, chats, pedidos e ingresos por variante.</p></div></div>';
+        r.experiments.forEach(function(x){
+            var running=x.status==='running';
+            h+='<div style="border:1px solid var(--w-border);border-radius:10px;padding:10px;margin-top:10px"><div class="w-flex-between" style="gap:8px;flex-wrap:wrap"><b style="font-size:12px">'+W.esc(x.name)+' <span style="font-size:9px;font-weight:800;color:'+(running?'#059669':'#94a3b8')+'">'+W.esc(String(x.status||'').toUpperCase())+'</span></b><button class="w-btn '+(running?'w-btn-secondary':'w-btn-primary')+' w-btn-sm" type="button" onclick="W.tiaToggleExperiment('+x.id+',\''+(running?'paused':'running')+'\')">'+(running?'Pausar':'Reanudar')+'</button></div><div style="overflow:auto;margin-top:7px"><table class="w-table"><thead><tr><th>Variante</th><th>Impresiones</th><th>Clics CTA</th><th>Chats</th><th>Pagados</th><th>Ingresos</th><th>Conv.</th></tr></thead><tbody>';
+            ['A','B'].forEach(function(k){var v=(x.variants&&x.variants[k])||{};h+='<tr><td><b>'+k+'</b> · '+W.esc(v.label||'')+'</td><td>'+W.num(v.impressions||0)+'</td><td>'+W.num(v.clicks||0)+' · '+(v.click_rate_pct||0)+'%</td><td>'+W.num(v.interactions||0)+'</td><td>'+W.num(v.paid||0)+'</td><td>'+W.ocMoney(v.revenue_cents||0,'COP')+'</td><td>'+(v.conversion_pct||0)+'%</td></tr>'});
+            h+='</tbody></table></div></div>';
+        });
+        h+='</div>';
+    }
+    h+='<div class="w-card" style="margin-bottom:14px"><h3 style="margin:0 0 8px">Resultado por intención</h3><div style="overflow:auto"><table class="w-table"><thead><tr><th>Intención</th><th>Interacciones</th><th>Pagadas</th><th>Ingresos</th></tr></thead><tbody>';
+    (r.intents||[]).forEach(function(x){h+='<tr><td>'+W.esc(x.intent)+'</td><td>'+W.num(x.count||0)+'</td><td>'+W.num(x.paid||0)+'</td><td>'+W.ocMoney(x.revenue_cents||0,'COP')+'</td></tr>'});
+    h+='</tbody></table></div></div>';
+    h+='<div class="w-card"><h3 style="margin:0 0 8px">Interacciones recientes</h3>';
+    if(!(r.recent||[]).length)h+='<div style="font-size:12px;color:var(--w-muted)">Todavía no hay interacciones registradas. Habla con TIA en la tienda para comenzar a medir.</div>';
+    else{
+        h+='<div style="overflow:auto"><table class="w-table"><thead><tr><th>Pregunta</th><th>Intención / etapa</th><th>Resultado</th><th>Fecha</th></tr></thead><tbody>';
+        (r.recent||[]).forEach(function(x){h+='<tr><td style="max-width:320px;font-size:11px">'+W.esc((x.question||'').slice(0,160))+'</td><td style="font-size:10px">'+W.esc(x.intent||'—')+'<div style="color:var(--w-muted)">'+W.esc(x.stage||'')+'</div>'+(x.attention?'<div style="color:#7c3aed;font-size:9px">'+W.esc(x.attention)+'</div>':'')+'</td><td><span style="font-size:10px;color:'+color(x.outcome)+'">'+W.esc(labels[x.outcome]||x.outcome)+'</span>'+(x.value_cents?'<div style="font-size:10px">'+W.ocMoney(x.value_cents,'COP')+'</div>':'')+'</td><td style="font-size:10px">'+W.esc(x.created_at||'')+'</td></tr>'});
+        h+='</tbody></table></div>';
+    }
+    h+='</div>';
+    if((r.insights||[]).length){
+        h+='<div class="w-card" style="margin-top:14px"><h3 style="margin:0 0 8px">Aprendizajes del centro de análisis</h3>';
+        r.insights.forEach(function(x){var applied=(x.status==='applied');h+='<div style="border-left:3px solid '+(applied?'#34d399':'#8b5cf6')+';padding:7px 10px;margin-bottom:8px"><b style="font-size:12px">'+W.esc(x.title)+'</b>'+(applied?' <span style="font-size:9px;font-weight:800;color:#059669">APLICADO</span>':'')+'<div style="font-size:11px;color:var(--w-muted);margin-top:3px">'+W.esc(x.diagnosis||'')+'</div><div style="font-size:10px;margin-top:4px">'+W.esc((x.recommendations||[]).map(function(v){return v.next_play||v.technique||''}).filter(Boolean).join(' · '))+'</div>'+(applied?'':'<div style="margin-top:6px"><button class="w-btn w-btn-primary w-btn-sm" type="button" onclick="W.tiaApplyInsight('+x.id+',this)">Enseñar a TIA</button></div>')+'</div>'});
+        h+='</div>';
+    }
+    box.innerHTML=h;
+};
+W.tiaAnalyzeInteractions=async function(btn){
+    if(btn){btn.disabled=true;btn.textContent='Analizando...'}
+    var out=document.getElementById('tia-analysis-result');
+    if(out)out.innerHTML='<div style="font-size:12px;color:var(--w-muted)">Analizando patrones de conversación…</div>';
+    var r=await W.api('/api/v1/admin/ciu/interactions/analyze',{method:'POST',body:{days:30}});
+    if(btn){btn.disabled=false;btn.textContent='Analizar con IA'}
+    if(!r||!r.ok){if(out)out.innerHTML='<div style="font-size:12px;color:#fb7185">'+W.esc((r&&r.message)||'No se pudo analizar.')+'</div>';return}
+    var recs=(r.recommendations||[]).map(function(x){return '<li style="margin-bottom:5px"><b>'+W.esc(x.problem||'')+'</b> → '+W.esc(x.next_play||x.technique||'')+'</li>'}).join('');
+    if(out)out.innerHTML='<div style="border-left:3px solid #8b5cf6;padding:9px 12px"><b style="font-size:12px">'+W.esc(r.title||'Aprendizaje')+'</b><div style="font-size:11px;color:var(--w-muted);margin-top:4px">'+W.esc(r.diagnosis||'')+'</div>'+(recs?'<ul style="font-size:11px;margin:7px 0 0;padding-left:17px">'+recs+'</ul>':'')+(r.id?'<div style="margin-top:8px"><button class="w-btn w-btn-primary w-btn-sm" type="button" onclick="W.tiaApplyInsight('+r.id+',this)">Aplicar al Training Room</button></div>':'')+'</div>';
+};
+W.tiaApplyInsight=async function(id,btn){
+    if(!confirm('¿Aplicar estas reglas al comportamiento de TIA? Solo se usarán en próximas conversaciones.'))return;
+    if(btn){btn.disabled=true;btn.textContent='Aplicando...'}
+    var r=await W.api('/api/v1/admin/ciu/interactions/insights/'+id+'/apply',{method:'POST',body:{}});
+    if(btn){btn.disabled=false;btn.textContent='Aplicar al Training Room'}
+    if(r&&r.ok){W.notify((r.rules&&r.rules.length?r.rules.length+' reglas aplicadas':'Aprendizaje aplicado'),'success');W.tiaInteractionsLoad()}else W.notify((r&&r.message)||'No se pudo aplicar','error');
+};
+W.tiaApplyTrainingCase=async function(id,btn){
+    if(!confirm('¿Convertir este caso real en una regla activa? TIA la aplicará en próximas conversaciones.'))return;
+    if(btn){btn.disabled=true;btn.textContent='Aplicando...'}
+    var r=await W.api('/api/v1/admin/ciu/interactions/insights/'+id+'/apply',{method:'POST',body:{}});
+    if(btn){btn.disabled=false;btn.textContent='Aplicar como regla'}
+    if(r&&r.ok){W.notify('Caso convertido en regla','success');W.trainingLoad()}else W.notify((r&&r.message)||'No se pudo aplicar','error');
+};
+W.tiaToggleExperiment=async function(id,status){
+    if(!confirm(status==='running'?'¿Reanudar este experimento?':'¿Pausar este experimento?'))return;
+    var r=await W.api('/api/v1/admin/ciu/experiments/'+id+'/toggle',{method:'POST',body:{status:status}});
+    if(r&&r.ok){W.notify('Experimento '+(status==='running'?'activo':'pausado'),'success');W.tiaInteractionsLoad()}else W.notify((r&&r.message)||'No se pudo actualizar','error');
+};
+W._mpFlash=null;
+W.mpCopy=function(text,label){
+    try{navigator.clipboard.writeText(String(text||''));W.notify((label||'Valor')+' copiado','success')}catch(e){W.notify('No se pudo copiar','error')}
+};
+W.renderMercadoPago=async function(){
+    var app=document.getElementById('wontia-app'); if(!app)return;
+    app.innerHTML='<div class="w-card"><div style="text-align:center;padding:40px;color:var(--w-muted)">Cargando Mercado Pago...</div></div>';
+    var r=await W.api('/api/v1/admin/mercadopago/overview');
+    if(!r||!r.ok||!r.data){app.innerHTML='<div class="w-empty-state"><h3>No disponible</h3><p>'+W.esc((r&&r.message)||'No se pudo cargar el panel de Mercado Pago.')+'</p></div>';return}
+    var d=r.data||{},s=d.settings||{},st=d.stats||{},payments=d.payments||[],hooks=d.webhooks||[],ep=d.endpoints||{};
+    var flash=W._mpFlash||null;W._mpFlash=null;
+    try{
+        var q=new URLSearchParams(location.search);
+        if(q.get('mp_oauth')==='ok'){flash={text:'Cuenta conectada con Mercado Pago',at:''};q.delete('mp_oauth');q.delete('mp_msg');history.replaceState(null,'',location.pathname+(q.toString()?'?'+q.toString():'')+location.hash)}
+        else if(q.get('mp_oauth')==='error'){flash={text:(q.get('mp_msg')||'No se pudo conectar la cuenta'),at:'',error:true};q.delete('mp_oauth');q.delete('mp_msg');history.replaceState(null,'',location.pathname+(q.toString()?'?'+q.toString():'')+location.hash)}
+    }catch(e){}
+    var ready=!!s.configured, live=!!s.available;
+    var badge=ready?'<span style="font-size:10px;font-weight:800;padding:4px 8px;border-radius:999px;background:#ecfdf5;color:#047857">Configurado</span>':'<span style="font-size:10px;font-weight:800;padding:4px 8px;border-radius:999px;background:#fff7ed;color:#b45309">Sin configurar</span>';
+    var liveBadge=live?'<span style="font-size:10px;font-weight:800;padding:4px 8px;border-radius:999px;background:#eef2ff;color:#3730a3">Visible en checkout</span>':'<span style="font-size:10px;font-weight:800;padding:4px 8px;border-radius:999px;background:#f1f5f9;color:#475569">Oculto en checkout</span>';
+    var modeLabel=s.mode==='checkout_api'?'Checkout API (tarjeta en el sitio)':'Checkout Pro (redirección)';
+    var h='<div class="w-card"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap"><div><div style="font-size:11px;color:var(--w-muted)">Pagos</div><h3 style="margin:0">Mercado Pago</h3><p style="font-size:12px;color:var(--w-muted);margin:5px 0 0">Pasarela completa: credenciales manuales, Checkout Pro, Checkout API con tokenización, webhooks firmados, conciliación y reembolsos.</p></div><div class="w-flex w-gap-sm">'+badge+liveBadge+'<span style="font-size:10px;font-weight:800;padding:4px 8px;border-radius:999px;background:#f1f5f9;color:#475569">'+W.esc(s.environment||'sandbox')+'</span></div></div></div>';
+    h+=(flash?'<div class="w-card" style="margin-top:12px;border-left:3px solid '+(flash.error?'#b42318':'#0d9f72')+';background:'+(flash.error?'#fef3f2':'#f0fdf4')+';color:'+(flash.error?'#7a271a':'#065f46')+'"><b>'+W.esc(flash.text)+'</b>'+(flash.at?' <span style="font-size:11px">'+W.esc(flash.at)+'</span>':'')+'</div>':'');
+    h+='<div class="w-card" style="margin-top:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span style="width:10px;height:10px;border-radius:99px;background:'+(live?'#0d9f72':(ready?'#f59e0b':'#94a3b8'))+';box-shadow:0 0 0 4px rgba(100,116,139,.12)"></span><div><b style="font-size:12px">'+(live?'Listo para cobrar':(ready?'Configurado, pero deshabilitado':'Configuración pendiente'))+'</b><div style="font-size:11px;color:var(--w-muted)">'+W.esc(modeLabel)+' · Token: '+W.esc((s.token&&s.token.label)||'—')+(s.token&&s.token.expires_at?' · vence '+W.esc(s.token.expires_at):'')+'</div></div>'+(s.last_test_at?'<span style="margin-left:auto;font-size:10.5px;color:var(--w-muted)">Última prueba: '+W.esc(s.last_test_at)+'</span>':'')+'</div>';
+    h+='<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px">'+W.ocKpi('Pagos',st.payments||0)+W.ocKpi('Aprobados',st.paid||0,'#0d7a58')+W.ocKpi('Pendientes',st.pending||0,'#b45309')+W.ocKpi('Fallidos',st.failed||0,'#b42318')+W.ocKpi('Reembolsados',st.refunded||0)+W.ocKpi('Recaudado',W.ocMoney(st.amount_paid_cents||0,s.currency||'COP'))+W.ocKpi('Webhooks',st.webhooks||0)+W.ocKpi('Firma inválida',st.webhooks_invalid||0,(st.webhooks_invalid||0)>0?'#b42318':undefined)+'</div>';
+
+    h+='<div class="w-card" style="margin-top:14px"><div class="w-flex-between" style="gap:10px;flex-wrap:wrap"><div><h3 style="margin:0">Conexión y credenciales</h3><p style="font-size:12px;color:var(--w-muted);margin:5px 0 0">Los secretos se guardan cifrados (AES-256-GCM) y nunca se envían al frontend. Deja un campo secreto vacío para conservar el valor actual.</p></div><div class="w-flex w-gap-sm"><button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="wontia.mpTest(this)">Probar conexión</button><button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="wontia.renderMercadoPago()">Actualizar</button></div></div>';
+    (d.settings&&d.settings.health||[]).length?h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:7px;margin-top:12px">'+d.settings.health.map(function(x){var col=x.severity==='error'?'#b42318':(x.severity==='warn'?'#b45309':'#0d7a58');return '<div style="display:flex;gap:7px;align-items:flex-start;border:1px solid var(--w-border);border-radius:8px;padding:7px 9px"><span style="width:7px;height:7px;border-radius:99px;background:'+col+';margin-top:5px;flex:0 0 auto"></span><div><b style="font-size:11px">'+W.esc(x.label||x.key)+'</b><div style="font-size:10px;color:var(--w-muted);line-height:1.4">'+W.esc(x.detail||'')+'</div></div></div>'}).join('')+'</div>':'';
+    var secretNote=function(set,key){return set?'<span style="font-size:10px;color:#047857;font-weight:700">Guardado</span>':'<span style="font-size:10px;color:#b45309;font-weight:700">Sin configurar</span>'}
+    h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin-top:14px">'
+      +'<div><label style="font-size:11px;color:var(--w-muted)">Estado</label><select class="w-input" id="mp-enabled" style="width:100%"><option value="0"'+(s.enabled?'':' selected')+'>Deshabilitado</option><option value="1"'+(s.enabled?' selected':'')+'>Habilitado</option></select></div>'
+      +'<div><label style="font-size:11px;color:var(--w-muted)">Ambiente</label><select class="w-input" id="mp-env" style="width:100%"><option value="sandbox"'+((s.environment||'sandbox')==='sandbox'?' selected':'')+'>Sandbox / Pruebas</option><option value="production"'+(s.environment==='production'?' selected':'')+'>Producción</option></select></div>'
+      +'<div><label style="font-size:11px;color:var(--w-muted)">Modalidad</label><select class="w-input" id="mp-mode" style="width:100%"><option value="checkout_pro"'+((s.mode||'checkout_pro')==='checkout_pro'?' selected':'')+'>Checkout Pro</option><option value="checkout_api"'+(s.mode==='checkout_api'?' selected':'')+'>Checkout API (brick)</option></select></div>'
+      +'<div><label style="font-size:11px;color:var(--w-muted)">Client ID</label><input class="w-input" id="mp-client-id" value="'+W.esc(s.client_id||'')+'" placeholder="Número de la aplicación" style="width:100%" autocomplete="off"/></div>'
+      +'<div><label style="font-size:11px;color:var(--w-muted)">Client Secret '+secretNote(s.client_secret_set)+'</label><input class="w-input" type="password" id="mp-client-secret" placeholder="'+(s.client_secret_set?'Nuevo Client Secret (opcional)':'Escribe el Client Secret')+'" style="width:100%" autocomplete="new-password"/></div>'
+      +'<div><label style="font-size:11px;color:var(--w-muted)">Public Key</label><input class="w-input" id="mp-public-key" value="'+W.esc(s.public_key||'')+'" placeholder="APP_USR-..." style="width:100%" autocomplete="off"/></div>'
+      +'<div><label style="font-size:11px;color:var(--w-muted)">Access Token '+secretNote(s.access_token_set)+'</label><input class="w-input" type="password" id="mp-access-token" placeholder="'+(s.access_token_set?'Nuevo Access Token (opcional)':'Opcional: se genera con Client ID + Secret')+'" style="width:100%" autocomplete="new-password"/></div>'
+      +'<div><label style="font-size:11px;color:var(--w-muted)">Clave secreta de webhooks '+secretNote(s.webhook_secret_set)+'</label><input class="w-input" type="password" id="mp-webhook-secret" placeholder="'+(s.webhook_secret_set?'Nueva clave (opcional)':'Clave secreta de la aplicación')+'" style="width:100%" autocomplete="new-password"/></div>'
+      +'<div><label style="font-size:11px;color:var(--w-muted)">Etiqueta en el checkout</label><input class="w-input" id="mp-label" value="'+W.esc(s.label||'Mercado Pago')+'" style="width:100%"/></div>'
+      +'<div><label style="font-size:11px;color:var(--w-muted)">Descripción</label><input class="w-input" id="mp-description" value="'+W.esc(s.description||'')+'" style="width:100%"/></div>'
+      +'<div><label style="font-size:11px;color:var(--w-muted)">Descriptor del estado de cuenta</label><input class="w-input" id="mp-statement" value="'+W.esc(s.statement_descriptor||'SONIKA')+'" maxlength="22" style="width:100%"/></div>'
+      +'<div><label style="font-size:11px;color:var(--w-muted)">Cuotas máximas</label><input class="w-input" type="number" min="1" max="36" id="mp-installments" value="'+(parseInt(s.max_installments)||12)+'" style="width:100%"/></div>'
+      +'<div><label style="font-size:11px;color:var(--w-muted)">Modo binario</label><select class="w-input" id="mp-binary" style="width:100%"><option value="1"'+(s.binary_mode?' selected':'')+'>Sí (aprobado o rechazado)</option><option value="0"'+(s.binary_mode?'':' selected')+'>No (permitir pendientes)</option></select></div>'
+      +'<div><label style="font-size:11px;color:var(--w-muted)">URL de éxito personalizada</label><input class="w-input" id="mp-success-url" value="'+W.esc(s.success_url||'')+'" placeholder="Opcional" style="width:100%"/></div>'
+      +'</div>';
+    h+='<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:10px;font-size:11px">'
+      +'<label><input type="checkbox" id="mp-clear-secret"/> Borrar Client Secret</label>'
+      +'<label><input type="checkbox" id="mp-clear-token"/> Borrar Access Token</label>'
+      +'<label><input type="checkbox" id="mp-clear-webhook"/> Borrar clave de webhooks</label></div>';
+    h+='<div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="w-btn w-btn-primary" id="mp-save" type="button" onclick="wontia.mpSave()">Guardar configuración</button><button class="w-btn w-btn-secondary" type="button" onclick="wontia.mpOAuth()">'+(s.oauth_connected?'Reconectar cuenta':'Conectar cuenta por OAuth')+'</button>'+(s.oauth_connected?'<button class="w-btn w-btn-secondary" type="button" onclick="wontia.mpDisconnect()">Desconectar OAuth</button>':'')+'<span id="mp-save-status" role="status" aria-live="polite" style="font-size:11px;font-weight:700;color:var(--w-muted)"></span></div>';
+    h+='</div>';
+
+    h+='<div class="w-card" style="margin-top:14px"><h3 style="margin:0 0 4px">URLs de integración</h3><p style="font-size:12px;color:var(--w-muted);margin:0 0 10px">Copia estas URLs en el panel de Mercado Pago → Tus integraciones → Webhooks y en la configuración OAuth de la aplicación.</p>';
+    var urls=[['Webhook',ep.webhook||''],['Redirect OAuth',ep.redirect_uri||'']];
+    urls.forEach(function(u){h+='<div style="display:flex;gap:8px;align-items:center;margin-top:7px;flex-wrap:wrap"><span style="font-size:11px;font-weight:700;min-width:110px">'+W.esc(u[0])+'</span><code style="font-size:10.5px;background:var(--w-bg2);border:1px solid var(--w-border);border-radius:6px;padding:5px 7px;flex:1;min-width:220px;word-break:break-all">'+W.esc(u[1])+'</code><button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="wontia.mpCopy(\''+W.esc(u[1])+'\',\''+W.esc(u[0])+'\')">Copiar</button></div>'});
+    h+='<div style="font-size:11px;color:var(--w-muted);margin-top:10px">Documentación oficial de credenciales: <a href="'+W.esc(ep.docs||'https://www.mercadopago.com.co/developers/es/docs/your-integrations/credentials')+'" target="_blank" rel="noopener" style="color:#2563eb">Mercado Pago Developers</a></div></div>';
+
+    h+='<div class="w-card" style="margin-top:14px"><div class="w-flex-between" style="gap:10px;flex-wrap:wrap"><div><h3 style="margin:0">Pagos recientes</h3><p style="font-size:12px;color:var(--w-muted);margin:5px 0 0">Conciliación local con el estado real de Mercado Pago.</p></div><button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="wontia.renderMercadoPago()">Recargar</button></div>';
+    if(!payments.length){h+='<div class="w-empty-state" style="margin-top:12px"><h3>Sin pagos registrados</h3><p>Aquí aparecerán los pagos cuando se habilite el checkout con Mercado Pago.</p></div>'}
+    else{h+='<div style="overflow:auto;margin-top:12px"><table class="w-table"><thead><tr><th>Pedido</th><th>Pago MP</th><th>Monto</th><th>Medio</th><th>Estado</th><th>Modo</th><th>Fecha</th><th></th></tr></thead><tbody>';
+        payments.forEach(function(x){var stc=x.status==='paid'?'#0d7a58':(x.status==='failed'?'#b42318':'#b45309');h+='<tr><td><b>'+W.esc(x.order_number_live||x.order_number||('#'+x.order_id))+'</b><div style="font-size:9.5px;color:var(--w-muted)">'+W.esc(x.order_payment_status||'')+'</div></td><td style="font-family:monospace;font-size:10.5px">'+W.esc(x.payment_id||x.preference_id||'—')+'</td><td>'+W.ocMoney(x.amount_cents,x.currency)+'</td><td style="font-size:10.5px">'+W.esc(x.payment_method_id||'—')+(parseInt(x.installments)>1?' · '+parseInt(x.installments)+'x':'')+'</td><td><span style="font-size:10px;font-weight:800;color:'+stc+'">'+W.esc(x.status||'')+'</span></td><td style="font-size:10px">'+W.esc(x.mode||'')+'</td><td style="white-space:nowrap;font-size:10px">'+W.esc(String(x.created_at||'').slice(0,16))+'</td><td><button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="wontia.mpPayment('+x.id+')">Ver</button></td></tr>'});
+        h+='</tbody></table></div>'}
+    h+='</div>';
+
+    h+='<div class="w-card" style="margin-top:14px"><div class="w-flex-between" style="gap:10px;flex-wrap:wrap"><div><h3 style="margin:0">Webhooks recibidos</h3><p style="font-size:12px;color:var(--w-muted);margin:5px 0 0">Cada notificación se registra una sola vez y se valida con HMAC x-signature.</p></div></div>';
+    if(!hooks.length){h+='<div class="w-empty-state" style="margin-top:12px"><h3>Sin notificaciones</h3><p>Verifica que la URL de webhook esté registrada en Mercado Pago.</p></div>'}
+    else{h+='<div style="overflow:auto;margin-top:12px"><table class="w-table"><thead><tr><th>Evento</th><th>Recurso</th><th>Firma</th><th>Resultado</th><th>Recibido</th></tr></thead><tbody>';
+        hooks.forEach(function(x){h+='<tr><td style="font-size:10.5px">'+W.esc(x.topic||'—')+'</td><td style="font-family:monospace;font-size:10.5px">'+W.esc(x.resource_id||'—')+'</td><td style="font-size:10px;color:'+(x.signature_valid===1?'#0d7a58':(x.signature_valid===0?'#b42318':'#64748b'))+'">'+(x.signature_valid===1?'Válida':(x.signature_valid===0?'Inválida':'Sin clave'))+'</td><td style="font-size:10px">'+W.esc(x.result||'')+'</td><td style="font-size:10px;white-space:nowrap">'+W.esc(String(x.received_at||'').slice(0,16))+'</td></tr>'});
+        h+='</tbody></table></div>'}
+    h+='</div>';
+
+    h+='<div class="w-card" style="margin-top:14px"><h3 style="margin:0 0 8px">Guía rápida</h3><ol style="font-size:12px;color:var(--w-muted);line-height:1.75;margin:0;padding-left:20px"><li>Entra a <b>Mercado Pago → Tus integraciones → Credenciales</b>.</li><li>Copia <b>Client ID</b>, <b>Client Secret</b> y <b>Public Key</b>. En producción usa las credenciales APP_USR.</li><li>Pega la <b>Clave secreta de webhooks</b> y registra la URL de webhook de arriba.</li><li>Guarda, pulsa <b>Probar conexión</b> y luego activa el estado.</li><li>Si usas Checkout API, la Public Key debe ser la misma aplicación.</li></ol></div>';
+    app.innerHTML=h;
+};
+W.mpSave=async function(){
+    var v=function(id){var el=document.getElementById(id);return el?el.value:''};
+    var btn=document.getElementById('mp-save'),status=document.getElementById('mp-save-status');
+    var say=function(t,c){if(status){status.textContent=t;status.style.color=c||'var(--w-muted)'}};
+    if(btn){btn.disabled=true;btn.textContent='Guardando...'}
+    say('Guardando configuración...','#64748b');
+    var payload={
+        enabled:v('#mp-enabled')==='1',environment:v('#mp-env'),mode:v('#mp-mode'),
+        client_id:v('#mp-client-id').trim(),client_secret:v('#mp-client-secret'),public_key:v('#mp-public-key').trim(),
+        access_token:v('#mp-access-token'),webhook_secret:v('#mp-webhook-secret'),
+        label:v('#mp-label'),description:v('#mp-description'),statement_descriptor:v('#mp-statement'),
+        max_installments:parseInt(v('#mp-installments'))||12,binary_mode:v('#mp-binary')==='1',success_url:v('#mp-success-url'),
+        clear_client_secret:!!(document.getElementById('mp-clear-secret')||{}).checked,
+        clear_access_token:!!(document.getElementById('mp-clear-token')||{}).checked,
+        clear_webhook_secret:!!(document.getElementById('mp-clear-webhook')||{}).checked
+    };
+    try{
+        var r=await W.api('/api/v1/admin/mercadopago/settings',{method:'PUT',body:payload});
+        if(r&&r.ok){W._mpFlash={text:'Configuración guardada correctamente',at:new Date().toLocaleString()};W.renderMercadoPago();return}
+        say((r&&r.message)||'No se pudo guardar la configuración.','#b42318');
+    }catch(e){say('No se pudo conectar con el servidor. Intenta de nuevo.','#b42318')}
+    if(btn){btn.disabled=false;btn.textContent='Guardar configuración'}
+};
+W.mpTest=async function(btn){
+    if(btn){btn.disabled=true;btn.textContent='Probando...'}
+    var r=await W.api('/api/v1/admin/mercadopago/test',{method:'POST'});
+    if(btn){btn.disabled=false;btn.textContent='Probar conexión'}
+    if(!r||!r.ok){W.notify((r&&r.message)||'No se pudo probar la conexión','error');return}
+    var d=r.data||{},acc=d.account||{},warn=d.warnings||[];
+    var h='<div style="font-size:12.5px;line-height:1.7;max-height:65vh;overflow:auto">'
+      +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px">'
+      +'<div><b>Resultado:</b> '+(d.ok?'<span style="color:#047857;font-weight:800">Conexión correcta</span>':'<span style="color:#b42318;font-weight:800">Con problemas</span>')+'</div>'
+      +'<div><b>Ambiente:</b> '+W.esc(d.environment||'')+'</div>'
+      +'<div><b>Modalidad:</b> '+W.esc(d.mode||'')+'</div>'
+      +'<div><b>Token:</b> '+W.esc(d.token_source||'none')+'</div>'
+      +'<div><b>Cuenta:</b> '+W.esc(acc.nickname||acc.email||acc.id||'—')+'</div>'
+      +'<div><b>País:</b> '+W.esc(acc.country_id||acc.site_id||'—')+'</div>'
+      +'<div><b>Medios de pago:</b> '+W.num(d.payment_methods||0)+'</div>'
+      +'<div><b>Webhook firmado:</b> '+(d.webhook_signature?'Sí':'No')+'</div>'
+      +'</div>'
+      +(warn.length?'<div style="margin-top:12px"><b>Recomendaciones</b>'+warn.map(function(x){return '<div style="border-left:3px solid #f59e0b;padding:5px 8px;margin-top:6px;background:#fffbeb;color:#92400e">'+W.esc(x)+'</div>'}).join('')+'</div>':'')
+      +(d.error?'<div style="margin-top:12px;border-left:3px solid #b42318;padding:6px 9px;background:#fef3f2;color:#7a271a">'+W.esc(d.error)+'</div>':'')
+      +'<div style="font-size:10.5px;color:var(--w-muted);margin-top:12px">Comprobado: '+W.esc(d.checked_at||'')+'</div></div>';
+    W.modal('Diagnóstico de Mercado Pago',h,'<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cerrar</button>');
+};
+W.mpOAuth=async function(){
+    var r=await W.api('/api/v1/admin/mercadopago/oauth/start',{method:'POST'});
+    if(!r||!r.ok||!r.url){W.notify((r&&r.message)||'No se pudo iniciar OAuth','error');return}
+    window.open(r.url,'_blank','noopener');
+    W.notify('Completa la autorización en la pestaña de Mercado Pago','info');
+};
+W.mpDisconnect=async function(){
+    if(!confirm('¿Desconectar la cuenta de Mercado Pago? Se borrarán el token OAuth y el refresh token.'))return;
+    var r=await W.api('/api/v1/admin/mercadopago/oauth/disconnect',{method:'POST'});
+    if(r&&r.ok){W._mpFlash={text:'Cuenta desconectada',at:new Date().toLocaleString()};W.renderMercadoPago()}else W.notify((r&&r.message)||'No se pudo desconectar','error');
+};
+W.mpPayment=async function(id){
+    var r=await W.api('/api/v1/admin/mercadopago/payments/'+id);
+    if(!r||!r.ok||!r.data){W.notify((r&&r.message)||'No disponible','error');return}
+    var x=r.data||{},h='<div style="font-size:12.5px;line-height:1.65;max-height:62vh;overflow:auto">'
+      +'<div><b>Pedido:</b> '+W.esc(x.order_number_live||x.order_number||('#'+x.order_id))+'</div>'
+      +'<div><b>Pago MP:</b> '+W.esc(x.payment_id||'—')+'</div>'
+      +'<div><b>Preferencia:</b> '+W.esc(x.preference_id||'—')+'</div>'
+      +'<div><b>Estado:</b> '+W.esc(x.status||'')+' '+W.esc(x.status_detail||'')+'</div>'
+      +'<div><b>Monto:</b> '+W.ocMoney(x.amount_cents,x.currency)+'</div>'
+      +'<div><b>Medio:</b> '+W.esc(x.payment_method_id||'—')+' · '+(parseInt(x.installments)||1)+' cuota(s)</div>'
+      +'<div><b>Pagador:</b> '+W.esc(x.payer_email||'—')+'</div>'
+      +'<div><b>Referencia:</b> '+W.esc(x.external_reference||'—')+'</div>'
+      +'<div><b>Modo:</b> '+W.esc(x.mode||'')+' · '+W.esc(x.environment||'')+'</div>'
+      +'<div><b>Creado:</b> '+W.esc(x.created_at||'')+' · <b>Sincronizado:</b> '+W.esc(x.last_synced_at||'—')+'</div>';
+    if((x.webhooks||[]).length){h+='<div style="margin-top:10px"><b>Webhooks</b>';x.webhooks.forEach(function(w){h+='<div style="border-bottom:1px solid var(--w-border);padding:4px 0;font-size:11px">'+W.esc(w.topic||'')+' · '+W.esc(w.result||'')+' · firma '+(w.signature_valid===1?'válida':(w.signature_valid===0?'inválida':'n/d'))+' <span style="color:var(--w-muted)">'+W.esc(w.received_at||'')+'</span></div>'});h+='</div>'}
+    h+='</div>';
+    var footer='<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cerrar</button>';
+    if(x.payment_id){footer+=' <button class="w-btn w-btn-secondary" onclick="wontia.mpSync('+x.id+')">Sincronizar</button> <button class="w-btn w-btn-primary" onclick="wontia.mpRefund('+x.id+')">Reembolsar</button>'}
+    W.modal('Pago de Mercado Pago',h,footer);
+};
+W.mpSync=async function(id){
+    var r=await W.api('/api/v1/admin/mercadopago/payments/'+id+'/sync',{method:'POST'});
+    if(r&&r.ok){W.notify('Estado sincronizado: '+(r.status||''),'success');W.closeModal();W.renderMercadoPago()}else W.notify((r&&r.message)||'No se pudo sincronizar','error');
+};
+W.mpRefund=async function(id){
+    var input=prompt('Monto a reembolsar en centavos (vacío = reembolso total):','');
+    if(input===null)return;
+    var body={};if(String(input).trim()!=='')body.amount_cents=parseInt(input,10)||0;
+    if(!confirm('¿Confirmas el reembolso en Mercado Pago?'))return;
+    var r=await W.api('/api/v1/admin/mercadopago/payments/'+id+'/refund',{method:'POST',body:body});
+    if(r&&r.ok){W.notify(r.message||'Reembolso solicitado','success');W.closeModal();W.renderMercadoPago()}else W.notify((r&&r.message)||'No se pudo reembolsar','error');
+};
 W.panels={
     dashboard:W.renderDashboard,
     'order-center':W.renderOrderCenter,
     wwi:W.renderWWI,
     store:W.renderStore,
+    sistecredito:W.renderSistecredito,
+    mercadopago:W.renderMercadoPago,
     pages:W.renderPages,
     pageEditor:W.renderPageEditor,
     bricks:W.renderBricks,
@@ -5821,8 +8806,12 @@ W.panels={
     banners:W.renderBanners,
     'mega-menu':W.renderMegaMenu,
     hero:W.renderHero,
+    directory:W.renderDirectory,
+    toques:W.renderToques,
+    monas:W.renderMonyas,
     seo:W.renderSeo,
     'seo-global-launch':W.renderSeoGlobalLaunch,
+    'tia-command-center':W.renderTiaCommandCenter,
     analytics:W.renderAnalytics,
     settings:W.renderSettings,
     users:W.renderUsers,
@@ -5858,4 +8847,5 @@ W.watchVersion=function(){
 window.addEventListener('hashchange',function(){W.router()});
 window.addEventListener('load',function(){W.mountTopbar();W.router();W.updateBHBadge();setInterval(W.updateBHBadge,300000);W.watchVersion();W.agentBridgePoll()});
 window.wontia=W;
+window.W=W;
 })();
