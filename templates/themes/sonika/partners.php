@@ -47,9 +47,18 @@ $__contractUrl = '/sonika-partners/contrato';
     .sp__table td{padding:10px;border-bottom:1px solid #f0ece5;vertical-align:top}
     .sp__table tr:last-child td{border-bottom:0}.sp__table b{font-size:15px}
     .sp__pill{display:inline-block;border-radius:999px;padding:3px 8px;font-size:10px;font-weight:800;background:#fbe9e9;color:#B42318}
-    .sp__examples{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:14px}
-    .sp__example{border:1px solid #e5e0d8;border-radius:12px;padding:12px;background:#fff;font-size:12px;line-height:1.55}
-    .sp__example b{display:block;font-size:13px;margin-bottom:2px}.sp__example span{color:#666}
+    .sp__examples{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:8px}
+    .sp__examples-title{font-size:10.5px;font-weight:900;letter-spacing:.10em;text-transform:uppercase;color:#8a641e;margin:16px 0 0}
+    .sp__example{position:relative;border:1px solid #e5e0d8;border-radius:14px;padding:14px;background:linear-gradient(160deg,#fff 0%,#fffaf7 100%);font-size:12px;line-height:1.5;overflow:hidden;transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease}
+    .sp__example:hover{transform:translateY(-2px);border-color:#f3c4c7;box-shadow:0 12px 26px rgba(17,17,17,.08)}
+    .sp__example:after{content:"";position:absolute;right:-26px;top:-26px;width:86px;height:86px;border-radius:50%;background:radial-gradient(circle,rgba(242,13,22,.12),transparent 70%);pointer-events:none}
+    .sp__example-kicker{display:inline-block;border-radius:999px;padding:3px 8px;margin-bottom:7px;background:#fbe9e9;color:#B42318;font-size:9.5px;font-weight:900;letter-spacing:.10em;text-transform:uppercase}
+    .sp__example b{position:relative;display:block;font:900 clamp(1.45rem,3vw,1.95rem)/1 Sora,Inter,sans-serif;letter-spacing:-.045em;color:#111;margin:0 0 4px}
+    .sp__example-title{position:relative;display:block;font-size:12px;font-weight:800;color:#333;line-height:1.35}
+    .sp__example-meta{position:relative;display:block;font-size:10.5px;color:#777;line-height:1.45;margin-top:5px}
+    .sp__example-bar{position:relative;display:flex;height:5px;border-radius:999px;background:#f0ece5;overflow:hidden;margin-top:10px}
+    .sp__example-bar span{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#F20D16,#ff6b71)}
+    .sp__examples-note{grid-column:1/-1;font-size:10.5px;color:#888;line-height:1.45;margin:2px 0 0}
     .sp__profiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:14px}
     .sp__profile{border:1px solid #e5e0d8;border-radius:15px;padding:15px;background:#fff}
     .sp__profile b{display:block;font-size:14px}.sp__profile span{display:block;font-size:11.5px;line-height:1.55;color:#666;margin-top:4px}
@@ -123,11 +132,13 @@ $__contractUrl = '/sonika-partners/contrato';
             <tr><td>60 – 119</td><td><b>4,5 %</b></td></tr>
             <tr><td>120 o más</td><td><span class="sp__pill">Techo 5,0 %</span></td></tr>
           </tbody></table>
+          <p class="sp__examples-title">Ejemplos de un mes real</p>
           <div class="sp__examples">
-            <div class="sp__example"><b>$1.000.000 en 1 pedido</b><span>10 + 1 = 11 puntos → 3,5 % → $35.000</span></div>
-            <div class="sp__example"><b>$1.000.000 en 100 pedidos de $10.000</b><span>10 + 100 = 110 puntos → 4,5 % → $45.000</span></div>
-            <div class="sp__example"><b>$100.000 en 1 pedido</b><span>1 + 1 = 2 puntos → 3,0 % → $3.000</span></div>
-            <div class="sp__example"><b>$100.000 en 100 pedidos de $1.000</b><span>1 + 100 = 101 puntos → 4,5 % → $4.500</span></div>
+            <div class="sp__example"><span class="sp__example-kicker">Primer mes</span><b>$72.000</b><span class="sp__example-title">12 pedidos de $150.000</span><span class="sp__example-meta">$1.800.000 vendidos · 30 pts · 4,0 %</span><span class="sp__example-bar"><span style="width:80%"></span></span></div>
+            <div class="sp__example"><span class="sp__example-kicker">Comunidad activa</span><b>$162.000</b><span class="sp__example-title">40 pedidos de $90.000</span><span class="sp__example-meta">$3.600.000 vendidos · 76 pts · 4,5 %</span><span class="sp__example-bar"><span style="width:90%"></span></span></div>
+            <div class="sp__example"><span class="sp__example-kicker">Ticket alto</span><b>$270.000</b><span class="sp__example-title">5 pedidos de $1.200.000</span><span class="sp__example-meta">$6.000.000 vendidos · 65 pts · 4,5 %</span><span class="sp__example-bar"><span style="width:90%"></span></span></div>
+            <div class="sp__example"><span class="sp__example-kicker">Top Partner</span><b>$600.000</b><span class="sp__example-title">60 pedidos de $200.000</span><span class="sp__example-meta">$12.000.000 vendidos · 180 pts · 5,0 %</span><span class="sp__example-bar"><span style="width:100%"></span></span></div>
+            <p class="sp__examples-note">Ejemplos ilustrativos con ventas netas elegibles. No son una promesa de ingresos.</p>
           </div>
         </div>
       </div>
