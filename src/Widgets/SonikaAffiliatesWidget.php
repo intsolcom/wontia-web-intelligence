@@ -41,7 +41,7 @@ class SonikaAffiliatesWidget extends Widget
             ['Semicorchea', 'Inicial', '♬'], ['Corchea', 'En crecimiento', '♪'],
             ['Negra', 'Estable', '♩'], ['Blanca', 'Avanzado', '𝅗𝅥'], ['Redonda', 'Élite', '𝅝'],
         ];
-        $tiers = [['Hasta 499.999', '0,25%'], ['500.000 – 1.499.999', '0,50%'], ['1.500.000 – 2.999.999', '0,75%'], ['3.000.000 – 5.999.999', '1,00%'], ['6.000.000 – 9.999.999', '1,25%'], ['Desde 10.000.000', '1,50%']];
+        $tiers = [['0 - 9 puntos', '3,0%'], ['10 - 29 puntos', '3,5%'], ['30 - 59 puntos', '4,0%'], ['60 - 99 puntos', '4,5%'], ['100+ puntos', '5,0% base']];
 
         $uid = 'ap' . substr(md5(uniqid('', true)), 0, 6);
         $h = '<style>'
@@ -80,9 +80,9 @@ class SonikaAffiliatesWidget extends Widget
             $h .= '</ul></div>';
         }
         if (!empty($c['show_tiers'])) {
-            $h .= '<div class="ap__card"><h3>Comisiones por tramo (mensual)</h3><table class="ap__tiers">';
+            $h .= '<div class="ap__card"><h3>Tasa base por puntos (mensual)</h3><table class="ap__tiers">';
             foreach ($tiers as $t) $h .= '<tr><td>' . $this->esc($t[0]) . '</td><td>' . $this->esc($t[1]) . '</td></tr>';
-            $h .= '</table><p style="margin:10px 0 0;font-size:12px;color:#64748b">Cálculo progresivo. Valores en modo simulación.</p></div>';
+            $h .= '</table><p style="margin:10px 0 0;font-size:12px;color:#64748b">Tasa base. La racha semanal suma +1 % (4–5 ventas) o +2 % (6+ ventas), con techo de 6 % o 7 %. Valores en modo simulación.</p></div>';
         }
         $h .= '</div>';
 

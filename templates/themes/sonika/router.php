@@ -86,13 +86,13 @@ if (($segments[0] ?? '') === 'r' && !empty($segments[1])) {
 
 // SONIKA Partners — programa único de distribuidores
 if (($segments[0] ?? '') === 'sonika-partners' && ($segments[1] ?? '') === 'contrato') {
-    sonika_site_head('Contrato SONIKA Partners | Comparte, vende y gana', 'Contrato de participación en SONIKA Partners: comisiones por ventas válidas, Puntos SONIKA y techo máximo del 5 %.', 'https://sonika.com.co/sonika-partners/contrato');
+    sonika_site_head('Contrato SONIKA Partners | Comparte, vende y gana', 'Contrato de participación en SONIKA Partners: comisiones por ventas válidas, Puntos SONIKA, tasa base máxima del 5 % y hasta 7 % con racha semanal.', 'https://sonika.com.co/sonika-partners/contrato');
     require __DIR__ . '/contrato-partner-publico.php';
     sonika_site_footer();
     return true;
 }
 if (($segments[0] ?? '') === 'sonika-partners' && count($segments) === 1) {
-    sonika_site_head('SONIKA Partners | Comparte, vende y gana comisiones', 'Únete a SONIKA Partners: comparte productos de SONIKA, vende con tu link y gana comisiones por ventas válidas. Puntos SONIKA, hasta 5 %.', 'https://sonika.com.co/sonika-partners');
+    sonika_site_head('SONIKA Partners | Comparte, vende y gana comisiones', 'Únete a SONIKA Partners: comparte productos de SONIKA, vende con tu link y gana comisiones por ventas válidas. Puntos SONIKA, tasa base 5 % y hasta 7 % con racha.', 'https://sonika.com.co/sonika-partners');
     require __DIR__ . '/partners.php';
     sonika_site_footer();
     return true;
@@ -320,11 +320,15 @@ if (($segments[0] ?? '') === 'artista' && ($segments[2] ?? '') === 'panel' && !e
         echo '<div class="ahp-c"><small>Comisiones (total)</small><b>' . $__money($__d['commission_total']) . '</b></div>';
         echo '<div class="ahp-c"><small>Billete pendiente por entrar</small><b>' . $__money($__pending) . '</b><small style="margin-top:4px;color:#94a3b8;font-weight:400;font-size:11px">Próximo corte: ' . $__nextCutTxt . '</small></div>';
         echo '</div>';
+        $__ratePct = number_format((float)$__pointsP['rate'] * 100, 1, ',', '.');
+        $__basePct = number_format((float)($__pointsP['base_rate'] ?? $__pointsP['rate']) * 100, 1, ',', '.');
+        $__bonusPct = number_format((float)($__pointsP['streak_bonus'] ?? 0) * 100, 1, ',', '.');
+        $__streakWeeks = (int)($__pointsP['weeks'] ?? 0);
         echo '<div class="ahp-cards" style="margin-top:-12px">';
-        echo '<div class="ahp-c"><small>Puntos SONIKA del mes</small><b>' . number_format((float)$__pointsP['points'], 0, ',', '.') . '</b></div>';
-        echo '<div class="ahp-c"><small>Tu tasa actual</small><b>' . number_format((float)$__pointsP['rate'] * 100, 1, ',', '.') . ' %</b><small style="margin-top:4px;color:#94a3b8;font-weight:400;font-size:11px">Tope máximo 5 %</small></div>';
-        echo '<div class="ahp-c"><small>Pedidos válidos</small><b>' . (int)$__pointsP['orders'] . '</b></div>';
-        echo '<div class="ahp-c"><small>Próximo nivel</small><b>' . ($__nextPointsP !== null ? ($__nextPointsP . ' pts') : 'Techo 5 %') . '</b><small style="margin-top:4px;color:#94a3b8;font-weight:400;font-size:11px">Cada $100.000 y cada pedido suman.</small></div>';
+        echo '<div class="ahp-c"><small>Puntos SONIKA del mes</small><b>' . number_format((float)$__pointsP['points'], 0, ',', '.') . '</b><small style="margin-top:4px;color:#94a3b8;font-weight:400;font-size:11px">' . (int)($__pointsP['premium_points'] ?? 0) . ' pts premium</small></div>';
+        echo '<div class="ahp-c"><small>Tu tasa actual</small><b>' . $__ratePct . ' %</b><small style="margin-top:4px;color:#94a3b8;font-weight:400;font-size:11px">' . ((float)($__pointsP['streak_bonus'] ?? 0) > 0 ? 'Base ' . $__basePct . ' % + racha ' . $__bonusPct . ' %' : 'Tasa base · sin racha') . '</small></div>';
+        echo '<div class="ahp-c"><small>Pedidos válidos</small><b>' . (int)$__pointsP['orders'] . '</b><small style="margin-top:4px;color:#94a3b8;font-weight:400;font-size:11px">' . $__streakWeeks . ' semana(s) con ventas</small></div>';
+        echo '<div class="ahp-c"><small>Próximo nivel</small><b>' . ($__nextPointsP !== null ? ($__nextPointsP . ' pts') : 'Techo base 5 %') . '</b><small style="margin-top:4px;color:#94a3b8;font-weight:400;font-size:11px">La racha puede llevar al 6 % o 7 %.</small></div>';
         echo '</div>';
         $__lg = is_array($__d['league'] ?? null) ? $__d['league'] : ['level' => '—', 'sales' => 0, 'progress' => 0, 'next' => null];
         $__crAll = $__svcP->contractRequestsFor((int)$__affPP['id']);

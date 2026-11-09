@@ -449,16 +449,19 @@ class StoreService
 
     // ── Orders ──
 
-    /** Base de productos outlet/bajo margen sujeta a 2 % fijo (en pesos). */
-    private function affiliateOutletBase(array $lines, int $subtotal, int $discountCents): float
+    /** Base outlet (2 % fijo) y precio unitario máximo no-outlet del pedido, en pesos. */
+    private function affiliateOrderMeta(array $lines, int $subtotal, int $discountCents): array
     {
-        if ($subtotal <= 0 || !$lines) return 0.0;
+        $fallbackMax = 0;
+        foreach ($lines as $l) $fallbackMax = max($fallbackMax, (int)($l['price_cents'] ?? 0));
+        $fallback = ['outlet' => 0.0, 'max_item' => $fallbackMax / 100];
+        if ($subtotal <= 0 || !$lines) return $fallback;
         $ids = [];
         foreach ($lines as $l) {
             $pid = (int)($l['product_id'] ?? 0);
             if ($pid > 0) $ids[$pid] = true;
         }
-        if (!$ids) return 0.0;
+        if (!$ids) return $fallback;
         try {
             $ids = array_keys($ids);
             $ph = implode(',', array_fill(0, count($ids), '?'));
@@ -477,16 +480,21 @@ class StoreService
                     }
                 }
             }
-            if (!$outlet) return 0.0;
             $outletSubtotal = 0;
+            $maxItemCents = 0;
             foreach ($lines as $l) {
-                if (!empty($outlet[(int)($l['product_id'] ?? 0)])) $outletSubtotal += (int)($l['subtotal_cents'] ?? 0);
+                $pid = (int)($l['product_id'] ?? 0);
+                if (!empty($outlet[$pid])) {
+                    $outletSubtotal += (int)($l['subtotal_cents'] ?? 0);
+                } else {
+                    $maxItemCents = max($maxItemCents, (int)($l['price_cents'] ?? 0));
+                }
             }
-            if ($outletSubtotal <= 0) return 0.0;
             $net = max(0, $subtotal - $discountCents);
-            return round(($net * ($outletSubtotal / $subtotal)) / 100, 2);
+            $outletBase = $outletSubtotal > 0 ? round(($net * ($outletSubtotal / $subtotal)) / 100, 2) : 0.0;
+            return ['outlet' => $outletBase, 'max_item' => $maxItemCents / 100];
         } catch (\Throwable $e) {
-            return 0.0;
+            return $fallback;
         }
     }
 
@@ -656,8 +664,8 @@ class StoreService
                 }
                 if ($__aff !== '' && $__internal === 0) {
                     $__base = max(0.0, ((float)$subtotal - (float)$discountCents) / 100);
-                    $__outlet = $this->affiliateOutletBase($lines, (int)$subtotal, (int)$discountCents);
-                    (new \App\Services\AffiliateService())->attributeOrder((string)$uuid, $__base, null, $__aff, $__outlet);
+                    $__metaAff = $this->affiliateOrderMeta($lines, (int)$subtotal, (int)$discountCents);
+                    (new \App\Services\AffiliateService())->attributeOrder((string)$uuid, $__base, null, $__aff, $__metaAff['outlet'], $__metaAff['max_item']);
                 }
             } catch (\Throwable $e) {
             }

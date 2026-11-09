@@ -14,23 +14,31 @@ class AffiliateService
 {
     public const STATUSES = ['DRAFT', 'EMAIL_PENDING', 'PHONE_PENDING', 'DOCUMENTS_PENDING', 'REVIEW_REQUIRED', 'APPROVED', 'REJECTED', 'SUSPENDED', 'TERMINATED'];
     public const TTL_DAYS = 30;
-    public const FORMULA_VERSION = 'puntos_sonika_v1';
+    public const FORMULA_VERSION = 'puntos_sonika_v2';
     public const POINTS_PER_VALUE = 100000.0;
     public const POINTS_PER_ORDER = 1;
     public const MIN_ORDER_VALUE = 1000.0;
     public const OUTLET_RATE = 0.020;
+    public const PREMIUM_ITEM_VALUE = 5000000.0;
+    public const PREMIUM_POINTS = 20;
+    public const STREAK_MIN_WEEKS = 4;
+    public const STREAK_BONUS_TIER1 = 0.010;
+    public const STREAK_BONUS_TIER2 = 0.020;
+    public const CAP_BASE = 0.050;
+    public const CAP_STREAK_TIER1 = 0.060;
+    public const CAP_STREAK_TIER2 = 0.070;
     public const PROFILE_CATEGORIES = [
         'artist' => 'Artista',
         'influencer' => 'Influencer / creador',
         'natural' => 'Persona natural',
     ];
-    // Puntos SONIKA: cada $100.000 vendidos + cada pedido válido.
+    // Puntos SONIKA: valor + ventas válidas + premium. La racha suma porcentaje aparte.
     public const POINT_TIERS = [
         [0, 9, 0.030],
         [10, 29, 0.035],
         [30, 59, 0.040],
-        [60, 119, 0.045],
-        [120, PHP_INT_MAX, 0.050],
+        [60, 99, 0.045],
+        [100, PHP_INT_MAX, 0.050],
     ];
 
     public function ready(): bool
@@ -580,25 +588,61 @@ class AffiliateService
         return 0.05;
     }
 
-    /** Puntos, ventas y pedidos válidos del mes del partner. */
+    /** Puntos, ventas, pedidos, racha y tasa final del mes del partner. */
     public function pointsForMonth(int $affiliateId, string $monthKey = ''): array
     {
         $monthKey = $monthKey !== '' ? $monthKey : date('Y-m');
-        $default = ['month' => $monthKey, 'sales' => 0.0, 'orders' => 0, 'points' => 0.0, 'rate' => $this->rateForPoints(0)];
+        $default = [
+            'month' => $monthKey, 'sales' => 0.0, 'orders' => 0, 'weeks' => 0,
+            'premium_orders' => 0, 'premium_points' => 0, 'points' => 0.0,
+            'base_rate' => $this->rateForPoints(0), 'streak_level' => 0,
+            'streak_bonus' => 0.0, 'cap' => self::CAP_BASE, 'rate' => $this->rateForPoints(0),
+        ];
         try {
             $st = Database::instance()->prepare("SELECT
                 COALESCE(SUM(base_amount), 0) sales,
-                COALESCE(SUM(CASE WHEN base_amount >= :min_order THEN 1 ELSE 0 END), 0) orders
+                COALESCE(SUM(CASE WHEN base_amount >= :min_order THEN 1 ELSE 0 END), 0) orders,
+                COALESCE(SUM(CASE WHEN base_amount >= :min_order2 AND max_item_price >= :premium_value THEN 1 ELSE 0 END), 0) premium_orders,
+                COUNT(DISTINCT CASE WHEN base_amount >= :min_order3 THEN FLOOR((DAY(created_at) - 1) / 7) END) weeks
                 FROM affiliate_commissions
                 WHERE site_id = @site_id AND affiliate_id = :a
                 AND COALESCE(month_key, DATE_FORMAT(created_at, '%Y-%m')) = :month
                 AND status NOT IN ('REVERSED','REJECTED')");
-            $st->execute(['a' => $affiliateId, 'month' => $monthKey, 'min_order' => self::MIN_ORDER_VALUE]);
+            $st->execute([
+                'a' => $affiliateId, 'month' => $monthKey,
+                'min_order' => self::MIN_ORDER_VALUE,
+                'min_order2' => self::MIN_ORDER_VALUE,
+                'min_order3' => self::MIN_ORDER_VALUE,
+                'premium_value' => self::PREMIUM_ITEM_VALUE,
+            ]);
             $row = $st->fetch() ?: [];
             $sales = (float)($row['sales'] ?? 0);
             $orders = (int)($row['orders'] ?? 0);
-            $points = floor($sales / self::POINTS_PER_VALUE) + ($orders * self::POINTS_PER_ORDER);
-            return ['month' => $monthKey, 'sales' => $sales, 'orders' => $orders, 'points' => (float)$points, 'rate' => $this->rateForPoints((float)$points)];
+            $weeks = (int)($row['weeks'] ?? 0);
+            $premiumOrders = (int)($row['premium_orders'] ?? 0);
+            $premiumPoints = $premiumOrders * self::PREMIUM_POINTS;
+            $points = floor($sales / self::POINTS_PER_VALUE) + ($orders * self::POINTS_PER_ORDER) + $premiumPoints;
+            $baseRate = $this->rateForPoints((float)$points);
+            $streakLevel = 0;
+            $bonus = 0.0;
+            $cap = self::CAP_BASE;
+            if ($weeks >= self::STREAK_MIN_WEEKS && $orders >= 6) {
+                $streakLevel = 2;
+                $bonus = self::STREAK_BONUS_TIER2;
+                $cap = self::CAP_STREAK_TIER2;
+            } elseif ($weeks >= self::STREAK_MIN_WEEKS && $orders >= 4) {
+                $streakLevel = 1;
+                $bonus = self::STREAK_BONUS_TIER1;
+                $cap = self::CAP_STREAK_TIER1;
+            }
+            $rate = min($baseRate + $bonus, $cap);
+            return [
+                'month' => $monthKey, 'sales' => $sales, 'orders' => $orders, 'weeks' => $weeks,
+                'premium_orders' => $premiumOrders, 'premium_points' => $premiumPoints,
+                'points' => (float)$points, 'base_rate' => $baseRate,
+                'streak_level' => $streakLevel, 'streak_bonus' => $bonus,
+                'cap' => $cap, 'rate' => $rate,
+            ];
         } catch (\Throwable $e) {
             return $default;
         }
@@ -636,7 +680,7 @@ class AffiliateService
     }
 
     /** Fija la atribución de un pedido + comisión con Puntos SONIKA (idempotente). */
-    public function attributeOrder(string $orderRef, float $baseAmount, ?int $affiliateId = null, ?string $code = null, float $outletAmount = 0.0): ?array
+    public function attributeOrder(string $orderRef, float $baseAmount, ?int $affiliateId = null, ?string $code = null, float $outletAmount = 0.0, float $maxItemPrice = 0.0): ?array
     {
         if (!$this->ready()) return null;
         try {
@@ -656,22 +700,33 @@ class AffiliateService
             $monthKey = date('Y-m');
             $baseAmount = max(0.0, $baseAmount);
             $outletAmount = max(0.0, min($baseAmount, $outletAmount));
+            $maxItemPrice = max(0.0, $maxItemPrice);
+            $premiumPoints = $maxItemPrice >= self::PREMIUM_ITEM_VALUE ? self::PREMIUM_POINTS : 0;
             $db->prepare('INSERT IGNORE INTO affiliate_order_attributions (site_id, order_ref, affiliate_id, code, model, fixed_at) VALUES (@site_id, :o, :a, :c, "last_click_30d", NOW())')
                 ->execute(['o' => $orderRef, 'a' => $affiliateId, 'c' => $code]);
-            $db->prepare('INSERT IGNORE INTO affiliate_commissions (site_id, affiliate_id, order_ref, base_amount, outlet_amount, tier_rate, amount, status, month_key, formula_version, meta, created_at) VALUES (@site_id, :a, :o, :b, :outlet, 0, 0, "ESTIMATED", :month, :formula, :m, NOW())')
+            $db->prepare('INSERT IGNORE INTO affiliate_commissions (site_id, affiliate_id, order_ref, base_amount, outlet_amount, max_item_price, tier_rate, amount, status, month_key, formula_version, meta, created_at) VALUES (@site_id, :a, :o, :b, :outlet, :max_item, 0, 0, "ESTIMATED", :month, :formula, :m, NOW())')
                 ->execute([
-                    'a' => $affiliateId, 'o' => $orderRef, 'b' => $baseAmount, 'outlet' => $outletAmount, 'month' => $monthKey,
+                    'a' => $affiliateId, 'o' => $orderRef, 'b' => $baseAmount, 'outlet' => $outletAmount,
+                    'max_item' => $maxItemPrice, 'month' => $monthKey,
                     'formula' => self::FORMULA_VERSION,
-                    'm' => json_encode(['program' => 'sonika_partners', 'formula' => self::FORMULA_VERSION, 'min_order' => self::MIN_ORDER_VALUE, 'outlet_amount' => $outletAmount, 'outlet_rate' => self::OUTLET_RATE], JSON_UNESCAPED_UNICODE),
+                    'm' => json_encode(['program' => 'sonika_partners', 'formula' => self::FORMULA_VERSION, 'min_order' => self::MIN_ORDER_VALUE, 'outlet_amount' => $outletAmount, 'outlet_rate' => self::OUTLET_RATE, 'max_item_price' => $maxItemPrice, 'premium_points' => $premiumPoints], JSON_UNESCAPED_UNICODE),
                 ]);
             $calc = $this->recalculateMonth($affiliateId, $monthKey);
-            $st = $db->prepare('SELECT amount, tier_rate, points, outlet_amount FROM affiliate_commissions WHERE site_id = @site_id AND order_ref = :o LIMIT 1');
+            $st = $db->prepare('SELECT amount, tier_rate, points, outlet_amount, max_item_price FROM affiliate_commissions WHERE site_id = @site_id AND order_ref = :o LIMIT 1');
             $st->execute(['o' => $orderRef]);
             $row = $st->fetch() ?: [];
             $amount = (float)($row['amount'] ?? 0);
             $rate = (float)($row['tier_rate'] ?? $calc['rate']);
-            $this->log($affiliateId, 'order_attributed', ['order' => $orderRef, 'amount' => $amount, 'rate' => $rate, 'points' => $calc['points'], 'month' => $monthKey, 'outlet_amount' => (float)($row['outlet_amount'] ?? $outletAmount), 'simulation' => true]);
-            return ['ok' => true, 'affiliate_id' => $affiliateId, 'commission' => $amount, 'rate' => $rate, 'points' => $calc['points'], 'orders' => $calc['orders'], 'month_sales' => $calc['sales'], 'outlet_amount' => (float)($row['outlet_amount'] ?? $outletAmount), 'outlet_rate' => self::OUTLET_RATE, 'simulation' => true, 'formula' => self::FORMULA_VERSION];
+            $this->log($affiliateId, 'order_attributed', ['order' => $orderRef, 'amount' => $amount, 'rate' => $rate, 'points' => $calc['points'], 'month' => $monthKey, 'outlet_amount' => (float)($row['outlet_amount'] ?? $outletAmount), 'max_item_price' => (float)($row['max_item_price'] ?? $maxItemPrice), 'premium_points' => $premiumPoints, 'simulation' => true]);
+            return [
+                'ok' => true, 'affiliate_id' => $affiliateId, 'commission' => $amount, 'rate' => $rate,
+                'base_rate' => $calc['base_rate'], 'streak_level' => $calc['streak_level'], 'streak_bonus' => $calc['streak_bonus'],
+                'cap' => $calc['cap'], 'weeks' => $calc['weeks'], 'points' => $calc['points'], 'orders' => $calc['orders'],
+                'month_sales' => $calc['sales'], 'premium_points' => $calc['premium_points'],
+                'outlet_amount' => (float)($row['outlet_amount'] ?? $outletAmount), 'outlet_rate' => self::OUTLET_RATE,
+                'max_item_price' => (float)($row['max_item_price'] ?? $maxItemPrice),
+                'simulation' => true, 'formula' => self::FORMULA_VERSION,
+            ];
         } catch (\Throwable $e) { return null; }
     }
 

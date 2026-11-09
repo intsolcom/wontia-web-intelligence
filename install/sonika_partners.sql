@@ -22,7 +22,8 @@ ALTER TABLE affiliate_commissions
     ADD COLUMN IF NOT EXISTS points INT NOT NULL DEFAULT 0,
     ADD COLUMN IF NOT EXISTS month_key CHAR(7) NULL,
     ADD COLUMN IF NOT EXISTS formula_version VARCHAR(24) NULL,
-    ADD COLUMN IF NOT EXISTS outlet_amount DECIMAL(14,2) NOT NULL DEFAULT 0;
+    ADD COLUMN IF NOT EXISTS outlet_amount DECIMAL(14,2) NOT NULL DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS max_item_price DECIMAL(14,2) NOT NULL DEFAULT 0;
 
 UPDATE affiliate_commissions SET month_key = DATE_FORMAT(created_at, '%Y-%m') WHERE month_key IS NULL OR month_key = '';
 

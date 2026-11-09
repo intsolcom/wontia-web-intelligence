@@ -59,6 +59,36 @@ $__contractUrl = '/sonika-partners/contrato';
     .sp__example-bar{position:relative;display:flex;height:5px;border-radius:999px;background:#f0ece5;overflow:hidden;margin-top:10px}
     .sp__example-bar span{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#F20D16,#ff6b71)}
     .sp__examples-note{grid-column:1/-1;font-size:10.5px;color:#888;line-height:1.45;margin:2px 0 0}
+    .sp__examples--products{grid-template-columns:repeat(3,minmax(0,1fr))}
+    .sp__example-img{width:100%;height:104px;object-fit:contain;background:#f8f7f4;border-radius:10px;padding:7px;margin-bottom:8px}
+    .sp__combo{margin-top:16px;background:linear-gradient(145deg,#17110e,#0b0b0b);border-radius:20px;padding:clamp(18px,3vw,26px);color:#fff;position:relative;overflow:hidden}
+    .sp__combo:after{content:"PREMIUM";position:absolute;right:-14px;bottom:-18px;font:900 84px/1 Sora,Inter,sans-serif;letter-spacing:-.08em;color:rgba(255,255,255,.035);pointer-events:none}
+    .sp__combo-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;position:relative;z-index:1}
+    .sp__combo-kicker{display:inline-block;border-radius:999px;padding:3px 8px;background:rgba(242,13,22,.18);border:1px solid rgba(242,13,22,.35);color:#ff8a8d;font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase}
+    .sp__combo h3{font:800 clamp(1.2rem,2.4vw,1.7rem)/1.1 Sora,Inter,sans-serif;letter-spacing:-.03em;margin:7px 0 4px}
+    .sp__combo p{color:#bdbdbd;font-size:11.5px;line-height:1.5;margin:0}
+    .sp__combo-total{text-align:right;min-width:180px}
+    .sp__combo-total small{display:block;color:#9a9a9a;font-size:9px;letter-spacing:.1em;text-transform:uppercase;font-weight:800}
+    .sp__combo-total b{display:block;font-size:clamp(1.2rem,2.4vw,1.7rem);letter-spacing:-.04em;margin:3px 0 2px}
+    .sp__combo-total span{color:#ff8a8d;font-size:10.5px;font-weight:800}
+    .sp__combo-products{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:16px 0 12px;position:relative;z-index:1}
+    .sp__combo-product{display:flex;gap:9px;align-items:center;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:13px;padding:9px;min-width:0}
+    .sp__combo-product img{width:58px;height:58px;object-fit:contain;background:#fff;border-radius:8px;padding:4px;flex:none}
+    .sp__combo-product span{display:block;color:#ff8a8d;font-size:8px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+    .sp__combo-product b{display:block;font-size:10.5px;line-height:1.3;margin:2px 0;color:#fff}
+    .sp__combo-product small{display:block;color:#a8a8a8;font-size:9px;line-height:1.35}
+    .sp__combo-commission{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap;border-top:1px solid rgba(255,255,255,.12);padding-top:12px;position:relative;z-index:1}
+    .sp__combo-commission span{color:#bdbdbd;font-size:11px;font-weight:700}
+    .sp__combo-commission b{font-size:clamp(1.6rem,3.2vw,2.2rem);letter-spacing:-.05em;color:#fff}
+    .sp__combo-commission small{color:#ff8a8d;font-size:9.5px;font-weight:800}
+    .sp__streak{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+    .sp__streak-card{border:1px solid #f0e2c4;background:#fbf6ec;border-radius:13px;padding:12px}
+    .sp__streak-card b{display:block;font-size:19px;letter-spacing:-.04em;color:#8a641e}
+    .sp__streak-card span{display:block;font-size:10px;color:#8a6d3b;margin:2px 0 5px}
+    .sp__streak-card strong{display:block;font-size:11.5px;color:#5f4714}
+    .sp__calc-checks{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .sp__calc-check{display:flex;align-items:center;gap:6px;font-size:10px;color:#d3d3d3;text-transform:none;letter-spacing:0;font-weight:600}
+    .sp__calc-check input{width:15px;height:15px;min-height:0;flex:none;accent-color:#F20D16}
     .sp__profiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:14px}
     .sp__profile{border:1px solid #e5e0d8;border-radius:15px;padding:15px;background:#fff}
     .sp__profile b{display:block;font-size:14px}.sp__profile span{display:block;font-size:11.5px;line-height:1.55;color:#666;margin-top:4px}
@@ -81,8 +111,8 @@ $__contractUrl = '/sonika-partners/contrato';
     .sp__cat.on{border-color:#F20D16;background:#fff7f7;box-shadow:0 0 0 2px rgba(242,13,22,.08)}
     .sp__group{display:contents}.sp__group[hidden]{display:none}
     .sp__faq{display:grid;gap:8px;margin-top:12px}.sp__faq details{background:#fff;border:1px solid #e5e0d8;border-radius:12px;padding:12px 14px}.sp__faq summary{font-size:12.5px;font-weight:800;cursor:pointer}.sp__faq p{font-size:12px;color:#666;line-height:1.6;margin:8px 0 0}
-    @media(max-width:900px){.sp__hero{grid-template-columns:1fr;padding-top:24px}.sp__card{order:-1}.sp__benefits{grid-template-columns:repeat(2,minmax(0,1fr))}.sp__formula,.sp__register{grid-template-columns:1fr}.sp__profiles{grid-template-columns:1fr}}
-    @media(max-width:560px){.sp__wrap{padding:0 16px}.sp__benefits{grid-template-columns:1fr}.sp__examples{grid-template-columns:1fr}.sp__form{grid-template-columns:1fr}.sp__form .full{grid-column:auto}.sp__actions{display:grid}.sp__btn{width:100%}.sp__category{grid-template-columns:1fr}.sp__calc-row{grid-template-columns:1fr}}
+    @media(max-width:900px){.sp__hero{grid-template-columns:1fr;padding-top:24px}.sp__card{order:-1}.sp__benefits{grid-template-columns:repeat(2,minmax(0,1fr))}.sp__formula,.sp__register{grid-template-columns:1fr}.sp__profiles{grid-template-columns:1fr}.sp__combo-products,.sp__examples--products{grid-template-columns:1fr}.sp__combo-total{text-align:left}}
+    @media(max-width:560px){.sp__wrap{padding:0 16px}.sp__benefits{grid-template-columns:1fr}.sp__examples{grid-template-columns:1fr}.sp__form{grid-template-columns:1fr}.sp__form .full{grid-column:auto}.sp__actions{display:grid}.sp__btn{width:100%}.sp__category{grid-template-columns:1fr}.sp__calc-row,.sp__calc-checks,.sp__streak{grid-template-columns:1fr}}
   </style>
   <div class="sp__wrap">
     <section class="sp__hero">
@@ -95,17 +125,21 @@ $__contractUrl = '/sonika-partners/contrato';
           <a class="sp__btn sp__btn--secondary" href="#comisiones">Ver comisiones</a>
           <a class="sp__btn sp__btn--secondary" href="/mi-antro?next=contrato">Ya soy Partner: entrar</a>
         </div>
-        <p class="sp__micro">Programa de distribuidores. Comisiones por ventas válidas. Techo máximo 5 %. No se garantizan ingresos. La categoría interna no cambia tu comisión ni el contrato.</p>
+        <p class="sp__micro">Programa de distribuidores. Comisiones por ventas válidas. Tasa base máxima 5 %; con racha semanal hasta 7 %. No se garantizan ingresos. La categoría interna no cambia tu comisión ni el contrato.</p>
       </div>
       <div class="sp__card" aria-label="Calculadora rápida de comisiones">
         <h2>Calcula tu comisión</h2>
-        <p>Mueve tus ventas y pedidos del mes. La fórmula premia valor y volumen.</p>
+        <p>Mueve tus ventas y ventas válidas. Marca si vendiste un producto premium o si tuviste ventas cada semana.</p>
         <div class="sp__calc">
           <div class="sp__calc-row">
-            <div><label for="sp-sales">Ventas del mes (COP)</label><input id="sp-sales" type="number" min="0" step="10000" value="3000000" inputmode="numeric"></div>
-            <div><label for="sp-orders">Pedidos válidos</label><input id="sp-orders" type="number" min="0" step="1" value="30" inputmode="numeric"></div>
+            <div><label for="sp-sales">Ventas del mes (COP)</label><input id="sp-sales" type="number" min="0" step="10000" value="5000000" inputmode="numeric"></div>
+            <div><label for="sp-orders">Ventas válidas</label><input id="sp-orders" type="number" min="0" step="1" value="6" inputmode="numeric"></div>
           </div>
-          <div class="sp__result" aria-live="polite"><b id="sp-commission">$135.000</b><span id="sp-rate">4,5 % · 60 puntos</span><small id="sp-next">Con 60 puntos estás en 4,5 %. Con 120 puntos llegas al 5,0 %.</small></div>
+          <div class="sp__calc-row">
+            <div><label for="sp-premium-orders">Pedidos con producto ≥ $5M</label><input id="sp-premium-orders" type="number" min="0" step="1" value="1" inputmode="numeric"></div>
+            <div><label for="sp-streak-weeks">Semanas con ventas</label><input id="sp-streak-weeks" type="number" min="0" max="4" step="1" value="4" inputmode="numeric"></div>
+          </div>
+          <div class="sp__result" aria-live="polite"><b id="sp-commission">$325.000</b><span id="sp-rate">6,5 % · 76 puntos</span><small id="sp-next">Base 4,5 % + racha 2,0 %. Tasa final 6,5 %.</small></div>
         </div>
       </div>
     </section>
@@ -113,36 +147,54 @@ $__contractUrl = '/sonika-partners/contrato';
     <section class="sp__benefits" aria-label="Beneficios del programa">
       <div class="sp__benefit"><span class="sp__num">01</span><b>Un solo programa</b><span>Artistas, influencers y personas naturales entran con las mismas reglas y la misma comisión.</span></div>
       <div class="sp__benefit"><span class="sp__num">02</span><b>Link y QR propios</b><span>Comparte tu enlace, tu código y tu QR. Cada venta válida se atribuye a tu cuenta.</span></div>
-      <div class="sp__benefit"><span class="sp__num">03</span><b>Puntos SONIKA</b><span>Cada $100.000 vendidos y cada pedido válido suman puntos. Más puntos, mejor porcentaje.</span></div>
-      <div class="sp__benefit"><span class="sp__num">04</span><b>Hasta 5 %</b><span>La comisión total nunca supera el 5 % de la venta neta elegible.</span></div>
+      <div class="sp__benefit"><span class="sp__num">03</span><b>Puntos SONIKA</b><span>Cada $100.000 vendidos y cada venta válida suman puntos. Los productos de $5M o más suman 20 puntos extra.</span></div>
+      <div class="sp__benefit"><span class="sp__num">04</span><b>Hasta 7 %</b><span>La tasa base máxima es 5 %. Con racha semanal puede llegar al 6 % o al 7 %.</span></div>
       <div class="sp__benefit"><span class="sp__num">05</span><b>Panel y calculadora</b><span>Consulta clics, ventas, comisión estimada, estado de pago y cuánto te falta para subir.</span></div>
       <div class="sp__benefit"><span class="sp__num">06</span><b>Herramientas según tu perfil</b><span>Tu categoría interna activa módulos opcionales: página de artista, media kit o kit simple para compartir.</span></div>
     </section>
 
     <section class="sp__section" id="comisiones">
       <h2>Así se calcula tu comisión</h2>
-      <p>No premiamos solo el ticket alto ni solo el número de pedidos. Premiamos las dos cosas. Cada peso vendido y cada pedido válido suman puntos.</p>
+      <p>Primero valor, después racha. Cada $100.000 vendidos y cada venta válida suman puntos. Los productos de alto valor suman un bono extra, y la constancia semanal puede llevar tu tasa al 6 % o al 7 %.</p>
       <div class="sp__formula" style="margin-top:14px">
-        <div class="sp__formula-box"><b>Fórmula</b><strong>Puntos = (Ventas netas / $100.000) + Pedidos válidos</strong><p style="margin-top:10px;color:#c9c9c9;font-size:12px;line-height:1.6">Se toman las unidades completas de $100.000. Cada pedido válido suma 1 punto. La tasa se recalcula al final del mes y se aplica a todas las ventas del mes.</p></div>
+        <div class="sp__formula-box"><b>Fórmula</b><strong>Puntos = (Ventas netas / $100.000) + Ventas válidas + Puntos Premium</strong><p style="margin-top:10px;color:#c9c9c9;font-size:12px;line-height:1.6">Puntos Premium: +20 por pedido con un producto de $5.000.000 o más. La racha se suma aparte como porcentaje, no como puntos.</p></div>
         <div>
-          <table class="sp__table"><thead><tr><th>Puntos del mes</th><th>Comisión</th></tr></thead><tbody>
+          <table class="sp__table"><thead><tr><th>Puntos del mes</th><th>Comisión base</th></tr></thead><tbody>
             <tr><td>0 – 9</td><td><b>3,0 %</b></td></tr>
             <tr><td>10 – 29</td><td><b>3,5 %</b></td></tr>
             <tr><td>30 – 59</td><td><b>4,0 %</b></td></tr>
-            <tr><td>60 – 119</td><td><b>4,5 %</b></td></tr>
-            <tr><td>120 o más</td><td><span class="sp__pill">Techo 5,0 %</span></td></tr>
+            <tr><td>60 – 99</td><td><b>4,5 %</b></td></tr>
+            <tr><td>100 o más</td><td><span class="sp__pill">5,0 % base</span></td></tr>
           </tbody></table>
-          <p class="sp__examples-title">Ejemplos de un mes real</p>
-          <div class="sp__examples">
-            <div class="sp__example"><span class="sp__example-kicker">Primer mes</span><b>$72.000</b><span class="sp__example-title">12 pedidos de $150.000</span><span class="sp__example-meta">$1.800.000 vendidos · 30 pts · 4,0 %</span><span class="sp__example-bar"><span style="width:80%"></span></span></div>
-            <div class="sp__example"><span class="sp__example-kicker">Comunidad activa</span><b>$162.000</b><span class="sp__example-title">40 pedidos de $90.000</span><span class="sp__example-meta">$3.600.000 vendidos · 76 pts · 4,5 %</span><span class="sp__example-bar"><span style="width:90%"></span></span></div>
-            <div class="sp__example"><span class="sp__example-kicker">Ticket alto</span><b>$270.000</b><span class="sp__example-title">5 pedidos de $1.200.000</span><span class="sp__example-meta">$6.000.000 vendidos · 65 pts · 4,5 %</span><span class="sp__example-bar"><span style="width:90%"></span></span></div>
-            <div class="sp__example"><span class="sp__example-kicker">Top Partner</span><b>$600.000</b><span class="sp__example-title">60 pedidos de $200.000</span><span class="sp__example-meta">$12.000.000 vendidos · 180 pts · 5,0 %</span><span class="sp__example-bar"><span style="width:100%"></span></span></div>
-            <p class="sp__examples-note">Ejemplos ilustrativos con ventas netas elegibles. No son una promesa de ingresos.</p>
+          <p class="sp__examples-title">Bono de racha semanal</p>
+          <div class="sp__streak">
+            <div class="sp__streak-card"><b>+1,0 %</b><span>4–5 ventas válidas, una por semana</span><strong>Tasa final hasta 6,0 %</strong></div>
+            <div class="sp__streak-card"><b>+2,0 %</b><span>6 o más ventas válidas, una por semana</span><strong>Tasa final hasta 7,0 %</strong></div>
           </div>
+          <p class="sp__note" style="margin-top:8px">La racha se calcula sobre pedidos válidos, no sobre unidades. Los bonos no se suman entre sí: se aplica el mayor. Si no hay racha, la tasa base máxima es 5,0 %.</p>
         </div>
       </div>
-      <p class="sp__note">Pedido válido: pagado, no devuelto, no cancelado, no interno, no fragmentado, con ticket neto mínimo de $1.000 COP. La venta neta excluye IVA, impuestos, envío, gift cards, financiación, descuentos, devoluciones y contracargos. Outlet y productos de margen inferior al 15 %: 2 % fijo. Servicios: máximo 5 %. La comisión total nunca supera el 5 %.</p>
+
+      <div class="sp__combo">
+        <div class="sp__combo-head">
+          <div><span class="sp__combo-kicker">Combo Premium · 3 ventas válidas</span><h3>3 instrumentos. Un mes de $1.233.900.</h3><p>Fender Vintera II + Hohner Bravo III + Casio AP-750</p></div>
+          <div class="sp__combo-total"><small>Ventas netas</small><b>$24.678.000</b><span>309 puntos · 5,0 %</span></div>
+        </div>
+        <div class="sp__combo-products">
+          <div class="sp__combo-product"><img src="https://cdn.shopify.com/s/files/1/0269/4178/4117/files/3_d8917fee-4125-4631-a871-15169511fc07.png?v=1750891240" alt="Guitarra Fender Vintera II Telecaster"><div><span>Fender</span><b>Vintera II Telecaster</b><small>$5.998.000 · +20 pts premium</small></div></div>
+          <div class="sp__combo-product"><img src="https://cdn.shopify.com/s/files/1/0269/4178/4117/files/1_23377b48-d266-43ec-8595-57da0d9f500d.png?v=1748473144" alt="Acordeón Hohner Bravo III Rojo 72 bajos"><div><span>Hohner</span><b>Bravo III Rojo 72</b><small>$6.690.000 · +20 pts premium</small></div></div>
+          <div class="sp__combo-product"><img src="https://cdn.shopify.com/s/files/1/0269/4178/4117/files/APLICA_SOLO_EN_TIENDA_VIRTUAL_2.png?v=1779554306" alt="Piano Casio AP-750"><div><span>Casio</span><b>AP-750 Mueble Negro</b><small>$11.990.000 · +20 pts premium</small></div></div>
+        </div>
+        <div class="sp__combo-commission"><span>Comisión total del mes</span><b>$1.233.900</b><small>5,0 % sobre $24.678.000 · 309 puntos</small></div>
+      </div>
+
+      <p class="sp__examples-title">Una sola venta premium también cambia el mes</p>
+      <div class="sp__examples sp__examples--products">
+        <div class="sp__example"><img class="sp__example-img" src="https://cdn.shopify.com/s/files/1/0269/4178/4117/products/PIA215.jpg?v=1597798961" alt="Piano Casio GP-510BP"><span class="sp__example-kicker">Venta única</span><b>$1.040.250</b><span class="sp__example-title">Piano Casio GP-510BP · $20.805.000</span><span class="sp__example-meta">208 pts valor + 1 venta + 20 premium = 229 pts · 5,0 %</span></div>
+        <div class="sp__example"><img class="sp__example-img" src="https://cdn.shopify.com/s/files/1/0269/4178/4117/files/3_b9bb337b-ab1d-4199-ad2e-9183072ec1ea.png?v=1748620762" alt="Guitarra Fender Juanes Stratocaster"><span class="sp__example-kicker">Ticket alto</span><b>$549.950</b><span class="sp__example-title">Guitarra Fender Juanes · $10.999.000</span><span class="sp__example-meta">109 pts valor + 1 venta + 20 premium = 130 pts · 5,0 %</span></div>
+        <div class="sp__example"><img class="sp__example-img" src="https://cdn.shopify.com/s/files/1/0269/4178/4117/files/1_f23b59a1-d527-4e0f-b2fe-987f47c05ebd.png?v=1741895979" alt="Bajo Fender Jazz Bass"><span class="sp__example-kicker">Bajo premium</span><b>$323.955</b><span class="sp__example-title">Bajo Fender Jazz Bass · $7.199.000</span><span class="sp__example-meta">71 pts valor + 1 venta + 20 premium = 92 pts · 4,5 %</span></div>
+      </div>
+      <p class="sp__note">Pedido válido: pagado, no devuelto, no cancelado, no interno, no fragmentado, con ticket neto mínimo de $1.000 COP. La venta neta excluye IVA, impuestos, envío, gift cards, financiación, descuentos, devoluciones y contracargos. Outlet y productos de margen inferior al 15 %: 2 % fijo. Servicios: máximo 5 %. La tasa base máxima es 5 %; con racha puede llegar al 7 %.</p>
     </section>
 
     <section class="sp__section">
@@ -207,7 +259,8 @@ $__contractUrl = '/sonika-partners/contrato';
         <details><summary>¿Necesito ser artista o tener seguidores?</summary><p>No. Puedes participar como persona natural. La categoría solo personaliza tu experiencia; la comisión y el contrato son iguales.</p></details>
         <details><summary>¿Cómo me pagan?</summary><p>La comisión se calcula mensualmente, se valida después de la ventana de devoluciones y se paga con aprobación manual. Hay un mínimo de $100.000 COP y retención de 15 días.</p></details>
         <details><summary>¿Qué cuenta como pedido válido?</summary><p>Un pedido pagado, no devuelto, no cancelado, no interno, no fragmentado, con ticket neto mínimo de $1.000 COP.</p></details>
-        <details><summary>¿La comisión puede superar el 5 %?</summary><p>No. La comisión total, incluyendo ajustes y campañas, nunca supera el 5 % de la venta neta elegible.</p></details>
+        <details><summary>¿La comisión puede superar el 5 %?</summary><p>La tasa base máxima es 5 %. Con el Bono de Racha puede llegar al 6 % (4–5 ventas válidas semanales) o al 7 % (6 o más ventas válidas semanales). Nada supera el 7 %.</p></details>
+        <details><summary>¿Qué es la racha semanal?</summary><p>Es tener al menos una venta válida en cada una de las 4 semanas del mes. Con 4–5 ventas válidas sumas +1 %; con 6 o más sumas +2 %. La racha se calcula sobre pedidos válidos, no sobre unidades.</p></details>
         <details><summary>¿Puedo cambiar de categoría?</summary><p>Sí. La categoría es interna y no altera tu contrato. Puedes solicitar el cambio al equipo para personalizar tus herramientas.</p></details>
       </div>
     </section>
@@ -218,33 +271,53 @@ $__contractUrl = '/sonika-partners/contrato';
     'mainEntity' => [
       ['@type' => 'Question', 'name' => '¿Necesito ser artista o tener seguidores?', 'acceptedAnswer' => ['@type' => 'Answer', 'text' => 'No. Puedes participar como persona natural. La categoría solo personaliza tu experiencia; la comisión y el contrato son iguales.']],
       ['@type' => 'Question', 'name' => '¿Cómo me pagan?', 'acceptedAnswer' => ['@type' => 'Answer', 'text' => 'La comisión se calcula mensualmente, se valida después de la ventana de devoluciones y se paga con aprobación manual. Hay un mínimo de $100.000 COP y retención de 15 días.']],
-      ['@type' => 'Question', 'name' => '¿La comisión puede superar el 5 %?', 'acceptedAnswer' => ['@type' => 'Answer', 'text' => 'No. La comisión total nunca supera el 5 % de la venta neta elegible.']],
+      ['@type' => 'Question', 'name' => '¿La comisión puede superar el 5 %?', 'acceptedAnswer' => ['@type' => 'Answer', 'text' => 'La tasa base máxima es 5 %. Con el Bono de Racha puede llegar al 6 % (4–5 ventas válidas semanales) o al 7 % (6 o más ventas válidas semanales). Nada supera el 7 %.']],
+      ['@type' => 'Question', 'name' => '¿Qué es la racha semanal?', 'acceptedAnswer' => ['@type' => 'Answer', 'text' => 'Es tener al menos una venta válida en cada una de las 4 semanas del mes. Con 4–5 ventas válidas sumas +1 %; con 6 o más sumas +2 %. La racha se calcula sobre pedidos válidos, no sobre unidades.']],
     ],
   ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?></script>
   <script>
     (function () {
       var sales = document.getElementById('sp-sales');
       var orders = document.getElementById('sp-orders');
+      var premiumOrders = document.getElementById('sp-premium-orders');
+      var streakWeeks = document.getElementById('sp-streak-weeks');
       var commission = document.getElementById('sp-commission');
       var rateEl = document.getElementById('sp-rate');
       var nextEl = document.getElementById('sp-next');
-      var tiers = [[0, 9, 0.030], [10, 29, 0.035], [30, 59, 0.040], [60, 119, 0.045], [120, Infinity, 0.050]];
+      var tiers = [[0, 9, 0.030], [10, 29, 0.035], [30, 59, 0.040], [60, 99, 0.045], [100, Infinity, 0.050]];
+      function pct(n) { return (n * 100).toFixed(1).replace('.', ',') + ' %'; }
       function calc() {
         var s = Math.max(0, parseFloat(sales.value) || 0);
         var o = Math.max(0, parseInt(orders.value, 10) || 0);
-        var points = Math.floor(s / 100000) + o;
-        var rate = 0.05;
-        var next = null;
+        var p = Math.max(0, Math.min(o, parseInt(premiumOrders.value, 10) || 0));
+        var w = Math.max(0, Math.min(4, parseInt(streakWeeks.value, 10) || 0));
+        var premiumPoints = p * 20;
+        var points = Math.floor(s / 100000) + o + premiumPoints;
+        var baseRate = 0.05;
         for (var i = 0; i < tiers.length; i++) {
-          if (points >= tiers[i][0] && points <= tiers[i][1]) { rate = tiers[i][2]; next = i < tiers.length - 1 ? tiers[i + 1][0] : null; break; }
+          if (points >= tiers[i][0] && points <= tiers[i][1]) { baseRate = tiers[i][2]; break; }
         }
+        var bonus = 0;
+        var cap = 0.05;
+        if (w >= 4 && o >= 6) { bonus = 0.02; cap = 0.07; }
+        else if (w >= 4 && o >= 4) { bonus = 0.01; cap = 0.06; }
+        var rate = Math.min(baseRate + bonus, cap);
         var amount = s * rate;
         var fmt = function (n) { return '$' + Math.round(n).toLocaleString('es-CO'); };
         commission.textContent = fmt(amount);
-        rateEl.textContent = (rate * 100).toFixed(1).replace('.', ',') + ' % · ' + points + ' puntos';
-        nextEl.textContent = next ? ('Con ' + next + ' puntos llegas al ' + (tiers[Math.min(tiers.length - 1, tiers.findIndex(function (t) { return t[0] === next; }))][2] * 100).toFixed(1).replace('.', ',') + ' %.') : 'Estás en el techo del 5 %.';
+        rateEl.textContent = pct(rate) + ' · ' + points + ' puntos';
+        if (bonus > 0) {
+          nextEl.textContent = 'Base ' + pct(baseRate) + ' + racha ' + pct(bonus) + '. Tasa final ' + pct(rate) + '.';
+        } else if (s > 0) {
+          nextEl.textContent = 'Tasa base ' + pct(baseRate) + '. La racha suma +1 % (4–5 ventas) o +2 % (6+ ventas) con ventas en las 4 semanas.';
+        } else {
+          nextEl.textContent = 'Ingresa tus ventas y ventas válidas para calcular.';
+        }
       }
-      if (sales && orders) { sales.addEventListener('input', calc); orders.addEventListener('input', calc); calc(); }
+      if (sales && orders) {
+        [sales, orders, premiumOrders, streakWeeks].forEach(function (el) { if (el) { el.addEventListener('input', calc); el.addEventListener('change', calc); } });
+        calc();
+      }
 
       var form = document.getElementById('partner-register');
       var msg = document.getElementById('partner-register-msg');

@@ -12,7 +12,7 @@ use App\Core\Database;
  */
 class PartnerProgramSchemaService
 {
-    public const VERSION = 2;
+    public const VERSION = 3;
     private const SETTING = 'sonika_partners_schema_version';
     private static bool $ensured = false;
 
@@ -60,6 +60,7 @@ class PartnerProgramSchemaService
             'month_key' => "CHAR(7) NULL",
             'formula_version' => "VARCHAR(24) NULL",
             'outlet_amount' => "DECIMAL(14,2) NOT NULL DEFAULT 0",
+            'max_item_price' => "DECIMAL(14,2) NOT NULL DEFAULT 0",
         ];
         foreach ($commissionColumns as $col => $def) {
             $exec("ALTER TABLE affiliate_commissions ADD COLUMN IF NOT EXISTS `$col` $def", "affiliate_commissions.$col");

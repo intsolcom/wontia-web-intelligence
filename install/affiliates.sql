@@ -114,6 +114,7 @@ CREATE TABLE IF NOT EXISTS affiliate_commissions (
   tier_rate DECIMAL(6,4) NOT NULL DEFAULT 0,
   amount DECIMAL(14,2) NOT NULL DEFAULT 0,
   outlet_amount DECIMAL(14,2) NOT NULL DEFAULT 0,
+  max_item_price DECIMAL(14,2) NOT NULL DEFAULT 0,
   status VARCHAR(24) NOT NULL DEFAULT 'ESTIMATED',
   points INT NOT NULL DEFAULT 0,
   month_key CHAR(7) NULL,

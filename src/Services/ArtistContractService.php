@@ -56,10 +56,10 @@ class ArtistContractService
         ] as $column) {
             try { $db->exec('ALTER TABLE affiliate_acceptances ADD COLUMN ' . $column); } catch (\Throwable $e) {}
         }
-        $st = $db->prepare("SELECT id FROM affiliate_contracts WHERE site_id = @site_id AND code = 'sonika_partners' AND version = '1.0' LIMIT 1");
+        $st = $db->prepare("SELECT id FROM affiliate_contracts WHERE site_id = @site_id AND code = 'sonika_partners' AND version = '1.1' LIMIT 1");
         $st->execute();
         if (!$st->fetchColumn()) {
-            $db->prepare("INSERT INTO affiliate_contracts (site_id, code, version, title, body, effective_at, status, created_at) VALUES (@site_id, 'sonika_partners', '1.0', ?, ?, CURDATE(), 'published', NOW())")
+            $db->prepare("INSERT INTO affiliate_contracts (site_id, code, version, title, body, effective_at, status, created_at) VALUES (@site_id, 'sonika_partners', '1.1', ?, ?, CURDATE(), 'published', NOW())")
                 ->execute(['Contrato de participación en SONIKA Partners — Programa de Distribuidores', $this->body()]);
         }
         self::$ready = true;
@@ -173,23 +173,32 @@ Intsolcom no está obligada a publicar, mantener, promover o utilizar la imagen,
 7. COMISIONES — PUNTOS SONIKA
 La única contraprestación económica del programa será la comisión liquidada sobre ventas válidas atribuidas, calculada con la fórmula Puntos SONIKA:
 
-Puntos = (Ventas netas elegibles del mes / $100.000 COP) + Pedidos válidos del mes.
+Puntos = (Ventas netas elegibles del mes / $100.000 COP) + Pedidos válidos del mes + Puntos Premium.
 
-Se toman únicamente las unidades completas de $100.000 COP para el componente de valor. Cada pedido válido suma un (1) punto adicional. La comisión total, incluyendo cualquier ajuste o campaña, no superará el cinco por ciento (5 %) de la venta neta elegible.
+Se toman únicamente las unidades completas de $100.000 COP para el componente de valor. Cada pedido válido suma un (1) punto adicional. Cada pedido que incluya un producto con precio unitario igual o superior a $5.000.000 COP suma veinte (20) puntos premium adicionales; se toma el producto de mayor valor del pedido y el bono se aplica una sola vez por pedido.
 
-TABLA DE PUNTOS A COMISIÓN
+La tasa base máxima es del cinco por ciento (5 %). Sobre esa tasa se aplica el Bono de Racha, que puede elevarla hasta el seis por ciento (6 %) o el siete por ciento (7 %) conforme a las reglas siguientes. Ninguna comisión, ajuste, campaña o bono podrá superar el siete por ciento (7 %) de la venta neta elegible.
+
+TABLA DE PUNTOS A COMISIÓN BASE
 0 a 9 puntos: 3,0 %
 10 a 29 puntos: 3,5 %
 30 a 59 puntos: 4,0 %
-60 a 119 puntos: 4,5 %
-120 puntos o más: 5,0 %
+60 a 99 puntos: 4,5 %
+100 puntos o más: 5,0 % (tasa base máxima)
+
+BONO DE RACHA
+- 4 o 5 ventas válidas en el mes, con al menos una venta válida en cada una de cuatro semanas distintas: +1,0 punto porcentual sobre la tasa base, con un máximo del 6,0 %.
+- 6 o más ventas válidas en el mes, con al menos una venta válida en cada una de cuatro semanas distintas: +2,0 puntos porcentuales sobre la tasa base, con un máximo del 7,0 %.
+- Los bonos de racha no son acumulables entre sí: se aplica el mayor que corresponda.
+- La racha se calcula sobre pedidos válidos, no sobre unidades. Un pedido con varios productos cuenta como una venta válida.
+- Si el partner no cumple la racha, la tasa base máxima sigue siendo 5,0 %.
 
 DEFINICIONES
 - Venta neta elegible: valor neto de productos después de descuentos, antes de IVA, impuestos, envío, gift cards, financiación, devoluciones, cancelaciones y contracargos. No incluye pedidos internos, de prueba, fraudulentos, duplicados, anulados, reembolsados o no pagados.
 - Pedido válido: pedido pagado, no cancelado, no devuelto, no reversado, no interno, no fragmentado artificialmente, con ticket neto mínimo de $1.000 COP. Pedidos del mismo cliente, misma dirección, mismo medio de pago o creados en una ventana corta podrán agruparse como un solo pedido para el conteo de puntos.
 - Outlet o liquidación: 2 % fijo.
 - Productos con margen inferior al 15 %: 2 % fijo o excluidos, según la ficha del producto.
-- Servicios: máximo 5 %.
+- Servicios: máximo 5 %, sin Bono de Racha.
 
 La tasa se recalcula mensualmente de forma retroactiva sobre las ventas y pedidos válidos del mes. Las comisiones se causan únicamente después de la validación del pedido y están sujetas a la retención por devoluciones, cancelaciones, contracargos y fraude.
 
