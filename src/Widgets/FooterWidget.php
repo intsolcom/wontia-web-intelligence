@@ -7,8 +7,8 @@ class FooterWidget extends Widget
     {
         $es = \App\Core\Lang::current() === 'es';
         return $es
-            ? ['solutions' => 'Soluciones', 'powered' => 'Desarrollado por', 'through' => 'A través de', 'by' => 'por']
-            : ['solutions' => 'Solutions', 'powered' => 'Powered by', 'through' => 'Through', 'by' => 'by'];
+            ? ['solutions' => 'Soluciones', 'powered' => 'Desarrollado por', 'through' => 'A través de', 'by' => 'por', 'admin_office' => 'Oficina Administrativa', 'commercial_office' => 'Oficina Comercial']
+            : ['solutions' => 'Solutions', 'powered' => 'Powered by', 'through' => 'Through', 'by' => 'by', 'admin_office' => 'Administrative Office', 'commercial_office' => 'Commercial Office'];
     }
 
     public static function meta(): array { return ['id' => 'footer', 'name' => 'Footer', 'icon' => 'layout-bottom', 'category' => 'footer', 'version' => '1.0.0']; }
@@ -22,7 +22,8 @@ class FooterWidget extends Widget
             ['key' => 'address_us', 'label' => 'US Address', 'type' => 'text', 'default' => '390 NE 191st St, STE 17284, Miami, FL 33179'],
             ['key' => 'phone_us', 'label' => 'US Phone', 'type' => 'text', 'default' => '+1 (786) 386-1515'],
             ['key' => 'email_us', 'label' => 'US Email', 'type' => 'text', 'default' => 'customer@intsolcom.com'],
-            ['key' => 'address_co', 'label' => 'CO Address', 'type' => 'text', 'default' => 'Cra 53 # 80 - 192, Barranquilla, Colombia'],
+            ['key' => 'address_co_admin', 'label' => 'CO Administrative Office (optional)', 'type' => 'text', 'default' => ''],
+            ['key' => 'address_co', 'label' => 'CO Commercial Office', 'type' => 'text', 'default' => 'Cra 53 # 80 - 192, Barranquilla, Colombia'],
             ['key' => 'phone_co', 'label' => 'CO Phone', 'type' => 'text', 'default' => '+57 311 602 0005'],
             ['key' => 'email_co', 'label' => 'CO Email', 'type' => 'text', 'default' => 'cliente@intsolcom.com'],
             ['key' => 'solutions', 'label' => 'Solutions (JSON)', 'type' => 'code', 'default' => json_encode([
@@ -51,6 +52,7 @@ class FooterWidget extends Widget
         $year = date('Y');
         $tr = self::tr();
         $solutions = $this->safeJson($c['solutions']);
+        $coAdmin = trim((string)($c['address_co_admin'] ?? ''));
         $solMap = ['available' => ['dot' => '#4A9E6E', 'label' => 'AVAILABLE'], 'development' => ['dot' => '#D4A54A', 'label' => 'IN DEVELOPMENT'], 'future' => ['dot' => '#7C3AED', 'label' => 'FUTURE']];
         $solHtml = '<div style="display:flex;flex-direction:column;gap:8px;min-width:240px">
       <div style="font-size:10px;font-weight:700;color:#9A9A9A;text-transform:uppercase">' . $this->esc($tr['solutions']) . '</div>';
@@ -86,9 +88,10 @@ class FooterWidget extends Widget
       <div style="font-size:12px;color:#4A4A4A">&#x1f4de; <a href="tel:' . $this->esc($c['phone_us']) . '" style="color:#4A4A4A;text-decoration:none">' . $this->esc($c['phone_us']) . '</a></div>
       <div style="font-size:12px;color:#4A4A4A">&#x2709; <a href="mailto:' . $this->esc($c['email_us']) . '" style="color:#4A4A4A;text-decoration:none">' . $this->esc($c['email_us']) . '</a></div>
     </div>
-    <div style="display:flex;flex-direction:column;gap:8px;min-width:240px">
+    <div style="display:flex;flex-direction:column;gap:8px;min-width:280px">
       <div style="font-size:10px;font-weight:700;color:#9A9A9A;text-transform:uppercase">&#x1f1e8;&#x1f1f4; Intsolcom SAS</div>
-      <div style="font-size:12px;color:#4A4A4A">&#x1f4cd; ' . $this->esc($c['address_co']) . '</div>
+      ' . ($coAdmin !== '' ? '<div style="font-size:12px;color:#4A4A4A;line-height:1.5">&#x1f3db;&#xfe0f; <strong style="color:#2F2F2F">' . $this->esc($tr['admin_office']) . '</strong><br>' . $this->esc($coAdmin) . '</div>' : '') . '
+      <div style="font-size:12px;color:#4A4A4A;line-height:1.5">' . ($coAdmin !== '' ? '&#x1f3e2; <strong style="color:#2F2F2F">' . $this->esc($tr['commercial_office']) . '</strong><br>' : '&#x1f4cd; ') . $this->esc($c['address_co']) . '</div>
       <div style="font-size:12px;color:#4A4A4A">&#x1f4de; <a href="tel:' . $this->esc($c['phone_co']) . '" style="color:#4A4A4A;text-decoration:none">' . $this->esc($c['phone_co']) . '</a></div>
       <div style="font-size:12px;color:#4A4A4A">&#x2709; <a href="mailto:' . $this->esc($c['email_co']) . '" style="color:#4A4A4A;text-decoration:none">' . $this->esc($c['email_co']) . '</a></div>
     </div>

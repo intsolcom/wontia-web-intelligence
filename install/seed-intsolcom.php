@@ -52,6 +52,7 @@ $footer = [
     'address_us' => '390 NE 191st St, STE 17284, Miami, FL 33179',
     'phone_us' => '+1 (786) 386-1515',
     'email_us' => 'customer@intsolcom.com',
+    'address_co_admin' => 'Cra 53 # 80 - 198 | Atlantica Torre Empresarial - Oficina 311',
     'address_co' => 'Cra 55 # 100 - 51 Piso 13, Centro Empresarial Blue Garden',
     'phone_co' => '+57 3116020005',
     'email_co' => 'cliente@intsolcom.com',
