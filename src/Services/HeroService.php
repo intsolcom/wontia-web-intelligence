@@ -197,7 +197,10 @@ class HeroService
                 'focal' => (string)($bg['focal'] ?? '50% 50%'),
                 'overlay' => (int)($config['overlay'] ?? 55),
                 'accent' => '#F20D16',
-                'title_size' => 100,
+                'title_size_desktop' => 100,
+                'title_size_desktop_unit' => '%',
+                'title_size_mobile' => 100,
+                'title_size_mobile_unit' => '%',
                 'instrument_focus' => $i === 0 ? 'guitarras' : '',
             ]);
         }
@@ -369,7 +372,10 @@ class HeroService
                     'focal' => (string)($bg['focal'] ?? '50% 50%'),
                     'overlay' => $input['overlay'] ?? null,
                     'accent' => '#F20D16',
-                    'title_size' => 100,
+                    'title_size_desktop' => 100,
+                    'title_size_desktop_unit' => '%',
+                    'title_size_mobile' => 100,
+                    'title_size_mobile_unit' => '%',
                     'instrument_focus' => $i === 0 ? 'guitarras' : '',
                 ]);
             }
@@ -413,6 +419,15 @@ class HeroService
             $accent = trim((string)($row['accent'] ?? ''));
             if (!preg_match('/^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i', $accent)) $accent = '#F20D16';
 
+            $legacySize = max(40, min(200, (float)($row['title_size'] ?? 100)));
+            $allowedUnits = ['%', 'pt', 'px'];
+            $desktopUnit = (string)($row['title_size_desktop_unit'] ?? '%');
+            if (!in_array($desktopUnit, $allowedUnits, true)) $desktopUnit = '%';
+            $mobileUnit = (string)($row['title_size_mobile_unit'] ?? '%');
+            if (!in_array($mobileUnit, $allowedUnits, true)) $mobileUnit = '%';
+            $desktopSize = $this->normalizeTitleSize((float)($row['title_size_desktop'] ?? $legacySize), $desktopUnit);
+            $mobileSize = $this->normalizeTitleSize((float)($row['title_size_mobile'] ?? $legacySize), $mobileUnit);
+
             $slides[] = [
                 'id' => $id,
                 'enabled' => !empty($row['enabled']) ? 1 : 0,
@@ -430,12 +445,22 @@ class HeroService
                 'focal' => $focal,
                 'overlay' => $overlay,
                 'accent' => $accent,
-                'title_size' => max(60, min(140, (int)($row['title_size'] ?? 100))),
+                'title_size_desktop' => $desktopSize,
+                'title_size_desktop_unit' => $desktopUnit,
+                'title_size_mobile' => $mobileSize,
+                'title_size_mobile_unit' => $mobileUnit,
                 'instrument_focus' => preg_replace('/[^a-z0-9\-]/', '', strtolower((string)($row['instrument_focus'] ?? ''))),
             ];
         }
 
         return $slides;
+    }
+
+    private function normalizeTitleSize(float $value, string $unit): float
+    {
+        if ($unit === 'pt') return round(max(8, min(120, $value)), 2);
+        if ($unit === 'px') return round(max(10, min(180, $value)), 2);
+        return round(max(40, min(200, $value)), 2);
     }
 
     private function backgroundsFromSlides(array $slides): array

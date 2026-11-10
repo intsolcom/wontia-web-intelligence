@@ -1034,7 +1034,7 @@ W.repRefresh=function(key){
             var id='rep-'+key+'-'+i+'-'+sf.key;
             var st=sf.type||'text';
             var cls='rep-lb';
-            if(st==='image'||st==='textarea'||st==='richtext'||st==='range')cls+=' rep-lb--full';
+            if(st==='image'||st==='textarea'||st==='richtext'||st==='range'||st==='sizeunit')cls+=' rep-lb--full';
             if(sf.key==='title'||sf.key==='text'||sf.key==='href')cls+=' rep-lb--full';
             var inp;
             if(st==='richtext'){
@@ -1055,6 +1055,7 @@ W.repRefresh=function(key){
             else if(st==='color')inp='<input type="color" class="rep-in" data-i="'+i+'" data-k="'+W.esc(sf.key)+'" id="'+id+'" value="'+W.esc(val||sf.default||'#111111')+'"/>';
             else if(st==='number')inp='<input type="number" class="w-input rep-in" data-i="'+i+'" data-k="'+W.esc(sf.key)+'" id="'+id+'" value="'+W.esc(val)+'"/>';
             else if(st==='range'){var rv=(val===''||val===null)?(sf.default!==undefined?sf.default:0):val;inp='<div style="display:flex;gap:8px;align-items:center"><input type="range" class="rep-in" data-i="'+i+'" data-k="'+W.esc(sf.key)+'" id="'+id+'" min="'+W.esc(sf.min!==undefined?sf.min:0)+'" max="'+W.esc(sf.max!==undefined?sf.max:100)+'" step="'+W.esc(sf.step!==undefined?sf.step:1)+'" value="'+W.esc(rv)+'" oninput="wontia.repRange(this)"/><span id="'+id+'-out" style="font-size:11px;color:var(--w-muted);min-width:34px;text-align:right">'+W.esc(rv)+'</span></div>';}
+            else if(st==='sizeunit'){var sv=(val===''||val===null)?(sf.default!==undefined?sf.default:100):val;var uk=sf.unitKey||'unit';var uv=(it&&it[uk]!==undefined&&it[uk]!==null&&it[uk]!=='')?it[uk]:(sf.defaultUnit||'%');var uns=sf.units||{'%':'%','pt':'pt','px':'px'};var uopts=Object.keys(uns).map(function(u){return '<option value="'+W.esc(u)+'"'+(String(uv)===String(u)?' selected':'')+'>'+W.esc(uns[u])+'</option>'}).join('');inp='<div style="display:flex;gap:6px;align-items:center"><input type="number" class="w-input rep-in" data-i="'+i+'" data-k="'+W.esc(sf.key)+'" id="'+id+'" min="'+W.esc(sf.min!==undefined?sf.min:8)+'" max="'+W.esc(sf.max!==undefined?sf.max:200)+'" step="'+W.esc(sf.step!==undefined?sf.step:1)+'" value="'+W.esc(sv)+'" style="flex:1"/><select class="w-select rep-in" data-i="'+i+'" data-k="'+W.esc(uk)+'" id="'+id+'-unit" style="max-width:160px">'+uopts+'</select></div>';}
             else if(st==='select'){var kopts=sf.options||{};inp='<select class="w-select rep-in" data-i="'+i+'" data-k="'+W.esc(sf.key)+'" id="'+id+'">'+(Array.isArray(kopts)?kopts.map(function(o){var v=(o.value!==undefined?o.value:o),ll=(o.label!==undefined?o.label:v);return '<option value="'+W.esc(v)+'"'+(String(val)===String(v)?' selected':'')+'>'+W.esc(ll)+'</option>'}).join(''):Object.keys(kopts).map(function(k2){return '<option value="'+W.esc(k2)+'"'+(String(val)===String(k2)?' selected':'')+'>'+W.esc(kopts[k2])+'</option>'}).join(''))+'</select>';}
             else if(st==='icon')inp='<div style="display:flex;gap:7px;align-items:center"><input class="w-input rep-in" data-i="'+i+'" data-k="'+W.esc(sf.key)+'" id="'+id+'" value="'+W.esc(val)+'" style="flex:1"/><span id="'+id+'-iprev" style="color:#3a3a3a;flex:0 0 auto">'+(W.iconSvg(val,18)||W.esc(val))+'</span><button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.pickIcon(\''+id+'\')">Iconos</button></div>';
             else inp='<input class="w-input rep-in" data-i="'+i+'" data-k="'+W.esc(sf.key)+'" id="'+id+'" value="'+W.esc(val)+'"/>';
@@ -1848,7 +1849,7 @@ W.heroThemeSchema=function(){
         {desktop:'/assets/uploads/wontia_2c020fab54677229.webp',mobile:'/assets/uploads/wontia_4a97a4f3251c0c73.png',alt:'Escenario SONIKA con guitarra',focal:'42% 50%'}
     ];
     var defaultSlides=defaultBgs.map(function(bg,i){
-        return {id:'slide-'+(i+1),enabled:1,eyebrow:'SONIKA PRESENTA',title:'EL SONIDO\nSE *APODERA*.',title_size:100,subtitle:'Tu música. Tu escenario. Tu momento.',cta_label:'Explorar Instrumentos',cta_url:'/guitarras',cta2_label:'Ver la Experiencia',cta2_video:'https://www.youtube.com/watch?v=dsD03vmVe30',cta2_url:'',desktop:bg.desktop,mobile:bg.mobile,alt:bg.alt,focal:bg.focal,overlay:55,accent:'#F20D16',instrument_focus:i===0?'guitarras':''};
+        return {id:'slide-'+(i+1),enabled:1,eyebrow:'SONIKA PRESENTA',title:'EL SONIDO\nSE *APODERA*.',title_size_desktop:100,title_size_desktop_unit:'%',title_size_mobile:100,title_size_mobile_unit:'%',subtitle:'Tu música. Tu escenario. Tu momento.',cta_label:'Explorar Instrumentos',cta_url:'/guitarras',cta2_label:'Ver la Experiencia',cta2_video:'https://www.youtube.com/watch?v=dsD03vmVe30',cta2_url:'',desktop:bg.desktop,mobile:bg.mobile,alt:bg.alt,focal:bg.focal,overlay:55,accent:'#F20D16',instrument_focus:i===0?'guitarras':''};
     });
     return [
         {key:'slides',label:'Slides del Hero',type:'repeater',collapsible:true,default:defaultSlides,fields:[
@@ -1856,7 +1857,8 @@ W.heroThemeSchema=function(){
             {key:'enabled',label:'Visible',type:'toggle'},
             {key:'eyebrow',label:'Eyebrow / texto superior (ej. SONIKA PRESENTA)',type:'text'},
             {key:'title',label:'Título principal (2 filas; usa *texto* para el acento)',type:'textarea'},
-            {key:'title_size',label:'Tamaño del título principal de este slide (%)',type:'range',default:100,min:60,max:140,step:1,hint:'Escala las dos filas del título de este slide. No cambia el eyebrow ni la descripción.'},
+            {key:'title_size_desktop',label:'Tamaño del título en PC (solo el número)',type:'sizeunit',unitKey:'title_size_desktop_unit',units:{'%':'% (porcentaje)','pt':'pt (puntos)','px':'px (tamaño de letra)'},default:100,defaultUnit:'%',min:8,max:200,step:1},
+            {key:'title_size_mobile',label:'Tamaño del título en móvil (solo el número)',type:'sizeunit',unitKey:'title_size_mobile_unit',units:{'%':'% (porcentaje)','pt':'pt (puntos)','px':'px (tamaño de letra)'},default:100,defaultUnit:'%',min:8,max:200,step:1},
             {key:'subtitle',label:'Descripción (ej. Equipos de las mejores marcas del mundo)',type:'textarea'},
             {key:'cta_label',label:'Botón principal',type:'text'},
             {key:'cta_url',label:'Enlace del botón principal',type:'text'},

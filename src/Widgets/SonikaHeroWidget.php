@@ -166,8 +166,10 @@ class SonikaHeroWidget extends Widget
         $h .= '<div class="sth__inner">';
         $h .= '<div class="sth__copy" data-sth-copy>';
         $h .= '<span class="sth__eyebrow" data-sth-eyebrow' . (($first['eyebrow'] ?? '') === '' ? ' hidden' : '') . '>' . $this->esc((string)$first['eyebrow']) . '</span>';
-        $titleScale = max(0.6, min(1.4, ((int)($first['title_size'] ?? 100)) / 100));
-        $h .= '<h1 class="sth__title" data-sth-title style="--sth-title-scale:' . $titleScale . '"' . (($first['title_html'] ?? '') === '' ? ' hidden' : '') . '>' . ($first['title_html'] ?? '') . '</h1>';
+        $titleStyle = '';
+        if (!empty($first['title_size_desktop_css'])) $titleStyle .= '--sth-title-size-desktop:' . $first['title_size_desktop_css'] . ';';
+        if (!empty($first['title_size_mobile_css'])) $titleStyle .= '--sth-title-size-mobile:' . $first['title_size_mobile_css'] . ';';
+        $h .= '<h1 class="sth__title" data-sth-title' . ($titleStyle !== '' ? ' style="' . $this->esc($titleStyle) . '"' : '') . (($first['title_html'] ?? '') === '' ? ' hidden' : '') . '>' . ($first['title_html'] ?? '') . '</h1>';
         $h .= '<p class="sth__sub" data-sth-sub' . (($first['subtitle_html'] ?? '') === '' ? ' hidden' : '') . '>' . ($first['subtitle_html'] ?? '') . '</p>';
         $h .= '<div class="sth__actions" data-sth-actions' . ($hasActions ? '' : ' hidden') . '>';
         $h .= '<a class="sth__btn sth__btn--primary" data-sth-cta href="' . $this->esc($hasPrimary ? (string)$first['cta_url'] : '#') . '"' . ($hasPrimary ? '' : ' hidden') . '><span data-sth-cta-label>' . $this->esc($hasPrimary ? (string)$first['cta_label'] : '') . '</span> <span aria-hidden="true">&#8594;</span></a>';
@@ -242,6 +244,16 @@ class SonikaHeroWidget extends Widget
         return nl2br((string)$safe, false);
     }
 
+    private function titleSizeCss(float $value, string $unit, bool $mobile): string
+    {
+        if ($value <= 0) return '';
+        if ($unit === 'pt') return round(max(8, min(120, $value)), 2) . 'pt';
+        if ($unit === 'px') return round(max(10, min(180, $value)), 2) . 'px';
+        $value = max(40, min(200, $value));
+        $base = $mobile ? 'clamp(31px,8.5vw,46px)' : 'clamp(35px,4.9vw,75px)';
+        return 'calc(' . $base . ' * ' . round($value / 100, 4) . ')';
+    }
+
     private function soundBackgrounds(array $cfg, array $slides): array
     {
         $out = [];
@@ -305,13 +317,17 @@ class SonikaHeroWidget extends Widget
             $focal = trim((string)($row['focal'] ?? '50% 50%'));
             if (!preg_match('/^\d{1,3}%\s+\d{1,3}%$/', $focal)) $focal = '50% 50%';
 
+            $legacySize = (float)($row['title_size'] ?? 100);
+            $desktopCss = $this->titleSizeCss((float)($row['title_size_desktop'] ?? $legacySize), (string)($row['title_size_desktop_unit'] ?? '%'), false);
+            $mobileCss = $this->titleSizeCss((float)($row['title_size_mobile'] ?? $legacySize), (string)($row['title_size_mobile_unit'] ?? '%'), true);
+
             $titlePlain = trim(preg_replace('/\*(.+?)\*/u', '$1', $title));
-            $titleSize = max(60, min(140, (int)($row['title_size'] ?? 100)));
             $out[] = [
                 'id' => $id,
                 'eyebrow' => $eyebrow,
                 'title' => $title,
-                'title_size' => $titleSize,
+                'title_size_desktop_css' => $desktopCss,
+                'title_size_mobile_css' => $mobileCss,
                 'title_plain' => $titlePlain,
                 'title_html' => $this->soundTitle($title),
                 'subtitle' => $subtitle,
@@ -355,7 +371,8 @@ class SonikaHeroWidget extends Widget
                 'id' => 'slide-' . ($i + 1),
                 'eyebrow' => $eyebrow,
                 'title' => $title,
-                'title_size' => 100,
+                'title_size_desktop_css' => '',
+                'title_size_mobile_css' => '',
                 'title_plain' => $titlePlain,
                 'title_html' => $this->soundTitle($title),
                 'subtitle' => $subtitle,
@@ -617,7 +634,7 @@ class SonikaHeroWidget extends Widget
 .sth__sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 .sth__eyebrow{display:inline-flex;align-items:center;gap:7px;font-size:8.5px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.82)}
 .sth__eyebrow::before{content:"";width:16px;height:2px;border-radius:2px;background:var(--sth-red);box-shadow:0 0 14px rgba(242,13,22,.8)}
-.sth__title{margin:clamp(12px,1.7vw,20px) 0 13px;font-size:calc(clamp(35px,4.9vw,75px) * var(--sth-title-scale,1));line-height:.9;letter-spacing:-.05em;font-weight:800;text-transform:uppercase;text-wrap:balance;text-shadow:0 12px 36px rgba(0,0,0,.4)}
+.sth__title{margin:clamp(12px,1.7vw,20px) 0 13px;font-size:var(--sth-title-size-desktop,clamp(35px,4.9vw,75px));line-height:.9;letter-spacing:-.05em;font-weight:800;text-transform:uppercase;text-wrap:balance;text-shadow:0 12px 36px rgba(0,0,0,.4)}
 .sth__title em{font-style:normal;color:var(--sth-red)}
 .sth__sub{max-width:332px;margin:0 0 20px;color:rgba(255,255,255,.76);font-size:clamp(11px,.9vw,13.2px);line-height:1.6}
 .sth__actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
@@ -688,7 +705,7 @@ class SonikaHeroWidget extends Widget
 .sth-video__close{position:absolute;top:-42px;right:0;width:32px;height:32px;padding:0;border-radius:50%;border:1px solid rgba(255,255,255,.35);background:rgba(0,0,0,.35);color:#fff;font-size:22px;line-height:1;cursor:pointer;display:grid;place-items:center}
 html.sth-video-open,html.sth-video-open body{overflow:hidden}
 @media(max-width:900px){.sth__stage{height:auto;min-height:var(--sth-h,448px)}.sth__inner{grid-template-columns:1fr;align-content:center;gap:20px;padding-bottom:46px}.sth__copy{max-width:760px;min-height:0}.sth__cats{display:flex;flex-direction:column;gap:8px;max-height:none;padding:0}.sth__inst-viewport{height:auto;overflow:hidden;padding:8px 4px}.sth__inst-nav{position:static;flex-direction:row;justify-content:flex-end;gap:6px;padding:0 2px 4px;pointer-events:auto}.sth__inst-arrow{width:26px;height:26px}.sth__inst-arrow svg{transform:rotate(-90deg)}.sth__inst-track{flex-direction:row;gap:7px}.sth__cat.is-focus{transform:scale(var(--sth-focus-scale-mobile,1.32))}.sth__cat.is-focus:hover{transform:scale(var(--sth-focus-scale-mobile,1.32)) translateX(-2px)}.sth__cat{flex:0 0 135px;width:135px;height:45px;min-height:45px;grid-template-columns:36px minmax(0,1fr) 13px;gap:6px}.sth__catimg{width:36px;height:32px}.sth__catlabel{font-size:9.5px}.sth__cat.is-edge:not(.is-focus),.sth__cat.is-near:not(.is-focus){opacity:1;transform:none}.sth__cat.is-edge:not(.is-focus):hover,.sth__cat.is-edge:not(.is-focus):focus-visible,.sth__cat.is-near:not(.is-focus):hover,.sth__cat.is-near:not(.is-focus):focus-visible{transform:none}.sth__nav{left:clamp(19px,4.25vw,60px);bottom:12px}}
-@media(max-width:700px){.sth__stage{min-height:0;height:auto}.sth__inner{display:flex;flex-direction:column;align-items:stretch;gap:18px;padding:27px 14px 19px}.sth__title{font-size:calc(clamp(31px,8.5vw,46px) * var(--sth-title-scale,1));margin:12px 0 10px}.sth__sub{font-size:11px;margin-bottom:15px}.sth__actions{display:grid;grid-template-columns:1fr;gap:8px}.sth__btn{width:100%;min-height:35px}.sth__cats{gap:7px;margin:0 -14px;padding:0 14px}.sth__cats::-webkit-scrollbar{display:none}.sth__cats-head{display:flex;font-size:7px;padding:0 2px 2px}.sth__inst-viewport{height:auto;padding:8px 4px}.sth__inst-track{flex-direction:row;gap:22px}.sth__cat{flex:0 0 98px;width:98px;height:43px;min-height:43px;grid-template-columns:28px minmax(0,1fr);gap:4px;padding:4px 5px 4px 4px}.sth__catimg{width:28px;height:25px}.sth__catlabel{font-size:8.5px;line-height:1.1;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}.sth__catarrow{display:none}.sth__nav{position:static;justify-content:center;margin-top:15px}.sth-benefits__in{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px 12px;padding:9px 14px}.sth-benefit b{font-size:9.5px}.sth-benefit small{font-size:8.5px}.sth-video__close{top:-36px}
+@media(max-width:700px){.sth__stage{min-height:0;height:auto}.sth__inner{display:flex;flex-direction:column;align-items:stretch;gap:18px;padding:27px 14px 19px}.sth__title{font-size:var(--sth-title-size-mobile,clamp(31px,8.5vw,46px));margin:12px 0 10px}.sth__sub{font-size:11px;margin-bottom:15px}.sth__actions{display:grid;grid-template-columns:1fr;gap:8px}.sth__btn{width:100%;min-height:35px}.sth__cats{gap:7px;margin:0 -14px;padding:0 14px}.sth__cats::-webkit-scrollbar{display:none}.sth__cats-head{display:flex;font-size:7px;padding:0 2px 2px}.sth__inst-viewport{height:auto;padding:8px 4px}.sth__inst-track{flex-direction:row;gap:22px}.sth__cat{flex:0 0 98px;width:98px;height:43px;min-height:43px;grid-template-columns:28px minmax(0,1fr);gap:4px;padding:4px 5px 4px 4px}.sth__catimg{width:28px;height:25px}.sth__catlabel{font-size:8.5px;line-height:1.1;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}.sth__catarrow{display:none}.sth__nav{position:static;justify-content:center;margin-top:15px}.sth-benefits__in{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px 12px;padding:9px 14px}.sth-benefit b{font-size:9.5px}.sth-benefit small{font-size:8.5px}.sth-video__close{top:-36px}
 .sth__copy{transform:translateY(var(--sth-m-copy-y,0px)) scale(var(--sth-m-copy-scale,1));transform-origin:left top}
 .sth__copy.is-changing{transform:translateY(calc(var(--sth-m-copy-y,0px) + 8px)) scale(var(--sth-m-copy-scale,1))}
 .sth__eyebrow{transform:scale(var(--sth-m-eyebrow-scale,1));transform-origin:left center}
@@ -752,7 +769,7 @@ html.sth-video-open,html.sth-video-open body{overflow:hidden}
   function paintCopy(s){
     if(!s)return;
     if(eyebrow){eyebrow.textContent=s.eyebrow||'';eyebrow.hidden=!s.eyebrow;}
-    if(titleEl){titleEl.innerHTML=s.title_html||'';titleEl.hidden=!s.title_html;titleEl.style.setProperty('--sth-title-scale',String((parseInt(s.title_size,10)||100)/100));}
+    if(titleEl){titleEl.innerHTML=s.title_html||'';titleEl.hidden=!s.title_html;if(s.title_size_desktop_css)titleEl.style.setProperty('--sth-title-size-desktop',s.title_size_desktop_css);else titleEl.style.removeProperty('--sth-title-size-desktop');if(s.title_size_mobile_css)titleEl.style.setProperty('--sth-title-size-mobile',s.title_size_mobile_css);else titleEl.style.removeProperty('--sth-title-size-mobile');}
     if(subEl){subEl.innerHTML=s.subtitle_html||'';subEl.hidden=!s.subtitle_html;}
     var hasPrimary=!!(s.cta_label&&s.cta_url);
     if(cta){cta.hidden=!hasPrimary;if(hasPrimary)cta.href=s.cta_url;}
