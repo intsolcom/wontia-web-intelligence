@@ -1897,6 +1897,8 @@ W.heroThemeSchema=function(){
         {key:'instrument_image_ms',label:'Cambio de imagen de cada instrumento (ms)',type:'range',default:5000,min:2000,max:12000,step:500},
         {key:'instrument_label_max',label:'Tamaño máximo del nombre del instrumento (px)',type:'range',default:16,min:10,max:24,step:1},
         {key:'_h_mobile',label:'Experiencia móvil',type:'heading'},
+        {key:'mobile_height',label:'Altura fija del Hero en móvil (px)',type:'range',default:580,min:480,max:720,step:10,hint:'Una sola altura para todos los slides. El contenido se adapta dentro del área segura.'},
+        {key:'mobile_description_lines',label:'Máximo de líneas de la descripción en móvil',type:'range',default:2,min:1,max:4,step:1,hint:'La descripción se recorta visualmente después de estas líneas.'},
         {key:'mobile_copy_offset',label:'Bajar bloque de texto',type:'number',default:0,min:-100,max:240,step:1,hint:'Positivo baja; negativo sube. La unidad se elige al lado.'},
         {key:'mobile_copy_offset_unit',label:'Unidad del texto',type:'select',default:'px',options:{px:'px',pt:'pt',cm:'cm'}},
         {key:'mobile_cards_offset',label:'Bajar carrusel de instrumentos',type:'number',default:0,min:-100,max:240,step:1,hint:'Mueve solo las fichas de instrumentos dentro del Hero.'},
@@ -1960,7 +1962,7 @@ W.renderHeroThemePage=async function(){
         {id:'layout',title:'Proporción y foco',desc:'Altura, overlay, ficha destacada y transparencia.',help:'El foco es la ficha que se agranda. En escritorio se cuenta de 1 a 6; en móvil de 1 a 3. La transparencia y las escalas laterales solo se aplican en PC.',icon:'card',keys:['height','overlay','focus_index','focus_index_mobile','focus_scale','focus_scale_mobile','edge_opacity','edge_scale','near_scale'],badge:val('height')+' px · '+val('focus_scale')+'%'},
         {id:'instruments',title:'Instrumentos',desc:'Fichas, imágenes rotativas, flechas y tamaño de los nombres.',help:'Cada ficha rota hasta 3 imágenes del catálogo. El nombre crece hasta llenar el ancho disponible; los nombres que ya lo llenan se mantienen. Las flechas superior e inferior permiten recorrer toda la lista sin reiniciar el carrusel. La ficha del instrumento elegido en cada slide se resalta.',icon:'guitar',keys:['show_categories','categories','instrument_image_ms','instrument_label_max'],badge:repCount('categories')+' fichas'},
         {id:'benefits',title:'Beneficios',desc:'Franja inferior con los cuatro beneficios.',help:'Cada beneficio tiene icono, título y texto. La secuencia activa avanza cada 10 segundos.',icon:'truck',keys:['show_benefits','benefits'],badge:repCount('benefits')+' ítems'},
-        {id:'mobile',title:'Móvil · posición y escala',desc:'Baja el texto y el carrusel, escala cada pieza y define el ancho del CTA.',help:'Mueve el bloque de texto y las fichas de instrumentos sin cambiar la altura del Hero ni empujar otras secciones. Usa el teléfono para arrastrar las asas o los controles numéricos. Las escalas son proporcionales: no refluyen el diseño. El CTA puede ir a ancho completo, automático o personalizado en %/px.',icon:'phone',keys:['mobile_copy_offset','mobile_copy_offset_unit','mobile_cards_offset','mobile_cards_offset_unit','mobile_group_scale','mobile_eyebrow_scale','mobile_title_scale','mobile_sub_scale','mobile_cta_scale','mobile_cta_width_mode','mobile_cta_width_value','mobile_cta_width_unit'],badge:'estudio táctil'}
+        {id:'mobile',title:'Móvil · posición y escala',desc:'Baja el texto y el carrusel, escala cada pieza y define el ancho del CTA.',help:'Mueve el bloque de texto y las fichas de instrumentos sin cambiar la altura del Hero ni empujar otras secciones. Usa el teléfono para arrastrar las asas o los controles numéricos. Las escalas son proporcionales: no refluyen el diseño. El CTA puede ir a ancho completo, automático o personalizado en %/px.',icon:'phone',keys:['mobile_height','mobile_description_lines','mobile_copy_offset','mobile_copy_offset_unit','mobile_cards_offset','mobile_cards_offset_unit','mobile_group_scale','mobile_eyebrow_scale','mobile_title_scale','mobile_sub_scale','mobile_cta_scale','mobile_cta_width_mode','mobile_cta_width_value','mobile_cta_width_unit'],badge:'estudio táctil'}
     ];
     var used={};groups.forEach(function(g){g.keys.forEach(function(k){used[k]=1})});
     var extras=schema.filter(function(f){return f.type!=='heading'&&!used[f.key]});
@@ -2059,7 +2061,7 @@ W.heroMobileStudio=function(){
         +'<div class="hte-mobile-grid"><div class="hte-phone"><iframe id="hte-mobile-frame" src="/" title="Vista previa móvil del Hero" loading="lazy" onload="wontia.heroMobileStudioReady(this)"></iframe></div>'
         +'<div class="hte-mobile-side"><div class="hte-mobile-readout" id="hte-mobile-readout">Cargando vista previa…</div>'
         +'<div class="hte-mobile-legend"><span class="hte-mobile-dot hte-mobile-dot--copy"></span>Texto <span class="hte-mobile-dot hte-mobile-dot--cards"></span>Instrumentos</div>'
-        +'<div class="hte-mobile-note">Las asas se arrastran verticalmente y actualizan los campos. <b>No cambian la altura del Hero ni empujan otras secciones.</b></div>'
+        +'<div class="hte-mobile-note">Las asas y escalas no cambian la altura fija. La altura se controla con <b>Altura fija del Hero en móvil</b>. Si el contenido no cabe, el medidor lo marca en rojo.</div>'
         +'<a class="w-btn w-btn-secondary w-btn-sm" href="/" target="_blank" rel="noopener" style="margin-top:10px">Abrir Hero ↗</a>'
         +'</div></div></div>';
 };
@@ -2214,6 +2216,10 @@ W.heroMobileStudioApply=function(){
     if(!doc)return;
     var hero=doc.querySelector('.sth');
     if(!hero){W.heroMobileReadout('<div class="hte-mobile-warn">Activa el theme “El Sonido Se Apodera” para usar el estudio móvil.</div>');return;}
+    var mh=parseFloat(W.heroMobileField('mobile_height',580))||580;
+    var ml=parseInt(W.heroMobileField('mobile_description_lines',2),10)||2;
+    hero.style.setProperty('--sth-m-h',Math.max(480,Math.min(720,mh))+'px');
+    hero.style.setProperty('--sth-m-sub-lines',Math.max(1,Math.min(4,ml)));
     var copyPx=W.heroMobileClamp(W.heroMobileReadPx('mobile_copy_offset'));
     var cardsPx=W.heroMobileClamp(W.heroMobileReadPx('mobile_cards_offset'));
     hero.style.setProperty('--sth-m-copy-y',copyPx+'px');
@@ -2240,11 +2246,25 @@ W.heroMobileStudioApply=function(){
         cats?cats.getBoundingClientRect().bottom:sr.top,
         nav?nav.getBoundingClientRect().bottom:sr.top
     );
-    var overflow=Math.round(bottom-sr.bottom);
+    var copyTopOverflow=0;
+    if(copy){
+        var copyTop=copy.getBoundingClientRect().top;
+        var contentTop=copyTop;
+        Array.prototype.forEach.call(copy.children,function(el){
+            if(!el||el.hidden)return;
+            var cr=el.getBoundingClientRect();
+            if(cr.height<=0)return;
+            contentTop=Math.min(contentTop,cr.top);
+        });
+        copyTopOverflow=Math.max(0,Math.round(copyTop-contentTop));
+    }
+    var copyBottomOverflow=copy?Math.max(0,Math.round(copy.scrollHeight-copy.clientHeight)):0;
+    var copyOverflow=Math.max(copyTopOverflow,copyBottomOverflow);
+    var overflow=Math.max(Math.round(bottom-sr.bottom),copyOverflow);
     var topGap=Math.round((copy?copy.getBoundingClientRect().top:sr.top)-sr.top);
-    var html='<div class="hte-mobile-metrics"><span>Texto <b>'+Math.round(copyPx)+' px</b></span><span>Carrusel <b>'+Math.round(cardsPx)+' px</b></span><span>Imagen visible <b>'+Math.max(0,topGap)+' px</b></span></div>';
+    var html='<div class="hte-mobile-metrics"><span>Altura <b>'+Math.round(mh)+' px</b></span><span>Texto <b>'+Math.round(copyPx)+' px</b></span><span>Carrusel <b>'+Math.round(cardsPx)+' px</b></span><span>Imagen visible <b>'+Math.max(0,topGap)+' px</b></span></div>';
     html+=overflow>0
-        ? '<div class="hte-mobile-warn">Atención: el contenido se recorta '+overflow+' px. Reduce el desplazamiento o la escala.</div>'
+        ? '<div class="hte-mobile-warn">Atención: el contenido se recorta '+overflow+' px. Reduce el tamaño del título, la descripción o la escala.</div>'
         : '<div class="hte-mobile-ok">Dentro del área segura · '+Math.max(0,-overflow)+' px libres</div>';
     W.heroMobileReadout(html);
 };
@@ -2324,10 +2344,10 @@ W.heroMobileAutoFit=function(){
 
 W.heroMobilePreset=function(name){
     var sets={
-        compact:{mobile_copy_offset:8,mobile_cards_offset:0,mobile_copy_offset_unit:'px',mobile_cards_offset_unit:'px',mobile_group_scale:92,mobile_eyebrow_scale:95,mobile_title_scale:90,mobile_sub_scale:95,mobile_cta_scale:95,mobile_cta_width_mode:'auto',mobile_cta_width_value:100,mobile_cta_width_unit:'%'},
-        balanced:{mobile_copy_offset:24,mobile_cards_offset:12,mobile_copy_offset_unit:'px',mobile_cards_offset_unit:'px',mobile_group_scale:100,mobile_eyebrow_scale:100,mobile_title_scale:100,mobile_sub_scale:100,mobile_cta_scale:100,mobile_cta_width_mode:'full',mobile_cta_width_value:100,mobile_cta_width_unit:'%'},
-        editorial:{mobile_copy_offset:36,mobile_cards_offset:18,mobile_copy_offset_unit:'px',mobile_cards_offset_unit:'px',mobile_group_scale:100,mobile_eyebrow_scale:95,mobile_title_scale:100,mobile_sub_scale:100,mobile_cta_scale:100,mobile_cta_width_mode:'custom',mobile_cta_width_value:86,mobile_cta_width_unit:'%'},
-        reset:{mobile_copy_offset:0,mobile_cards_offset:0,mobile_copy_offset_unit:'px',mobile_cards_offset_unit:'px',mobile_group_scale:100,mobile_eyebrow_scale:100,mobile_title_scale:100,mobile_sub_scale:100,mobile_cta_scale:100,mobile_cta_width_mode:'full',mobile_cta_width_value:100,mobile_cta_width_unit:'%'}
+        compact:{mobile_height:520,mobile_description_lines:2,mobile_copy_offset:8,mobile_cards_offset:0,mobile_copy_offset_unit:'px',mobile_cards_offset_unit:'px',mobile_group_scale:92,mobile_eyebrow_scale:95,mobile_title_scale:90,mobile_sub_scale:95,mobile_cta_scale:95,mobile_cta_width_mode:'auto',mobile_cta_width_value:100,mobile_cta_width_unit:'%'},
+        balanced:{mobile_height:580,mobile_description_lines:2,mobile_copy_offset:24,mobile_cards_offset:12,mobile_copy_offset_unit:'px',mobile_cards_offset_unit:'px',mobile_group_scale:100,mobile_eyebrow_scale:100,mobile_title_scale:100,mobile_sub_scale:100,mobile_cta_scale:100,mobile_cta_width_mode:'full',mobile_cta_width_value:100,mobile_cta_width_unit:'%'},
+        editorial:{mobile_height:640,mobile_description_lines:3,mobile_copy_offset:36,mobile_cards_offset:18,mobile_copy_offset_unit:'px',mobile_cards_offset_unit:'px',mobile_group_scale:100,mobile_eyebrow_scale:95,mobile_title_scale:100,mobile_sub_scale:100,mobile_cta_scale:100,mobile_cta_width_mode:'custom',mobile_cta_width_value:86,mobile_cta_width_unit:'%'},
+        reset:{mobile_height:580,mobile_description_lines:2,mobile_copy_offset:0,mobile_cards_offset:0,mobile_copy_offset_unit:'px',mobile_cards_offset_unit:'px',mobile_group_scale:100,mobile_eyebrow_scale:100,mobile_title_scale:100,mobile_sub_scale:100,mobile_cta_scale:100,mobile_cta_width_mode:'full',mobile_cta_width_value:100,mobile_cta_width_unit:'%'}
     };
     var set=sets[name]||sets.reset;
     Object.keys(set).forEach(function(k){

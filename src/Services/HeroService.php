@@ -126,6 +126,8 @@ class HeroService
             'show_benefits' => 1,
             'instrument_image_ms' => 5000,
             'instrument_label_max' => 16,
+            'mobile_height' => 580,
+            'mobile_description_lines' => 2,
             'mobile_copy_offset' => 0,
             'mobile_copy_offset_unit' => 'px',
             'mobile_cards_offset' => 0,
@@ -288,6 +290,8 @@ class HeroService
         $out['mobile_cards_offset'] = round(self::pxToLength($cardsPx, $cardsUnit), 2);
         $out['mobile_cards_offset_unit'] = $cardsUnit;
 
+        $out['mobile_height'] = max(480, min(720, (int)($input['mobile_height'] ?? $defaults['mobile_height'])));
+        $out['mobile_description_lines'] = max(1, min(4, (int)($input['mobile_description_lines'] ?? $defaults['mobile_description_lines'])));
         $out['mobile_group_scale'] = max(60, min(130, (int)($input['mobile_group_scale'] ?? $defaults['mobile_group_scale'])));
         $out['mobile_eyebrow_scale'] = max(60, min(140, (int)($input['mobile_eyebrow_scale'] ?? $defaults['mobile_eyebrow_scale'])));
         $out['mobile_title_scale'] = max(60, min(140, (int)($input['mobile_title_scale'] ?? $defaults['mobile_title_scale'])));
