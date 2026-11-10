@@ -12,6 +12,8 @@ class SonikaHeroWidget extends Widget
 {
     private static bool $assets = false;
     private static bool $guitarIncluded = false;
+    private static bool $soundAssets = false;
+    private static array $instrumentImageCache = [];
 
     /** Coordenadas SVG (viewBox 0 0 1536 1024) por cuerda — índice 0 = cuerda 6 (E2) … 5 = cuerda 1 (E4). */
     private const GUITAR_STRINGS = [
@@ -25,7 +27,7 @@ class SonikaHeroWidget extends Widget
 
     public static function meta(): array
     {
-        return ['id' => 'sonika-hero', 'name' => 'SONIKA Hero Builder', 'icon' => 'zap', 'category' => 'header', 'version' => '1.0.0'];
+        return ['id' => 'sonika-hero', 'name' => 'SONIKA Hero Builder', 'icon' => 'zap', 'category' => 'header', 'version' => '1.1.0'];
     }
 
     public static function configSchema(): array
@@ -33,29 +35,38 @@ class SonikaHeroWidget extends Widget
         return [
             ['key' => 'enabled', 'label' => 'Mostrar el hero', 'type' => 'toggle', 'default' => false],
             ['key' => 'autoplay', 'label' => 'Autoplay (ms · 0 = off)', 'type' => 'number', 'default' => 7000],
-            ['key' => 'height', 'label' => 'Altura en escritorio (px)', 'type' => 'number', 'default' => 460],
+            ['key' => 'height', 'label' => 'Altura en escritorio (px)', 'type' => 'number', 'default' => 391],
         ];
     }
 
     public static function defaultConfig(): array
     {
-        return ['enabled' => false, 'autoplay' => 7000, 'height' => 460];
+        return ['enabled' => false, 'autoplay' => 7000, 'height' => 391];
     }
 
     public function render(array $config = []): string
     {
         $c = $this->mergeConfig($config);
         if (empty($c['enabled'])) return '';
-        $slides = (new HeroService())->published();
+        $svc = new HeroService();
+        $theme = $svc->activeTheme();
+        if ($theme === 'the-sound-takes-over') {
+            return $this->renderSoundTakesOver($svc->themeConfig(), $svc->published());
+        }
+        $slides = $svc->published();
         if (!$slides) return '';
 
         $autoplay = max(0, min(20000, (int)($c['autoplay'] ?? 7000)));
-        $height = max(320, min(720, (int)($c['height'] ?? 460)));
+        $height = max(320, min(720, (int)($c['height'] ?? 391)));
 
         $h = $this->assets();
         $h .= '<section class="sh" data-autoplay="' . $autoplay . '" style="--sh-h:' . $height . 'px" aria-roledescription="carrusel">';
         $h .= '<div class="sh-track">';
         foreach ($slides as $i => $s) {
+            if ((string)($s['layout'] ?? 'split') === 'background') {
+                $h .= $this->backgroundSlide($s, $i);
+                continue;
+            }
             $bg = (string)($s['design']['bg'] ?? '#111111');
             if (!preg_match('/^#[0-9a-f]{3,8}$/i', $bg)) $bg = '#111111';
             $cols = $this->cols((string)($s['design']['cols'] ?? '50/50'));
@@ -83,6 +94,1143 @@ class SonikaHeroWidget extends Widget
         return $h;
     }
 
+    private function renderSoundTakesOver(array $cfg, array $slides): string
+    {
+        $slidesData = $this->soundSlides($cfg, $slides);
+        if (!$slidesData) return '';
+        $first = $slidesData[0];
+        $instruments = !empty($cfg['show_categories']) ? $this->soundInstruments($cfg) : [];
+        $benefits = !empty($cfg['show_benefits']) ? $this->soundBenefits($cfg) : [];
+        $autoplay = max(0, min(30000, (int)($cfg['autoplay'] ?? 9000)));
+        $height = max(360, min(820, (int)($cfg['height'] ?? 448)));
+        $overlay = max(0, min(85, (int)($cfg['overlay'] ?? 55))) / 100;
+        $focusIndex = max(1, min(6, (int)($cfg['focus_index'] ?? 3)));
+        $focusIndexMobile = max(1, min(3, (int)($cfg['focus_index_mobile'] ?? 2)));
+        $focusScale = max(1.0, min(1.33, ((int)($cfg['focus_scale'] ?? 132)) / 100));
+        $focusScaleMobile = max(1.0, min(1.35, ((int)($cfg['focus_scale_mobile'] ?? 132)) / 100));
+        $edgeOpacity = max(.2, min(1, ((int)($cfg['edge_opacity'] ?? 41)) / 100));
+        $edgeScale = max(.7, min(1, ((int)($cfg['edge_scale'] ?? 85)) / 100));
+        $nearScale = max(.8, min(1, ((int)($cfg['near_scale'] ?? 90)) / 100));
+        $imageMs = max(2000, min(12000, (int)($cfg['instrument_image_ms'] ?? 5000)));
+        $labelMax = max(10, min(24, (int)($cfg['instrument_label_max'] ?? 16)));
+
+        // Ajustes móviles: posición y escala sin reflujo de la página.
+        $mCopyPx = HeroService::lengthToPx((float)($cfg['mobile_copy_offset'] ?? 0), (string)($cfg['mobile_copy_offset_unit'] ?? 'px'));
+        $mCardsPx = HeroService::lengthToPx((float)($cfg['mobile_cards_offset'] ?? 0), (string)($cfg['mobile_cards_offset_unit'] ?? 'px'));
+        $mCopyPx = max(-100, min(240, $mCopyPx));
+        $mCardsPx = max(-100, min(240, $mCardsPx));
+        $mCopyY = rtrim(rtrim(number_format($mCopyPx, 2, '.', ''), '0'), '.') . 'px';
+        $mCardsY = rtrim(rtrim(number_format($mCardsPx, 2, '.', ''), '0'), '.') . 'px';
+        $mCopyScale = max(.6, min(1.3, ((int)($cfg['mobile_group_scale'] ?? 100)) / 100));
+        $mEyebrowScale = max(.6, min(1.4, ((int)($cfg['mobile_eyebrow_scale'] ?? 100)) / 100));
+        $mTitleScale = max(.6, min(1.4, ((int)($cfg['mobile_title_scale'] ?? 100)) / 100));
+        $mSubScale = max(.6, min(1.4, ((int)($cfg['mobile_sub_scale'] ?? 100)) / 100));
+        $mCtaScale = max(.6, min(1.4, ((int)($cfg['mobile_cta_scale'] ?? 100)) / 100));
+        $mCtaMode = in_array((string)($cfg['mobile_cta_width_mode'] ?? ''), ['full', 'auto', 'custom'], true)
+            ? (string)$cfg['mobile_cta_width_mode'] : 'full';
+        $mCtaUnit = in_array((string)($cfg['mobile_cta_width_unit'] ?? ''), ['%', 'px'], true)
+            ? (string)$cfg['mobile_cta_width_unit'] : '%';
+        $mCtaValue = (int)($cfg['mobile_cta_width_value'] ?? 100);
+        $mCtaValue = $mCtaUnit === '%' ? max(20, min(100, $mCtaValue)) : max(40, min(340, $mCtaValue));
+        $mCtaWidth = $mCtaValue . $mCtaUnit;
+        $fmtScale = static function (float $value): string {
+            return rtrim(rtrim(number_format($value, 3, '.', ''), '0'), '.');
+        };
+
+        $n = count($slidesData);
+        $hasVideo = false;
+        foreach ($slidesData as $slide) {
+            if (($slide['cta2_embed'] ?? '') !== '' && ($slide['cta2_label'] ?? '') !== '') { $hasVideo = true; break; }
+        }
+        $hasPrimary = ($first['cta_label'] ?? '') !== '' && ($first['cta_url'] ?? '') !== '';
+        $hasFirstVideo = ($first['cta2_label'] ?? '') !== '' && ($first['cta2_embed'] ?? '') !== '';
+        $hasFirstLink = ($first['cta2_label'] ?? '') !== '' && ($first['cta2_url'] ?? '') !== '' && !$hasFirstVideo;
+        $hasActions = $hasPrimary || $hasFirstVideo || $hasFirstLink;
+
+        $h = $this->soundAssets();
+        $h .= '<div class="sth sth--m-cta-' . $mCtaMode . '" data-sth-hero data-sth-autoplay="' . $autoplay . '" data-sth-focus="' . $focusIndex . '" data-sth-focus-mobile="' . $focusIndexMobile . '" data-sth-img-ms="' . $imageMs . '" data-sth-label-max="' . $labelMax . '" style="--sth-h:' . $height . 'px;--sth-ov:' . round($overlay, 2) . ';--sth-focus-scale:' . $focusScale . ';--sth-focus-scale-mobile:' . $focusScaleMobile . ';--sth-edge-opacity:' . $edgeOpacity . ';--sth-edge-scale:' . $edgeScale . ';--sth-near-scale:' . $nearScale . ';--sth-m-copy-y:' . $mCopyY . ';--sth-m-cards-y:' . $mCardsY . ';--sth-m-copy-scale:' . $fmtScale($mCopyScale) . ';--sth-m-eyebrow-scale:' . $fmtScale($mEyebrowScale) . ';--sth-m-title-scale:' . $fmtScale($mTitleScale) . ';--sth-m-sub-scale:' . $fmtScale($mSubScale) . ';--sth-m-cta-scale:' . $fmtScale($mCtaScale) . ';--sth-m-cta-w:' . $mCtaWidth . '">';
+        $h .= '<section class="sth__stage" aria-label="SONIKA - El Sonido Se Apodera">';
+        $h .= '<div class="sth__bg" aria-hidden="true">';
+        foreach ($slidesData as $i => $slide) {
+            $focal = $this->esc((string)$slide['focal']);
+            $alt = $this->esc((string)$slide['alt']);
+            $desktop = $this->esc((string)$slide['desktop']);
+            $mobile = $this->esc((string)$slide['mobile']);
+            $h .= '<picture class="sth__pic' . ($i === 0 ? ' is-on' : '') . '" style="--sth-focal:' . $focal . '" data-sth-pic="' . $this->esc((string)$slide['id']) . '">';
+            if ($mobile !== '' && $mobile !== $desktop) $h .= '<source media="(max-width: 820px)" srcset="' . $mobile . '"/>';
+            $h .= '<img src="' . $desktop . '" alt="' . $alt . '" loading="' . ($i === 0 ? 'eager' : 'lazy') . '" decoding="async"' . ($i === 0 ? ' fetchpriority="high"' : '') . '/>';
+            $h .= '</picture>';
+        }
+        $h .= '</div>';
+        $h .= '<span class="sth__scrim" aria-hidden="true"></span>';
+        $h .= '<div class="sth__inner">';
+        $h .= '<div class="sth__copy" data-sth-copy>';
+        $h .= '<span class="sth__eyebrow" data-sth-eyebrow' . (($first['eyebrow'] ?? '') === '' ? ' hidden' : '') . '>' . $this->esc((string)$first['eyebrow']) . '</span>';
+        $titleScale = max(0.6, min(1.4, ((int)($first['title_size'] ?? 100)) / 100));
+        $h .= '<h1 class="sth__title" data-sth-title style="--sth-title-scale:' . $titleScale . '"' . (($first['title_html'] ?? '') === '' ? ' hidden' : '') . '>' . ($first['title_html'] ?? '') . '</h1>';
+        $h .= '<p class="sth__sub" data-sth-sub' . (($first['subtitle_html'] ?? '') === '' ? ' hidden' : '') . '>' . ($first['subtitle_html'] ?? '') . '</p>';
+        $h .= '<div class="sth__actions" data-sth-actions' . ($hasActions ? '' : ' hidden') . '>';
+        $h .= '<a class="sth__btn sth__btn--primary" data-sth-cta href="' . $this->esc($hasPrimary ? (string)$first['cta_url'] : '#') . '"' . ($hasPrimary ? '' : ' hidden') . '><span data-sth-cta-label>' . $this->esc($hasPrimary ? (string)$first['cta_label'] : '') . '</span> <span aria-hidden="true">&#8594;</span></a>';
+        $h .= '<button type="button" class="sth__btn sth__btn--ghost" data-sth-video-open data-sth-cta2-video data-sth-video-embed="' . $this->esc($hasFirstVideo ? (string)$first['cta2_embed'] : '') . '"' . ($hasFirstVideo ? '' : ' hidden') . '><span class="sth__play" aria-hidden="true">&#9654;</span> <span data-sth-cta2-label>' . $this->esc($hasFirstVideo ? (string)$first['cta2_label'] : '') . '</span></button>';
+        $h .= '<a class="sth__btn sth__btn--ghost" data-sth-cta2-link href="' . $this->esc($hasFirstLink ? (string)$first['cta2_url'] : '#') . '"' . ($hasFirstLink ? '' : ' hidden') . '><span data-sth-cta2-link-label>' . $this->esc($hasFirstLink ? (string)$first['cta2_label'] : '') . '</span> <span aria-hidden="true">&#8594;</span></a>';
+        $h .= '</div>';
+        $h .= '<span class="sth__sr" data-sth-live aria-live="polite"></span>';
+        $h .= '</div>';
+        if ($instruments) {
+            $h .= '<aside class="sth__cats" aria-label="Instrumentos destacados">';
+            $h .= '<div class="sth__cats-head"><span>Instrumentos</span><span>' . str_pad((string)count($instruments), 2, '0', STR_PAD_LEFT) . '</span></div>';
+            $h .= '<div class="sth__inst-viewport" data-sth-inst-viewport>';
+            $h .= '<div class="sth__inst-nav" role="group" aria-label="Navegación de instrumentos">';
+            $h .= '<button type="button" class="sth__inst-arrow" data-sth-inst-prev aria-label="Instrumentos anteriores"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 14l6-6 6 6"/></svg></button>';
+            $h .= '<button type="button" class="sth__inst-arrow" data-sth-inst-next aria-label="Instrumentos siguientes"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 10l6 6 6-6"/></svg></button>';
+            $h .= '</div>';
+            $h .= '<div class="sth__inst-track" data-sth-inst-track>';
+            foreach ($instruments as $i => $cat) {
+                $edge = (($i === 0 || $i === 5) && $i !== ($focusIndex - 1)) ? ' is-edge' : '';
+                $near = (($i === 1 || $i === 4) && $i !== ($focusIndex - 1)) ? ' is-near' : '';
+                $images = array_values((array)($cat['images'] ?? []));
+                if (!$images) $images = [(string)($cat['image'] ?? '')];
+                $images = array_values(array_filter($images, fn($u) => trim((string)$u) !== ''));
+                $h .= '<a class="sth__cat' . ($i === ($focusIndex - 1) ? ' is-focus' : '') . $edge . $near . '" data-sth-inst data-sth-slug="' . $this->esc((string)($cat['slug'] ?? '')) . '" data-sth-imgs="' . $this->esc(json_encode($images, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)) . '" href="' . $this->esc((string)$cat['href']) . '" title="' . $this->esc((string)$cat['label']) . '">';
+                $h .= '<span class="sth__catimg"><img class="is-on" src="' . $this->esc((string)($images[0] ?? '')) . '" alt="" loading="lazy" decoding="async"/></span>';
+                $h .= '<span class="sth__catlabel">' . $this->esc((string)$cat['label']) . '</span>';
+                $h .= '<span class="sth__catarrow" aria-hidden="true">&#8250;</span>';
+                $h .= '</a>';
+            }
+            $h .= '</div></div></aside>';
+            $h .= '<script>(function(){var v=document.querySelector("[data-sth-inst-viewport]");if(!v)return;var r=v.closest("[data-sth-hero]");if(!r)return;var m=window.matchMedia&&window.matchMedia("(max-width:900px)").matches;var n=(parseInt(m?r.getAttribute("data-sth-focus-mobile"):r.getAttribute("data-sth-focus"),10)||(m?2:3))-1;var a=v.querySelectorAll("[data-sth-inst]");for(var i=0;i<a.length;i++){a[i].classList.toggle("is-focus",i===n);if(m){a[i].classList.remove("is-edge");a[i].classList.remove("is-near");}}})();</script>';
+        }
+        $h .= '</div>';
+        if ($n > 1) {
+            $h .= '<div class="sth__nav" role="group" aria-label="Navegación del hero">';
+            $h .= '<button type="button" class="sth__arrow" data-sth-prev aria-label="Slide anterior">&#8249;</button>';
+            $h .= '<div class="sth__dots" role="tablist" aria-label="Slides">';
+            foreach ($slidesData as $i => $slide) {
+                $dotLabel = 'Slide ' . ($i + 1);
+                if (($slide['title_plain'] ?? '') !== '') $dotLabel .= ': ' . $slide['title_plain'];
+                $h .= '<button type="button" class="sth__dot' . ($i === 0 ? ' is-on' : '') . '" data-sth-dot="' . $i . '" role="tab" aria-label="' . $this->esc($dotLabel) . '" aria-selected="' . ($i === 0 ? 'true' : 'false') . '"></button>';
+            }
+            $h .= '</div>';
+            $h .= '<span class="sth__slidecount" data-sth-count>01 / ' . str_pad((string)$n, 2, '0', STR_PAD_LEFT) . '</span>';
+            $h .= '<button type="button" class="sth__pause" data-sth-pause aria-label="Pausar carrusel" aria-pressed="false"><span data-sth-pause-icon aria-hidden="true">&#10074;&#10074;</span></button>';
+            $h .= '<button type="button" class="sth__arrow" data-sth-next aria-label="Slide siguiente">&#8250;</button>';
+            $h .= '</div>';
+        }
+        $h .= '</section>';
+        if ($benefits) {
+            $h .= '<div class="sth-benefits"><div class="sth-benefits__in">';
+            foreach ($benefits as $i => $b) {
+                $icon = function_exists('sonika_icon') ? sonika_icon((string)$b['icon']) : '';
+                $h .= '<div class="sth-benefit' . ($i === 0 ? ' is-active' : '') . '" data-sth-benefit><span class="sth-benefit__icon" aria-hidden="true">' . $icon . '</span><span><b>' . $this->esc((string)$b['title']) . '</b><small>' . $this->esc((string)$b['text']) . '</small></span></div>';
+            }
+            $h .= '</div></div>';
+        }
+        if ($hasVideo) {
+            $h .= '<dialog class="sth-video" data-sth-dialog aria-label="Video del Hero"><button type="button" class="sth-video__close" data-sth-video-close aria-label="Cerrar video">&#215;</button><div class="sth-video__box" data-sth-video-frame></div></dialog>';
+        }
+        $h .= '<script type="application/json" data-sth-slides-json>' . json_encode($slidesData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) . '</script>';
+        $h .= '</div>';
+        return $h;
+    }
+
+    private function soundTitle(string $title): string
+    {
+        $title = trim($title);
+        if ($title === '') return '';
+        $safe = htmlspecialchars($title, ENT_QUOTES, 'UTF-8');
+        $safe = preg_replace('/\*(.+?)\*/u', '<em>$1</em>', $safe);
+        return nl2br((string)$safe, false);
+    }
+
+    private function soundBackgrounds(array $cfg, array $slides): array
+    {
+        $out = [];
+        foreach ((array)($cfg['backgrounds'] ?? []) as $row) {
+            if (empty($row['enabled'])) continue;
+            $desktop = $this->mediaUrl((string)($row['desktop'] ?? ''));
+            $mobile = $this->mediaUrl((string)($row['mobile'] ?? ''));
+            if ($desktop === '' && $mobile === '') continue;
+            $focal = trim((string)($row['focal'] ?? '50% 50%'));
+            if (!preg_match('/^\d{1,3}%\s+\d{1,3}%$/', $focal)) $focal = '50% 50%';
+            $out[] = ['desktop' => $desktop !== '' ? $desktop : $mobile, 'mobile' => $mobile, 'alt' => trim((string)($row['alt'] ?? '')), 'focal' => $focal];
+        }
+        if ($out) return $out;
+        foreach ($slides as $s) {
+            $d = (array)($s['design'] ?? []);
+            $desktop = $this->mediaUrl((string)($d['bg_image'] ?? ''));
+            $mobile = $this->mediaUrl((string)($d['bg_image_mobile'] ?? ''));
+            $poster = $this->mediaUrl((string)($d['bg_poster'] ?? ''));
+            if ($desktop === '' && $poster !== '') $desktop = $poster;
+            if ($desktop === '' && $mobile === '') continue;
+            $x = max(0, min(100, (int)($d['bg_x'] ?? 50)));
+            $y = max(0, min(100, (int)($d['bg_y'] ?? 50)));
+            $out[] = ['desktop' => $desktop !== '' ? $desktop : $mobile, 'mobile' => $mobile, 'alt' => trim((string)($d['bg_alt'] ?? '')), 'focal' => $x . '% ' . $y . '%'];
+        }
+        if ($out) return $out;
+        return [['desktop' => '/assets/uploads/wontia_2c020fab54677229.webp', 'mobile' => '/assets/uploads/wontia_4a97a4f3251c0c73.png', 'alt' => 'Escenario SONIKA', 'focal' => '42% 50%']];
+    }
+
+    private function soundSlides(array $cfg, array $classicSlides): array
+    {
+        $out = [];
+        foreach ((array)($cfg['slides'] ?? []) as $i => $row) {
+            if (!is_array($row) || empty($row['enabled'])) continue;
+            $desktop = $this->mediaUrl((string)($row['desktop'] ?? ''));
+            $mobile = $this->mediaUrl((string)($row['mobile'] ?? ''));
+            if ($desktop === '' && $mobile === '') continue;
+
+            $id = preg_replace('/[^a-z0-9\-]/', '', strtolower((string)($row['id'] ?? ''))) ?: 'slide-' . ($i + 1);
+            $eyebrow = trim((string)($row['eyebrow'] ?? ''));
+            $title = trim((string)($row['title'] ?? ''));
+            $subtitle = trim((string)($row['subtitle'] ?? ''));
+            $ctaLabel = trim((string)($row['cta_label'] ?? ''));
+            $ctaUrl = $this->linkUrl((string)($row['cta_url'] ?? ''));
+            $cta2Label = trim((string)($row['cta2_label'] ?? ''));
+            $cta2Video = trim((string)($row['cta2_video'] ?? ''));
+            $cta2Url = $this->linkUrl((string)($row['cta2_url'] ?? ''));
+
+            $embed = '';
+            if ($cta2Video !== '') {
+                $yt = $this->youtubeId($cta2Video);
+                if ($yt !== '') $embed = 'https://www.youtube-nocookie.com/embed/' . $yt . '?autoplay=1&rel=0&modestbranding=1&playsinline=1';
+            }
+
+            $overlay = $row['overlay'] ?? null;
+            if ($overlay === null || $overlay === '') $overlay = round(((int)($cfg['overlay'] ?? 55)) / 100, 2);
+            else $overlay = round(((int)$overlay) / 100, 2);
+
+            $accent = trim((string)($row['accent'] ?? ''));
+            if (!preg_match('/^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i', $accent)) $accent = '#F20D16';
+
+            $focal = trim((string)($row['focal'] ?? '50% 50%'));
+            if (!preg_match('/^\d{1,3}%\s+\d{1,3}%$/', $focal)) $focal = '50% 50%';
+
+            $titlePlain = trim(preg_replace('/\*(.+?)\*/u', '$1', $title));
+            $titleSize = max(60, min(140, (int)($row['title_size'] ?? 100)));
+            $out[] = [
+                'id' => $id,
+                'eyebrow' => $eyebrow,
+                'title' => $title,
+                'title_size' => $titleSize,
+                'title_plain' => $titlePlain,
+                'title_html' => $this->soundTitle($title),
+                'subtitle' => $subtitle,
+                'subtitle_html' => $subtitle !== '' ? nl2br($this->esc($subtitle), false) : '',
+                'cta_label' => $ctaLabel,
+                'cta_url' => $ctaLabel !== '' ? $ctaUrl : '',
+                'cta2_label' => $cta2Label,
+                'cta2_video' => $cta2Video,
+                'cta2_embed' => $embed,
+                'cta2_url' => $cta2Url,
+                'desktop' => $desktop !== '' ? $desktop : $mobile,
+                'mobile' => $mobile,
+                'alt' => trim((string)($row['alt'] ?? '')),
+                'focal' => $focal,
+                'overlay' => $overlay,
+                'accent' => $accent,
+                'instrument_focus' => preg_replace('/[^a-z0-9\-]/', '', strtolower((string)($row['instrument_focus'] ?? ''))),
+            ];
+        }
+        if ($out) return $out;
+        if (array_key_exists('slides', $cfg)) return [];
+
+        $backgrounds = $this->soundBackgrounds($cfg, $classicSlides);
+        $eyebrow = trim((string)($cfg['eyebrow'] ?? ''));
+        $title = trim((string)($cfg['title'] ?? ''));
+        $subtitle = trim((string)($cfg['subtitle'] ?? ''));
+        $ctaLabel = trim((string)($cfg['cta_label'] ?? ''));
+        $ctaUrl = $this->linkUrl((string)($cfg['cta_url'] ?? ''));
+        $cta2Label = trim((string)($cfg['cta2_label'] ?? ''));
+        $cta2Video = trim((string)($cfg['cta2_video'] ?? ''));
+        $cta2Url = '';
+        $embed = '';
+        if ($cta2Video !== '') {
+            $yt = $this->youtubeId($cta2Video);
+            if ($yt !== '') $embed = 'https://www.youtube-nocookie.com/embed/' . $yt . '?autoplay=1&rel=0&modestbranding=1&playsinline=1';
+        }
+        $overlay = round(((int)($cfg['overlay'] ?? 55)) / 100, 2);
+        $titlePlain = trim(preg_replace('/\*(.+?)\*/u', '$1', $title));
+        foreach ($backgrounds as $i => $bg) {
+            $out[] = [
+                'id' => 'slide-' . ($i + 1),
+                'eyebrow' => $eyebrow,
+                'title' => $title,
+                'title_size' => 100,
+                'title_plain' => $titlePlain,
+                'title_html' => $this->soundTitle($title),
+                'subtitle' => $subtitle,
+                'subtitle_html' => $subtitle !== '' ? nl2br($this->esc($subtitle), false) : '',
+                'cta_label' => $ctaLabel,
+                'cta_url' => $ctaLabel !== '' ? $ctaUrl : '',
+                'cta2_label' => $cta2Label,
+                'cta2_video' => $cta2Video,
+                'cta2_embed' => $embed,
+                'cta2_url' => $cta2Url,
+                'desktop' => (string)$bg['desktop'],
+                'mobile' => (string)($bg['mobile'] ?? ''),
+                'alt' => (string)($bg['alt'] ?? ''),
+                'focal' => (string)($bg['focal'] ?? '50% 50%'),
+                'overlay' => $overlay,
+                'accent' => '#F20D16',
+                'instrument_focus' => $i === 0 ? 'guitarras' : '',
+            ];
+        }
+        return $out;
+    }
+
+    private function soundInstruments(array $cfg): array
+    {
+        $out = [];
+        foreach ((array)($cfg['categories'] ?? []) as $row) {
+            if (empty($row['enabled'])) continue;
+            $label = trim((string)($row['label'] ?? ''));
+            if ($label === '') continue;
+            $slug = preg_replace('/[^a-z0-9\-]/', '', strtolower((string)($row['slug'] ?? '')));
+            $href = $this->mediaUrl((string)($row['href'] ?? ''));
+            if ($href === '' || str_starts_with($href, '/assets/')) $href = '/tienda';
+            $image = $this->mediaUrl((string)($row['image'] ?? ''));
+            if ($slug === 'baquetas' && ($image === '' || str_contains($image, 'BAQUETAVICFIRTHA.CLASSIC.PUNTAMADERA5AVG'))) {
+                $image = 'https://cdn.shopify.com/s/files/1/0269/4178/4117/products/BAQ039.png?v=1574455593&width=640';
+            }
+            if ($image === '' && $slug !== '' && function_exists('sonika_category_image')) $image = sonika_category_image($slug, 360);
+            if ($image === '') continue;
+            $images = $this->soundInstrumentImages($label, $slug, $href, $image, 3);
+            $out[] = [
+                'label' => $label,
+                'slug' => $slug,
+                'href' => $href,
+                'image' => $images[0] ?? $image,
+                'images' => $images,
+            ];
+        }
+        return $out;
+    }
+
+    private function soundInstrumentImages(string $label, string $slug, string $href, string $fallback, int $limit = 3): array
+    {
+        $limit = max(1, $limit);
+        $fallback = $this->thumbUrl($fallback, 240);
+        $cacheKey = strtolower($slug . '|' . $label . '|' . $fallback . '|' . $limit);
+        if (isset(self::$instrumentImageCache[$cacheKey])) return self::$instrumentImageCache[$cacheKey];
+
+        $pool = [];
+        $seen = [];
+        $add = function (string $url) use (&$pool, &$seen, $limit): void {
+            $url = trim($url);
+            if ($url === '' || count($pool) >= $limit) return;
+            $key = $this->imageKey($url);
+            if ($key === '' || isset($seen[$key])) return;
+            $seen[$key] = 1;
+            $pool[] = $url;
+        };
+
+        $add($fallback);
+
+        $products = function_exists('sonika_products') ? sonika_products() : [];
+        $matched = null;
+        if ($fallback !== '' && $products) {
+            $fallbackKey = $this->imageKey($fallback);
+            foreach ($products as $product) {
+                foreach ((array)($product['images'] ?? []) as $img) {
+                    $src = is_array($img) ? (string)($img['src'] ?? '') : (string)$img;
+                    if ($src !== '' && $this->imageKey($src) === $fallbackKey) { $matched = $product; break 2; }
+                }
+            }
+        }
+
+        $query = $this->instrumentQuery($label, $slug, $href);
+        $categorySlug = $this->instrumentCategorySlug($slug);
+        $categoryFirst = in_array($slug, ['cuerdas-guitarras', 'amplificadores', 'microfono-miche', 'cabezas-moviles', 'pianos'], true);
+        $candidates = [];
+        if ($matched) $candidates[] = $matched;
+
+        $addSearch = function () use (&$candidates, $query, $slug): void {
+            if ($query === '' || !function_exists('sonika_search')) return;
+            foreach (sonika_search($query) as $product) {
+                if (!$this->instrumentMatches($product, $slug)) continue;
+                $candidates[] = $product;
+                if (count($candidates) >= 16) break;
+            }
+        };
+        $addCategory = function () use (&$candidates, $categorySlug, $slug): void {
+            if ($categorySlug === '' || !function_exists('sonika_category_products') || !function_exists('sonika_category')) return;
+            if (!sonika_category($categorySlug)) return;
+            $sub = $slug === 'bajos' ? 'bajos' : '';
+            foreach (sonika_category_products($categorySlug, $sub) as $product) {
+                if (!$this->instrumentMatches($product, $slug)) continue;
+                $candidates[] = $product;
+                if (count($candidates) >= 32) break;
+            }
+        };
+
+        if ($categoryFirst) { $addCategory(); $addSearch(); }
+        else { $addSearch(); $addCategory(); }
+
+        foreach ($candidates as $product) {
+            foreach ($this->productImageUrls($product, 240) as $url) {
+                $add($url);
+                if (count($pool) >= $limit) break 2;
+            }
+        }
+
+        self::$instrumentImageCache[$cacheKey] = $pool;
+        return $pool;
+    }
+
+    private function instrumentQuery(string $label, string $slug, string $href): string
+    {
+        $map = [
+            'guitarras' => 'guitarra', 'pianos' => 'piano', 'acordeon' => 'acordeon', 'baterias' => 'bateria',
+            'bajos' => 'bajo', 'violines' => 'violin', 'ukelele' => 'ukelele', 'saxofon' => 'saxofon',
+            'timbales' => 'timbal', 'bongoes' => 'bongo', 'tumbadoras' => 'tumbadora', 'baquetas' => 'baqueta',
+            'microfono-miche' => 'microfono', 'cabinas' => 'cabina', 'amplificadores-fender' => 'amplificador fender',
+            'amplificadores' => 'amplificador', 'audifonos' => 'audifonos', 'cabezas-moviles' => 'cabeza movil',
+            'cuerdas-guitarras' => 'cuerda guitarra',
+        ];
+        if (isset($map[$slug])) return $map[$slug];
+        if (preg_match('~[?&]q=([^&]+)~i', $href, $m)) return urldecode($m[1]);
+        return trim($label);
+    }
+
+    private function instrumentCategorySlug(string $slug): string
+    {
+        $map = [
+            'guitarras' => 'guitarras', 'pianos' => 'pianos', 'acordeon' => 'acordeon', 'baterias' => 'percusion',
+            'bajos' => 'guitarras', 'violines' => 'guitarras', 'ukelele' => 'guitarras', 'saxofon' => 'acordeon',
+            'timbales' => 'percusion', 'bongoes' => 'percusion', 'tumbadoras' => 'percusion', 'baquetas' => 'percusion',
+            'microfono-miche' => 'microfono-miche', 'cabinas' => 'amplificadores', 'amplificadores-fender' => 'amplificadores',
+            'amplificadores' => 'amplificadores', 'audifonos' => 'amplificadores', 'cabezas-moviles' => 'cabeza-movil',
+            'cuerdas-guitarras' => 'cuerdas-guitarras',
+        ];
+        return $map[$slug] ?? $slug;
+    }
+
+    private function instrumentKeywords(string $slug): array
+    {
+        $map = [
+            'guitarras' => ['GUITARRA'],
+            'pianos' => ['PIANO', 'TECLADO', 'SINTETIZ', 'CELVIANO', 'PRIVIA'],
+            'acordeon' => ['ACORDE'],
+            'baterias' => ['BATER', 'REDOBL', 'PLATILL', 'TAROLA', 'BOMBO'],
+            'bajos' => ['BAJO'],
+            'violines' => ['VIOLIN', 'VIOLA', 'VIOLONCHELO'],
+            'ukelele' => ['UKELELE', 'UKULELE'],
+            'saxofon' => ['SAXOF', 'SAX'],
+            'timbales' => ['TIMBAL'],
+            'bongoes' => ['BONGO'],
+            'tumbadoras' => ['CONGA', 'TUMBA', 'DJEMBE'],
+            'baquetas' => ['BAQUETA'],
+            'microfono-miche' => ['MICROFON', 'MICRO'],
+            'cabinas' => ['CABINA', 'PARLANTE', 'ALTAVOZ', 'BAFLE', 'SUBWOOFER'],
+            'amplificadores-fender' => ['AMPLIF', 'FENDER'],
+            'amplificadores' => ['AMPLIF', 'MIXER', 'CONSOLA', 'PARLANTE', 'CABINA', 'PROCESAD', 'INTERFAZ', 'AUDIFONO', 'POTENCIA', 'MONITOR'],
+            'audifonos' => ['AUDIFONO', 'AURICULAR'],
+            'cabezas-moviles' => ['CABEZA', 'PAR LED', 'PARLED', 'MOVIL', 'LUZ', 'REFLECTOR', 'BLINDER'],
+            'cuerdas-guitarras' => [],
+        ];
+        return $map[$slug] ?? [];
+    }
+
+    private function instrumentMatches(array $product, string $slug): bool
+    {
+        $raw = trim((string)($product['title'] ?? '') . ' ' . (string)($product['product_type'] ?? ''));
+        if (function_exists('sonika_product_tags')) {
+            $raw .= ' ' . implode(' ', sonika_product_tags($product));
+        }
+        $hay = function_exists('sonika_fold') ? sonika_fold($raw) : mb_strtolower($raw, 'UTF-8');
+        if (!in_array($slug, ['cuerdas-guitarras', 'baquetas'], true)) {
+            $accessory = ['accesorio', 'adaptador', 'cable', 'forro', 'funda', 'correa', 'soporte', 'stand', 'pedal', 'estuche', 'atril', 'pick', 'capodastro', 'clavijero', 'repuesto', 'limpiador', 'protector', 'rack', 'clamp', 'acople'];
+            foreach ($accessory as $word) { if (str_contains($hay, $word)) return false; }
+        }
+        $keywords = $this->instrumentKeywords($slug);
+        if (!$keywords) return true;
+        $hits = 0;
+        foreach ($keywords as $word) {
+            $needle = function_exists('sonika_fold') ? sonika_fold($word) : mb_strtolower($word, 'UTF-8');
+            if (str_contains($hay, $needle)) $hits++;
+        }
+        return $slug === 'amplificadores-fender' ? $hits >= 2 : $hits >= 1;
+    }
+
+    private function productImageUrls(array $product, int $w = 240): array
+    {
+        $out = [];
+        foreach ((array)($product['images'] ?? []) as $img) {
+            $src = is_array($img) ? (string)($img['src'] ?? '') : (string)$img;
+            if ($src === '') continue;
+            $out[] = $this->thumbUrl($src, $w);
+        }
+        return $out;
+    }
+
+    private function thumbUrl(string $url, int $w = 240): string
+    {
+        $url = trim($url);
+        if ($url === '' || $w <= 0) return $url;
+        if (!str_starts_with($url, '/') && !preg_match('~^https?://~i', $url)) return $url;
+        if (preg_match('/[?&]width=\d+/i', $url)) return (string)preg_replace('/([?&])width=\d+/i', '${1}width=' . $w, $url);
+        return $url . (str_contains($url, '?') ? '&' : '?') . 'width=' . $w;
+    }
+
+    private function imageKey(string $url): string
+    {
+        $url = trim($url);
+        if ($url === '') return '';
+        $url = (string)preg_replace('/([?&])(width|height)=\d+/i', '$1', $url);
+        $url = (string)preg_replace('/[?&]+$/', '', $url);
+        return strtolower($url);
+    }
+
+    private function soundBenefits(array $cfg): array
+    {
+        $out = [];
+        foreach ((array)($cfg['benefits'] ?? []) as $row) {
+            if (empty($row['enabled'])) continue;
+            $title = trim((string)($row['title'] ?? ''));
+            if ($title === '') continue;
+            $out[] = [
+                'icon' => preg_replace('/[^a-z0-9_\-]/i', '', (string)($row['icon'] ?? 'check')) ?: 'check',
+                'title' => $title,
+                'text' => trim((string)($row['text'] ?? '')),
+            ];
+        }
+        return $out;
+    }
+
+    private function soundAssets(): string
+    {
+        if (self::$soundAssets) return '';
+        self::$soundAssets = true;
+        return <<<'HTML'
+<style id="sth-css">
+.sth{--sth-red:#F20D16;--sth-ink:#07080d;position:relative;background:#07080d;color:#fff;font-family:'Sora',system-ui,sans-serif}
+.sth__stage{position:relative;isolation:isolate;overflow:hidden;height:var(--sth-h,448px);min-height:var(--sth-h,448px);background:#07080d;touch-action:pan-y}
+.sth__bg{position:absolute;inset:0;z-index:0;overflow:hidden;background:#07080d}
+.sth__pic{position:absolute;inset:0;display:block;opacity:0;transition:opacity .9s cubic-bezier(.22,1,.36,1)}
+.sth__pic.is-on{opacity:1}
+.sth__pic img{display:block;width:100%;height:100%;object-fit:cover;object-position:var(--sth-focal,50% 50%);transform:scale(1.015)}
+.sth__scrim{position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(90deg,rgba(4,5,9,.94) 0%,rgba(4,5,9,.78) 32%,rgba(4,5,9,.26) 62%,rgba(4,5,9,.72) 100%),linear-gradient(0deg,rgba(4,5,9,var(--sth-ov,.55)) 0%,rgba(4,5,9,.12) 46%,rgba(4,5,9,0) 72%)}
+.sth__inner{position:relative;z-index:2;box-sizing:border-box;width:100%;max-width:1440px;height:100%;margin:0 auto;padding:clamp(26px,3.5vw,48px) clamp(19px,4.25vw,60px) 29px;display:grid;grid-template-columns:minmax(0,1fr) minmax(238px,280px);gap:clamp(17px,2.9vw,46px);align-items:center}
+.sth__copy{max-width:720px;min-width:0;min-height:clamp(200px,22vw,280px);display:flex;flex-direction:column;justify-content:center;transition:opacity .18s ease,transform .18s ease}
+.sth__copy.is-changing{opacity:0;transform:translateY(8px)}
+.sth [hidden]{display:none!important}
+.sth__sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.sth__eyebrow{display:inline-flex;align-items:center;gap:7px;font-size:8.5px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.82)}
+.sth__eyebrow::before{content:"";width:16px;height:2px;border-radius:2px;background:var(--sth-red);box-shadow:0 0 14px rgba(242,13,22,.8)}
+.sth__title{margin:clamp(12px,1.7vw,20px) 0 13px;font-size:calc(clamp(35px,4.9vw,75px) * var(--sth-title-scale,1));line-height:.9;letter-spacing:-.05em;font-weight:800;text-transform:uppercase;text-wrap:balance;text-shadow:0 12px 36px rgba(0,0,0,.4)}
+.sth__title em{font-style:normal;color:var(--sth-red)}
+.sth__sub{max-width:332px;margin:0 0 20px;color:rgba(255,255,255,.76);font-size:clamp(11px,.9vw,13.2px);line-height:1.6}
+.sth__actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.sth__btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:35px;padding:0 14px;border-radius:999px;font:800 10px/1 'Sora',system-ui,sans-serif;text-decoration:none;cursor:pointer;transition:transform .18s ease,background-color .18s ease,border-color .18s ease,color .18s ease;border:1px solid transparent}
+.sth__btn:focus-visible{outline:2px solid #fff;outline-offset:3px}
+.sth__btn--primary{background:var(--sth-red);color:#fff;box-shadow:0 10px 28px rgba(242,13,22,.28)}
+.sth__btn--primary:hover{background:#d80b15;transform:translateY(-2px)}
+.sth__btn--ghost{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.24);color:#fff;backdrop-filter:blur(10px)}
+.sth__btn--ghost:hover{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.48);transform:translateY(-2px)}
+.sth__play{font-size:8px;line-height:1;color:var(--sth-red)}
+.sth__cats{display:flex;flex-direction:column;gap:7px;min-width:0;max-height:100%;padding:2px 2px 2px 0;touch-action:auto}
+.sth__cats::-webkit-scrollbar{display:none}
+.sth__cats-head{display:flex;justify-content:space-between;align-items:center;padding:0 4px 2px;font-size:7px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.5)}
+.sth__cats-head span{color:rgba(255,255,255,.32);font-variant-numeric:tabular-nums}
+.sth__inst-viewport{position:relative;overflow:hidden;box-sizing:border-box;height:327px;padding:0 35px}
+.sth__inst-nav{position:absolute;right:3px;top:4px;bottom:4px;display:flex;flex-direction:column;justify-content:space-between;z-index:3;pointer-events:none}
+.sth__inst-arrow{pointer-events:auto;width:24px;height:24px;padding:0;border-radius:50%;border:1px solid rgba(255,255,255,.14);background:rgba(8,9,14,.34);backdrop-filter:blur(8px);color:rgba(255,255,255,.58);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:background-color .2s ease,border-color .2s ease,color .2s ease,transform .2s ease,box-shadow .2s ease;animation:sthInstPulse 2.8s ease-in-out infinite}
+.sth__inst-arrow:hover,.sth__inst-arrow:focus-visible{background:var(--sth-red);border-color:var(--sth-red);color:#fff;transform:scale(1.08);animation:none}
+.sth__inst-arrow:active{transform:scale(.96)}
+.sth__inst-arrow:focus-visible{outline:2px solid #fff;outline-offset:3px}
+.sth__inst-arrow svg{display:block}
+@keyframes sthInstPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,255,255,0)}50%{box-shadow:0 0 0 5px rgba(255,255,255,.06)}}
+.sth__inst-track{display:flex;flex-direction:column;gap:9px;transition:transform .58s cubic-bezier(.22,1,.36,1);will-change:transform}
+.sth__cat{display:grid;grid-template-columns:39px minmax(0,1fr) 13px;align-items:center;gap:8px;flex:0 0 47px;height:47px;box-sizing:border-box;padding:5px 8px 5px 5px;border-radius:9px;background:rgba(8,9,14,.68);border:1px solid rgba(255,255,255,.12);color:#fff;text-decoration:none;backdrop-filter:blur(12px);transition:transform .35s ease,background-color .35s ease,border-color .35s ease,box-shadow .35s ease,opacity .35s ease}
+.sth__cat:hover{transform:translateX(-2px);border-color:rgba(255,255,255,.34);background:rgba(17,18,26,.86)}
+.sth__cat.is-focus{transform:scale(var(--sth-focus-scale,1.32));transform-origin:center;border-color:rgba(242,13,22,.75);background:rgba(242,13,22,.14);box-shadow:0 10px 26px rgba(242,13,22,.16);z-index:2}
+.sth__cat.is-focus:hover{transform:scale(var(--sth-focus-scale,1.32)) translateX(-2px);background:rgba(242,13,22,.18);border-color:rgba(242,13,22,.85)}
+.sth__cat.is-focus .sth__catimg{transform:scale(1.08)}
+.sth__cat.is-edge{opacity:var(--sth-edge-opacity,.41);transform:scale(var(--sth-edge-scale,.85));transform-origin:center}
+.sth__cat.is-near{transform:scale(var(--sth-near-scale,.9));transform-origin:center}
+.sth__cat.is-edge:hover,.sth__cat.is-edge:focus-visible{opacity:1;transform:scale(var(--sth-edge-scale,.85)) translateX(-2px)}
+.sth__cat.is-near:hover,.sth__cat.is-near:focus-visible{transform:scale(var(--sth-near-scale,.9)) translateX(-2px)}
+.sth__cat.is-slide-focus{box-shadow:0 0 0 1px var(--sth-red),0 0 24px rgba(242,13,22,.24)}
+.sth__catimg{position:relative;width:39px;height:35px;border-radius:6px;overflow:hidden;display:block;background:#f7f7f8;transition:transform .35s ease}
+.sth__catimg img{position:absolute;inset:0;display:block;width:100%;height:100%;object-fit:contain;opacity:0;transition:opacity .45s ease}
+.sth__catimg img.is-on{opacity:1}
+.sth__catlabel{min-width:0;font-size:9.5px;font-weight:800;letter-spacing:-.01em;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sth__catarrow{font-size:15px;line-height:1;opacity:.72;text-align:right}
+.sth__cat:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.sth__nav{position:absolute;left:max(19px,calc((100% - 1440px)/2 + 60px));bottom:13px;z-index:3;display:flex;align-items:center;gap:7px}
+.sth__arrow{width:24px;height:24px;border-radius:50%;border:1px solid rgba(255,255,255,.25);background:rgba(0,0,0,.22);color:#fff;font-size:15px;line-height:1;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:background-color .18s ease,border-color .18s ease}
+.sth__arrow:hover{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.55)}
+.sth__dots{display:flex;align-items:center;gap:4px}
+.sth__dot{width:17px;height:3px;padding:0;border:0;border-radius:99px;background:rgba(255,255,255,.28);cursor:pointer;transition:width .2s ease,background-color .2s ease}
+.sth__dot.is-on{width:29px;background:var(--sth-red)}
+.sth__dot:focus-visible{outline:2px solid #fff;outline-offset:3px}
+.sth__slidecount{font-size:8px;font-weight:800;letter-spacing:.12em;color:rgba(255,255,255,.55);font-variant-numeric:tabular-nums;margin:0 2px;white-space:nowrap}
+.sth__pause{width:24px;height:24px;padding:0;border-radius:50%;border:1px solid rgba(255,255,255,.25);background:rgba(0,0,0,.22);color:#fff;font-size:8px;line-height:1;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:background-color .18s ease,border-color .18s ease}
+.sth__pause:hover{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.55)}
+.sth__pause:focus-visible{outline:2px solid #fff;outline-offset:3px}
+.sth-benefits{background:#fff;color:#111114;border-bottom:1px solid #e6e6e8}
+.sth-benefits__in{max-width:1440px;margin:0 auto;padding:11px clamp(19px,4.25vw,60px);display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px}
+.sth-benefit{position:relative;display:flex;align-items:center;gap:8px;min-width:0;padding:3px 5px;border-radius:8px;transition:background-color .35s ease,transform .35s ease}
+.sth-benefit::after{content:"";position:absolute;left:8px;right:8px;bottom:0;height:2px;border-radius:2px;background:var(--sth-red);transform:scaleX(0);transform-origin:left;transition:transform .35s ease}
+.sth-benefit:hover,.sth-benefit.is-active{background:rgba(242,13,22,.055);transform:translateY(-1px)}
+.sth-benefit:hover::after,.sth-benefit.is-active::after{transform:scaleX(1)}
+.sth-benefit__icon{flex:0 0 auto;display:flex;color:var(--sth-red);transition:transform .35s ease}
+.sth-benefit:hover .sth-benefit__icon,.sth-benefit.is-active .sth-benefit__icon{transform:translateY(-1px) scale(1.08)}
+.sth-benefit__icon svg{width:16px;height:16px;display:block}
+.sth-benefit b{display:block;font-size:9.5px;font-weight:800;line-height:1.2;transition:color .35s ease}
+.sth-benefit:hover b,.sth-benefit.is-active b{color:#a8070e}
+.sth-benefit small{display:block;margin-top:2px;color:#6d6d76;font-size:8.5px;line-height:1.3}
+.sth-video{position:fixed;inset:0;z-index:9999;margin:auto;width:min(92vw,980px);height:max-content;max-height:none;padding:0;border:0;border-radius:16px;background:#000;color:#fff;box-shadow:0 30px 100px rgba(0,0,0,.65);overflow:visible}
+.sth-video::backdrop{background:rgba(0,0,0,.84);backdrop-filter:blur(4px)}
+.sth-video.is-fallback{box-shadow:0 0 0 100vmax rgba(0,0,0,.84),0 30px 100px rgba(0,0,0,.65)}
+.sth-video__box{position:relative;aspect-ratio:16/9;background:#000}
+.sth-video__box iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.sth-video__close{position:absolute;top:-42px;right:0;width:32px;height:32px;padding:0;border-radius:50%;border:1px solid rgba(255,255,255,.35);background:rgba(0,0,0,.35);color:#fff;font-size:22px;line-height:1;cursor:pointer;display:grid;place-items:center}
+html.sth-video-open,html.sth-video-open body{overflow:hidden}
+@media(max-width:900px){.sth__stage{height:auto;min-height:var(--sth-h,448px)}.sth__inner{grid-template-columns:1fr;align-content:center;gap:20px;padding-bottom:46px}.sth__copy{max-width:760px;min-height:0}.sth__cats{display:flex;flex-direction:column;gap:8px;max-height:none;padding:0}.sth__inst-viewport{height:auto;overflow:hidden;padding:8px 4px}.sth__inst-nav{position:static;flex-direction:row;justify-content:flex-end;gap:6px;padding:0 2px 4px;pointer-events:auto}.sth__inst-arrow{width:26px;height:26px}.sth__inst-arrow svg{transform:rotate(-90deg)}.sth__inst-track{flex-direction:row;gap:7px}.sth__cat.is-focus{transform:scale(var(--sth-focus-scale-mobile,1.32))}.sth__cat.is-focus:hover{transform:scale(var(--sth-focus-scale-mobile,1.32)) translateX(-2px)}.sth__cat{flex:0 0 135px;width:135px;height:45px;min-height:45px;grid-template-columns:36px minmax(0,1fr) 13px;gap:6px}.sth__catimg{width:36px;height:32px}.sth__catlabel{font-size:9.5px}.sth__cat.is-edge:not(.is-focus),.sth__cat.is-near:not(.is-focus){opacity:1;transform:none}.sth__cat.is-edge:not(.is-focus):hover,.sth__cat.is-edge:not(.is-focus):focus-visible,.sth__cat.is-near:not(.is-focus):hover,.sth__cat.is-near:not(.is-focus):focus-visible{transform:none}.sth__nav{left:clamp(19px,4.25vw,60px);bottom:12px}}
+@media(max-width:700px){.sth__stage{min-height:0;height:auto}.sth__inner{display:flex;flex-direction:column;align-items:stretch;gap:18px;padding:27px 14px 19px}.sth__title{font-size:calc(clamp(31px,8.5vw,46px) * var(--sth-title-scale,1));margin:12px 0 10px}.sth__sub{font-size:11px;margin-bottom:15px}.sth__actions{display:grid;grid-template-columns:1fr;gap:8px}.sth__btn{width:100%;min-height:35px}.sth__cats{gap:7px;margin:0 -14px;padding:0 14px}.sth__cats::-webkit-scrollbar{display:none}.sth__cats-head{display:flex;font-size:7px;padding:0 2px 2px}.sth__inst-viewport{height:auto;padding:8px 4px}.sth__inst-track{flex-direction:row;gap:22px}.sth__cat{flex:0 0 98px;width:98px;height:43px;min-height:43px;grid-template-columns:28px minmax(0,1fr);gap:4px;padding:4px 5px 4px 4px}.sth__catimg{width:28px;height:25px}.sth__catlabel{font-size:8.5px;line-height:1.1;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}.sth__catarrow{display:none}.sth__nav{position:static;justify-content:center;margin-top:15px}.sth-benefits__in{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px 12px;padding:9px 14px}.sth-benefit b{font-size:9.5px}.sth-benefit small{font-size:8.5px}.sth-video__close{top:-36px}
+.sth__copy{transform:translateY(var(--sth-m-copy-y,0px)) scale(var(--sth-m-copy-scale,1));transform-origin:left top}
+.sth__copy.is-changing{transform:translateY(calc(var(--sth-m-copy-y,0px) + 8px)) scale(var(--sth-m-copy-scale,1))}
+.sth__eyebrow{transform:scale(var(--sth-m-eyebrow-scale,1));transform-origin:left center}
+.sth__title{transform:scale(var(--sth-m-title-scale,1));transform-origin:left top}
+.sth__sub{transform:scale(var(--sth-m-sub-scale,1));transform-origin:left top}
+.sth__actions{transform:scale(var(--sth-m-cta-scale,1));transform-origin:left top}
+.sth__cats,.sth__nav{transform:translateY(var(--sth-m-cards-y,0px))}
+.sth--m-cta-full .sth__actions{display:grid;grid-template-columns:1fr;gap:8px}
+.sth--m-cta-full .sth__btn{width:100%}
+.sth--m-cta-auto .sth__actions{display:flex;flex-wrap:wrap;gap:8px}
+.sth--m-cta-auto .sth__btn{width:auto;min-width:0}
+.sth--m-cta-custom .sth__actions{display:flex;flex-wrap:wrap;gap:8px}
+.sth--m-cta-custom .sth__btn{width:var(--sth-m-cta-w,100%);max-width:100%;min-width:0}}
+@media(prefers-reduced-motion:reduce){.sth__pic,.sth__copy,.sth__btn,.sth__cat,.sth__arrow,.sth__dot,.sth__pause,.sth__inst-arrow,.sth__inst-track,.sth-benefit,.sth-benefit__icon,.sth-benefit::after,.sth-benefit b{transition:none!important}.sth__inst-arrow{animation:none!important}.sth__pic img{transform:none}.sth__inst-viewport{overflow-y:auto!important;scrollbar-width:thin}.sth-benefit:hover,.sth-benefit.is-active{transform:none}}
+@media(max-width:900px) and (prefers-reduced-motion:reduce){.sth__inst-viewport{overflow-x:auto!important;overflow-y:hidden!important}}
+</style>
+<script>
+(function(){
+  function init(){
+  'use strict';
+  var root=document.querySelector('[data-sth-hero]');
+  if(!root||root.getAttribute('data-sth-ready')==='1')return;
+  root.setAttribute('data-sth-ready','1');
+
+  var pics=[].slice.call(root.querySelectorAll('.sth__pic'));
+  var dots=[].slice.call(root.querySelectorAll('[data-sth-dot]'));
+  var copy=root.querySelector('[data-sth-copy]');
+  var eyebrow=root.querySelector('[data-sth-eyebrow]');
+  var titleEl=root.querySelector('[data-sth-title]');
+  var subEl=root.querySelector('[data-sth-sub]');
+  var actions=root.querySelector('[data-sth-actions]');
+  var cta=root.querySelector('[data-sth-cta]');
+  var ctaLabel=root.querySelector('[data-sth-cta-label]');
+  var videoBtn=root.querySelector('[data-sth-cta2-video]');
+  var videoLabel=root.querySelector('[data-sth-cta2-label]');
+  var linkBtn=root.querySelector('[data-sth-cta2-link]');
+  var linkLabel=root.querySelector('[data-sth-cta2-link-label]');
+  var live=root.querySelector('[data-sth-live]');
+  var pauseBtn=root.querySelector('[data-sth-pause]');
+  var countEl=root.querySelector('[data-sth-count]');
+  var slidesData=[];
+  try{slidesData=JSON.parse((root.querySelector('[data-sth-slides-json]')||{}).textContent||'[]')}catch(e){slidesData=[]}
+  if(!Array.isArray(slidesData)||!slidesData.length)return;
+  var n=slidesData.length;
+  var index=0,timer=null,userPaused=false,dialogOpen=false,heroVisible=true;
+  var delay=parseInt(root.getAttribute('data-sth-autoplay')||'0',10);
+  var imageMs=parseInt(root.getAttribute('data-sth-img-ms')||'5000',10);
+  var labelMax=parseFloat(root.getAttribute('data-sth-label-max')||'16')||16;
+  var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var defaultAccent=(getComputedStyle(root).getPropertyValue('--sth-red')||'').trim()||'#F20D16';
+
+  function pad(v){return (v<10?'0':'')+v}
+  function announce(s,idx){if(live)live.textContent='Slide '+(idx+1)+' de '+n+(s&&s.title_plain?': '+s.title_plain:'')}
+  function updateUrl(idx){
+    try{
+      var u=new URL(location.href);
+      if(idx>0)u.searchParams.set('slide',String(idx+1));else u.searchParams.delete('slide');
+      history.replaceState(null,'',u.pathname+u.search+(u.hash||''));
+    }catch(e){}
+  }
+  function paintCopy(s){
+    if(!s)return;
+    if(eyebrow){eyebrow.textContent=s.eyebrow||'';eyebrow.hidden=!s.eyebrow;}
+    if(titleEl){titleEl.innerHTML=s.title_html||'';titleEl.hidden=!s.title_html;titleEl.style.setProperty('--sth-title-scale',String((parseInt(s.title_size,10)||100)/100));}
+    if(subEl){subEl.innerHTML=s.subtitle_html||'';subEl.hidden=!s.subtitle_html;}
+    var hasPrimary=!!(s.cta_label&&s.cta_url);
+    if(cta){cta.hidden=!hasPrimary;if(hasPrimary)cta.href=s.cta_url;}
+    if(ctaLabel)ctaLabel.textContent=s.cta_label||'';
+    var hasVideo=!!(s.cta2_label&&s.cta2_embed);
+    var hasLink=!!(s.cta2_label&&s.cta2_url);
+    if(videoBtn){videoBtn.hidden=!hasVideo;if(hasVideo)videoBtn.setAttribute('data-sth-video-embed',s.cta2_embed);}
+    if(videoLabel)videoLabel.textContent=s.cta2_label||'';
+    if(linkBtn){linkBtn.hidden=!(hasLink&&!hasVideo);if(hasLink)linkBtn.href=s.cta2_url;}
+    if(linkLabel)linkLabel.textContent=s.cta2_label||'';
+    if(actions)actions.hidden=!(hasPrimary||hasVideo||hasLink);
+    if(countEl)countEl.textContent=pad(index+1)+' / '+pad(n);
+  }
+  var copyTimer=null;
+  function applyCopy(s,animate){
+    if(copyTimer){clearTimeout(copyTimer);copyTimer=null;}
+    if(animate&&!reduce&&copy){
+      copy.classList.add('is-changing');
+      copyTimer=setTimeout(function(){paintCopy(s);copy.classList.remove('is-changing');copyTimer=null;},180);
+    }else{
+      if(copy)copy.classList.remove('is-changing');
+      paintCopy(s);
+    }
+  }
+  function dispatch(name,detail){try{document.dispatchEvent(new CustomEvent(name,{detail:detail}))}catch(e){}}
+  function show(next,opts){
+    if(n<1)return;
+    next=(next+n)%n;
+    index=next;
+    pics.forEach(function(p,j){p.classList.toggle('is-on',j===index)});
+    dots.forEach(function(d,j){d.classList.toggle('is-on',j===index);d.setAttribute('aria-selected',j===index?'true':'false')});
+    var s=slidesData[index]||{};
+    if(s.overlay!==undefined&&s.overlay!==null&&s.overlay!=='')root.style.setProperty('--sth-ov',s.overlay);
+    root.style.setProperty('--sth-red',s.accent||defaultAccent);
+    applyCopy(s,!(opts&&opts.initial));
+    if(s.instrument_focus)instHighlight(s.instrument_focus);else instClearFocus();
+    if(countEl)countEl.textContent=pad(index+1)+' / '+pad(n);
+    if(opts&&opts.manual){updateUrl(index);announce(s,index);}
+    dispatch('sonika:hero-slide',{id:s.id||'',index:index,title:s.title_plain||'',manual:!!(opts&&opts.manual)});
+  }
+  function stop(){if(timer!==null){clearInterval(timer);timer=null;}stopBenefits();}
+  function start(){
+    if(userPaused||reduce||dialogOpen)return;
+    if(timer===null&&n>1&&delay>0){timer=setInterval(function(){if(document.hidden){stop();return;}show(index+1,{manual:false});},delay);}
+    startBenefits();instStart();
+  }
+
+  var benefits=[].slice.call(root.querySelectorAll('[data-sth-benefit]'));
+  var benefitZone=root.querySelector('.sth-benefits');
+  var benefitIndex=0,benefitTimer=null,benefitPaused=false;
+  function setBenefit(i){if(!benefits.length)return;benefits[benefitIndex].classList.remove('is-active');benefitIndex=(i+benefits.length)%benefits.length;benefits[benefitIndex].classList.add('is-active');}
+  function stopBenefits(){if(benefitTimer!==null){clearInterval(benefitTimer);benefitTimer=null;}}
+  function startBenefits(){if(userPaused||reduce||benefitPaused||benefits.length<2||benefitTimer!==null)return;benefitTimer=setInterval(function(){if(document.hidden)return;setBenefit(benefitIndex+1);},10000);}
+  if(benefitZone){benefitZone.addEventListener('mouseenter',function(){benefitPaused=true;stopBenefits();});benefitZone.addEventListener('mouseleave',function(){benefitPaused=false;startBenefits();});benefitZone.addEventListener('focusin',function(){benefitPaused=true;stopBenefits();});benefitZone.addEventListener('focusout',function(){benefitPaused=false;startBenefits();});}
+
+  var instViewport=root.querySelector('[data-sth-inst-viewport]');
+  var instTrack=root.querySelector('[data-sth-inst-track]');
+  var instItems=instTrack?[].slice.call(instTrack.querySelectorAll('[data-sth-inst]')):[];
+  var instOriginal=instItems.length;
+  var instFocusDesktop=Math.max(0,Math.min(5,(parseInt(root.getAttribute('data-sth-focus'),10)||3)-1));
+  var instFocusMobile=Math.max(0,Math.min(2,(parseInt(root.getAttribute('data-sth-focus-mobile'),10)||2)-1));
+  var instStep=0,instTimer=null,instPaused=false,instMobile=false,instPitch=0,instFocusTimer=null,instManualTimer=null,instManualDir=0;
+  function instCanRotate(){return instOriginal>(instMobile?3:6);}
+  function instMeasure(){
+    instMobile=!!(window.matchMedia&&window.matchMedia('(max-width:900px)').matches);
+    if(!instItems.length)return;
+    var first=instItems[0];
+    var gap=parseFloat(getComputedStyle(instTrack).gap)||0;
+    var size=instMobile?first.getBoundingClientRect().width:first.getBoundingClientRect().height;
+    instPitch=size+gap;
+  }
+  function fitLabels(){
+    var labels=root.querySelectorAll('.sth__catlabel');
+    if(!labels.length)return;
+    var mobile=!!(window.matchMedia&&window.matchMedia('(max-width:900px)').matches);
+    var max=mobile?Math.min(labelMax,11.5):labelMax;
+    var min=9.5;
+    labels.forEach(function(label){
+      label.style.fontSize='';
+      if(mobile){label.style.fontSize=max+'px';return;}
+      var avail=label.clientWidth;
+      if(!avail)return;
+      var size=max;
+      label.style.fontSize=size+'px';
+      while(size>min&&label.scrollWidth>avail){
+        size-=0.25;
+        if(size<min)size=min;
+        label.style.fontSize=size+'px';
+      }
+    });
+  }
+  function instTabbables(){
+    if(!instItems.length||reduce)return;
+    var visible=instMobile?3:6;
+    instItems.forEach(function(el,i){
+      var on=i>=instStep&&i<instStep+visible;
+      if(on){el.removeAttribute('aria-hidden');el.setAttribute('tabindex','0');}
+      else{el.setAttribute('aria-hidden','true');el.setAttribute('tabindex','-1');}
+    });
+  }
+  function instApply(step,animate){
+    if(!instTrack||!instItems.length)return;
+    instStep=step;
+    instTrack.style.transition=animate?'':'none';
+    instTrack.style.transform=(instMobile?'translateX(':'translateY(')+(-step*instPitch)+'px)';
+    if(!animate){instTrack.getBoundingClientRect();instTrack.style.transition='';}
+    instItems.forEach(function(el){el.classList.remove('is-focus');el.classList.remove('is-edge');el.classList.remove('is-near');});
+    var visible=instMobile?3:6;
+    var fi=instMobile?instFocusMobile:instFocusDesktop;
+    if(fi>=visible)fi=visible-1;
+    var focusIndex=step+fi;
+    var focus=instItems[focusIndex];
+    if(focus)focus.classList.add('is-focus');
+    if(!instMobile&&instItems.length>=6){
+      if(instItems[step]&&step!==focusIndex)instItems[step].classList.add('is-edge');
+      if(instItems[step+5]&&step+5!==focusIndex)instItems[step+5].classList.add('is-edge');
+      if(instItems[step+1]&&step+1!==focusIndex)instItems[step+1].classList.add('is-near');
+      if(instItems[step+4]&&step+4!==focusIndex)instItems[step+4].classList.add('is-near');
+    }
+    instTabbables();
+  }
+  function instClearFocus(){
+    if(instFocusTimer){clearTimeout(instFocusTimer);instFocusTimer=null;}
+    instItems.forEach(function(el){el.classList.remove('is-slide-focus')});
+  }
+  function instHighlight(slug){
+    if(!slug||!instItems.length)return;
+    instClearFocus();
+    var found=false;
+    instItems.forEach(function(el){if(el.getAttribute('data-sth-slug')===slug){el.classList.add('is-slide-focus');found=true;}});
+    if(!found)return;
+    instFocusTimer=setTimeout(function(){instItems.forEach(function(el){el.classList.remove('is-slide-focus')});instFocusTimer=null;},2600);
+  }
+  function instNext(){
+    if(!instItems.length||!instCanRotate())return;
+    var next=instStep+1;
+    if(next>instOriginal){instApply(0,false);return;}
+    instApply(next,true);
+    if(next===instOriginal){setTimeout(function(){if(instStep===instOriginal)instApply(0,false);},700);}
+  }
+  function instPrev(){
+    if(!instItems.length||!instCanRotate())return;
+    if(instStep<=0){instApply(Math.max(0,instOriginal-1),false);return;}
+    instApply(instStep-1,true);
+  }
+  function instStop(){if(instTimer!==null){clearInterval(instTimer);instTimer=null;}}
+  function instStart(){
+    if(userPaused||instPaused||reduce||instTimer!==null||!instCanRotate())return;
+    instTimer=setInterval(function(){if(!document.hidden)instNext();},7000);
+  }
+  function instManualStep(dir){
+    if(dir<0)instPrev();else instNext();
+  }
+  function instManualStart(dir){
+    if(instManualTimer!==null){clearInterval(instManualTimer);instManualTimer=null;}
+    instManualDir=dir;
+    instPaused=true;
+    instStop();
+    instManualStep(dir);
+    instManualTimer=setInterval(function(){instManualStep(instManualDir);},600);
+  }
+  function instManualStop(){
+    if(instManualTimer!==null){clearInterval(instManualTimer);instManualTimer=null;}
+  }
+  function initImageRotators(){
+    if(reduce)return;
+    var cards=[].slice.call(root.querySelectorAll('[data-sth-imgs]'));
+    if(!cards.length)return;
+    var groups={};
+    cards.forEach(function(card){
+      var labelEl=card.querySelector('.sth__catlabel');
+      var slug=card.getAttribute('data-sth-slug')||(labelEl?labelEl.textContent:'');
+      if(!slug)return;
+      if(!groups[slug])groups[slug]={slug:slug,cards:[],images:[],idx:0,paused:false,locks:0,timer:null};
+      groups[slug].cards.push(card);
+    });
+    Object.keys(groups).forEach(function(slug,gi){
+      var group=groups[slug];
+      var first=group.cards[0];
+      var imgs=[];
+      try{imgs=JSON.parse(first.getAttribute('data-sth-imgs')||'[]')}catch(e){imgs=[]}
+      if(!Array.isArray(imgs)||imgs.length<2)return;
+      group.images=imgs.filter(function(u){return typeof u==='string'&&u!==''});
+      if(group.images.length<2)return;
+      group.cards.forEach(function(card){
+        var box=card.querySelector('.sth__catimg');
+        if(!box)return;
+        var base=box.querySelector('img');
+        if(!base)return;
+        var alt=document.createElement('img');
+        alt.alt='';
+        alt.loading='lazy';
+        alt.decoding='async';
+        box.appendChild(alt);
+        card.__imgLayers=[base,alt];
+        card.__imgActive=0;
+        card.addEventListener('mouseenter',function(){group.locks++;group.paused=true;});
+        card.addEventListener('mouseleave',function(){group.locks=Math.max(0,group.locks-1);group.paused=group.locks>0;});
+        card.addEventListener('focusin',function(){group.locks++;group.paused=true;});
+        card.addEventListener('focusout',function(){group.locks=Math.max(0,group.locks-1);group.paused=group.locks>0;});
+      });
+      function swap(card,url){
+        var layers=card.__imgLayers;
+        if(!layers)return;
+        var active=card.__imgActive||0;
+        var incoming=layers[1-active];
+        var outgoing=layers[active];
+        incoming.src=url;
+        incoming.classList.add('is-on');
+        outgoing.classList.remove('is-on');
+        card.__imgActive=1-active;
+      }
+      function nextImage(){
+        if(group.paused||userPaused||dialogOpen||document.hidden||!heroVisible)return;
+        var next=(group.idx+1)%group.images.length;
+        var pre=new Image();
+        pre.onload=function(){
+          if(group.paused||userPaused||dialogOpen||document.hidden||!heroVisible)return;
+          group.cards.forEach(function(card){swap(card,group.images[next])});
+          group.idx=next;
+        };
+        pre.onerror=function(){};
+        pre.src=group.images[next];
+      }
+      var startDelay=2200+(gi%6)*380;
+      setTimeout(function(){
+        nextImage();
+        group.timer=setInterval(nextImage,Math.max(2000,imageMs)+(gi%5)*320);
+      },startDelay);
+    });
+  }
+  if(instViewport&&instTrack&&instOriginal){
+    instMeasure();
+    if(!reduce&&instCanRotate()){
+      instTrack.insertAdjacentHTML('beforeend',instTrack.innerHTML);
+      instItems=[].slice.call(instTrack.querySelectorAll('[data-sth-inst]'));
+      instMeasure();
+      instViewport.addEventListener('mouseenter',function(){instPaused=true;instStop();});
+      instViewport.addEventListener('mouseleave',function(){instPaused=false;instStart();});
+      instViewport.addEventListener('focusin',function(){instPaused=true;instStop();});
+      instViewport.addEventListener('focusout',function(){setTimeout(function(){if(!instViewport.contains(document.activeElement)){instPaused=false;instStart();}},0);});
+      window.addEventListener('resize',function(){instStop();instMeasure();fitLabels();instApply(instStep,false);instStart();});
+    }
+    instApply(0,false);
+  }
+  function bindInstArrow(btn,dir){
+    if(!btn)return;
+    function start(){instManualStart(dir);}
+    function stop(){instManualStop();}
+    btn.addEventListener('mouseenter',start);
+    btn.addEventListener('mouseleave',stop);
+    btn.addEventListener('pointerdown',function(e){if(e.pointerType==='mouse')return;e.preventDefault();start();});
+    btn.addEventListener('pointerup',function(e){if(e.pointerType==='mouse')return;stop();instPaused=false;instStart();});
+    btn.addEventListener('pointercancel',function(e){if(e.pointerType==='mouse')return;stop();instPaused=false;instStart();});
+    btn.addEventListener('pointerleave',function(e){if(e.pointerType==='mouse')return;stop();instPaused=false;instStart();});
+    btn.addEventListener('click',function(e){if(e.detail===0)instManualStep(dir);});
+  }
+  bindInstArrow(root.querySelector('[data-sth-inst-prev]'),-1);
+  bindInstArrow(root.querySelector('[data-sth-inst-next]'),1);
+  fitLabels();
+  initImageRotators();
+  if(document.fonts&&document.fonts.ready)document.fonts.ready.then(fitLabels);
+
+  function syncPause(){
+    if(!pauseBtn)return;
+    pauseBtn.setAttribute('aria-pressed',userPaused?'true':'false');
+    pauseBtn.setAttribute('aria-label',userPaused?'Reproducir carrusel':'Pausar carrusel');
+    var icon=pauseBtn.querySelector('[data-sth-pause-icon]');
+    if(icon)icon.textContent=userPaused?'\u25B6':'\u275A\u275A';
+    root.classList.toggle('is-paused',userPaused);
+  }
+  if(pauseBtn){
+    if(delay<=0)pauseBtn.hidden=true;
+    pauseBtn.addEventListener('click',function(){userPaused=!userPaused;if(userPaused){stop();instStop();}else start();syncPause();});
+  }
+
+  var prev=root.querySelector('[data-sth-prev]'),next=root.querySelector('[data-sth-next]');
+  if(prev)prev.addEventListener('click',function(){stop();show(index-1,{manual:true});start();});
+  if(next)next.addEventListener('click',function(){stop();show(index+1,{manual:true});start();});
+  dots.forEach(function(dot){dot.addEventListener('click',function(){stop();show(parseInt(dot.getAttribute('data-sth-dot'),10)||0,{manual:true});start();});});
+
+  var sx=0,sy=0,swiping=false;
+  root.addEventListener('pointerdown',function(e){
+    if(e.pointerType==='mouse')return;
+    if(e.target&&e.target.closest&&e.target.closest('a,button,.sth__cats,.sth__nav,.sth__pause'))return;
+    sx=e.clientX;sy=e.clientY;swiping=true;
+  },{passive:true});
+  root.addEventListener('pointerup',function(e){
+    if(!swiping)return;swiping=false;
+    var dx=e.clientX-sx,dy=e.clientY-sy;
+    if(Math.abs(dx)<40||Math.abs(dx)<Math.abs(dy))return;
+    stop();show(index+(dx<0?1:-1),{manual:true});start();
+  },{passive:true});
+  root.addEventListener('pointercancel',function(){swiping=false;},{passive:true});
+
+  if(copy)copy.addEventListener('click',function(e){
+    var a=e.target&&e.target.closest?e.target.closest('[data-sth-cta],[data-sth-cta2-link],[data-sth-cta2-video]'):null;
+    if(!a)return;
+    var s=slidesData[index]||{};
+    var kind=a.hasAttribute('data-sth-cta')?'primary':(a.hasAttribute('data-sth-cta2-video')?'video':'secondary');
+    var labelEl=a.querySelector('[data-sth-cta-label],[data-sth-cta2-label],[data-sth-cta2-link-label]');
+    var label=labelEl?labelEl.textContent.trim():(a.textContent||'').trim();
+    dispatch('sonika:hero-cta',{slide:s.id||'',index:index,cta:kind,label:label,href:a.getAttribute('href')||a.getAttribute('data-sth-video-embed')||''});
+  });
+  var catsPanel=root.querySelector('.sth__cats');
+  if(catsPanel)catsPanel.addEventListener('click',function(e){
+    var a=e.target&&e.target.closest?e.target.closest('[data-sth-inst]'):null;
+    if(!a)return;
+    var s=slidesData[index]||{};
+    var label=a.querySelector('.sth__catlabel');
+    dispatch('sonika:hero-instrument',{slide:s.id||'',index:index,label:label?label.textContent:'',href:a.getAttribute('href')||''});
+  });
+
+  root.addEventListener('mouseenter',stop);
+  root.addEventListener('mouseleave',start);
+  root.addEventListener('focusin',stop);
+  root.addEventListener('focusout',function(){setTimeout(function(){if(!root.contains(document.activeElement))start();},0);});
+  document.addEventListener('visibilitychange',function(){if(document.hidden){stop();instStop();}else start();});
+  if('IntersectionObserver' in window){new IntersectionObserver(function(entries){heroVisible=!!(entries[0]&&entries[0].isIntersecting);if(heroVisible)start();else{stop();instStop();}},{threshold:.15}).observe(root);}else{start();}
+
+  var dialog=root.querySelector('[data-sth-dialog]');
+  var frame=root.querySelector('[data-sth-video-frame]');
+  var opener=root.querySelector('[data-sth-video-open]');
+  if(dialog&&frame&&opener){
+    var closeDialog=function(){
+      if(dialog.open)dialog.close();else dialog.removeAttribute('open');
+      dialog.classList.remove('is-fallback');
+      document.documentElement.classList.remove('sth-video-open');
+      frame.innerHTML='';
+      dialogOpen=false;
+      start();
+    };
+    opener.addEventListener('click',function(){
+      var embed=opener.getAttribute('data-sth-video-embed')||'';
+      if(!embed){return;}
+      if(!frame.querySelector('iframe')){var ifr=document.createElement('iframe');ifr.src=embed;ifr.title=opener.textContent.trim();ifr.allow='autoplay; encrypted-media; picture-in-picture';ifr.allowFullscreen=true;frame.appendChild(ifr);}
+      dialogOpen=true;
+      stop();
+      instStop();
+      document.documentElement.classList.add('sth-video-open');
+      if(typeof dialog.showModal==='function'){dialog.showModal();var close=dialog.querySelector('[data-sth-video-close]');if(close)close.focus();}else{dialog.setAttribute('open','');dialog.classList.add('is-fallback');}
+    });
+    var closer=dialog.querySelector('[data-sth-video-close]');
+    if(closer)closer.addEventListener('click',closeDialog);
+    dialog.addEventListener('click',function(e){if(e.target===dialog)closeDialog();});
+    dialog.addEventListener('cancel',function(e){e.preventDefault();closeDialog();});
+    dialog.addEventListener('close',function(){document.documentElement.classList.remove('sth-video-open');frame.innerHTML='';dialogOpen=false;start();});
+  }
+  window.addEventListener('pagehide',function(){stop();instStop();instManualStop();});
+
+  var initial=0;
+  try{
+    var qp=new URLSearchParams(location.search).get('slide');
+    var hm=location.hash&&location.hash.match(/^#slide-(\d+)$/);
+    var v=qp?parseInt(qp,10):(hm?parseInt(hm[1],10):0);
+    if(v>0&&v<=n)initial=v-1;
+  }catch(e){}
+  show(initial,{initial:true,manual:false});
+  syncPause();
+  start();
+  }
+  function boot(){
+    if(!document.querySelector('[data-sth-hero]')){
+      if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});
+      return;
+    }
+    init();
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else setTimeout(boot,0);
+})();
+</script>
+HTML;
+    }
+
+    private function backgroundSlide(array $s, int $i): string
+    {
+        $d = (array)($s['design'] ?? []);
+        $bg = (string)($d['bg'] ?? '#111111');
+        if (!preg_match('/^#[0-9a-f]{3,8}$/i', $bg)) $bg = '#111111';
+        $height = 'var(--sh-h,391px)';
+        $padt = max(0, min(160, (int)($d['pad_top'] ?? 0)));
+        $padx = max(0, min(80, (int)($d['pad_x'] ?? 22)));
+        $va = (string)($d['content_valign'] ?? ($d['valign'] ?? 'center'));
+        $va = in_array($va, ['start', 'center', 'end'], true) ? $va : 'center';
+        $cvalign = ['start' => 'flex-start', 'center' => 'center', 'end' => 'flex-end'][$va];
+        $ca = (string)($d['content_align'] ?? 'left');
+        $ca = in_array($ca, ['left', 'center', 'right'], true) ? $ca : 'left';
+        $cjustify = ['left' => 'flex-start', 'center' => 'center', 'right' => 'flex-end'][$ca];
+        $cmax = max(320, min(900, (int)($d['content_max'] ?? 560)));
+        $mobileCustom = (string)($d['mobile_mode'] ?? 'inherit') === 'custom';
+        $mobileClasses = '';
+        if ($mobileCustom) {
+            $mobileClasses .= ' sh-mobile--custom';
+            $mva = (string)($d['mobile_valign'] ?? 'center');
+            if (in_array($mva, ['start', 'center', 'end'], true)) $mobileClasses .= ' sh-mobile--v-' . $mva;
+            $mal = (string)($d['mobile_align'] ?? 'left');
+            if (in_array($mal, ['left', 'center', 'right'], true)) $mobileClasses .= ' sh-mobile--a-' . $mal;
+            foreach ([
+                'mobile_show_eyebrow' => 'eyebrow',
+                'mobile_show_title' => 'title',
+                'mobile_show_subtitle' => 'subtitle',
+                'mobile_show_text' => 'text',
+                'mobile_show_cta' => 'cta',
+                'mobile_show_cta2' => 'cta2',
+            ] as $key => $suffix) {
+                if ((string)($d[$key] ?? '1') === '0') $mobileClasses .= ' sh-mobile--hide-' . $suffix;
+            }
+            if ((string)($d['mobile_cta_full'] ?? '0') === '1') $mobileClasses .= ' sh-mobile--cta-full';
+            $visible = false;
+            foreach (['mobile_show_eyebrow', 'mobile_show_title', 'mobile_show_subtitle', 'mobile_show_text', 'mobile_show_cta', 'mobile_show_cta2'] as $key) {
+                if ((string)($d[$key] ?? '1') !== '0') { $visible = true; break; }
+            }
+            if (!$visible) $mobileClasses .= ' sh-mobile--hide-content';
+        }
+        $type = (string)($d['bg_type'] ?? 'image');
+        if (!in_array($type, ['image', 'video', 'youtube'], true)) $type = 'image';
+        $image = $this->mediaUrl((string)($d['bg_image'] ?? ''));
+        $mobileImage = $this->mediaUrl((string)($d['bg_image_mobile'] ?? ''));
+        if ($image === '' && $mobileImage !== '') $image = $mobileImage;
+        $video = $this->mediaUrl((string)($d['bg_video'] ?? ''));
+        $poster = $this->mediaUrl((string)($d['bg_poster'] ?? ''));
+        $yt = $this->youtubeId((string)($d['bg_yt'] ?? ''));
+        $alt = (string)($d['bg_alt'] ?? '');
+        $x = max(0, min(100, (int)($d['bg_x'] ?? 50)));
+        $y = max(0, min(100, (int)($d['bg_y'] ?? 50)));
+        $position = $x . '% ' . $y . '%';
+        $overlay = max(0, min(80, (int)($d['bg_overlay'] ?? 45)));
+        $ostyle = (string)($d['bg_overlay_style'] ?? 'dark');
+        if (!in_array($ostyle, ['dark', 'left', 'bottom', 'none'], true)) $ostyle = 'dark';
+        $alpha = $overlay / 100;
+        $overlayCss = 'transparent';
+        if ($ostyle === 'dark') $overlayCss = 'linear-gradient(180deg,rgba(0,0,0,' . round($alpha * .45, 3) . ') 0%,rgba(0,0,0,' . round($alpha, 3) . ') 100%)';
+        elseif ($ostyle === 'left') $overlayCss = 'linear-gradient(90deg,rgba(0,0,0,' . round($alpha, 3) . ') 0%,rgba(0,0,0,' . round($alpha * .55, 3) . ') 55%,rgba(0,0,0,0) 100%)';
+        elseif ($ostyle === 'bottom') $overlayCss = 'linear-gradient(0deg,rgba(0,0,0,' . round($alpha, 3) . ') 0%,rgba(0,0,0,' . round($alpha * .35, 3) . ') 58%,rgba(0,0,0,0) 100%)';
+
+        $content = (string)($s['left_type'] ?? 'text') === 'text' ? (array)($s['left_data'] ?? []) : (array)($s['right_data'] ?? []);
+        if (!$content) $content = (array)($s['left_data'] ?? []);
+
+        $h = '<article class="sh-slide sh-slide--bg sh-bg--' . $ca . $mobileClasses . ($i === 0 ? ' is-on' : '') . '" data-i="' . $i . '" aria-hidden="' . ($i === 0 ? 'false' : 'true') . '" style="--sh-bg:' . $bg . ';--sh-cvalign:' . $cvalign . ';--sh-cjustify:' . $cjustify . ';--sh-cmax:' . $cmax . 'px;--sh-padt:' . $padt . 'px;--sh-padx:' . $padx . 'px">';
+        $h .= '<div class="sh-bg" aria-hidden="true">';
+        if ($poster !== '') $h .= '<img class="sh-bg__poster" src="' . $this->esc($poster) . '" alt="" loading="eager" decoding="async" style="object-position:' . $position . '"/>';
+        if ($type === 'image' && $image !== '') {
+            if ($mobileImage !== '' && $mobileImage !== $image) {
+                $h .= '<picture class="sh-bg__picture"><source media="(max-width: 820px)" srcset="' . $this->esc($mobileImage) . '"/><img class="sh-bg__img" src="' . $this->esc($image) . '" alt="' . $this->esc($alt) . '" loading="eager" decoding="async" fetchpriority="high" style="object-position:' . $position . '"/></picture>';
+            } else {
+                $h .= '<img class="sh-bg__img" src="' . $this->esc($image) . '" alt="' . $this->esc($alt) . '" loading="eager" decoding="async" fetchpriority="high" style="object-position:' . $position . '"/>';
+            }
+        } elseif ($type === 'video' && $video !== '') {
+            $h .= '<video class="sh-bg__video" autoplay muted loop playsinline preload="metadata"' . ($poster !== '' ? ' poster="' . $this->esc($poster) . '"' : '') . '><source src="' . $this->esc($video) . '" type="video/mp4"></video>';
+        } elseif ($type === 'youtube' && $yt !== '') {
+            $qs = http_build_query(['autoplay' => 1, 'mute' => 1, 'controls' => 0, 'loop' => 1, 'playlist' => $yt, 'playsinline' => 1, 'rel' => 0, 'modestbranding' => 1, 'iv_load_policy' => 3, 'disablekb' => 1, 'fs' => 0]);
+            $h .= '<iframe class="sh-bg__video sh-bg__iframe" src="https://www.youtube-nocookie.com/embed/' . $this->esc($yt) . '?' . $this->esc($qs) . '" title="Video de fondo" tabindex="-1" loading="lazy" allow="autoplay; encrypted-media; picture-in-picture"></iframe>';
+        }
+        $h .= '</div>';
+        if ($ostyle !== 'none' || $overlay > 0) $h .= '<span class="sh-bg__ov" style="background:' . $overlayCss . '"></span>';
+        $h .= '<div class="sh-bg__content"><div class="sh-bg__inner">' . $this->block('text', $content) . '</div></div>';
+        return $h . '</article>';
+    }
+
+    private function mediaUrl(string $url): string
+    {
+        $url = trim($url);
+        if ($url === '') return '';
+        if (str_starts_with($url, '/') || preg_match('~^https?://~i', $url)) return $url;
+        return '';
+    }
+
+    private function linkUrl(string $url): string
+    {
+        $url = trim($url);
+        if ($url === '') return '';
+        if ($url[0] === '/' && !str_starts_with($url, '//')) return $url;
+        if (str_starts_with($url, '#')) return $url;
+        if (preg_match('~^https?://~i', $url)) return $url;
+        if (preg_match('~^(mailto|tel):~i', $url)) return $url;
+        return '';
+    }
+
     private function zone(string $side, string $type, array $d): string
     {
         $inner = $this->block($type, $d);
@@ -94,6 +1242,8 @@ class SonikaHeroWidget extends Widget
     private function block(string $type, array $d): string
     {
         switch ($type) {
+            case 'none':
+                return '';
             case 'text':
                 $h = '<div class="sh-copy">';
                 if (!empty($d['eyebrow'])) $h .= '<span class="sh-eyebrow">' . $this->esc($d['eyebrow']) . '</span>';
@@ -442,15 +1592,31 @@ class SonikaHeroWidget extends Widget
         self::$assets = true;
         return <<<'HTML'
 <style>
-.sh{position:relative;background:var(--sh-bg,#111);color:#fff;overflow:hidden;height:var(--sh-h,460px)}
+.sh{position:relative;background:var(--sh-bg,#111);color:#fff;overflow:hidden;height:var(--sh-h,391px)}
 .sh-track{position:relative;height:100%}
 .sh-slide{position:absolute;inset:0;opacity:0;visibility:hidden;transition:opacity .4s ease;background:var(--sh-bg,#111)}
 .sh-slide.is-on{opacity:1;visibility:visible;position:relative}
+.sh-slide--bg{background:var(--sh-bg,#111);height:100%}
+.sh-bg{position:absolute;inset:0;z-index:0;overflow:hidden;background:var(--sh-bg,#111)}
+.sh-bg img,.sh-bg video,.sh-bg iframe{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border:0;display:block}
+.sh-bg__picture{position:absolute;inset:0;display:block;width:100%;height:100%;z-index:1}
+.sh-bg__picture img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.sh-bg__poster{z-index:0}
+.sh-bg__img,.sh-bg__video{z-index:1}
+.sh-bg__iframe{pointer-events:none}
+.sh-bg__ov{position:absolute;inset:0;z-index:1;pointer-events:none}
+.sh-bg__content{position:relative;z-index:2;height:100%;max-width:1180px;margin:0 auto;padding:var(--sh-padt,0px) var(--sh-padx,22px);display:flex;align-items:var(--sh-cvalign,center);justify-content:var(--sh-cjustify,flex-start)}
+.sh-bg__inner{width:100%;max-width:var(--sh-cmax,560px)}
+.sh-bg__inner .sh-copy{max-width:none}
+.sh-bg--center .sh-copy{align-items:center;text-align:center}
+.sh-bg--center .sh-ctas{justify-content:center}
+.sh-bg--right .sh-copy{align-items:flex-end;text-align:right}
+.sh-bg--right .sh-ctas{justify-content:flex-end}
 .sh-grid{height:100%;max-width:1180px;margin:0 auto;padding:var(--sh-padt,0px) var(--sh-padx,22px);display:grid;grid-template-columns:var(--sh-cols,1fr 1fr);gap:24px;align-items:stretch}
 .sh-zone{min-width:0;display:flex;flex-direction:column;justify-content:var(--sh-valign,center)}
 .sh-copy{display:flex;flex-direction:column;gap:10px;max-width:560px}
 .sh-eyebrow{font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#ffd9db}
-.sh-h1{font-family:var(--font-display,Sora),sans-serif;font-size:clamp(26px,3.4vw,46px);font-weight:800;line-height:1.05;letter-spacing:-.02em;white-space:pre-line}
+.sh-h1{font-family:var(--font-display,Sora),sans-serif;font-size:clamp(22px,2.9vw,39px);font-weight:800;line-height:1.05;letter-spacing:-.02em;white-space:pre-line}
 .sh-hl{color:var(--brand,#F20D16)}
 .sh-dyn{position:relative;overflow:hidden;perspective:600px}
 .sh-dyn__i{display:block;opacity:0;transform:translate(var(--ix,0),var(--iy,0)) scale(var(--is,1));filter:blur(var(--ib,0));will-change:transform,opacity}
@@ -544,8 +1710,8 @@ html[data-cap="low"] .sh-guitar__strings{display:none}
 .sh-eq:focus-visible{outline:2px solid rgba(255,255,255,.8);outline-offset:2px;border-radius:6px}
 @keyframes shEq{0%,100%{height:6px}50%{height:16px}}
 @media(prefers-reduced-motion:reduce){.sh-eq.on i{animation:none;height:12px}}
-@media(max-width:820px){.sh{height:auto}.sh-slide.is-on{position:relative}.sh-grid{grid-template-columns:1fr;padding:22px;gap:16px}.sh{--sh-h:auto}.sh-zone--bleed{margin:0}.sh-video--fill,.sh-video--center{height:auto}.sh-video--fill .sh-video__box{height:auto;min-height:0;aspect-ratio:16/9;border-radius:16px}.sh-video--center .sh-video__box{width:100%;max-width:none;aspect-ratio:16/9}.sh-video--fill .sh-video__box,.sh-video--center .sh-video__box{-webkit-mask-image:none;mask-image:none}}
-@media(prefers-reduced-motion:reduce){.sh-slide{transition:none}}
+@media(max-width:820px){.sh{height:auto}.sh-slide.is-on{position:relative}.sh-slide--bg{height:auto;min-height:442px}.sh-bg__content{height:auto;min-height:442px;box-sizing:border-box;padding:24px 19px}.sh-bg__inner{max-width:100%!important}.sh-grid{grid-template-columns:1fr;padding:22px;gap:16px}.sh{--sh-h:auto}.sh-zone--bleed{margin:0}.sh-video--fill,.sh-video--center{height:auto}.sh-video--fill .sh-video__box{height:auto;min-height:0;aspect-ratio:16/9;border-radius:16px}.sh-video--center .sh-video__box{width:100%;max-width:none;aspect-ratio:16/9}.sh-video--fill .sh-video__box,.sh-video--center .sh-video__box{-webkit-mask-image:none;mask-image:none}.sh-mobile--v-start .sh-bg__content{align-items:flex-start;padding-top:max(30px,var(--sh-padt,0px))}.sh-mobile--v-center .sh-bg__content{align-items:center}.sh-mobile--v-end .sh-bg__content{align-items:flex-end;padding-bottom:30px}.sh-mobile--a-left .sh-bg__content{justify-content:flex-start}.sh-mobile--a-center .sh-bg__content{justify-content:center}.sh-mobile--a-right .sh-bg__content{justify-content:flex-end}.sh-mobile--a-center .sh-copy{text-align:center;align-items:center}.sh-mobile--a-center .sh-ctas{justify-content:center}.sh-mobile--a-right .sh-copy{text-align:right;align-items:flex-end}.sh-mobile--a-right .sh-ctas{justify-content:flex-end}.sh-mobile--hide-eyebrow .sh-eyebrow,.sh-mobile--hide-title .sh-h1,.sh-mobile--hide-subtitle .sh-sub,.sh-mobile--hide-text .sh-text,.sh-mobile--hide-cta .sh-btn--p,.sh-mobile--hide-cta2 .sh-btn--s{display:none!important}.sh-mobile--hide-content .sh-bg__content{display:none!important}.sh-mobile--cta-full .sh-ctas{flex-direction:column;align-items:stretch}.sh-mobile--cta-full .sh-btn{width:100%;justify-content:center}}
+@media(prefers-reduced-motion:reduce){.sh-slide{transition:none}.sh-bg video,.sh-bg iframe{display:none}}
 </style>
 <script>if(!window.__shInit){window.__shInit=1;document.addEventListener('DOMContentLoaded',function(){
 document.querySelectorAll('.sh').forEach(function(root){

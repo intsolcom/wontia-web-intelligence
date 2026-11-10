@@ -1034,7 +1034,7 @@ W.repRefresh=function(key){
             var id='rep-'+key+'-'+i+'-'+sf.key;
             var st=sf.type||'text';
             var cls='rep-lb';
-            if(st==='image'||st==='textarea'||st==='richtext')cls+=' rep-lb--full';
+            if(st==='image'||st==='textarea'||st==='richtext'||st==='range')cls+=' rep-lb--full';
             if(sf.key==='title'||sf.key==='text'||sf.key==='href')cls+=' rep-lb--full';
             var inp;
             if(st==='richtext'){
@@ -1054,6 +1054,7 @@ W.repRefresh=function(key){
             }
             else if(st==='color')inp='<input type="color" class="rep-in" data-i="'+i+'" data-k="'+W.esc(sf.key)+'" id="'+id+'" value="'+W.esc(val||sf.default||'#111111')+'"/>';
             else if(st==='number')inp='<input type="number" class="w-input rep-in" data-i="'+i+'" data-k="'+W.esc(sf.key)+'" id="'+id+'" value="'+W.esc(val)+'"/>';
+            else if(st==='range'){var rv=(val===''||val===null)?(sf.default!==undefined?sf.default:0):val;inp='<div style="display:flex;gap:8px;align-items:center"><input type="range" class="rep-in" data-i="'+i+'" data-k="'+W.esc(sf.key)+'" id="'+id+'" min="'+W.esc(sf.min!==undefined?sf.min:0)+'" max="'+W.esc(sf.max!==undefined?sf.max:100)+'" step="'+W.esc(sf.step!==undefined?sf.step:1)+'" value="'+W.esc(rv)+'" oninput="wontia.repRange(this)"/><span id="'+id+'-out" style="font-size:11px;color:var(--w-muted);min-width:34px;text-align:right">'+W.esc(rv)+'</span></div>';}
             else if(st==='select'){var kopts=sf.options||{};inp='<select class="w-select rep-in" data-i="'+i+'" data-k="'+W.esc(sf.key)+'" id="'+id+'">'+(Array.isArray(kopts)?kopts.map(function(o){var v=(o.value!==undefined?o.value:o),ll=(o.label!==undefined?o.label:v);return '<option value="'+W.esc(v)+'"'+(String(val)===String(v)?' selected':'')+'>'+W.esc(ll)+'</option>'}).join(''):Object.keys(kopts).map(function(k2){return '<option value="'+W.esc(k2)+'"'+(String(val)===String(k2)?' selected':'')+'>'+W.esc(kopts[k2])+'</option>'}).join(''))+'</select>';}
             else if(st==='icon')inp='<div style="display:flex;gap:7px;align-items:center"><input class="w-input rep-in" data-i="'+i+'" data-k="'+W.esc(sf.key)+'" id="'+id+'" value="'+W.esc(val)+'" style="flex:1"/><span id="'+id+'-iprev" style="color:#3a3a3a;flex:0 0 auto">'+(W.iconSvg(val,18)||W.esc(val))+'</span><button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.pickIcon(\''+id+'\')">Iconos</button></div>';
             else inp='<input class="w-input rep-in" data-i="'+i+'" data-k="'+W.esc(sf.key)+'" id="'+id+'" value="'+W.esc(val)+'"/>';
@@ -1082,7 +1083,7 @@ W.repSwitch=function(el){var l=el&&el.parentNode;if(!l)return;var t=l.querySelec
 W.repToggle=function(btn){var card=btn&&btn.closest?btn.closest('.w-rep-card'):null;if(!card)return;var body=card.querySelector('.w-rep-body');if(!body)return;var collapsed=body.classList.toggle('is-collapsed');card.classList.toggle('is-open',!collapsed);btn.setAttribute('aria-expanded',String(!collapsed));btn.textContent=collapsed?'Editar':'Cerrar'};
 W.repToggleAll=function(key,open){var el=document.getElementById('rep-items-'+key);if(!el)return;el.querySelectorAll('.w-rep-card').forEach(function(card){var body=card.querySelector('.w-rep-body');var btn=card.querySelector('.w-rep-toggle');if(!body)return;body.classList.toggle('is-collapsed',!open);card.classList.toggle('is-open',!!open);if(btn){btn.setAttribute('aria-expanded',String(!!open));btn.textContent=open?'Cerrar':'Editar'}})};
 
-W.repSync=function(key){var ta=document.getElementById('secf-'+key);if(ta)ta.value=JSON.stringify(W._rep[key]||[])};
+W.repSync=function(key){var ta=document.getElementById('secf-'+key);if(ta)ta.value=JSON.stringify(W._rep[key]||[])};W.repRange=function(el){var o=document.getElementById(el.id+'-out');if(o)o.textContent=el.value;};
 W.repCollect=function(key){
     var el=document.getElementById('rep-items-'+key);if(!el)return;
     W._rep=W._rep||{};W._rep[key]=W._rep[key]||[];
@@ -1847,7 +1848,7 @@ W.heroThemeSchema=function(){
         {desktop:'/assets/uploads/wontia_2c020fab54677229.webp',mobile:'/assets/uploads/wontia_4a97a4f3251c0c73.png',alt:'Escenario SONIKA con guitarra',focal:'42% 50%'}
     ];
     var defaultSlides=defaultBgs.map(function(bg,i){
-        return {id:'slide-'+(i+1),enabled:1,eyebrow:'SONIKA PRESENTA',title:'EL SONIDO\nSE *APODERA*.',subtitle:'Tu música. Tu escenario. Tu momento.',cta_label:'Explorar Instrumentos',cta_url:'/guitarras',cta2_label:'Ver la Experiencia',cta2_video:'https://www.youtube.com/watch?v=dsD03vmVe30',cta2_url:'',desktop:bg.desktop,mobile:bg.mobile,alt:bg.alt,focal:bg.focal,overlay:55,accent:'#F20D16',instrument_focus:i===0?'guitarras':''};
+        return {id:'slide-'+(i+1),enabled:1,eyebrow:'SONIKA PRESENTA',title:'EL SONIDO\nSE *APODERA*.',title_size:100,subtitle:'Tu música. Tu escenario. Tu momento.',cta_label:'Explorar Instrumentos',cta_url:'/guitarras',cta2_label:'Ver la Experiencia',cta2_video:'https://www.youtube.com/watch?v=dsD03vmVe30',cta2_url:'',desktop:bg.desktop,mobile:bg.mobile,alt:bg.alt,focal:bg.focal,overlay:55,accent:'#F20D16',instrument_focus:i===0?'guitarras':''};
     });
     return [
         {key:'slides',label:'Slides del Hero',type:'repeater',collapsible:true,default:defaultSlides,fields:[
@@ -1855,6 +1856,7 @@ W.heroThemeSchema=function(){
             {key:'enabled',label:'Visible',type:'toggle'},
             {key:'eyebrow',label:'Eyebrow',type:'text'},
             {key:'title',label:'Título (usa *texto* para el acento)',type:'textarea'},
+            {key:'title_size',label:'Tamaño del título de este slide (%)',type:'range',default:100,min:60,max:140,step:1,hint:'Solo cambia el título de este slide. Bájalo si el texto es largo para que no se vea apretado.'},
             {key:'subtitle',label:'Descripción',type:'textarea'},
             {key:'cta_label',label:'Botón principal',type:'text'},
             {key:'cta_url',label:'Enlace del botón principal',type:'text'},
