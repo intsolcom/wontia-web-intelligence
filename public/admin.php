@@ -214,6 +214,7 @@ endif;
     <title>WWI Wontia Web Intelligence</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
     <link rel="stylesheet" href="/assets/css/admin.css?v=<?= filemtime(__DIR__ . '/assets/css/admin.css') ?>"/>
+    <link rel="stylesheet" href="/assets/css/hero-composition.css?v=<?= filemtime(__DIR__ . '/assets/css/hero-composition.css') ?>"/>
 </head>
 <body>
 

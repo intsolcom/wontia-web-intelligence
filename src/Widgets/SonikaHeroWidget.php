@@ -158,8 +158,9 @@ class SonikaHeroWidget extends Widget
             $alt = $this->esc((string)$slide['alt']);
             $desktop = $this->esc((string)$slide['desktop']);
             $mobile = $this->esc((string)$slide['mobile']);
-            $h .= '<picture class="sth__pic' . ($i === 0 ? ' is-on' : '') . '" style="--sth-focal:' . $focal . '" data-sth-pic="' . $this->esc((string)$slide['id']) . '">';
-            if ($mobile !== '' && $mobile !== $desktop) $h .= '<source media="(max-width: 820px)" srcset="' . $mobile . '"/>';
+            $bgStyle = $this->esc((string)($slide['bg_style'] ?? ''));
+            $h .= '<picture class="sth__pic' . ($i === 0 ? ' is-on' : '') . '" style="--sth-focal:' . $focal . ($bgStyle !== '' ? ';' . $bgStyle : '') . '" data-sth-pic="' . $this->esc((string)$slide['id']) . '">';
+            if ($mobile !== '' && $mobile !== $desktop) $h .= '<source media="(max-width: 900px)" srcset="' . $mobile . '"/>';
             $h .= '<img src="' . $desktop . '" alt="' . $alt . '" loading="' . ($i === 0 ? 'eager' : 'lazy') . '" decoding="async"' . ($i === 0 ? ' fetchpriority="high"' : '') . '/>';
             $h .= '</picture>';
         }
@@ -319,6 +320,25 @@ class SonikaHeroWidget extends Widget
             $focal = trim((string)($row['focal'] ?? '50% 50%'));
             if (!preg_match('/^\d{1,3}%\s+\d{1,3}%$/', $focal)) $focal = '50% 50%';
 
+            $composition = is_array($row['composition'] ?? null) ? $row['composition'] : [];
+            $bgD = is_array($composition['background']['desktop'] ?? null) ? $composition['background']['desktop'] : null;
+            $bgM = is_array($composition['background']['mobile'] ?? null) ? $composition['background']['mobile'] : null;
+            $bgStyle = '';
+            if ($bgD) {
+                $bgStyle .= '--sth-bg-zoom-d:' . round(max(100, min(250, (float)($bgD['zoom'] ?? 100))) / 100, 4)
+                    . ';--sth-bg-x-d:' . max(-100, min(100, (float)($bgD['x'] ?? 0))) . '%'
+                    . ';--sth-bg-y-d:' . max(-100, min(100, (float)($bgD['y'] ?? 0))) . '%'
+                    . ';--sth-bg-focal-d:' . max(0, min(100, (float)($bgD['focal_x'] ?? 50))) . '% ' . max(0, min(100, (float)($bgD['focal_y'] ?? 50))) . '%'
+                    . ';--sth-bg-fit-d:' . (in_array((string)($bgD['fit'] ?? 'cover'), ['cover', 'contain'], true) ? (string)$bgD['fit'] : 'cover') . ';';
+            }
+            if ($bgM) {
+                $bgStyle .= '--sth-bg-zoom-m:' . round(max(100, min(250, (float)($bgM['zoom'] ?? 100))) / 100, 4)
+                    . ';--sth-bg-x-m:' . max(-100, min(100, (float)($bgM['x'] ?? 0))) . '%'
+                    . ';--sth-bg-y-m:' . max(-100, min(100, (float)($bgM['y'] ?? 0))) . '%'
+                    . ';--sth-bg-focal-m:' . max(0, min(100, (float)($bgM['focal_x'] ?? 50))) . '% ' . max(0, min(100, (float)($bgM['focal_y'] ?? 50))) . '%'
+                    . ';--sth-bg-fit-m:' . (in_array((string)($bgM['fit'] ?? 'cover'), ['cover', 'contain'], true) ? (string)$bgM['fit'] : 'cover') . ';';
+            }
+
             $legacySize = (float)($row['title_size'] ?? 100);
             $desktopCss = $this->titleSizeCss((float)($row['title_size_desktop'] ?? $legacySize), (string)($row['title_size_desktop_unit'] ?? '%'), false);
             $mobileCss = $this->titleSizeCss((float)($row['title_size_mobile'] ?? $legacySize), (string)($row['title_size_mobile_unit'] ?? '%'), true);
@@ -330,6 +350,8 @@ class SonikaHeroWidget extends Widget
                 'title' => $title,
                 'title_size_desktop_css' => $desktopCss,
                 'title_size_mobile_css' => $mobileCss,
+                'composition' => $composition,
+                'bg_style' => $bgStyle,
                 'title_plain' => $titlePlain,
                 'title_html' => $this->soundTitle($title),
                 'subtitle' => $subtitle,
@@ -627,10 +649,12 @@ class SonikaHeroWidget extends Widget
 .sth__bg{position:absolute;inset:0;z-index:0;overflow:hidden;background:#07080d}
 .sth__pic{position:absolute;inset:0;display:block;opacity:0;transition:opacity .9s cubic-bezier(.22,1,.36,1)}
 .sth__pic.is-on{opacity:1}
-.sth__pic img{display:block;width:100%;height:100%;object-fit:cover;object-position:var(--sth-focal,50% 50%);transform:scale(1.015)}
+.sth__pic img{display:block;width:100%;height:100%;object-fit:var(--sth-bg-fit-d,cover);object-position:var(--sth-bg-focal-d,var(--sth-focal,50% 50%));transform:translate(var(--sth-bg-x-d,0%),var(--sth-bg-y-d,0%)) scale(var(--sth-bg-zoom-d,1.015));transform-origin:var(--sth-bg-focal-d,var(--sth-focal,50% 50%))}
 .sth__scrim{position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(90deg,rgba(4,5,9,.94) 0%,rgba(4,5,9,.78) 32%,rgba(4,5,9,.26) 62%,rgba(4,5,9,.72) 100%),linear-gradient(0deg,rgba(4,5,9,var(--sth-ov,.55)) 0%,rgba(4,5,9,.12) 46%,rgba(4,5,9,0) 72%)}
 .sth__inner{position:relative;z-index:2;box-sizing:border-box;width:100%;max-width:1440px;height:100%;margin:0 auto;padding:clamp(26px,3.5vw,48px) clamp(19px,4.25vw,60px) 29px;display:grid;grid-template-columns:minmax(0,1fr) minmax(238px,280px);gap:clamp(17px,2.9vw,46px);align-items:center}
-.sth__copy{max-width:720px;min-width:0;min-height:clamp(200px,22vw,280px);display:flex;flex-direction:column;justify-content:center;transition:opacity .18s ease,transform .18s ease}
+.sth__copy{position:relative;max-width:720px;min-width:0;min-height:clamp(200px,22vw,280px);display:flex;flex-direction:column;justify-content:center;transition:opacity .18s ease,transform .18s ease}
+.sth__copy [data-sth-eyebrow],.sth__copy [data-sth-title],.sth__copy [data-sth-sub],.sth__copy [data-sth-actions]{position:relative}
+.sth__copy [data-sth-eyebrow].is-manual,.sth__copy [data-sth-title].is-manual,.sth__copy [data-sth-sub].is-manual,.sth__copy [data-sth-actions].is-manual{position:absolute;z-index:4;max-width:100%;margin:0;left:calc(var(--sth-el-left,0%) + var(--sth-el-x,0px));top:calc(var(--sth-el-top,0%) + var(--sth-el-y,0px));translate:var(--sth-el-tx,0%) var(--sth-el-ty,0%)}
 .sth__copy.is-changing{opacity:0;transform:translateY(8px)}
 .sth [hidden]{display:none!important}
 .sth__sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
@@ -706,7 +730,7 @@ class SonikaHeroWidget extends Widget
 .sth-video__box iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
 .sth-video__close{position:absolute;top:-42px;right:0;width:32px;height:32px;padding:0;border-radius:50%;border:1px solid rgba(255,255,255,.35);background:rgba(0,0,0,.35);color:#fff;font-size:22px;line-height:1;cursor:pointer;display:grid;place-items:center}
 html.sth-video-open,html.sth-video-open body{overflow:hidden}
-@media(max-width:900px){.sth__stage{height:var(--sth-m-h,580px);height:min(var(--sth-m-h,580px),100dvh);min-height:0}.sth__inner{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) auto;align-content:stretch;gap:14px;padding-bottom:54px;height:100%;overflow:hidden}.sth__copy{max-width:760px;min-height:0;overflow:hidden}.sth__cats{display:flex;flex-direction:column;gap:8px;max-height:none;padding:0}.sth__inst-viewport{height:auto;overflow:hidden;padding:8px 4px}.sth__inst-nav{position:static;flex-direction:row;justify-content:flex-end;gap:6px;padding:0 2px 4px;pointer-events:auto}.sth__inst-arrow{width:26px;height:26px}.sth__inst-arrow svg{transform:rotate(-90deg)}.sth__inst-track{flex-direction:row;gap:7px}.sth__cat.is-focus{transform:scale(var(--sth-focus-scale-mobile,1.32))}.sth__cat.is-focus:hover{transform:scale(var(--sth-focus-scale-mobile,1.32)) translateX(-2px)}.sth__cat{flex:0 0 135px;width:135px;height:45px;min-height:45px;grid-template-columns:36px minmax(0,1fr) 13px;gap:6px}.sth__catimg{width:36px;height:32px}.sth__catlabel{font-size:9.5px}.sth__cat.is-edge:not(.is-focus),.sth__cat.is-near:not(.is-focus){opacity:1;transform:none}.sth__cat.is-edge:not(.is-focus):hover,.sth__cat.is-edge:not(.is-focus):focus-visible,.sth__cat.is-near:not(.is-focus):hover,.sth__cat.is-near:not(.is-focus):focus-visible{transform:none}.sth__nav{left:clamp(19px,4.25vw,60px);bottom:12px}}
+@media(max-width:900px){.sth__stage{height:var(--sth-m-h,580px);height:min(var(--sth-m-h,580px),100dvh);min-height:0}.sth__pic img{object-fit:var(--sth-bg-fit-m,cover);object-position:var(--sth-bg-focal-m,var(--sth-focal,50% 50%));transform:translate(var(--sth-bg-x-m,0%),var(--sth-bg-y-m,0%)) scale(var(--sth-bg-zoom-m,1.015));transform-origin:var(--sth-bg-focal-m,var(--sth-focal,50% 50%))}.sth__inner{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) auto;align-content:stretch;gap:14px;padding-bottom:54px;height:100%;overflow:hidden}.sth__copy{max-width:760px;min-height:0;overflow:hidden}.sth__cats{display:flex;flex-direction:column;gap:8px;max-height:none;padding:0}.sth__inst-viewport{height:auto;overflow:hidden;padding:8px 4px}.sth__inst-nav{position:static;flex-direction:row;justify-content:flex-end;gap:6px;padding:0 2px 4px;pointer-events:auto}.sth__inst-arrow{width:26px;height:26px}.sth__inst-arrow svg{transform:rotate(-90deg)}.sth__inst-track{flex-direction:row;gap:7px}.sth__cat.is-focus{transform:scale(var(--sth-focus-scale-mobile,1.32))}.sth__cat.is-focus:hover{transform:scale(var(--sth-focus-scale-mobile,1.32)) translateX(-2px)}.sth__cat{flex:0 0 135px;width:135px;height:45px;min-height:45px;grid-template-columns:36px minmax(0,1fr) 13px;gap:6px}.sth__catimg{width:36px;height:32px}.sth__catlabel{font-size:9.5px}.sth__cat.is-edge:not(.is-focus),.sth__cat.is-near:not(.is-focus){opacity:1;transform:none}.sth__cat.is-edge:not(.is-focus):hover,.sth__cat.is-edge:not(.is-focus):focus-visible,.sth__cat.is-near:not(.is-focus):hover,.sth__cat.is-near:not(.is-focus):focus-visible{transform:none}.sth__nav{left:clamp(19px,4.25vw,60px);bottom:12px}}
 @media(max-width:700px){.sth__stage{height:var(--sth-m-h,580px);height:min(var(--sth-m-h,580px),100dvh);min-height:0}.sth__inner{display:flex;flex-direction:column;align-items:stretch;justify-content:space-between;gap:12px;padding:24px 14px 50px;height:100%;overflow:hidden}.sth__copy{flex:1 1 auto;min-height:0;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end}.sth__title{font-size:var(--sth-title-size-mobile,clamp(31px,8.5vw,46px));margin:12px 0 10px}.sth__sub{font-size:11px;margin-bottom:15px;display:-webkit-box;-webkit-line-clamp:var(--sth-m-sub-lines,2);-webkit-box-orient:vertical;overflow:hidden}.sth__actions{display:grid;grid-template-columns:1fr;gap:8px;flex:0 0 auto}.sth__btn{width:100%;min-height:35px}.sth__cats{gap:7px;margin:0 -14px;padding:0 14px;flex:0 0 auto}.sth__cats::-webkit-scrollbar{display:none}.sth__cats-head{display:flex;font-size:7px;padding:0 2px 2px}.sth__inst-viewport{height:auto;padding:8px 4px}.sth__inst-track{flex-direction:row;gap:22px}.sth__cat{flex:0 0 98px;width:98px;height:43px;min-height:43px;grid-template-columns:28px minmax(0,1fr);gap:4px;padding:4px 5px 4px 4px}.sth__catimg{width:28px;height:25px}.sth__catlabel{font-size:8.5px;line-height:1.1;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}.sth__catarrow{display:none}.sth__nav{position:absolute;left:0;right:0;bottom:10px;justify-content:center;margin:0}.sth-benefits__in{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px 12px;padding:9px 14px}.sth-benefit b{font-size:9.5px}.sth-benefit small{font-size:8.5px}.sth-video__close{top:-36px}
 .sth__copy{transform:translateY(var(--sth-m-copy-y,0px)) scale(var(--sth-m-copy-scale,1));transform-origin:left top}
 .sth__copy.is-changing{transform:translateY(calc(var(--sth-m-copy-y,0px) + 8px)) scale(var(--sth-m-copy-scale,1))}
@@ -721,7 +745,7 @@ html.sth-video-open,html.sth-video-open body{overflow:hidden}
 .sth--m-cta-auto .sth__btn{width:auto;min-width:0}
 .sth--m-cta-custom .sth__actions{display:flex;flex-wrap:wrap;gap:8px}
 .sth--m-cta-custom .sth__btn{width:var(--sth-m-cta-w,100%);max-width:100%;min-width:0}}
-@media(prefers-reduced-motion:reduce){.sth__pic,.sth__copy,.sth__btn,.sth__cat,.sth__arrow,.sth__dot,.sth__pause,.sth__inst-arrow,.sth__inst-track,.sth-benefit,.sth-benefit__icon,.sth-benefit::after,.sth-benefit b{transition:none!important}.sth__inst-arrow{animation:none!important}.sth__pic img{transform:none}.sth__inst-viewport{overflow-y:auto!important;scrollbar-width:thin}.sth-benefit:hover,.sth-benefit.is-active{transform:none}}
+@media(prefers-reduced-motion:reduce){.sth__pic,.sth__copy,.sth__btn,.sth__cat,.sth__arrow,.sth__dot,.sth__pause,.sth__inst-arrow,.sth__inst-track,.sth-benefit,.sth-benefit__icon,.sth-benefit::after,.sth-benefit b{transition:none!important}.sth__inst-arrow{animation:none!important}.sth__inst-viewport{overflow-y:auto!important;scrollbar-width:thin}.sth-benefit:hover,.sth-benefit.is-active{transform:none}}
 @media(max-width:900px) and (prefers-reduced-motion:reduce){.sth__inst-viewport{overflow-x:auto!important;overflow-y:hidden!important}}
 </style>
 <script>
@@ -768,6 +792,40 @@ html.sth-video-open,html.sth-video-open body{overflow:hidden}
       history.replaceState(null,'',u.pathname+u.search+(u.hash||''));
     }catch(e){}
   }
+  function anchorParts(anchor){
+    anchor=anchor||'top-left';
+    if(anchor==='center')return {h:'center',v:'center'};
+    var h=anchor.indexOf('left')!==-1?'left':(anchor.indexOf('right')!==-1?'right':'center');
+    var v=anchor.indexOf('top')===0?'top':(anchor.indexOf('bottom')===0?'bottom':'center');
+    return {h:h,v:v};
+  }
+  function applyComposition(s){
+    var comp=(s&&s.composition)||{};
+    var device=(window.matchMedia&&window.matchMedia('(max-width:900px)').matches)?'mobile':'desktop';
+    var els=(comp.elements&&comp.elements[device])||{};
+    var map={eyebrow:eyebrow,title:titleEl,description:subEl,ctas:actions};
+    Object.keys(map).forEach(function(key){
+      var el=map[key];if(!el)return;
+      var cfg=els[key]||{mode:'auto'};
+      if(cfg.mode==='manual'){
+        var p=anchorParts(cfg.anchor||'top-left');
+        var left=p.h==='left'?'0%':(p.h==='center'?'50%':'100%');
+        var top=p.v==='top'?'0%':(p.v==='center'?'50%':'100%');
+        var tx=p.h==='left'?'0%':(p.h==='center'?'-50%':'-100%');
+        var ty=p.v==='top'?'0%':(p.v==='center'?'-50%':'-100%');
+        el.classList.add('is-manual');
+        el.style.setProperty('--sth-el-left',left);
+        el.style.setProperty('--sth-el-top',top);
+        el.style.setProperty('--sth-el-tx',tx);
+        el.style.setProperty('--sth-el-ty',ty);
+        el.style.setProperty('--sth-el-x',(parseFloat(cfg.x)||0)+(cfg.x_unit==='%'?'%':'px'));
+        el.style.setProperty('--sth-el-y',(parseFloat(cfg.y)||0)+(cfg.y_unit==='%'?'%':'px'));
+      }else{
+        el.classList.remove('is-manual');
+        ['--sth-el-left','--sth-el-top','--sth-el-tx','--sth-el-ty','--sth-el-x','--sth-el-y'].forEach(function(v){el.style.removeProperty(v);});
+      }
+    });
+  }
   function paintCopy(s){
     if(!s)return;
     if(eyebrow){eyebrow.textContent=s.eyebrow||'';eyebrow.hidden=!s.eyebrow;}
@@ -783,6 +841,7 @@ html.sth-video-open,html.sth-video-open body{overflow:hidden}
     if(linkBtn){linkBtn.hidden=!(hasLink&&!hasVideo);if(hasLink)linkBtn.href=s.cta2_url;}
     if(linkLabel)linkLabel.textContent=s.cta2_label||'';
     if(actions)actions.hidden=!(hasPrimary||hasVideo||hasLink);
+    applyComposition(s);
     if(countEl)countEl.textContent=pad(index+1)+' / '+pad(n);
   }
   var copyTimer=null;
@@ -796,6 +855,8 @@ html.sth-video-open,html.sth-video-open body{overflow:hidden}
       paintCopy(s);
     }
   }
+  var resizeTimer=null;
+  window.addEventListener('resize',function(){if(resizeTimer)clearTimeout(resizeTimer);resizeTimer=setTimeout(function(){applyComposition(slidesData[index]||{});},120);});
   function dispatch(name,detail){try{document.dispatchEvent(new CustomEvent(name,{detail:detail}))}catch(e){}}
   function show(next,opts){
     if(n<1)return;

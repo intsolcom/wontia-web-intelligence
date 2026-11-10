@@ -1034,7 +1034,7 @@ W.repRefresh=function(key){
             var id='rep-'+key+'-'+i+'-'+sf.key;
             var st=sf.type||'text';
             var cls='rep-lb';
-            if(st==='image'||st==='textarea'||st==='richtext'||st==='range'||st==='sizeunit')cls+=' rep-lb--full';
+            if(st==='image'||st==='textarea'||st==='richtext'||st==='range'||st==='sizeunit'||st==='composition')cls+=' rep-lb--full';
             if(sf.key==='title'||sf.key==='text'||sf.key==='href')cls+=' rep-lb--full';
             var inp;
             if(st==='richtext'){
@@ -1056,6 +1056,7 @@ W.repRefresh=function(key){
             else if(st==='number')inp='<input type="number" class="w-input rep-in" data-i="'+i+'" data-k="'+W.esc(sf.key)+'" id="'+id+'" value="'+W.esc(val)+'"/>';
             else if(st==='range'){var rv=(val===''||val===null)?(sf.default!==undefined?sf.default:0):val;inp='<div style="display:flex;gap:8px;align-items:center"><input type="range" class="rep-in" data-i="'+i+'" data-k="'+W.esc(sf.key)+'" id="'+id+'" min="'+W.esc(sf.min!==undefined?sf.min:0)+'" max="'+W.esc(sf.max!==undefined?sf.max:100)+'" step="'+W.esc(sf.step!==undefined?sf.step:1)+'" value="'+W.esc(rv)+'" oninput="wontia.repRange(this)"/><span id="'+id+'-out" style="font-size:11px;color:var(--w-muted);min-width:34px;text-align:right">'+W.esc(rv)+'</span></div>';}
             else if(st==='sizeunit'){var sv=(val===''||val===null)?(sf.default!==undefined?sf.default:100):val;var uk=sf.unitKey||'unit';var uv=(it&&it[uk]!==undefined&&it[uk]!==null&&it[uk]!=='')?it[uk]:(sf.defaultUnit||'%');var uns=sf.units||{'%':'%','pt':'pt','px':'px'};var uopts=Object.keys(uns).map(function(u){return '<option value="'+W.esc(u)+'"'+(String(uv)===String(u)?' selected':'')+'>'+W.esc(uns[u])+'</option>'}).join('');inp='<div style="display:flex;gap:6px;align-items:center"><input type="number" class="w-input rep-in" data-i="'+i+'" data-k="'+W.esc(sf.key)+'" id="'+id+'" min="'+W.esc(sf.min!==undefined?sf.min:8)+'" max="'+W.esc(sf.max!==undefined?sf.max:200)+'" step="'+W.esc(sf.step!==undefined?sf.step:1)+'" value="'+W.esc(sv)+'" style="flex:1"/><select class="w-select rep-in" data-i="'+i+'" data-k="'+W.esc(uk)+'" id="'+id+'-unit" style="max-width:160px">'+uopts+'</select></div>';}
+            else if(st==='composition'){var comp=W.heroCompMerge(it||{});inp=W.heroCompositionEditor(id,comp,it||{},key,i);}
             else if(st==='select'){var kopts=sf.options||{};inp='<select class="w-select rep-in" data-i="'+i+'" data-k="'+W.esc(sf.key)+'" id="'+id+'">'+(Array.isArray(kopts)?kopts.map(function(o){var v=(o.value!==undefined?o.value:o),ll=(o.label!==undefined?o.label:v);return '<option value="'+W.esc(v)+'"'+(String(val)===String(v)?' selected':'')+'>'+W.esc(ll)+'</option>'}).join(''):Object.keys(kopts).map(function(k2){return '<option value="'+W.esc(k2)+'"'+(String(val)===String(k2)?' selected':'')+'>'+W.esc(kopts[k2])+'</option>'}).join(''))+'</select>';}
             else if(st==='icon')inp='<div style="display:flex;gap:7px;align-items:center"><input class="w-input rep-in" data-i="'+i+'" data-k="'+W.esc(sf.key)+'" id="'+id+'" value="'+W.esc(val)+'" style="flex:1"/><span id="'+id+'-iprev" style="color:#3a3a3a;flex:0 0 auto">'+(W.iconSvg(val,18)||W.esc(val))+'</span><button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.pickIcon(\''+id+'\')">Iconos</button></div>';
             else inp='<input class="w-input rep-in" data-i="'+i+'" data-k="'+W.esc(sf.key)+'" id="'+id+'" value="'+W.esc(val)+'"/>';
@@ -1078,6 +1079,7 @@ W.repRefresh=function(key){
             +'</span>';
         return '<div class="w-rep-card'+(collapsible?' is-collapsible':'')+'"><div class="w-rep-head"><span class="w-drag-handle" title="Arrastra para reordenar">⠿</span><b class="w-rep-num">#'+(i+1)+'</b>'+summary+actions+'</div><div class="w-rep-body'+(collapsible?' is-collapsed':'')+'">'+body+'</div></div>';
     }).join('');
+    if(W.heroCompositionInit)W.heroCompositionInit(el);
     W.repSync(key);
 };
 W.repSwitch=function(el){var l=el&&el.parentNode;if(!l)return;var t=l.querySelector('.rep-switch__txt');if(t)t.textContent=el.checked?'Sí':'No'};
@@ -1818,6 +1820,157 @@ W.heroDup=async function(id){var r=await W.api('/api/v1/admin/hero/slides/'+id+'
 W.heroDel=async function(id){if(!confirm('¿Eliminar este slide?'))return;await W.api('/api/v1/admin/hero/slides/'+id,{method:'DELETE'});W.renderHero();};
 W.heroPub=async function(id){var r=await W.api('/api/v1/admin/hero/slides/'+id+'/publish',{method:'POST',body:{}});if(r&&r.ok)W.notify('Publicado','success');else W.notify((r&&r.message)||'No se pudo publicar','error');W.renderHero();};
 W.heroSetStatus=async function(id,st){var s=(W._heroSlides||[]).filter(function(x){return x.id===id})[0];if(!s)return;await W.api('/api/v1/admin/hero/slides',{method:'POST',body:{id:id,name:s.name,status:st,layout:s.layout,left_type:s.left_type,left_data:s.left_data,right_type:s.right_type,right_data:s.right_data,design:s.design}});W.renderHero();};
+W.heroCompState={};
+W.heroCompDefault=function(item){
+    var f=String((item&&item.focal)||'50% 50%').match(/(\d{1,3})%\s+(\d{1,3})%/);
+    var fx=f?Math.max(0,Math.min(100,parseInt(f[1],10))):50;
+    var fy=f?Math.max(0,Math.min(100,parseInt(f[2],10))):50;
+    var cp=function(o){return JSON.parse(JSON.stringify(o));};
+    var bg={zoom:100,x:0,y:0,focal_x:fx,focal_y:fy,fit:'cover'};
+    var el={mode:'auto',anchor:'top-left',x:0,y:0,x_unit:'px',y_unit:'px'};
+    var els={};['eyebrow','title','description','ctas'].forEach(function(k){els[k]=cp(el);});
+    return {background:{desktop:cp(bg),mobile:cp(bg)},elements:{desktop:cp(els),mobile:cp(els)}};
+};
+W.heroCompMerge=function(item){
+    var base=W.heroCompDefault(item||{});
+    var raw=item&&item.composition;
+    if(typeof raw==='string'){try{raw=JSON.parse(raw)}catch(e){raw=null}}
+    if(!raw||typeof raw!=='object')return base;
+    ['desktop','mobile'].forEach(function(d){
+        if(raw.background&&raw.background[d])Object.assign(base.background[d],raw.background[d]);
+        if(raw.elements&&raw.elements[d]){
+            ['eyebrow','title','description','ctas'].forEach(function(k){
+                if(raw.elements[d][k])Object.assign(base.elements[d][k],raw.elements[d][k]);
+            });
+        }
+    });
+    return base;
+};
+W.heroCompositionEditor=function(id,comp,item,key,idx){
+    var E=[['eyebrow','Eyebrow'],['title','Título'],['description','Descripción'],['ctas','CTAs']];
+    var A=[['top-left','↖'],['top-center','↑'],['top-right','↗'],['center-left','←'],['center','•'],['center-right','→'],['bottom-left','↙'],['bottom-center','↓'],['bottom-right','↘']];
+    var elOpts=E.map(function(e){return '<option value="'+W.esc(e[0])+'">'+W.esc(e[1])+'</option>'}).join('');
+    var anchors=A.map(function(a){return '<button type="button" data-anchor="'+W.esc(a[0])+'" onclick="wontia.heroCompAnchor(\''+W.esc(id)+'\',\''+W.esc(a[0])+'\')" title="'+W.esc(a[0])+'">'+a[1]+'</button>'}).join('');
+    var h='<details class="hero-comp" data-id="'+W.esc(id)+'" data-desktop="'+W.esc((item&&item.desktop)||'')+'" data-mobile="'+W.esc((item&&item.mobile)||'')+'" data-focal="'+W.esc((item&&item.focal)||'50% 50%')+'">'
+        +'<summary>Composición avanzada: fondo y posición de elementos</summary>'
+        +'<div class="hero-comp__body">'
+        +'<div class="hero-comp__row"><label class="hero-comp__label">Dispositivo</label><select id="'+W.esc(id)+'-device"><option value="desktop">PC</option><option value="mobile">Móvil</option></select><button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.heroCompCopy(\''+W.esc(id)+'\')">Copiar PC → Móvil</button></div>'
+        +'<div class="hero-comp__preview"><img id="'+W.esc(id)+'-preview-img" src="'+W.esc((item&&item.desktop)||'')+'" alt=""/></div>'
+        +'<div class="hero-comp__section"><div class="hero-comp__label">Fondo</div>'
+        +'<div class="hero-comp__row"><label>Zoom</label><input type="range" id="'+W.esc(id)+'-bg-zoom" min="100" max="250" step="1" value="100"/><span id="'+W.esc(id)+'-bg-zoom-out">100%</span></div>'
+        +'<div class="hero-comp__row"><label>Mover X</label><input type="range" id="'+W.esc(id)+'-bg-x" min="-100" max="100" step="1" value="0"/><span id="'+W.esc(id)+'-bg-x-out">0%</span></div>'
+        +'<div class="hero-comp__row"><label>Mover Y</label><input type="range" id="'+W.esc(id)+'-bg-y" min="-100" max="100" step="1" value="0"/><span id="'+W.esc(id)+'-bg-y-out">0%</span></div>'
+        +'<div class="hero-comp__row"><label>Focal X</label><input type="range" id="'+W.esc(id)+'-bg-fx" min="0" max="100" step="1" value="50"/><span id="'+W.esc(id)+'-bg-fx-out">50%</span></div>'
+        +'<div class="hero-comp__row"><label>Focal Y</label><input type="range" id="'+W.esc(id)+'-bg-fy" min="0" max="100" step="1" value="50"/><span id="'+W.esc(id)+'-bg-fy-out">50%</span></div>'
+        +'<div class="hero-comp__row"><label>Ajuste</label><select id="'+W.esc(id)+'-bg-fit"><option value="cover">Cubrir</option><option value="contain">Contener</option></select></div>'
+        +'</div>'
+        +'<div class="hero-comp__section"><div class="hero-comp__label">Elementos</div>'
+        +'<div class="hero-comp__row"><label>Elemento</label><select id="'+W.esc(id)+'-el">'+elOpts+'</select><label>Modo</label><select id="'+W.esc(id)+'-el-mode"><option value="auto">Automático</option><option value="manual">Manual</option></select></div>'
+        +'<div class="hero-comp__row"><label>Anclaje</label><div class="hero-comp__anchor" id="'+W.esc(id)+'-anchor">'+anchors+'</div></div>'
+        +'<div class="hero-comp__row"><label>X</label><input type="number" id="'+W.esc(id)+'-el-x" step="1" value="0"/><select id="'+W.esc(id)+'-el-xu"><option value="px">px</option><option value="%">%</option></select><label>Y</label><input type="number" id="'+W.esc(id)+'-el-y" step="1" value="0"/><select id="'+W.esc(id)+'-el-yu"><option value="px">px</option><option value="%">%</option></select></div>'
+        +'<div class="hero-comp__row"><button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.heroCompResetEl(\''+W.esc(id)+'\')">Restablecer elemento</button><span class="hero-comp__hint" id="'+W.esc(id)+'-summary"></span></div>'
+        +'</div>'
+        +'<textarea class="rep-in" data-i="'+W.esc(idx)+'" data-k="composition" id="'+W.esc(id)+'-json" style="display:none">'+W.esc(JSON.stringify(comp))+'</textarea>'
+        +'</div></details>';
+    return h;
+};
+W.heroCompOutputs=function(id){
+    var g=function(k){var e=document.getElementById(id+'-'+k);return e?e.value:''};
+    var s=function(k,v){var e=document.getElementById(id+'-'+k+'-out');if(e)e.textContent=v};
+    s('bg-zoom',(g('bg-zoom')||100)+'%');
+    s('bg-x',(g('bg-x')||0)+'%');
+    s('bg-y',(g('bg-y')||0)+'%');
+    s('bg-fx',(g('bg-fx')||50)+'%');
+    s('bg-fy',(g('bg-fy')||50)+'%');
+};
+W.heroCompPreview=function(id){
+    var st=W.heroCompState[id];var img=document.getElementById(id+'-preview-img');if(!st||!img)return;
+    var bg=st.comp.background[st.device]||{};
+    var src=st.device==='mobile'?(st.item.mobile||st.item.desktop):st.item.desktop;
+    if(src)img.src=src;
+    img.style.objectFit=bg.fit||'cover';
+    img.style.objectPosition=(bg.focal_x||50)+'% '+(bg.focal_y||50)+'%';
+    img.style.transform='translate('+(bg.x||0)+'%,'+(bg.y||0)+'%) scale('+((bg.zoom||100)/100)+')';
+    img.style.transformOrigin=(bg.focal_x||50)+'% '+(bg.focal_y||50)+'%';
+};
+W.heroCompSummary=function(id){
+    var st=W.heroCompState[id];if(!st)return;
+    var e=st.comp.elements[st.device][st.element]||{};
+    var out=document.getElementById(id+'-summary');if(out)out.textContent=(st.device==='desktop'?'PC':'Móvil')+' · '+st.element+' · '+(e.mode==='manual'?('manual '+ (e.anchor||'')+' · X '+e.x+e.x_unit+' · Y '+e.y+e.y_unit):'automático');
+};
+W.heroCompSave=function(id){
+    var st=W.heroCompState[id];if(!st)return;
+    var g=function(k){var e=document.getElementById(id+'-'+k);return e?e.value:''};
+    var bg=st.comp.background[st.device];
+    bg.zoom=parseFloat(g('bg-zoom'))||100;bg.x=parseFloat(g('bg-x'))||0;bg.y=parseFloat(g('bg-y'))||0;
+    bg.focal_x=parseFloat(g('bg-fx'));if(isNaN(bg.focal_x))bg.focal_x=50;
+    bg.focal_y=parseFloat(g('bg-fy'));if(isNaN(bg.focal_y))bg.focal_y=50;
+    bg.fit=g('bg-fit')==='contain'?'contain':'cover';
+    var el=st.comp.elements[st.device][st.element];
+    el.mode=g('el-mode')==='manual'?'manual':'auto';
+    el.x=parseFloat(g('el-x'))||0;el.y=parseFloat(g('el-y'))||0;
+    el.x_unit=g('el-xu')==='%'?'%':'px';el.y_unit=g('el-yu')==='%'?'%':'px';
+    var ta=document.getElementById(id+'-json');if(ta)ta.value=JSON.stringify(st.comp);
+    W.heroCompOutputs(id);W.heroCompPreview(id);W.heroCompSummary(id);
+};
+W.heroCompLoad=function(id){
+    var st=W.heroCompState[id];if(!st)return;
+    var g=function(k){var e=document.getElementById(id+'-'+k);return e?e.value:''};
+    var set=function(k,v){var e=document.getElementById(id+'-'+k);if(e)e.value=v};
+    set('device',st.device);set('el',st.element);
+    var bg=st.comp.background[st.device]||{};
+    set('bg-zoom',bg.zoom||100);set('bg-x',bg.x||0);set('bg-y',bg.y||0);
+    set('bg-fx',bg.focal_x===undefined?50:bg.focal_x);set('bg-fy',bg.focal_y===undefined?50:bg.focal_y);
+    set('bg-fit',bg.fit||'cover');
+    var el=st.comp.elements[st.device][st.element]||{};
+    set('el-mode',el.mode||'auto');set('el-x',el.x||0);set('el-y',el.y||0);
+    set('el-xu',el.x_unit||'px');set('el-yu',el.y_unit||'px');
+    var box=document.getElementById(id+'-anchor');
+    if(box)box.querySelectorAll('[data-anchor]').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-anchor')===(el.anchor||'top-left'))});
+    W.heroCompOutputs(id);W.heroCompPreview(id);W.heroCompSummary(id);
+};
+W.heroCompAnchor=function(id,a){
+    W.heroCompSave(id);var st=W.heroCompState[id];if(!st)return;
+    var el=st.comp.elements[st.device][st.element];el.anchor=a;el.mode='manual';
+    var ta=document.getElementById(id+'-json');if(ta)ta.value=JSON.stringify(st.comp);
+    W.heroCompLoad(id);
+};
+W.heroCompCopy=function(id){
+    W.heroCompSave(id);var st=W.heroCompState[id];if(!st)return;
+    var cp=function(o){return JSON.parse(JSON.stringify(o));};
+    st.comp.background.mobile=cp(st.comp.background.desktop);
+    ['eyebrow','title','description','ctas'].forEach(function(k){st.comp.elements.mobile[k]=cp(st.comp.elements.desktop[k]);});
+    var ta=document.getElementById(id+'-json');if(ta)ta.value=JSON.stringify(st.comp);
+    W.heroCompLoad(id);
+};
+W.heroCompResetEl=function(id){
+    var st=W.heroCompState[id];if(!st)return;
+    st.comp.elements[st.device][st.element]={mode:'auto',anchor:'top-left',x:0,y:0,x_unit:'px',y_unit:'px'};
+    var ta=document.getElementById(id+'-json');if(ta)ta.value=JSON.stringify(st.comp);
+    W.heroCompLoad(id);
+};
+W.heroCompositionInit=function(root){
+    if(!root)return;
+    root.querySelectorAll('.hero-comp').forEach(function(box){
+        if(box.getAttribute('data-comp-init')==='1')return;
+        box.setAttribute('data-comp-init','1');
+        var id=box.getAttribute('data-id');if(!id)return;
+        var item={desktop:box.getAttribute('data-desktop')||'',mobile:box.getAttribute('data-mobile')||'',focal:box.getAttribute('data-focal')||'50% 50%'};
+        var ta=document.getElementById(id+'-json');var comp=W.heroCompDefault(item);
+        if(ta){try{comp=W.heroCompMerge({composition:JSON.parse(ta.value||'{}'),focal:item.focal})}catch(e){}}
+        W.heroCompState[id]={comp:comp,device:'desktop',element:'title',item:item};
+        var dev=document.getElementById(id+'-device');
+        if(dev)dev.addEventListener('change',function(){W.heroCompSave(id);W.heroCompState[id].device=this.value;W.heroCompLoad(id);});
+        var el=document.getElementById(id+'-el');
+        if(el)el.addEventListener('change',function(){W.heroCompSave(id);W.heroCompState[id].element=this.value;W.heroCompLoad(id);});
+        ['bg-zoom','bg-x','bg-y','bg-fx','bg-fy','bg-fit','el-mode','el-x','el-xu','el-y','el-yu'].forEach(function(k){
+            var input=document.getElementById(id+'-'+k);if(!input)return;
+            input.addEventListener('input',function(){W.heroCompSave(id)});
+            input.addEventListener('change',function(){W.heroCompSave(id)});
+        });
+        W.heroCompLoad(id);
+    });
+};
 W.heroThemeSchema=function(){
     var cfg=(W._heroTheme&&W._heroTheme.config)||{};
     var defaultCats=[
@@ -1849,7 +2002,7 @@ W.heroThemeSchema=function(){
         {desktop:'/assets/uploads/wontia_2c020fab54677229.webp',mobile:'/assets/uploads/wontia_4a97a4f3251c0c73.png',alt:'Escenario SONIKA con guitarra',focal:'42% 50%'}
     ];
     var defaultSlides=defaultBgs.map(function(bg,i){
-        return {id:'slide-'+(i+1),enabled:1,eyebrow:'SONIKA PRESENTA',title:'EL SONIDO\nSE *APODERA*.',title_size_desktop:100,title_size_desktop_unit:'%',title_size_mobile:100,title_size_mobile_unit:'%',subtitle:'Tu música. Tu escenario. Tu momento.',cta_label:'Explorar Instrumentos',cta_url:'/guitarras',cta2_label:'Ver la Experiencia',cta2_video:'https://www.youtube.com/watch?v=dsD03vmVe30',cta2_url:'',desktop:bg.desktop,mobile:bg.mobile,alt:bg.alt,focal:bg.focal,overlay:55,accent:'#F20D16',instrument_focus:i===0?'guitarras':''};
+        return {id:'slide-'+(i+1),enabled:1,eyebrow:'SONIKA PRESENTA',title:'EL SONIDO\nSE *APODERA*.',title_size_desktop:100,title_size_desktop_unit:'%',title_size_mobile:100,title_size_mobile_unit:'%',composition:W.heroCompDefault({focal:bg.focal}),subtitle:'Tu música. Tu escenario. Tu momento.',cta_label:'Explorar Instrumentos',cta_url:'/guitarras',cta2_label:'Ver la Experiencia',cta2_video:'https://www.youtube.com/watch?v=dsD03vmVe30',cta2_url:'',desktop:bg.desktop,mobile:bg.mobile,alt:bg.alt,focal:bg.focal,overlay:55,accent:'#F20D16',instrument_focus:i===0?'guitarras':''};
     });
     return [
         {key:'slides',label:'Slides del Hero',type:'repeater',collapsible:true,default:defaultSlides,fields:[
@@ -1868,7 +2021,7 @@ W.heroThemeSchema=function(){
             {key:'desktop',label:'Imagen escritorio',type:'image'},
             {key:'mobile',label:'Imagen móvil',type:'image'},
             {key:'alt',label:'Texto alternativo',type:'text'},
-            {key:'focal',label:'Punto focal (ej. 50% 45%)',type:'text'},
+            {key:'composition',label:'Composición avanzada (fondo y elementos)',type:'composition'},
             {key:'overlay',label:'Overlay propio (%) — vacío = global',type:'number'},
             {key:'accent',label:'Color de acento del slide',type:'color',default:'#F20D16'},
             {key:'instrument_focus',label:'Instrumento a destacar en el carrusel',type:'select',options:catOpts}

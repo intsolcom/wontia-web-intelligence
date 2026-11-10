@@ -203,6 +203,7 @@ class HeroService
                 'title_size_desktop_unit' => '%',
                 'title_size_mobile' => 100,
                 'title_size_mobile_unit' => '%',
+                'composition' => $this->defaultComposition((string)($bg['focal'] ?? '50% 50%')),
                 'instrument_focus' => $i === 0 ? 'guitarras' : '',
             ]);
         }
@@ -380,6 +381,7 @@ class HeroService
                     'title_size_desktop_unit' => '%',
                     'title_size_mobile' => 100,
                     'title_size_mobile_unit' => '%',
+                    'composition' => $this->defaultComposition((string)($bg['focal'] ?? '50% 50%')),
                     'instrument_focus' => $i === 0 ? 'guitarras' : '',
                 ]);
             }
@@ -453,11 +455,82 @@ class HeroService
                 'title_size_desktop_unit' => $desktopUnit,
                 'title_size_mobile' => $mobileSize,
                 'title_size_mobile_unit' => $mobileUnit,
+                'composition' => $this->normalizeComposition($row['composition'] ?? [], $focal),
                 'instrument_focus' => preg_replace('/[^a-z0-9\-]/', '', strtolower((string)($row['instrument_focus'] ?? ''))),
             ];
         }
 
         return $slides;
+    }
+
+    private function defaultComposition(string $focal = '50% 50%'): array
+    {
+        [$fx, $fy] = $this->parseFocal($focal);
+        $bg = ['zoom' => 100, 'x' => 0, 'y' => 0, 'focal_x' => $fx, 'focal_y' => $fy, 'fit' => 'cover'];
+        $el = ['mode' => 'auto', 'anchor' => 'top-left', 'x' => 0, 'y' => 0, 'x_unit' => 'px', 'y_unit' => 'px'];
+        $elements = [];
+        foreach (['eyebrow', 'title', 'description', 'ctas'] as $key) $elements[$key] = $el;
+        return [
+            'background' => ['desktop' => $bg, 'mobile' => $bg],
+            'elements' => ['desktop' => $elements, 'mobile' => $elements],
+        ];
+    }
+
+    private function parseFocal(string $focal): array
+    {
+        if (preg_match('/^\s*(\d{1,3})%\s+(\d{1,3})%\s*$/', $focal, $m)) {
+            return [max(0, min(100, (int)$m[1])), max(0, min(100, (int)$m[2]))];
+        }
+        return [50, 50];
+    }
+
+    private function normalizeComposition($raw, string $focal): array
+    {
+        if (is_string($raw)) $raw = json_decode($raw, true);
+        if (!is_array($raw)) $raw = [];
+        $defaults = $this->defaultComposition($focal);
+        $out = $defaults;
+
+        $bgInput = is_array($raw['background'] ?? null) ? $raw['background'] : [];
+        foreach (['desktop', 'mobile'] as $device) {
+            $b = is_array($bgInput[$device] ?? null) ? $bgInput[$device] : [];
+            $fit = (string)($b['fit'] ?? 'cover');
+            if (!in_array($fit, ['cover', 'contain'], true)) $fit = 'cover';
+            $out['background'][$device] = [
+                'zoom' => max(100, min(250, (float)($b['zoom'] ?? $defaults['background'][$device]['zoom']))),
+                'x' => max(-100, min(100, (float)($b['x'] ?? 0))),
+                'y' => max(-100, min(100, (float)($b['y'] ?? 0))),
+                'focal_x' => max(0, min(100, (float)($b['focal_x'] ?? $defaults['background'][$device]['focal_x']))),
+                'focal_y' => max(0, min(100, (float)($b['focal_y'] ?? $defaults['background'][$device]['focal_y']))),
+                'fit' => $fit,
+            ];
+        }
+
+        $elInput = is_array($raw['elements'] ?? null) ? $raw['elements'] : [];
+        $anchors = ['top-left', 'top-center', 'top-right', 'center-left', 'center', 'center-right', 'bottom-left', 'bottom-center', 'bottom-right'];
+        foreach (['desktop', 'mobile'] as $device) {
+            foreach (['eyebrow', 'title', 'description', 'ctas'] as $key) {
+                $e = is_array($elInput[$device][$key] ?? null) ? $elInput[$device][$key] : [];
+                $mode = (string)($e['mode'] ?? 'auto') === 'manual' ? 'manual' : 'auto';
+                $anchor = (string)($e['anchor'] ?? 'top-left');
+                if (!in_array($anchor, $anchors, true)) $anchor = 'top-left';
+                $xUnit = (string)($e['x_unit'] ?? 'px') === '%' ? '%' : 'px';
+                $yUnit = (string)($e['y_unit'] ?? 'px') === '%' ? '%' : 'px';
+                $x = (float)($e['x'] ?? 0);
+                $y = (float)($e['y'] ?? 0);
+                $x = $xUnit === '%' ? max(-100, min(100, $x)) : max(-600, min(600, $x));
+                $y = $yUnit === '%' ? max(-100, min(100, $y)) : max(-600, min(600, $y));
+                $out['elements'][$device][$key] = [
+                    'mode' => $mode,
+                    'anchor' => $anchor,
+                    'x' => round($x, 2),
+                    'y' => round($y, 2),
+                    'x_unit' => $xUnit,
+                    'y_unit' => $yUnit,
+                ];
+            }
+        }
+        return $out;
     }
 
     private function normalizeTitleSize(float $value, string $unit): float
