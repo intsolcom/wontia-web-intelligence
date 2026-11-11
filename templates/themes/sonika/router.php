@@ -76,6 +76,10 @@ if (($segments[0] ?? '') === 'r' && !empty($segments[1])) {
         ]);
         $_COOKIE['sonika_aff'] = (string)$__aff['code'];
         $__dest = (string)($__aff['store_path'] ?? '/tienda');
+        $__to = is_string($_GET['to'] ?? null) ? trim((string)$_GET['to']) : '';
+        if ($__to !== '' && $__to[0] === '/' && strpos($__to, '//') !== 0 && strpos($__to, '\\') === false && !preg_match('/[\x00-\x1F\x7F]/', $__to)) {
+            $__dest = $__to;
+        }
         $__sep = str_contains($__dest, '?') ? '&' : '?';
         header('Location: ' . $__dest . $__sep . 'ref=' . rawurlencode((string)$__aff['code']), true, 302);
         exit;
@@ -1497,6 +1501,7 @@ switch ($segments[0] ?? '') {
         return true;
 
     case 'carrito':
+        if (!empty($_COOKIE[session_name()])) \App\Core\Session::start();
         sonika_site_head('Carrito — SONIKA', 'Revisa los productos de tu carrito.');
         sonika_breadcrumb(['Carrito' => null]);
         require __DIR__ . '/carrito.php';

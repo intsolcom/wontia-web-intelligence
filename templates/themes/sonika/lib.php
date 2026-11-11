@@ -2322,6 +2322,98 @@ if (!function_exists('sonika_addi_assets')) {
         }
     }
 }
+if (!function_exists('sonika_partner_share_context')) {
+    function sonika_partner_share_context(): array
+    {
+        $out = [
+            'logged_in' => false,
+            'approved' => false,
+            'name' => '',
+            'status' => '',
+            'code' => '',
+            'rate' => 0.03,
+            'cap' => 0.05,
+            'streak_bonus' => 0.0,
+            'streak_level' => 0,
+            'outlet_rate' => \App\Services\AffiliateService::OUTLET_RATE,
+            'points' => 0.0,
+            'tier_min' => 0.0,
+            'next_points' => 10.0,
+            'next_rate' => 0.035,
+            'weeks' => 0,
+            'orders' => 0,
+            'month_sales' => 0.0,
+            'profile_category' => '',
+            'store_path' => '/tienda',
+            'register_url' => '/sonika-partners#registro',
+            'login_url' => '/mi-antro',
+            'panel_url' => '/mi-antro',
+            'contract_url' => '/sonika-partners/contrato',
+        ];
+        if (session_status() !== PHP_SESSION_ACTIVE && !headers_sent() && !empty($_COOKIE[session_name()])) {
+            try { \App\Core\Session::start(); } catch (\Throwable $e) {
+            }
+        }
+        $id = (int)($_SESSION['ff_affiliate_id'] ?? 0);
+        if ($id <= 0) return $out;
+        try {
+            $svc = new \App\Services\AffiliateService();
+            $aff = $svc->getById($id);
+            if (!$aff) return $out;
+            $name = trim((string)($aff['public_name'] ?? ''));
+            if ($name === '') $name = trim((string)($aff['artist_name'] ?? ''));
+            if ($name === '') $name = trim((string)($aff['full_name'] ?? ''));
+            $calc = $svc->pointsForMonth($id);
+            $approved = (string)($aff['status'] ?? '') === 'APPROVED';
+            $slug = trim((string)($aff['slug'] ?? ''));
+            $points = (float)($calc['points'] ?? 0);
+            $tierMin = 0.0;
+            $nextPoints = 0.0;
+            $nextRate = (float)($calc['rate'] ?? 0.03);
+            foreach (\App\Services\AffiliateService::POINT_TIERS as $tier) {
+                if ($points >= (float)$tier[0]) $tierMin = (float)$tier[0];
+                if ((float)$tier[0] > $points) {
+                    $nextPoints = (float)$tier[0];
+                    $nextRate = (float)$tier[2];
+                    break;
+                }
+            }
+            $out['logged_in'] = true;
+            $out['approved'] = $approved;
+            $out['name'] = mb_substr($name, 0, 80);
+            $out['status'] = (string)($aff['status'] ?? '');
+            $out['code'] = $approved ? (string)$svc->ensureLink($id) : '';
+            $out['rate'] = (float)($calc['rate'] ?? 0.03);
+            $out['cap'] = (float)($calc['cap'] ?? 0.05);
+            $out['streak_bonus'] = (float)($calc['streak_bonus'] ?? 0);
+            $out['streak_level'] = (int)($calc['streak_level'] ?? 0);
+            $out['points'] = $points;
+            $out['tier_min'] = $tierMin;
+            $out['next_points'] = $nextPoints;
+            $out['next_rate'] = $nextRate;
+            $out['weeks'] = (int)($calc['weeks'] ?? 0);
+            $out['orders'] = (int)($calc['orders'] ?? 0);
+            $out['month_sales'] = (float)($calc['sales'] ?? 0);
+            $out['profile_category'] = (string)($aff['profile_category'] ?? '');
+            $out['store_path'] = (string)$svc->storePath($aff);
+            $out['panel_url'] = $slug !== '' ? '/artista/' . rawurlencode($slug) . '/panel' : '/mi-antro';
+        } catch (\Throwable $e) {
+        }
+        return $out;
+    }
+}
+if (!function_exists('sonika_share_assets')) {
+    function sonika_share_assets(): void
+    {
+        $ctx = sonika_partner_share_context();
+        $json = json_encode($ctx, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+        $css = (int)(@filemtime(ROOT_DIR . '/public/assets/themes/sonika/share.css') ?: 1);
+        $js = (int)(@filemtime(ROOT_DIR . '/public/assets/js/sonika-share.js') ?: 1);
+        echo '<link rel="stylesheet" href="/assets/themes/sonika/share.css?v=' . $css . '" />';
+        echo '<script>window.SONIKA_PARTNER=' . $json . ';</script>';
+        echo '<script src="/assets/js/sonika-share.js?v=' . $js . '" defer></script>';
+    }
+}
 if (!function_exists('sonika_site_footer')) {
     function sonika_site_footer(): void {
         ?>
