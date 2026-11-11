@@ -1516,7 +1516,7 @@ W.bnList=async function(){
     app.innerHTML='<div style="padding:40px;text-align:center;color:var(--w-muted)">Cargando banners…</div>';
     var rb=await W.api('/api/v1/admin/banners');
     var banners=(rb&&rb.data)||[];
-    var h='<div class="w-flex-between w-mb-lg" style="flex-wrap:wrap;gap:8px"><h3 style="margin:0">Banners</h3><button class="w-btn w-btn-primary" onclick="wontia.bnNew()">＋ Nuevo banner</button></div>';
+    var h='<div class="w-flex-between w-mb-lg" style="flex-wrap:wrap;gap:8px"><h3 style="margin:0">Banners</h3><div class="w-flex w-gap-sm"><a class="w-btn w-btn-secondary" href="#store/carritos">Tráfico / Carritos abandonados</a><button class="w-btn w-btn-primary" onclick="wontia.bnNew()">＋ Nuevo banner</button></div></div>';
     h+='<div style="font-size:12px;color:var(--w-muted);margin-bottom:12px">Crea, activa/desactiva y elige cuál va en la <b>barra superior</b>. Configura cada uno en su propia página.</div>';
     if(!banners.length){h+='<div class="w-empty-state"><p>Sin banners.</p></div>';}
     else{
