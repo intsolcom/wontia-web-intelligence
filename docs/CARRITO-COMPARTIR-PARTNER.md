@@ -38,7 +38,12 @@ Abre un modal flat, responsive y accesible con:
   - Cercano.
 - El enlace se agrega automáticamente si el usuario lo borra del mensaje.
 
-Las imágenes para estados/historias se generan en el navegador con Canvas. En móvil se abre el menú nativo para elegir WhatsApp o Instagram; en escritorio se descarga la imagen y se copia el mensaje.
+Todos los canales de texto llevan el enlace correcto:
+
+- Modo amigo: `https://sonika.com.co/producto/{handle}`.
+- Modo Partner aprobado: `https://sonika.com.co/r/{code}/p/{handle}`.
+
+Las imágenes para estados/historias se generan en el navegador con Canvas e incluyen el enlace visible en la propia imagen. La vista previa agrega un botón **Copiar enlace** para pegarlo en el sticker de enlace de Instagram o en el texto del estado de WhatsApp. En móvil se abre el menú nativo para elegir WhatsApp o Instagram; en escritorio se descarga la imagen y se copia el mensaje.
 
 ---
 
@@ -89,7 +94,13 @@ Muestra:
 
 ## 4. Enlace de Partner
 
-Formato:
+Formato corto:
+
+```text
+https://sonika.com.co/r/{code}/p/{handle}
+```
+
+También se mantiene el formato anterior por compatibilidad:
 
 ```text
 https://sonika.com.co/r/{code}?to=%2Fproducto%2F{handle}
@@ -103,7 +114,7 @@ La ruta `/r/{code}`:
 
 Esto es importante porque la atribución de pedidos exige un clic válido en los últimos 30 días. Un enlace directo `?ref=` no registraba el clic.
 
-El parámetro `to` solo acepta rutas internas que empiecen por `/`. Si intenta salir a otro dominio, se ignora y se usa la ruta pública del Partner.
+El parámetro `to` solo acepta rutas internas que empiecen por `/`. Si intenta salir a otro dominio, se ignora y se usa la ruta pública del Partner. La ruta corta `/r/{code}/p/{handle}` siempre apunta al producto interno.
 
 ---
 
@@ -149,8 +160,13 @@ El parámetro `to` solo acepta rutas internas que empiecen por `/`. Si intenta s
   - Comisión normal y outlet.
 - Enlace de Partner:
   - Redirección `302` a `/producto/ukel16?ref=...`.
+  - Ruta corta `/r/{code}/p/{handle}` con clic registrado.
   - Cookie `sonika_aff` activa por 30 días.
   - Intento de redirección externa bloqueado.
+- Imagen de historia:
+  - Enlace visible dentro de la imagen.
+  - Botón **Copiar enlace** en la vista previa.
+  - Enlace de producto en modo amigo y de atribución en modo Partner.
 - Sin errores de consola.
 - Sin errores PHP en logs.
 - Limpieza de clics y carritos de prueba.

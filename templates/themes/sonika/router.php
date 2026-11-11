@@ -80,6 +80,9 @@ if (($segments[0] ?? '') === 'r' && !empty($segments[1])) {
         if ($__to !== '' && $__to[0] === '/' && strpos($__to, '//') !== 0 && strpos($__to, '\\') === false && !preg_match('/[\x00-\x1F\x7F]/', $__to)) {
             $__dest = $__to;
         }
+        if (($segments[2] ?? '') === 'p' && !empty($segments[3])) {
+            $__dest = '/producto/' . rawurlencode(rawurldecode((string)$segments[3]));
+        }
         $__sep = str_contains($__dest, '?') ? '&' : '?';
         header('Location: ' . $__dest . $__sep . 'ref=' . rawurlencode((string)$__aff['code']), true, 302);
         exit;

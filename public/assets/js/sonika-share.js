@@ -101,7 +101,7 @@
   function affiliateUrl(ref, code) {
     if (!code) return productUrl(ref);
     var base = location.origin || (location.protocol + '//' + location.host);
-    return base + '/r/' + encodeURIComponent(code) + '?to=' + encodeURIComponent('/producto/' + ref);
+    return base + '/r/' + encodeURIComponent(code) + '/p/' + encodeURIComponent(ref);
   }
 
   function readProduct(btn) {
@@ -339,8 +339,9 @@
       '<div class="skshare__imageactions">' +
       '<button type="button" class="skshare__action skshare__action--primary" data-skshare-imgshare>' + icon('share', 'skshare__ico--copy') + txt('Compartir imagen', 'Abre la galería o tus apps') + '</button>' +
       '<button type="button" class="skshare__action" data-skshare-imgdownload>' + icon('download', 'skshare__ico--copy') + txt('Descargar', 'Guárdala en tu dispositivo') + '</button>' +
+      '<button type="button" class="skshare__action skshare__action--wide" data-skshare-imgcopy>' + icon('copy', 'skshare__ico--copy') + txt('Copiar enlace', 'Para el sticker o el texto del estado') + '</button>' +
       '</div>' +
-      '<p class="skshare__imnote">En el celular puedes elegir WhatsApp o Instagram en el menú de compartir. En computador, descarga la imagen y súbela manualmente.</p>' +
+      '<p class="skshare__imnote">La imagen ya incluye el enlace visible. Para que sea clicable, copia el enlace y pégalo en el sticker de enlace de Instagram o en el texto del estado de WhatsApp.</p>' +
       '</div></div>';
   }
 
@@ -370,7 +371,7 @@
     el.addEventListener('click', function (e) {
       if (e.target === el) { closeShare(); return; }
       var t = e.target;
-      var hit = t && t.closest ? t.closest('[data-skshare-close],[data-skshare-mode],[data-skshare-template],[data-skshare-wa],[data-skshare-fb],[data-skshare-email],[data-skshare-copy],[data-skshare-copymsg],[data-skshare-native],[data-skshare-story],[data-skshare-imgclose],[data-skshare-imgshare],[data-skshare-imgdownload],[data-skshare-panel]') : null;
+      var hit = t && t.closest ? t.closest('[data-skshare-close],[data-skshare-mode],[data-skshare-template],[data-skshare-wa],[data-skshare-fb],[data-skshare-email],[data-skshare-copy],[data-skshare-copymsg],[data-skshare-native],[data-skshare-story],[data-skshare-imgclose],[data-skshare-imgshare],[data-skshare-imgdownload],[data-skshare-imgcopy],[data-skshare-panel]') : null;
       if (!hit) return;
       if (hit.hasAttribute('data-skshare-close')) { closeShare(); return; }
       if (hit.hasAttribute('data-skshare-imgclose')) { closePreview(); return; }
@@ -385,6 +386,7 @@
       if (hit.hasAttribute('data-skshare-story')) { openStory(hit.getAttribute('data-skshare-story')); return; }
       if (hit.hasAttribute('data-skshare-imgshare')) { shareStoryImage(); return; }
       if (hit.hasAttribute('data-skshare-imgdownload')) { downloadStory(); return; }
+      if (hit.hasAttribute('data-skshare-imgcopy')) { copyStoryLink(); return; }
       if (hit.hasAttribute('data-skshare-panel')) { location.href = P.panel_url || '/mi-antro'; return; }
     });
 
@@ -678,6 +680,13 @@
     track('story_download');
   }
 
+  function copyStoryLink() {
+    copyText(currentUrl(), true).then(function (ok) {
+      toast(ok ? 'Enlace copiado. Pégalo en el sticker o en el texto del estado.' : 'No se pudo copiar. Selecciona el enlace del producto.');
+    });
+    track('story_link_copy');
+  }
+
   function downloadBlob(blob, name) {
     var url = URL.createObjectURL(blob);
     var a = document.createElement('a');
@@ -699,6 +708,7 @@
       canvas.height = 1920;
       var ctx = canvas.getContext('2d');
       if (!ctx) { reject(new Error('canvas')); return; }
+      var shareLink = currentUrl();
       var done = false;
       var finished = false;
 
@@ -719,7 +729,7 @@
         if (done) return;
         done = true;
         try {
-          drawStory(ctx, img, product, mode);
+          drawStory(ctx, img, product, mode, shareLink);
           finish();
         } catch (e) {
           reject(e);
@@ -740,7 +750,7 @@
     });
   }
 
-  function drawStory(ctx, img, product, mode) {
+  function drawStory(ctx, img, product, mode, link) {
     var W = 1080, H = 1920;
     ctx.fillStyle = '#F6F6F3';
     ctx.fillRect(0, 0, W, H);
@@ -755,11 +765,11 @@
     ctx.fillRect(72, 110, 64, 6);
     ctx.textBaseline = 'alphabetic';
 
-    ctx.fillStyle = '#8a877f';
+    ctx.fillStyle = '#6f6b63';
     ctx.font = '800 23px Sora, system-ui, sans-serif';
     ctx.fillText(mode === 'partner' ? 'PARTNER SONIKA' : 'RECOMENDADO', 72, 230);
 
-    var cx = 72, cy = 280, cw = 936, ch = 760;
+    var cx = 72, cy = 260, cw = 936, ch = 700;
     ctx.fillStyle = '#fff';
     roundRect(ctx, cx, cy, cw, ch, 32);
     ctx.fill();
@@ -781,42 +791,64 @@
     }
 
     var title = product.title || 'Producto SONIKA';
-    var lines = wrapText(ctx, title, 936, '800 62px Sora, system-ui, sans-serif');
+    var titleFont = '800 58px Sora, system-ui, sans-serif';
+    var lines = wrapText(ctx, title, 936, titleFont);
     if (lines.length > 3) {
       lines = lines.slice(0, 3);
       lines[2] = lines[2].replace(/\s+\S*$/, '') + '…';
     }
     ctx.fillStyle = '#111';
-    ctx.font = '800 62px Sora, system-ui, sans-serif';
-    var ty = 1110;
-    lines.forEach(function (line, i) { ctx.fillText(line, 72, ty + i * 70); });
+    ctx.font = titleFont;
+    var ty = 1030;
+    lines.forEach(function (line, i) { ctx.fillText(line, 72, ty + i * 66); });
 
-    var priceY = ty + lines.length * 70 + 34;
+    var priceY = ty + lines.length * 66 + 30;
     if (product.priceLabel) {
       ctx.fillStyle = '#F20D16';
-      ctx.font = '900 78px Sora, system-ui, sans-serif';
+      ctx.font = '900 74px Sora, system-ui, sans-serif';
       ctx.fillText(product.priceLabel, 72, priceY);
     }
 
     if (mode === 'partner' && P.name) {
       ctx.fillStyle = '#6b7280';
       ctx.font = '700 28px Sora, system-ui, sans-serif';
-      ctx.fillText('Recomendado por ' + String(P.name).slice(0, 42), 72, priceY + 56);
+      ctx.fillText('Recomendado por ' + String(P.name).slice(0, 42), 72, priceY + 54);
     }
 
-    var by = 1480;
+    var linkText = String(link || '').replace(/^https?:\/\//, '').replace(/\/$/, '');
+    var linkLabel = mode === 'partner' ? 'TU ENLACE DE PARTNER' : 'ENLACE DEL PRODUCTO';
+    var linkY = 1360;
+    ctx.fillStyle = '#6f6b63';
+    ctx.font = '800 20px Sora, system-ui, sans-serif';
+    ctx.fillText(linkLabel, 72, linkY - 14);
+    ctx.fillStyle = '#fff';
+    roundRect(ctx, 72, linkY, 936, 64, 14);
+    ctx.fill();
+    ctx.strokeStyle = '#e7e5df';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    var linkFont = '800 30px Sora, system-ui, sans-serif';
+    ctx.font = linkFont;
+    if (ctx.measureText(linkText).width > 860) linkFont = '800 24px Sora, system-ui, sans-serif';
+    ctx.font = linkFont;
     ctx.fillStyle = '#111';
-    roundRect(ctx, 72, by, 936, 120, 18);
+    ctx.textAlign = 'center';
+    ctx.fillText(linkText, 72 + 468, linkY + 41);
+    ctx.textAlign = 'left';
+
+    var by = 1450;
+    ctx.fillStyle = '#111';
+    roundRect(ctx, 72, by, 936, 112, 18);
     ctx.fill();
     ctx.fillStyle = '#fff';
     ctx.font = '800 34px Sora, system-ui, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('Compra en sonika.com.co', 72 + 468, by + 76);
+    ctx.fillText('Compra en sonika.com.co', 72 + 468, by + 71);
     ctx.textAlign = 'left';
 
-    ctx.fillStyle = '#8a877f';
+    ctx.fillStyle = '#6f6b63';
     ctx.font = '600 24px Sora, system-ui, sans-serif';
-    ctx.fillText('Envíos a toda Colombia · Garantía SONIKA', 72, 1650);
+    ctx.fillText('Envíos a toda Colombia · Garantía SONIKA', 72, 1630);
   }
 
   function roundRect(ctx, x, y, w, h, r) {
