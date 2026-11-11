@@ -910,6 +910,33 @@
     } catch (e) {}
   }
 
+  function updatePartnerTriggers() {
+    var nodes = document.querySelectorAll('.skshare-trigger--partner');
+    Array.prototype.forEach.call(nodes, function (btn) {
+      var small = btn.querySelector('small');
+      if (!small) return;
+      var cents = Math.max(0, parseInt(btn.getAttribute('data-price-cents') || '0', 10) || 0);
+      if (P.logged_in && P.approved && P.code) {
+        var rate = Number(P.rate) || 0.03;
+        small.textContent = cents > 0 ? ('Gana ~' + money(cents * rate)) : ('Tu tasa ' + pct(rate));
+        btn.setAttribute('title', 'Partner SONIKA · comisión estimada por unidad');
+      } else if (P.logged_in && !P.approved) {
+        small.textContent = 'En revisión';
+        btn.setAttribute('title', 'Partner SONIKA · perfil en revisión');
+      } else {
+        small.textContent = 'Hasta 7%';
+        btn.setAttribute('title', 'Partner SONIKA · comisiones hasta 7%');
+      }
+    });
+  }
+
+  updatePartnerTriggers();
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', updatePartnerTriggers);
+  window.addEventListener('sonika-quote', updatePartnerTriggers);
+  window.addEventListener('wwi-cart-change', updatePartnerTriggers);
+  setTimeout(updatePartnerTriggers, 350);
+  setTimeout(updatePartnerTriggers, 1200);
+
   document.addEventListener('click', function (e) {
     var btn = e.target && e.target.closest ? e.target.closest('[data-skshare]') : null;
     if (!btn) return;

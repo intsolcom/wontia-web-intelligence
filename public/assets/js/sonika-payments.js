@@ -516,7 +516,7 @@
       var shareAttrs = 'data-ref="' + escAttr(ref) + '" data-title="' + escAttr(title) + '" data-price-cents="' + Math.max(0, Math.round(sharePrice)) + '" data-image="' + escAttr(line.image || '') + '"';
       shareHtml = '<div class="skpay__item-share">' +
         '<button type="button" class="skshare-trigger" data-skshare="friend" ' + shareAttrs + ' data-track="compartir producto" aria-label="Compartir ' + escAttr(title) + ' con un amigo, familiar o conocido">' +
-        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></svg><span>Compartir</span></button>' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></svg><span><b>Compartir</b><small>Con un amigo</small></span></button>' +
         '<button type="button" class="skshare-trigger skshare-trigger--partner" data-skshare="partner" ' + shareAttrs + ' data-track="compartir partner" aria-label="Comparte este producto como Partner SONIKA y gana comisión">' +
         '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8L12 2Z"/></svg><span><b>Comparte y gana</b><small>Partner SONIKA</small></span></button>' +
         '</div>';

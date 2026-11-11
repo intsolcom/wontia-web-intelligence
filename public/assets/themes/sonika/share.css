@@ -3,37 +3,45 @@
    Flat, editorial, alto contraste. Prefijo: skshare-
    ============================================================ */
 
-/* ── Disparadores dentro de cada línea del carrito ── */
-.skpay__item-share{grid-column:1/-1;display:flex;gap:7px;flex-wrap:wrap;margin-top:1px;padding-top:10px;border-top:1px solid #f0eee8}
+/* ── Disparadores en carrito y ficha ── */
+.skpay__item-share{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:1px;padding-top:12px;border-top:1px solid #f0eee8}
 .skshare-trigger{
-  display:inline-flex;align-items:center;gap:7px;min-height:38px;padding:7px 10px;
-  border:1px solid #e2dfd7;border-radius:10px;background:#fff;color:#3f3f3f;
-  font:inherit;font-size:10.5px;font-weight:750;line-height:1;cursor:pointer;
-  transition:border-color .15s ease,background .15s ease,color .15s ease,transform .15s ease;
+  display:flex;align-items:center;justify-content:center;gap:9px;width:100%;min-height:48px;padding:9px 12px;
+  border:1px solid #ddd9d0;border-radius:12px;background:#fff;color:#111;
+  font:inherit;font-size:12px;font-weight:750;line-height:1.1;text-align:left;cursor:pointer;
+  transition:border-color .15s ease,background .15s ease,color .15s ease,transform .15s ease,box-shadow .15s ease;
   -webkit-tap-highlight-color:transparent
 }
-.skshare-trigger svg{width:15px;height:15px;display:block;flex:0 0 15px}
-.skshare-trigger:hover{border-color:#111;background:#faf9f6;color:#111;transform:translateY(-1px)}
-.skshare-trigger:active{transform:none}
+.skshare-trigger > svg{width:19px;height:19px;display:block;flex:0 0 19px}
+.skshare-trigger > span{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-width:0}
+.skshare-trigger b{display:block;font-size:12px;font-weight:850;line-height:1.1;letter-spacing:-.01em;color:inherit}
+.skshare-trigger small{display:block;font-size:8px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;line-height:1.15;color:#6f6b63;white-space:nowrap}
+.skshare-trigger:hover{border-color:#111;background:#faf9f6;color:#111;transform:translateY(-1px);box-shadow:0 8px 18px rgba(17,17,17,.06)}
+.skshare-trigger:active{transform:none;box-shadow:none}
 .skshare-trigger:focus-visible{outline:2px solid var(--brand,#F20D16);outline-offset:2px}
-.skshare-trigger--partner{background:#111;border-color:#111;color:#fff;padding-right:11px}
-.skshare-trigger--partner:hover{background:#000;border-color:#000;color:#fff}
-.skshare-trigger--partner span{display:flex;flex-direction:column;align-items:flex-start;gap:2px}
-.skshare-trigger--partner b{font-size:10.5px;font-weight:850;letter-spacing:-.01em}
-.skshare-trigger--partner small{font-size:7.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#fca5a5}
+.skshare-trigger--partner{background:#111;border-color:#111;color:#fff;box-shadow:0 8px 18px rgba(17,17,17,.12)}
+.skshare-trigger--partner > svg{color:#ff5a61}
+.skshare-trigger--partner small{color:#fca5a5}
+.skshare-trigger--partner:hover{background:#000;border-color:#000;color:#fff;box-shadow:0 10px 22px rgba(17,17,17,.18)}
 
 /* ── Ficha de producto ── */
-.pdp-share{margin:20px 0 0;padding-top:16px;border-top:1px solid #ececec}
-.pdp-share__head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:0 0 10px}
-.pdp-share__head b{font-size:10.5px;font-weight:850;letter-spacing:.12em;text-transform:uppercase;color:#6f6b63}
+.pdp-share{margin:22px 0 0;padding:16px;border:1px solid #e7e5df;border-radius:16px;background:#faf9f6}
+.pdp-share__head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:0 0 11px}
+.pdp-share__head b{display:inline-flex;align-items:center;gap:7px;font-size:11px;font-weight:850;letter-spacing:.12em;text-transform:uppercase;color:#111}
+.pdp-share__head b:before{content:"";display:inline-block;width:6px;height:6px;border-radius:2px;background:var(--brand,#F20D16)}
 .pdp-share__head small{font-size:11px;line-height:1.4;color:#6f6b63}
-.pdp-share__actions{display:flex;gap:8px;flex-wrap:wrap}
-.pdp-share__actions .skshare-trigger{min-height:44px;padding:9px 13px;font-size:11.5px}
-.pdp-share__actions .skshare-trigger--partner b{font-size:11.5px}
-.pdp-share__actions .skshare-trigger--partner small{font-size:8px}
-@media(max-width:640px){
-  .pdp-share__actions{flex-direction:column}
-  .pdp-share__actions .skshare-trigger{width:100%;justify-content:center}
+.pdp-share__actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pdp-share__actions .skshare-trigger{min-height:60px;padding:11px 14px;border-radius:13px}
+.pdp-share__actions .skshare-trigger b{font-size:13px}
+.pdp-share__actions .skshare-trigger small{font-size:9px}
+@media(max-width:560px){
+  .pdp-share{padding:14px}
+  .pdp-share__actions .skshare-trigger{min-height:54px;padding:9px 10px}
+  .pdp-share__actions .skshare-trigger b{font-size:12px}
+  .pdp-share__actions .skshare-trigger small{font-size:8px}
+}
+@media(max-width:360px){
+  .skpay__item-share,.pdp-share__actions{grid-template-columns:1fr}
 }
 
 /* ── Modal ── */

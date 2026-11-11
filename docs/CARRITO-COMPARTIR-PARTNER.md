@@ -17,6 +17,18 @@ Los mismos dos botones están disponibles en la ficha de producto (`/producto/{h
 
 Los botones no se muestran en el checkout. Tampoco aparecen si el producto está agotado o tiene un problema de disponibilidad.
 
+### Apariencia y énfasis
+
+- En el carrito, los dos botones ocupan todo el ancho de la fila y se muestran lado a lado en dos columnas iguales.
+- En la ficha de producto, el bloque se presenta como una tarjeta suave con borde, título con punto rojo y los dos botones grandes lado a lado.
+- El botón **Compartir** es blanco, con borde y microcopy “Con un amigo”.
+- El botón **Comparte y gana** es negro, con icono rojo, sombra suave y microcopy dinámico:
+  - Invitado: `Hasta 7%`.
+  - Partner aprobado: `Gana ~$14.315` (calculado con el precio y la tasa actual).
+  - Partner en revisión: `En revisión`.
+- En móvil se mantienen lado a lado hasta 360 px; por debajo se apilan para no romper el layout.
+- Los botones tienen 48 px de alto en el carrito y 60 px en la ficha, con foco visible y micro-interacción de elevación.
+
 ---
 
 ## 2. Modo amigo
