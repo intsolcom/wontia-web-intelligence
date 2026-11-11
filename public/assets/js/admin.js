@@ -53,7 +53,7 @@ W.router=function(){
     document.querySelectorAll('.w-nav-item').forEach(function(a){a.classList.toggle('active',a.dataset.panel===panel)});
     if(panel==='hero'){var _heroNav=document.querySelector('.w-nav-item[data-panel="bricks"]');if(_heroNav)_heroNav.classList.add('active');}
     var title=document.getElementById('panel-title');
-    var titles={dashboard:'Dashboard',wwi:'WWI — Sistema',store:'Tienda',sistecredito:'Sistecrédito','order-center':'Central de pedidos','mega-menu':'Mega Menú',hero:'SONIKA Hero Builder',directory:'Directorio Sonika',toques:'Toques',monas:'Moñas',pages:'Pages',sections:'Sections',bricks:'Bricks',brickhub:'BrickHub',brick:'AI BRICK',factory:'Factory',portal:'Mi Portal',blog:'Blog',media:'Media',banners:'Banners',seo:'SEO','seo-global-launch':'SEO Global Launch','tia-command-center':'TIA Command Center',analytics:'Analytics',settings:'Settings',users:'Users'};
+    var titles={dashboard:'Dashboard',wwi:'WWI — Sistema',store:'Tienda',sistecredito:'Sistecrédito','order-center':'Central de pedidos','mega-menu':'Mega Menú',hero:'SONIKA Hero Builder',directory:'Directorio Sonika',toques:'Toques',monas:'Moñas',pages:'Pages',sections:'Sections',bricks:'Bricks',brickhub:'BrickHub',brick:'AI BRICK',factory:'Factory',portal:'Mi Portal',blog:'Blog',media:'Media',banners:'Banners',seo:'SEO','seo-global-launch':'SEO Global Launch','tia-command-center':'TIA Command Center',analytics:'Analytics','tracking-conversion':'Tracking & Conversion',settings:'Settings',users:'Users'};
     if(title)title.textContent=titles[panel]||panel;
     var app=document.getElementById('wontia-app');
     if(!app)return;
@@ -8964,6 +8964,212 @@ W.mpRefund=async function(id){
     var r=await W.api('/api/v1/admin/mercadopago/payments/'+id+'/refund',{method:'POST',body:body});
     if(r&&r.ok){W.notify(r.message||'Reembolso solicitado','success');W.closeModal();W.renderMercadoPago()}else W.notify((r&&r.message)||'No se pudo reembolsar','error');
 };
+W.tcState={tab:'resumen',data:null};
+W.tcTabs=[['resumen','Resumen'],['meta','Meta Pixel'],['ga4','GA4'],['utm','UTM'],['eventos','Eventos'],['debugger','Debugger'],['salud','Salud'],['privacidad','Privacidad'],['avanzado','Avanzado']];
+W.tcDot=function(status){var s=['connected','configured_unverified','warning','error','disabled'].indexOf(status)>=0?status:'disabled';return '<span class="tc-dot tc-dot--'+s+'"></span>'};
+W.tcStatus=function(status,label,detail){return '<div class="tc-card"><div class="tc-status">'+W.tcDot(status)+W.esc(label)+'</div><p class="tc-small" style="margin-top:7px">'+W.esc(detail||'')+'</p></div>'};
+W.tcEventRows=function(rows){
+    rows=rows||[];
+    if(!rows.length)return '<div class="tc-empty">Sin eventos registrados todavía.</div>';
+    var h='<div class="tc-table-wrap"><table class="tc-table"><thead><tr><th>Evento</th><th>Plataforma</th><th>Destino</th><th>Estado</th><th>Pedido</th><th>Valor</th><th>Fecha</th><th>Params / error</th></tr></thead><tbody>';
+    rows.forEach(function(r){
+        var err=r.error?'<div style="color:#fca5a5">'+W.esc(r.error)+'</div>':'';
+        var params='';
+        try{params=JSON.stringify(r.params||{}).slice(0,700)}catch(e){params=''}
+        h+='<tr><td><b>'+W.esc(r.event_name||'')+'</b></td><td>'+W.esc(r.platform||'')+'</td><td>'+W.esc(r.destination_event||'')+'</td><td><span class="tc-chip">'+W.esc(r.status||'')+'</span></td><td class="tc-mono">'+W.esc(r.order_number||r.order_uuid||'—')+'</td><td>'+(r.value_cents!==null&&r.value_cents!==undefined?W.esc((Number(r.value_cents)/100).toLocaleString('es-CO')+' '+(r.currency||'')):'—')+'</td><td class="tc-mono">'+W.esc((r.created_at||'').slice(0,19))+'</td><td><div class="tc-json">'+W.esc(params)+'</div>'+err+'</td></tr>';
+    });
+    h+='</tbody></table></div>';
+    return h;
+};
+W.tcMaster=function(cfg){
+    return '<div class="tc-card" style="margin-bottom:12px"><label class="tc-check"><input type="checkbox" id="tc-enabled" '+(cfg.enabled?'checked':'')+'> <b>Activar Tracking &amp; Conversion</b></label><p class="tc-small" style="margin-top:6px">El interruptor maestro no envía eventos si Meta/GA4 están desactivados. UTM puede seguir capturando atribución first/last con consentimiento de analítica.</p></div>';
+};
+W.tcSaveBar=function(){
+    return '<div class="tc-actions"><button type="button" class="w-btn w-btn-primary" onclick="wontia.tcSave()">Guardar configuración</button><button type="button" class="w-btn w-btn-secondary" onclick="wontia.tcDiagnose()">Diagnosticar</button></div>';
+};
+W.tcField=function(label,inner,full){
+    return '<div class="tc-field'+(full?' tc-full':'')+'"><label>'+W.esc(label)+'</label>'+inner+'</div>';
+};
+W.tcSummary=function(d){
+    var h=d.health||{};
+    var s=d.stats_24h||{};
+    var s7=d.stats_7d||{};
+    var html='<div class="tc-grid">'+
+        W.tcStatus((h.meta||{}).status||'disabled','Meta Pixel',(h.meta||{}).detail||'')+
+        W.tcStatus((h.ga4||{}).status||'disabled','GA4',(h.ga4||{}).detail||'')+
+        W.tcStatus((h.utm||{}).status||'disabled','UTM',(h.utm||{}).detail||'')+
+        '</div>';
+    html+='<div class="tc-grid"><div class="tc-card tc-kpi"><b>'+W.num(s.dispatched||0)+'</b><span>Despachados 24 h</span></div><div class="tc-card tc-kpi"><b>'+W.num(s.failed||0)+'</b><span>Fallidos 24 h</span></div><div class="tc-card tc-kpi"><b>'+W.num(s7.purchases||0)+'</b><span>Purchase 7 días</span></div><div class="tc-card tc-kpi"><b>'+W.num(s.pending_payment||0)+'</b><span>Purchase pendientes de pago</span></div></div>';
+    html+='<div class="tc-card" style="margin-top:12px"><h3>Últimos eventos</h3>'+W.tcEventRows(d.recent||[])+'</div>';
+    return html;
+};
+W.tcMeta=function(cfg){
+    var h=W.tcMaster(cfg)+'<div class="tc-card"><h3>Meta Pixel</h3><p class="tc-note">El Pixel ID es público por diseño. No se guardan tokens ni credenciales. El evento Purchase solo se envía cuando el servidor confirma <b>payment_status = paid</b>.</p><div class="tc-form">';
+    h+='<div class="tc-field tc-full"><label class="tc-check"><input type="checkbox" id="tc-meta-enabled" '+(cfg.meta_enabled?'checked':'')+'> Activar Meta Pixel</label></div>';
+    h+=W.tcField('Pixel ID', '<input type="text" id="tc-meta-pixel-id" value="'+W.esc(cfg.meta_pixel_id||'')+'" placeholder="15-16 dígitos" autocomplete="off"/>', true);
+    h+=W.tcField('Ambiente', '<select id="tc-meta-environment"><option value="production"'+(cfg.meta_environment==='production'?' selected':'')+'>Producción</option><option value="test"'+(cfg.meta_environment==='test'?' selected':'')+'>Test</option></select>');
+    h+=W.tcField('Test event code (opcional)', '<input type="text" id="tc-meta-test-event-code" value="'+W.esc(cfg.meta_test_event_code||'')+'" placeholder="TEST12345"/>');
+    h+='</div>'+W.tcSaveBar()+'</div>';
+    return h;
+};
+W.tcGa4=function(cfg){
+    var h=W.tcMaster(cfg)+'<div class="tc-card"><h3>Google Analytics 4</h3><p class="tc-note">GA4 se activa solo con consentimiento de analítica. Si existía un GA4 legado en <b>ga_measurement_id</b>, el Brick toma el control para evitar duplicados.</p><div class="tc-form">';
+    h+='<div class="tc-field tc-full"><label class="tc-check"><input type="checkbox" id="tc-ga4-enabled" '+(cfg.ga4_enabled?'checked':'')+'> Activar GA4</label></div>';
+    h+=W.tcField('Measurement ID', '<input type="text" id="tc-ga4-measurement-id" value="'+W.esc(cfg.ga4_measurement_id||'')+'" placeholder="G-XXXXXXXXXX" autocomplete="off"/>', true);
+    h+='<div class="tc-field tc-full"><label class="tc-check"><input type="checkbox" id="tc-ga4-debug" '+(cfg.ga4_debug?'checked':'')+'> Modo debug GA4 (DebugView)</label></div>';
+    h+='</div>'+W.tcSaveBar()+'</div>';
+    return h;
+};
+W.tcUtm=function(cfg){
+    var types=[['sku','SKU'],['product_id','Product ID'],['handle','Handle']];
+    var h=W.tcMaster(cfg)+'<div class="tc-card"><h3>UTM &amp; Atribución</h3><p class="tc-note">Se guardan first-touch y last-touch en la cookie <b>wwi_attr_v1</b>, sin datos personales. La atribución se asocia al pedido al crearlo y queda visible en Privacidad.</p><div class="tc-form">';
+    h+='<div class="tc-field tc-full"><label class="tc-check"><input type="checkbox" id="tc-utm-enabled" '+(cfg.utm_enabled?'checked':'')+'> Activar captura UTM</label></div>';
+    h+=W.tcField('Retención (días)', '<input type="number" id="tc-utm-retention-days" min="1" max="365" value="'+W.esc(cfg.utm_retention_days||90)+'"/>');
+    h+=W.tcField('Identificador de producto', '<select id="tc-content-id-type">'+types.map(function(t){return '<option value="'+t[0]+'"'+(cfg.content_id_type===t[0]?' selected':'')+'>'+t[1]+'</option>'}).join('')+'</select>');
+    h+=W.tcField('Moneda', '<input type="text" id="tc-currency" maxlength="3" value="'+W.esc(cfg.currency||'COP')+'"/>');
+    h+='</div>'+W.tcSaveBar()+'</div>';
+    return h;
+};
+W.tcEvents=function(cfg){
+    var events=[['event_page_view','PageView / page_view'],['event_view_content','ViewContent / view_item'],['event_add_to_cart','AddToCart / add_to_cart'],['event_initiate_checkout','InitiateCheckout / begin_checkout'],['event_purchase','Purchase / purchase']];
+    var h=W.tcMaster(cfg)+'<div class="tc-card"><h3>Eventos activos</h3><p class="tc-note">El mapeo WWI → Meta/GA4 es fijo en esta versión. Cada evento conserva su propio event_id para deduplicación.</p><div class="tc-form">';
+    events.forEach(function(e){h+='<div class="tc-field tc-full"><label class="tc-check"><input type="checkbox" id="'+e[0]+'" '+(cfg[e[0]]?'checked':'')+'> '+W.esc(e[1])+'</label></div>'});
+    h+='</div>'+W.tcSaveBar()+'</div>';
+    return h;
+};
+W.tcDebugger=function(d){
+    return '<div class="tc-card"><div class="w-flex-between" style="gap:10px;flex-wrap:wrap;margin-bottom:10px"><div><h3 style="margin:0">Event Debugger</h3><p class="tc-small" style="margin-top:3px">Últimos eventos del ledger interno. No se muestran emails, teléfonos, direcciones ni datos de pago.</p></div><button type="button" class="w-btn w-btn-secondary" onclick="wontia.renderTrackingConversion(\'debugger\')">Actualizar</button></div>'+W.tcEventRows(d.recent||[])+'</div>';
+};
+W.tcHealth=function(d){
+    var diag=d.diagnostics||{};
+    var checks=diag.checks||[];
+    var h='<div class="tc-card"><div class="w-flex-between" style="gap:10px;flex-wrap:wrap;margin-bottom:10px"><div><h3 style="margin:0">Health Monitor</h3><p class="tc-small" style="margin-top:3px">Score interno: <b>'+(diag.score||0)+'/100</b> · '+W.num(diag.errors||0)+' error(es) · '+W.num(diag.warnings||0)+' aviso(s)</p></div><button type="button" class="w-btn w-btn-secondary" onclick="wontia.tcDiagnose()">Diagnosticar ahora</button></div><div class="tc-diag">';
+    checks.forEach(function(c){
+        var dot=c.ok?'connected':(c.severity==='error'?'error':(c.severity==='warning'?'warning':'disabled'));
+        h+='<div class="tc-diag-row">'+W.tcDot(dot)+'<div><b>'+W.esc(c.label||c.key||'')+'</b><span>'+W.esc(c.detail||'')+'</span>'+(c.action?'<em>'+W.esc(c.action)+'</em>':'')+'</div></div>';
+    });
+    if(!checks.length)h+='<div class="tc-empty">Sin diagnóstico todavía. Pulsa Diagnosticar ahora.</div>';
+    h+='</div></div>';
+    return h;
+};
+W.tcPrivacy=function(d,cfg){
+    var attrs=d.attribution||[];
+    var h=W.tcMaster(cfg)+'<div class="tc-card"><h3>Privacidad y consentimiento</h3><p class="tc-note">Categorías: <b>analytics</b> para GA4/UTM y <b>marketing</b> para Meta Pixel. Si el usuario retira el consentimiento, el script deja de despachar eventos y borra la cookie de atribución.</p><div class="tc-form"><div class="tc-field tc-full"><label class="tc-check"><input type="checkbox" id="tc-consent-required" '+(cfg.consent_required?'checked':'')+'> Exigir consentimiento antes de trackear</label></div></div><div class="tc-actions"><button type="button" class="w-btn w-btn-primary" onclick="wontia.tcSave()">Guardar configuración</button><button type="button" class="w-btn w-btn-secondary" onclick="window.open(\'/\',\'_blank\')">Ver banner en la tienda</button></div></div>';
+    h+='<div class="tc-card" style="margin-top:12px"><h3>Atribución por pedido</h3>';
+    if(!attrs.length){h+='<div class="tc-empty">Sin pedidos con atribución registrada.</div>'}
+    else{
+        h+='<div class="tc-table-wrap"><table class="tc-table"><thead><tr><th>Pedido</th><th>First touch</th><th>Last touch</th><th>Consentimiento</th><th>Fecha</th></tr></thead><tbody>';
+        attrs.forEach(function(a){
+            var first=[a.first_source,a.first_medium,a.first_campaign].filter(Boolean).join(' / ')||'—';
+            var last=[a.last_source,a.last_medium,a.last_campaign].filter(Boolean).join(' / ')||'—';
+            h+='<tr><td class="tc-mono">'+W.esc(a.order_number||a.order_uuid||'')+'</td><td>'+W.esc(first)+'</td><td>'+W.esc(last)+'</td><td><span class="tc-chip">'+(a.consent_analytics?'A':'-')+'/'+(a.consent_marketing?'M':'-')+'</span></td><td class="tc-mono">'+W.esc((a.created_at||'').slice(0,19))+'</td></tr>';
+        });
+        h+='</tbody></table></div>';
+    }
+    h+='</div>';
+    return h;
+};
+W.tcAdvanced=function(d,cfg){
+    var h=W.tcMaster(cfg)+'<div class="tc-card"><h3>Avanzado</h3><div class="tc-form">';
+    h+='<div class="tc-field tc-full"><label class="tc-check"><input type="checkbox" id="tc-debug" '+(cfg.debug?'checked':'')+'> Modo debug en consola</label></div>';
+    h+=W.tcField('Retención debug (días)', '<input type="number" id="tc-debug-retention-days" min="1" max="90" value="'+W.esc(cfg.debug_retention_days||30)+'"/>');
+    h+=W.tcField('Dedup TTL (horas)', '<input type="number" id="tc-dedup-ttl-hours" min="1" max="720" value="'+W.esc(cfg.dedup_ttl_hours||48)+'"/>');
+    h+='<div class="tc-field tc-full"><label class="tc-check"><input type="checkbox" id="tc-purchase-retry" '+(cfg.purchase_retry_enabled?'checked':'')+'> Reintentar Purchase si el primer intento falla</label></div>';
+    h+='<div class="tc-field tc-full"><label class="tc-check"><input type="checkbox" id="tc-test-mode" '+(cfg.test_mode?'checked':'')+'> Modo test interno (solo ledger, sin plataformas)</label></div>';
+    h+='</div>'+W.tcSaveBar()+'</div>';
+    h+='<div class="tc-card" style="margin-top:12px"><h3>Export / Import</h3><p class="tc-small" style="margin-bottom:9px">Exporta o pega un JSON de configuración. No incluye secretos.</p><div class="tc-actions"><button type="button" class="w-btn w-btn-secondary" onclick="wontia.tcExport()">Exportar JSON</button><button type="button" class="w-btn w-btn-secondary" onclick="wontia.tcTest()">Generar evento de prueba</button></div><textarea id="tc-import-json" placeholder="Pega aquí el JSON exportado..."></textarea><div class="tc-actions"><button type="button" class="w-btn w-btn-primary" onclick="wontia.tcImport()">Importar JSON</button></div></div>';
+    return h;
+};
+W.renderTrackingConversion=async function(tab){
+    tab=tab||W.tcState.tab||'resumen';
+    W.tcState.tab=tab;
+    var app=document.getElementById('wontia-app');
+    app.innerHTML='<div class="tc-empty">Cargando Tracking &amp; Conversion...</div>';
+    try{
+        var r=await W.api('/api/v1/admin/tracking-conversion/overview');
+        if(!r||!r.ok){app.innerHTML='<div class="tc-empty">No se pudo cargar el panel.</div>';return}
+        var d=r.data||{};
+        W.tcState.data=d;
+        var cfg=d.config||{};
+        var h='<div class="tc-head"><div><h2>Tracking &amp; Conversion</h2><p>Meta Pixel, GA4, UTM first/last, ledger de eventos y diagnóstico. Los IDs se configuran por sitio; no hay valores hardcodeados.</p></div><div class="tc-actions">'+
+            '<button type="button" class="w-btn w-btn-primary" onclick="wontia.tcSave()">Guardar configuración</button>'+
+            '<button type="button" class="w-btn w-btn-secondary" onclick="wontia.tcTest()">Probar evento</button>'+
+            (cfg.enabled?'<button type="button" class="w-btn w-btn-secondary" onclick="wontia.tcDeactivate()">Desactivar</button>':'<button type="button" class="w-btn w-btn-secondary" onclick="wontia.tcActivate()">Activar</button>')+
+            '</div></div>';
+        h+='<div class="tc-tabs">'+W.tcTabs.map(function(t){return '<button type="button" class="tc-tab'+(tab===t[0]?' on':'')+'" onclick="wontia.renderTrackingConversion(\''+t[0]+'\')">'+W.esc(t[1])+'</button>'}).join('')+'</div>';
+        if(tab==='resumen')h+=W.tcSummary(d);
+        else if(tab==='meta')h+=W.tcMeta(cfg);
+        else if(tab==='ga4')h+=W.tcGa4(cfg);
+        else if(tab==='utm')h+=W.tcUtm(cfg);
+        else if(tab==='eventos')h+=W.tcEvents(cfg);
+        else if(tab==='debugger')h+=W.tcDebugger(d);
+        else if(tab==='salud')h+=W.tcHealth(d);
+        else if(tab==='privacidad')h+=W.tcPrivacy(d,cfg);
+        else if(tab==='avanzado')h+=W.tcAdvanced(d,cfg);
+        app.innerHTML=h;
+    }catch(e){
+        app.innerHTML='<div class="tc-empty">Error cargando el panel: '+W.esc(e&&e.message?e.message:'desconocido')+'</div>';
+    }
+};
+W.tcCollect=function(){
+    var cfg=(W.tcState.data&&W.tcState.data.config)||{};
+    var val=function(id,fallback){var e=document.getElementById(id);return e?e.value:fallback};
+    var chk=function(id,fallback){var e=document.getElementById(id);return e?!!e.checked:!!fallback};
+    var num=function(id,fallback){var v=parseInt(val(id,String(fallback||0)),10);return isNaN(v)?fallback:v};
+    return {
+        enabled:chk('tc-enabled',cfg.enabled),
+        meta_enabled:chk('tc-meta-enabled',cfg.meta_enabled),
+        meta_pixel_id:val('tc-meta-pixel-id',cfg.meta_pixel_id||''),
+        meta_environment:val('tc-meta-environment',cfg.meta_environment||'production'),
+        meta_test_event_code:val('tc-meta-test-event-code',cfg.meta_test_event_code||''),
+        ga4_enabled:chk('tc-ga4-enabled',cfg.ga4_enabled),
+        ga4_measurement_id:val('tc-ga4-measurement-id',cfg.ga4_measurement_id||''),
+        ga4_debug:chk('tc-ga4-debug',cfg.ga4_debug),
+        utm_enabled:chk('tc-utm-enabled',cfg.utm_enabled),
+        utm_retention_days:num('tc-utm-retention-days',cfg.utm_retention_days||90),
+        content_id_type:val('tc-content-id-type',cfg.content_id_type||'sku'),
+        currency:val('tc-currency',cfg.currency||'COP'),
+        event_page_view:chk('event_page_view',cfg.event_page_view),
+        event_view_content:chk('event_view_content',cfg.event_view_content),
+        event_add_to_cart:chk('event_add_to_cart',cfg.event_add_to_cart),
+        event_initiate_checkout:chk('event_initiate_checkout',cfg.event_initiate_checkout),
+        event_purchase:chk('event_purchase',cfg.event_purchase),
+        consent_required:chk('tc-consent-required',cfg.consent_required),
+        debug:chk('tc-debug',cfg.debug),
+        debug_retention_days:num('tc-debug-retention-days',cfg.debug_retention_days||30),
+        dedup_ttl_hours:num('tc-dedup-ttl-hours',cfg.dedup_ttl_hours||48),
+        purchase_retry_enabled:chk('tc-purchase-retry',cfg.purchase_retry_enabled),
+        test_mode:chk('tc-test-mode',cfg.test_mode)
+    };
+};
+W.tcSave=async function(){
+    try{
+        var r=await W.api('/api/v1/admin/tracking-conversion/config',{method:'PUT',body:W.tcCollect()});
+        if(r&&r.ok){W.notify('Configuración guardada','success');W.renderTrackingConversion(W.tcState.tab)}else W.notify((r&&r.message)||'No se pudo guardar','error');
+    }catch(e){W.notify('No se pudo guardar','error')}
+};
+W.tcDiagnose=async function(){
+    try{await W.api('/api/v1/admin/tracking-conversion/diagnose',{method:'POST',body:{}});W.renderTrackingConversion('salud')}catch(e){W.notify('No se pudo diagnosticar','error')}
+};
+W.tcTest=async function(){
+    try{var r=await W.api('/api/v1/admin/tracking-conversion/test-event',{method:'POST',body:{}});if(r&&r.ok){W.notify(r.message||'Evento de prueba registrado','success');W.renderTrackingConversion('debugger')}else W.notify((r&&r.message)||'No se pudo generar el evento','error')}catch(e){W.notify('No se pudo generar el evento','error')}
+};
+W.tcActivate=async function(){
+    try{var r=await W.api('/api/v1/admin/tracking-conversion/activate',{method:'POST',body:{}});if(r&&r.ok){W.notify('Tracking activado','success');W.renderTrackingConversion('resumen')}else W.notify((r&&r.message)||'No se pudo activar','error')}catch(e){W.notify('No se pudo activar','error')}
+};
+W.tcDeactivate=async function(){
+    if(!confirm('¿Desactivar Tracking & Conversion? Se conservarán las tablas y el historial.'))return;
+    try{var r=await W.api('/api/v1/admin/tracking-conversion/deactivate',{method:'POST',body:{}});if(r&&r.ok){W.notify(r.message||'Tracking desactivado','success');W.renderTrackingConversion('resumen')}else W.notify((r&&r.message)||'No se pudo desactivar','error')}catch(e){W.notify('No se pudo desactivar','error')}
+};
+W.tcExport=async function(){
+    try{var r=await W.api('/api/v1/admin/tracking-conversion/export');var data=r&&r.ok?r.data:null;if(!data){W.notify('No se pudo exportar','error');return}var blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});var u=URL.createObjectURL(blob);var a=document.createElement('a');a.href=u;a.download='tracking-conversion-config.json';document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(u)}catch(e){W.notify('No se pudo exportar','error')}
+};
+W.tcImport=async function(){
+    var ta=document.getElementById('tc-import-json');if(!ta)return;
+    var raw=ta.value.trim();if(!raw){W.notify('Pega un JSON primero','error');return}
+    var parsed;try{parsed=JSON.parse(raw)}catch(e){W.notify('JSON inválido','error');return}
+    try{var r=await W.api('/api/v1/admin/tracking-conversion/import',{method:'POST',body:{config:parsed.config||parsed}});if(r&&r.ok){W.notify('Configuración importada','success');W.renderTrackingConversion('resumen')}else W.notify((r&&r.message)||'No se pudo importar','error')}catch(e){W.notify('No se pudo importar','error')}
+};
 W.panels={
     dashboard:W.renderDashboard,
     'order-center':W.renderOrderCenter,
@@ -8990,6 +9196,7 @@ W.panels={
     'seo-global-launch':W.renderSeoGlobalLaunch,
     'tia-command-center':W.renderTiaCommandCenter,
     analytics:W.renderAnalytics,
+    'tracking-conversion':W.renderTrackingConversion,
     settings:W.renderSettings,
     users:W.renderUsers,
     sectionEditor:W.renderSectionEditor

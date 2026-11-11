@@ -2154,7 +2154,7 @@ if (!function_exists('sonika_product_card')) {
             </div>
             <?= sonika_product_insights_html($insights) ?>
             <?php if ($avail || !$__disableOosAdd): ?>
-            <button class="add" type="button" data-add="<?= sonika_esc($p['handle']) ?>" data-title="<?= sonika_esc($p['title']) ?>" data-price="<?= (float)$price ?>" data-img="<?= sonika_esc($img) ?>" data-category="<?= sonika_esc($quoteCat) ?>"><?= sonika_esc((string)wwi_tc('sonika', 'card_add_label', 'Agregar')) ?></button>
+            <button class="add" type="button" data-add="<?= sonika_esc($p['handle']) ?>" data-title="<?= sonika_esc($p['title']) ?>" data-price="<?= (float)$price ?>" data-img="<?= sonika_esc($img) ?>" data-category="<?= sonika_esc($quoteCat) ?>" data-sku="<?= sonika_esc((string)(sonika_variant($p)['sku'] ?? '')) ?>" data-product-id="<?= (int)($p['id'] ?? 0) ?>"><?= sonika_esc((string)wwi_tc('sonika', 'card_add_label', 'Agregar')) ?></button>
             <?php else: ?>
             <?= sonika_stock_alert_html($p) ?>
             <?php endif; ?>
@@ -2820,7 +2820,7 @@ if (!function_exists('sonika_js')) {
   function esc(s){var d=document.createElement('div');d.textContent=(s==null?'':String(s));return d.innerHTML}
   function toast(m){var t=document.createElement('div');t.className='toast';t.textContent=m;document.body.appendChild(t);requestAnimationFrame(function(){t.classList.add('show')});setTimeout(function(){t.classList.remove('show');setTimeout(function(){t.remove()},300)},1800)}
   window.SonikaCart={
-    add:function(item,qty){qty=qty||1;var c=read();var f=c.find(function(i){return i.handle===item.handle});if(f){f.qty+=qty}else{item.qty=qty;c.push(item)}write(c);try{window.dispatchEvent(new CustomEvent('sonika:cart-add',{detail:{handle:item.handle,title:item.title,price:item.price,qty:qty}}))}catch(e){}toast('Agregado al carrito')},
+    add:function(item,qty){qty=qty||1;var c=read();var f=c.find(function(i){return i.handle===item.handle});if(f){f.qty+=qty}else{item.qty=qty;c.push(item)}write(c);try{window.dispatchEvent(new CustomEvent('sonika:cart-add',{detail:{handle:item.handle,title:item.title,price:item.price,qty:qty,sku:item.sku||'',product_id:item.product_id||''}}))}catch(e){}toast('Agregado al carrito')},
     set:function(h,q){write(read().map(function(i){if(i.handle===h)i.qty=q;return i}).filter(function(i){return i.qty>0}))},
     remove:function(h){write(read().filter(function(i){return i.handle!==h}))},
     clear:function(){write([])},
@@ -2856,7 +2856,7 @@ if (!function_exists('sonika_js')) {
       if(b.dataset.goCart==='1'){window.location.href=b.dataset.cartUrl||'/carrito';return}
       var q=b.dataset.qtyTarget?parseInt((document.getElementById(b.dataset.qtyTarget)||{}).value||'1',10):1;
       if(!(q>0)) q=1;
-      window.SonikaCart.add({handle:b.dataset.add,title:b.dataset.title,price:parseFloat(b.dataset.price),img:b.dataset.img},q);
+      window.SonikaCart.add({handle:b.dataset.add,title:b.dataset.title,price:parseFloat(b.dataset.price),img:b.dataset.img,sku:b.dataset.sku||'',product_id:b.dataset.productId||''},q);
       if(b.hasAttribute('data-pdp-add')){
         var w=b.closest('.pdp-actions'),m=w?w.querySelector('[data-pdp-add-more]'):null,s=w?w.querySelector('[data-pdp-cart-shortcut]'):null,st=document.querySelector('[data-pdp-status]');
         if(s)s.hidden=true;b.disabled=true;b.classList.remove('is-go-cart');b.classList.add('is-added');b.textContent='Agregado \u2713';

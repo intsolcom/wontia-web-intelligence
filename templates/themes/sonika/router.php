@@ -1207,6 +1207,16 @@ if (($segments[0] ?? '') === 'producto' && !empty($segments[1])) {
         if ($avail) {
             try { (new \App\Services\StockNotificationService())->notifyForProduct((string)($product['handle'] ?? '')); } catch (\Throwable $e) {}
         }
+        $__trackingProduct = [
+            'id' => (int)($product['id'] ?? 0),
+            'sku' => (string)(sonika_variant($product)['sku'] ?? ''),
+            'handle' => (string)($product['handle'] ?? ''),
+            'title' => (string)($product['title'] ?? ''),
+            'price' => (float)$price,
+            'currency' => (string)wwi_setting('store_currency', 'COP'),
+            'category' => (string)($cat['name'] ?? ($product['product_type'] ?? '')),
+        ];
+        ?><script>window.SONIKA_PRODUCT=<?= json_encode($__trackingProduct, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;</script><?php
         ?>
         <section class="wrap pdp">
           <div class="pdp-media"><div class="pdp-gallery"><?php if ($img): ?><img src="<?= sonika_esc($img) ?>" alt="<?= sonika_esc($product['title']) ?>" /><?php endif; ?></div></div>
@@ -1235,7 +1245,7 @@ if (($segments[0] ?? '') === 'producto' && !empty($segments[1])) {
                 <button type="button" onclick="var i=document.getElementById('qty');i.value=(+i.value)+1">+</button>
               </div>
               <?php $__quoteCat = function_exists('sonika_effective_category') ? trim((string)sonika_effective_category($product)) : ''; if ($__quoteCat === '') $__quoteCat = is_array($cat) ? (string)($cat['name'] ?? '') : ''; if ($__quoteCat === '') $__quoteCat = 'Productos'; ?>
-              <button class="btn-buy" type="button" data-add="<?= sonika_esc($product['handle']) ?>" data-pdp-add="1" data-cart-url="/carrito" data-qty-target="qty" data-title="<?= sonika_esc($product['title']) ?>" data-price="<?= (float)$price ?>" data-img="<?= sonika_esc(sonika_img($product)) ?>" data-category="<?= sonika_esc($__quoteCat) ?>" data-available="<?= $avail ? '1' : '0' ?>" data-url="/producto/<?= sonika_esc($product['handle']) ?>"><?= sonika_esc(\App\Core\Lang::get('add_to_cart', 'Agregar al carrito')) ?></button>
+              <button class="btn-buy" type="button" data-add="<?= sonika_esc($product['handle']) ?>" data-pdp-add="1" data-cart-url="/carrito" data-qty-target="qty" data-title="<?= sonika_esc($product['title']) ?>" data-price="<?= (float)$price ?>" data-img="<?= sonika_esc(sonika_img($product)) ?>" data-category="<?= sonika_esc($__quoteCat) ?>" data-sku="<?= sonika_esc((string)(sonika_variant($product)['sku'] ?? '')) ?>" data-product-id="<?= (int)($product['id'] ?? 0) ?>" data-available="<?= $avail ? '1' : '0' ?>" data-url="/producto/<?= sonika_esc($product['handle']) ?>"><?= sonika_esc(\App\Core\Lang::get('add_to_cart', 'Agregar al carrito')) ?></button>
               <a class="cta sec" href="/carrito" style="margin:0" data-pdp-cart-shortcut><?= sonika_esc(\App\Core\Lang::get('go_to_cart', 'Ir al carrito')) ?></a>
               <button class="pdp-add-more" type="button" data-pdp-add-more hidden>Agregar otra unidad</button>
               <?php endif; ?>

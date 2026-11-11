@@ -215,6 +215,7 @@ endif;
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
     <link rel="stylesheet" href="/assets/css/admin.css?v=<?= filemtime(__DIR__ . '/assets/css/admin.css') ?>"/>
     <link rel="stylesheet" href="/assets/css/hero-composition.css?v=<?= filemtime(__DIR__ . '/assets/css/hero-composition.css') ?>"/>
+    <link rel="stylesheet" href="/assets/css/tracking-conversion.css?v=<?= @filemtime(__DIR__ . '/assets/css/tracking-conversion.css') ?: 1 ?>"/>
 </head>
 <body>
 
@@ -281,6 +282,12 @@ endif;
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
             Analytics
         </a>
+        <?php if (in_array(($user['role'] ?? ''), ['superadmin', 'admin', 'editor'], true)): ?>
+        <a href="#tracking-conversion" class="w-nav-item" data-panel="tracking-conversion">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2"/></svg>
+            Tracking &amp; Conversion
+        </a>
+        <?php endif; ?>
         <a href="#settings" class="w-nav-item" data-panel="settings">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
             Settings

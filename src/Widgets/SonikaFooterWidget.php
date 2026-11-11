@@ -177,6 +177,7 @@ class SonikaFooterWidget extends Widget
             if ($lbl === '') continue;
             $h .= '<li>' . ($u !== '' ? '<a href="' . $this->esc($u) . '">' . $this->esc($lbl) . '</a>' : $this->esc($lbl)) . '</li>';
         }
+        $h .= '<li><a href="#" data-cookie-prefs>Preferencias de cookies</a></li>';
         $h .= '</ul></div>';
 
         $h .= '<div class="sf__col sf__contact"><h4>Contacto corporativo</h4>';

@@ -670,6 +670,19 @@ class StoreService
             } catch (\Throwable $e) {
             }
 
+            // Tracking & Conversion — nunca bloquea el pedido.
+            try {
+                TrackingConversionService::onOrderCreated(
+                    (string)$uuid,
+                    $lines,
+                    (int)$total,
+                    (string)$settings['store_currency'],
+                    (string)$method,
+                    (string)$orderNumber
+                );
+            } catch (\Throwable $e) {
+            }
+
             if ($couponId > 0) {
                 try {
                     (new StoreCouponService())->redeem($couponId);
@@ -898,6 +911,19 @@ class StoreService
             throw $e;
         }
 
+        // Tracking & Conversion — nunca bloquea el pedido.
+        try {
+            TrackingConversionService::onOrderCreated(
+                (string)$uuid,
+                $lines,
+                (int)$total,
+                (string)$currency,
+                (string)$method,
+                (string)$orderNumber
+            );
+        } catch (\Throwable $e) {
+        }
+
         if ($couponId > 0) {
             try {
                 (new StoreCouponService())->redeem($couponId);
@@ -1043,12 +1069,19 @@ class StoreService
         if (!$sets) return;
         $db->prepare("UPDATE store_orders SET " . implode(', ', $sets) . " WHERE id = :id AND site_id = @site_id")->execute($params);
         $reverse = in_array((string)($d['payment_status'] ?? ''), ['failed', 'refunded'], true) || (string)($d['fulfillment_status'] ?? '') === 'cancelled';
-        if ($reverse) {
+        if ($reverse || (string)($d['payment_status'] ?? '') === 'paid') {
             try {
                 $st = $db->prepare('SELECT uuid FROM store_orders WHERE id = ? AND site_id = @site_id LIMIT 1');
                 $st->execute([$id]);
                 $uuid = (string)$st->fetchColumn();
-                if ($uuid !== '') (new \App\Services\AffiliateService())->reverseOrder($uuid, 'Pedido ' . (string)($d['payment_status'] ?? $d['fulfillment_status'] ?? 'anulado'));
+                if ($uuid !== '') {
+                    if ($reverse) {
+                        (new \App\Services\AffiliateService())->reverseOrder($uuid, 'Pedido ' . (string)($d['payment_status'] ?? $d['fulfillment_status'] ?? 'anulado'));
+                        TrackingConversionService::onOrderCancelled($uuid, 'Pedido ' . (string)($d['payment_status'] ?? $d['fulfillment_status'] ?? 'anulado'));
+                    } elseif ((string)($d['payment_status'] ?? '') === 'paid') {
+                        TrackingConversionService::onOrderPaid($uuid);
+                    }
+                }
             } catch (\Throwable $e) {
             }
         }
@@ -1060,15 +1093,21 @@ class StoreService
         $stmt = $db->prepare("UPDATE store_orders SET payment_status = 'paid', paid_at = NOW(), provider_ref = :ref, payment_method = :pm
             WHERE uuid = :uuid AND site_id = @site_id AND payment_status <> 'paid'");
         $stmt->execute(['ref' => $providerRef, 'pm' => $method, 'uuid' => $uuid]);
-        if ($stmt->rowCount() < 1) return false;
-        $db->prepare("UPDATE store_customers c JOIN store_orders o ON o.customer_id = c.id AND o.site_id = c.site_id
-            SET c.orders_count = c.orders_count + 1, c.total_spent_cents = c.total_spent_cents + o.total_cents
-            WHERE o.uuid = :uuid AND o.site_id = @site_id")->execute(['uuid' => $uuid]);
+        $changed = $stmt->rowCount() >= 1;
+        if ($changed) {
+            $db->prepare("UPDATE store_customers c JOIN store_orders o ON o.customer_id = c.id AND o.site_id = c.site_id
+                SET c.orders_count = c.orders_count + 1, c.total_spent_cents = c.total_spent_cents + o.total_cents
+                WHERE o.uuid = :uuid AND o.site_id = @site_id")->execute(['uuid' => $uuid]);
+            try {
+                (new LoyaltyService())->awardForOrder($uuid);
+            } catch (\Throwable $e) {
+            }
+        }
         try {
-            (new LoyaltyService())->awardForOrder($uuid);
+            TrackingConversionService::onOrderPaid($uuid);
         } catch (\Throwable $e) {
         }
-        return true;
+        return $changed;
     }
 
     public function stats(): array

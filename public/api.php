@@ -216,6 +216,8 @@ $router->get('/api/v1/public/store/reviews', [\App\Controllers\StorePublicContro
 $router->post('/api/v1/public/store/reviews/{id}/helpful', [\App\Controllers\StorePublicController::class, 'reviewHelpful']);
 $router->post('/api/v1/public/banner/event', [\App\Controllers\BannerEventController::class, 'event']);
 $router->post('/api/v1/public/seo/track', [\App\Controllers\SeoTrackingController::class, 'track']);
+$router->post('/api/v1/public/tracking/event', [\App\Controllers\TrackingConversionController::class, 'event']);
+$router->get('/api/v1/public/tracking/purchase/{uuid}', [\App\Controllers\TrackingConversionController::class, 'purchase']);
 $router->get('/api/v1/public/youtube/oauth/callback', [\App\Controllers\Admin\ProductContentLabController::class, 'youtubeCallback']);
 $router->get('/api/v1/public/seo/indexnow-key', [\App\Controllers\Admin\SeoGlobalLaunchController::class, 'indexNowKey']);
 $router->post('/api/v1/public/affiliates/register', [\App\Controllers\AffiliateController::class, 'register']);
@@ -772,6 +774,17 @@ $r->delete('/media/{id}/purge', [\App\Controllers\Admin\MediaController::class, 
     $r->get('/analytics', [\App\Controllers\Admin\AnalyticsController::class, 'index']);
     $r->get('/search/analytics', [\App\Controllers\Admin\SearchAnalyticsController::class, 'index']);
     $r->put('/analytics/ga4', [\App\Controllers\Admin\AnalyticsController::class, 'updateGa4']);
+
+    $r->get('/tracking-conversion/overview', [\App\Controllers\Admin\TrackingConversionController::class, 'overview']);
+    $r->get('/tracking-conversion/config', [\App\Controllers\Admin\TrackingConversionController::class, 'config']);
+    $r->put('/tracking-conversion/config', [\App\Controllers\Admin\TrackingConversionController::class, 'saveConfig']);
+    $r->get('/tracking-conversion/events', [\App\Controllers\Admin\TrackingConversionController::class, 'events']);
+    $r->post('/tracking-conversion/diagnose', [\App\Controllers\Admin\TrackingConversionController::class, 'diagnose']);
+    $r->post('/tracking-conversion/activate', [\App\Controllers\Admin\TrackingConversionController::class, 'activate']);
+    $r->post('/tracking-conversion/deactivate', [\App\Controllers\Admin\TrackingConversionController::class, 'deactivate']);
+    $r->post('/tracking-conversion/test-event', [\App\Controllers\Admin\TrackingConversionController::class, 'testEvent']);
+    $r->get('/tracking-conversion/export', [\App\Controllers\Admin\TrackingConversionController::class, 'export']);
+    $r->post('/tracking-conversion/import', [\App\Controllers\Admin\TrackingConversionController::class, 'import']);
 
     $r->get('/settings', [\App\Controllers\Admin\SettingsController::class, 'index']);
     $r->put('/settings', [\App\Controllers\Admin\SettingsController::class, 'update']);

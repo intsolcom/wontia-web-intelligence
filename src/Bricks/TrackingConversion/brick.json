@@ -1,0 +1,48 @@
+{
+    "name": "WWI Tracking & Conversion",
+    "slug": "tracking-conversion",
+    "version": "1.0.0",
+    "description": "Tracking universal de conversión para sitios WWI: Meta Pixel, GA4 opcional, UTM first/last touch, ledger de eventos, debugger y health monitor con consentimiento.",
+    "author": "Wontia",
+    "category": "marketing",
+    "brick_class": "App\\Bricks\\TrackingConversion\\TrackingConversionBrick",
+    "requires": {
+        "php": ">=8.1",
+        "extensions": ["pdo_mysql", "json"]
+    },
+    "config": {
+        "enabled": false,
+        "meta_enabled": false,
+        "meta_pixel_id": "",
+        "meta_environment": "production",
+        "ga4_enabled": false,
+        "ga4_measurement_id": "",
+        "utm_enabled": true,
+        "utm_retention_days": 90,
+        "content_id_type": "sku",
+        "currency": "COP",
+        "event_page_view": true,
+        "event_view_content": true,
+        "event_add_to_cart": true,
+        "event_initiate_checkout": true,
+        "event_purchase": true,
+        "consent_required": true,
+        "debug": false
+    },
+    "features": [
+        "Meta Pixel con PageView, ViewContent, AddToCart, InitiateCheckout y Purchase",
+        "GA4 opcional con page_view, view_item, add_to_cart, begin_checkout y purchase",
+        "UTM first-touch y last-touch con retención configurable",
+        "Atribución por pedido sin guardar datos personales",
+        "Purchase solo después de pago confirmado y con deduplicación por event_id",
+        "Ledger interno de eventos, estados y errores por plataforma",
+        "Debugger administrativo y health monitor",
+        "Consentimiento granular analytics/marketing y retiro de consentimiento",
+        "Arquitectura de adaptadores preparada para nuevas plataformas",
+        "Configuración multi-tenant sin hardcodear IDs de SONIKA"
+    ],
+    "tags": ["tracking", "meta", "pixel", "ga4", "utm", "conversion", "analytics", "consent", "ecommerce"],
+    "changelog": {
+        "1.0.0": "Implementación inicial: Meta Pixel, GA4, UTM, ledger, debugger, health y consentimiento granular."
+    }
+}
