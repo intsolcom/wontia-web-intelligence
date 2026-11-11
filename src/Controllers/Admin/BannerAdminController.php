@@ -64,6 +64,11 @@ class BannerAdminController
         Response::json($this->svc()->duplicate((int)$id));
     }
 
+    public function recoveryBanner(Request $req, string $id = ''): void
+    {
+        Response::json($this->svc()->setRecovery((int)$id, true));
+    }
+
     // ── Métricas ──
 
     public function stats(Request $req): void

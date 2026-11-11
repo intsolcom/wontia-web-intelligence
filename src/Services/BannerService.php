@@ -18,10 +18,15 @@ class BannerService
         Database::instance()->exec("CREATE TABLE IF NOT EXISTS wwi_banners (
             id INT AUTO_INCREMENT PRIMARY KEY, site_id INT NOT NULL DEFAULT 1,
             name VARCHAR(150) NOT NULL, enabled TINYINT NOT NULL DEFAULT 1, is_header TINYINT NOT NULL DEFAULT 0,
+            is_recovery TINYINT NOT NULL DEFAULT 0,
             config JSON, sort_order INT NOT NULL DEFAULT 0,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             KEY idx_site (site_id)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+        try {
+            Database::instance()->exec("ALTER TABLE wwi_banners ADD COLUMN IF NOT EXISTS is_recovery TINYINT NOT NULL DEFAULT 0");
+        } catch (\Throwable $e) {
+        }
         self::$ensured = true;
     }
 
@@ -34,10 +39,15 @@ class BannerService
                 ['icon' => '🛡️', 'text' => 'Compra 100% segura', 'image' => '', 'link' => '', 'link_label' => ''],
                 ['icon' => '✅', 'text' => 'Garantía oficial', 'image' => '', 'link' => '', 'link_label' => ''],
             ],
-            'bg_color' => '#111111', 'bg_color2' => '', 'text_color' => '#ffffff', 'font_size' => '0.8', 'preset' => 'none',
+            'bg_color' => '#ffffff', 'bg_color2' => '#f1eaff', 'text_color' => '#171722', 'font_size' => '0.8', 'preset' => 'none',
             'bold' => true, 'italic' => false, 'align' => 'center', 'bg_image' => '', 'overlay' => '55', 'bare' => true,
             'dismissible' => false, 'close_label' => 'Entendido', 'frequency' => 'always',
             'marquee' => false, 'critical' => false, 'countdown_to' => '', 'exit_intent' => false, 'track' => true, 'ab' => false,
+            'exit_intent_min_time' => 8, 'exit_intent_min_scroll' => 0, 'exit_intent_sensitivity' => 12, 'exit_intent_fallback_ms' => 0,
+            'exit_intent_cart_only' => false, 'exit_intent_exclude_checkout' => true, 'exit_intent_mobile' => false,
+            'inactivity_seconds' => 0, 'scroll_trigger_pct' => 0, 'time_trigger_seconds' => 0, 'behavior_tracking' => true,
+            'show_cart_summary' => false, 'cart_storage_key' => 'sonika_cart', 'cart_cta_label' => 'Terminar mi compra',
+            'cart_cta_url' => '/checkout', 'recovery_coupon' => '',
             'device' => 'all', 'audience' => 'all', 'pages' => '', 'days' => '', 'from' => '', 'to' => '', 'start_at' => '', 'end_at' => '', 'tz_offset' => '-5',
         ];
     }
@@ -102,7 +112,7 @@ class BannerService
     public function list(): array
     {
         $this->ensureSeed();
-        $st = Database::instance()->prepare("SELECT id, name, enabled, is_header, updated_at FROM wwi_banners WHERE site_id = @site_id ORDER BY is_header DESC, sort_order ASC, id ASC");
+        $st = Database::instance()->prepare("SELECT id, name, enabled, is_header, is_recovery, updated_at FROM wwi_banners WHERE site_id = @site_id ORDER BY is_header DESC, is_recovery DESC, sort_order ASC, id ASC");
         $st->execute();
         return $st->fetchAll();
     }
@@ -169,21 +179,54 @@ class BannerService
         return ['ok' => true];
     }
 
+    public function setRecovery(int $id, bool $enabled = true): array
+    {
+        $this->ensureSeed();
+        if (!$this->get($id)) return ['ok' => false, 'message' => 'Banner no encontrado'];
+        $db = Database::instance();
+        if ($enabled) $db->prepare("UPDATE wwi_banners SET is_recovery = 0 WHERE site_id = @site_id")->execute();
+        $db->prepare("UPDATE wwi_banners SET is_recovery = ?, enabled = IF(?, 1, enabled) WHERE id = ? AND site_id = @site_id")
+            ->execute([$enabled ? 1 : 0, $enabled ? 1 : 0, $id]);
+        return ['ok' => true];
+    }
+
+    /** Avisos globales de recuperación (modales) que se renderizan en el footer del tema. */
+    public function recoveryConfigs(int $limit = 3): array
+    {
+        $this->ensureSeed();
+        $limit = max(1, min(10, $limit));
+        $st = Database::instance()->prepare("SELECT name, config FROM wwi_banners WHERE site_id = @site_id AND enabled = 1 AND is_recovery = 1 ORDER BY sort_order ASC, id ASC LIMIT $limit");
+        $st->execute();
+        $out = [];
+        foreach ($st->fetchAll() as $row) {
+            $cfg = json_decode((string)$row['config'], true);
+            if (!is_array($cfg)) continue;
+            $cfg = array_merge($this->defaults(), $cfg);
+            $name = trim((string)($row['name'] ?? ''));
+            if ($name !== '') $cfg['_name'] = $name;
+            $out[] = $cfg;
+        }
+        return $out;
+    }
+
     /** Config del banner que va en la barra superior (is_header + enabled); si no, el 1º habilitado; si no, null. */
     public function headerConfig(): ?array
     {
         $this->ensureSeed();
         $db = Database::instance();
-        $st = $db->prepare("SELECT config FROM wwi_banners WHERE site_id = @site_id AND is_header = 1 AND enabled = 1 ORDER BY id ASC LIMIT 1");
+        $st = $db->prepare("SELECT name, config FROM wwi_banners WHERE site_id = @site_id AND is_header = 1 AND enabled = 1 ORDER BY id ASC LIMIT 1");
         $st->execute();
-        $raw = $st->fetchColumn();
-        if ($raw === false || $raw === null) {
-            $st = $db->prepare("SELECT config FROM wwi_banners WHERE site_id = @site_id AND enabled = 1 ORDER BY sort_order ASC, id ASC LIMIT 1");
+        $row = $st->fetch();
+        if (!$row) {
+            $st = $db->prepare("SELECT name, config FROM wwi_banners WHERE site_id = @site_id AND enabled = 1 ORDER BY sort_order ASC, id ASC LIMIT 1");
             $st->execute();
-            $raw = $st->fetchColumn();
+            $row = $st->fetch();
         }
-        if ($raw === false || $raw === null) return null;
-        $cfg = json_decode((string)$raw, true);
-        return is_array($cfg) ? $cfg : null;
+        if (!$row) return null;
+        $cfg = json_decode((string)$row['config'], true);
+        if (!is_array($cfg)) return null;
+        $name = trim((string)($row['name'] ?? ''));
+        if ($name !== '') $cfg['_name'] = $name;
+        return $cfg;
     }
 }

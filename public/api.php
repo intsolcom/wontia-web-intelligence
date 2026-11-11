@@ -423,6 +423,7 @@ $r->delete('/banners/{id}', [\App\Controllers\Admin\BannerAdminController::class
 $r->post('/banners/{id}/toggle', [\App\Controllers\Admin\BannerAdminController::class, 'toggleBanner']);
 $r->post('/banners/{id}/header', [\App\Controllers\Admin\BannerAdminController::class, 'headerBanner']);
 $r->post('/banners/{id}/duplicate', [\App\Controllers\Admin\BannerAdminController::class, 'duplicateBanner']);
+$r->post('/banners/{id}/recovery', [\App\Controllers\Admin\BannerAdminController::class, 'recoveryBanner']);
 
     $r->get('/bricklifecycle', [\App\Controllers\Admin\BrickLifecycleController::class, 'index']);
     $r->post('/bricklifecycle/ensure-tables', [\App\Controllers\Admin\BrickLifecycleController::class, 'ensureTables']);
@@ -587,6 +588,12 @@ $r->post('/banners/{id}/duplicate', [\App\Controllers\Admin\BannerAdminControlle
     $r->delete('/store/shipping/rates/{id}', [\App\Controllers\Admin\StoreController::class, 'shippingRateDelete']);
 $r->get('/store/settings', [\App\Controllers\Admin\StoreController::class, 'settings']);
 $r->put('/store/settings', [\App\Controllers\Admin\StoreController::class, 'settingsSave']);
+    $r->get('/store/abandoned-carts/overview', [\App\Controllers\Admin\AbandonedCartController::class, 'overview']);
+    $r->get('/store/abandoned-carts/export', [\App\Controllers\Admin\AbandonedCartController::class, 'export']);
+    $r->post('/store/abandoned-carts/recovery-run', [\App\Controllers\Admin\AbandonedCartController::class, 'runRecovery']);
+    $r->post('/store/abandoned-carts/banner-preset', [\App\Controllers\Admin\AbandonedCartController::class, 'bannerPreset']);
+    $r->post('/store/abandoned-carts/{id}/status', [\App\Controllers\Admin\AbandonedCartController::class, 'status']);
+    $r->delete('/store/abandoned-carts/{id}', [\App\Controllers\Admin\AbandonedCartController::class, 'delete']);
     $r->get('/addi/overview', [\App\Controllers\Admin\AddiController::class, 'overview']);
     $r->put('/addi/settings', [\App\Controllers\Admin\AddiController::class, 'settingsSave']);
     $r->post('/addi/test', [\App\Controllers\Admin\AddiController::class, 'test']);

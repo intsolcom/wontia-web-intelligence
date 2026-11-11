@@ -682,6 +682,15 @@ class StoreService
                 );
             } catch (\Throwable $e) {
             }
+            try {
+                (new CartAbandonmentService())->markRecovered(
+                    (string)$uuid,
+                    SeoInternalTrafficService::sessionId(),
+                    (int)$total,
+                    (int)$cust
+                );
+            } catch (\Throwable $e) {
+            }
 
             if ($couponId > 0) {
                 try {
@@ -923,6 +932,15 @@ class StoreService
             );
         } catch (\Throwable $e) {
         }
+        try {
+            (new CartAbandonmentService())->markRecovered(
+                (string)$uuid,
+                SeoInternalTrafficService::sessionId(),
+                (int)$total,
+                (int)$cust
+            );
+        } catch (\Throwable $e) {
+        }
 
         if ($couponId > 0) {
             try {
@@ -1080,6 +1098,7 @@ class StoreService
                         TrackingConversionService::onOrderCancelled($uuid, 'Pedido ' . (string)($d['payment_status'] ?? $d['fulfillment_status'] ?? 'anulado'));
                     } elseif ((string)($d['payment_status'] ?? '') === 'paid') {
                         TrackingConversionService::onOrderPaid($uuid);
+                        (new CartAbandonmentService())->markConverted($uuid);
                     }
                 }
             } catch (\Throwable $e) {
@@ -1105,6 +1124,10 @@ class StoreService
         }
         try {
             TrackingConversionService::onOrderPaid($uuid);
+        } catch (\Throwable $e) {
+        }
+        try {
+            (new CartAbandonmentService())->markConverted($uuid);
         } catch (\Throwable $e) {
         }
         return $changed;

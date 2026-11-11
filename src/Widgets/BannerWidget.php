@@ -69,7 +69,24 @@ class BannerWidget extends Widget
             ['key' => 'marquee', 'label' => 'Marquesina (texto en movimiento)', 'type' => 'toggle', 'default' => false],
             ['key' => 'critical', 'label' => 'Crítico (no descartable, prioridad alta)', 'type' => 'toggle', 'default' => false],
             ['key' => 'countdown_to', 'label' => 'Cuenta atrás hasta (YYYY-MM-DDTHH:MM, opcional)', 'type' => 'text', 'default' => ''],
-            ['key' => 'exit_intent', 'label' => 'Mostrar al intentar salir (solo modal)', 'type' => 'toggle', 'default' => false],
+            ['key' => 'exit_intent', 'label' => 'Detectar intención de salida (mouse hacia arriba/cerrar)', 'type' => 'toggle', 'default' => false],
+            ['key' => '_h_exit', 'label' => 'Reglas de salida y comportamiento', 'type' => 'heading'],
+            ['key' => 'exit_intent_min_time', 'label' => 'Tiempo mínimo en página antes de mostrar (segundos)', 'type' => 'number', 'default' => 8],
+            ['key' => 'exit_intent_min_scroll', 'label' => 'Scroll mínimo antes de mostrar (%)', 'type' => 'number', 'default' => 0],
+            ['key' => 'exit_intent_sensitivity', 'label' => 'Sensibilidad de salida (px desde el borde superior)', 'type' => 'number', 'default' => 12],
+            ['key' => 'exit_intent_fallback_ms', 'label' => 'Mostrar de todos modos después de (ms · 0 = nunca)', 'type' => 'number', 'default' => 0],
+            ['key' => 'exit_intent_cart_only', 'label' => 'Solo si el carrito tiene productos', 'type' => 'toggle', 'default' => false],
+            ['key' => 'exit_intent_exclude_checkout', 'label' => 'No mostrar en checkout ni página de pedido', 'type' => 'toggle', 'default' => true],
+            ['key' => 'exit_intent_mobile', 'label' => 'Activar salida en móvil (poco fiable; usa inactividad)', 'type' => 'toggle', 'default' => false],
+            ['key' => 'inactivity_seconds', 'label' => 'Mostrar tras inactividad (segundos · 0 = off)', 'type' => 'number', 'default' => 0],
+            ['key' => 'scroll_trigger_pct', 'label' => 'Mostrar al alcanzar scroll (%, 0 = off)', 'type' => 'number', 'default' => 0],
+            ['key' => 'time_trigger_seconds', 'label' => 'Mostrar después de tiempo en página (segundos, 0 = off)', 'type' => 'number', 'default' => 0],
+            ['key' => 'behavior_tracking', 'label' => 'Medir comportamiento (salida, cierre, recuperación)', 'type' => 'toggle', 'default' => true],
+            ['key' => 'show_cart_summary', 'label' => 'Mostrar resumen del carrito en el modal', 'type' => 'toggle', 'default' => false],
+            ['key' => 'cart_storage_key', 'label' => 'Clave localStorage del carrito', 'type' => 'text', 'default' => 'sonika_cart'],
+            ['key' => 'cart_cta_label', 'label' => 'Texto del botón de recuperación', 'type' => 'text', 'default' => 'Terminar mi compra'],
+            ['key' => 'cart_cta_url', 'label' => 'URL del botón de recuperación', 'type' => 'text', 'default' => '/checkout'],
+            ['key' => 'recovery_coupon', 'label' => 'Cupón de recuperación (opcional)', 'type' => 'text', 'default' => ''],
             ['key' => 'track', 'label' => 'Medir impresiones y clics', 'type' => 'toggle', 'default' => true],
             ['key' => 'ab', 'label' => 'Probar A/B (usa la variante B del texto)', 'type' => 'toggle', 'default' => false],
 
@@ -97,6 +114,11 @@ class BannerWidget extends Widget
             'bold' => true, 'italic' => false, 'align' => 'center', 'bg_image' => '', 'overlay' => '55', 'bare' => false,
             'dismissible' => true, 'close_label' => 'Entendido', 'frequency' => 'always',
             'marquee' => false, 'critical' => false, 'countdown_to' => '', 'exit_intent' => false, 'track' => true, 'ab' => false,
+            'exit_intent_min_time' => 8, 'exit_intent_min_scroll' => 0, 'exit_intent_sensitivity' => 12, 'exit_intent_fallback_ms' => 0,
+            'exit_intent_cart_only' => false, 'exit_intent_exclude_checkout' => true, 'exit_intent_mobile' => false,
+            'inactivity_seconds' => 0, 'scroll_trigger_pct' => 0, 'time_trigger_seconds' => 0, 'behavior_tracking' => true,
+            'show_cart_summary' => false, 'cart_storage_key' => 'sonika_cart', 'cart_cta_label' => 'Terminar mi compra',
+            'cart_cta_url' => '/checkout', 'recovery_coupon' => '',
             'device' => 'all', 'audience' => 'all', 'pages' => '', 'days' => '', 'from' => '', 'to' => '',
             'start_at' => '', 'end_at' => '', 'tz_offset' => '-5',
         ];
@@ -226,6 +248,20 @@ class BannerWidget extends Widget
         $countdown = trim((string)($c['countdown_to'] ?? ''));
         if ($countdown !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2})?$/', $countdown)) $countdown = '';
         $exit = !empty($c['exit_intent']);
+        $exitMinTime = max(0, min(120, (int)($c['exit_intent_min_time'] ?? 8)));
+        $exitMinScroll = max(0, min(100, (int)($c['exit_intent_min_scroll'] ?? 0)));
+        $exitSensitivity = max(2, min(80, (int)($c['exit_intent_sensitivity'] ?? 12)));
+        $exitFallback = max(0, min(300000, (int)($c['exit_intent_fallback_ms'] ?? 0)));
+        $inactivity = max(0, min(600, (int)($c['inactivity_seconds'] ?? 0)));
+        $scrollTrigger = max(0, min(100, (int)($c['scroll_trigger_pct'] ?? 0)));
+        $timeTrigger = max(0, min(600, (int)($c['time_trigger_seconds'] ?? 0)));
+        $behaviorTrack = !empty($c['behavior_tracking']);
+        $showCart = !empty($c['show_cart_summary']);
+        $cartKey = trim((string)($c['cart_storage_key'] ?? 'sonika_cart')) ?: 'sonika_cart';
+        $cartCtaLabel = trim((string)($c['cart_cta_label'] ?? '')) ?: 'Terminar mi compra';
+        $cartCtaUrl = trim((string)($c['cart_cta_url'] ?? '')) ?: '/checkout';
+        $recoveryCoupon = trim((string)($c['recovery_coupon'] ?? ''));
+        $deferred = ($mode === 'modal' && ($exit || $inactivity > 0 || $scrollTrigger > 0 || $timeTrigger > 0));
         $track = !empty($c['track']);
         $ab = !empty($c['ab']);
         $overlay = max(0, min(100, (int)($c['overlay'] ?? 55)));
@@ -253,8 +289,12 @@ class BannerWidget extends Widget
         if ($bgImg !== '') $style .= ';--wwi-bn-img:url(\'' . $this->esc($bgImg) . '\')';
 
         $h = $this->assets();
-        $h .= '<div class="wwi-bn wwi-bn--' . $mode . ' wwi-bn--anim-' . $anim . ($bare ? ' wwi-bn--bare' : '') . ($bgImg !== '' ? ' has-img' : '') . ($bg2 !== '' ? ' has-grad' : '') . ($marquee ? ' wwi-bn--marquee' : '') . ($critical ? ' wwi-bn--critical' : '') . (($mode === 'modal' && $exit) ? ' wwi-bn--exit' : '') . ($ab ? ' wwi-bn--ab' : '') . '" id="' . $uid . '" style="' . $style . '"'
-            . ' data-rot="' . $rot . '" data-freq="' . $freq . '" data-letters="' . $letters . '" data-session="1"' . ($countdown !== '' ? ' data-cd="' . $this->esc($countdown) . '"' : '') . ($track ? ' data-uid="' . $uid . '" data-track="1"' : '')
+        $h .= '<div class="wwi-bn wwi-bn--' . $mode . ' wwi-bn--anim-' . $anim . ($bare ? ' wwi-bn--bare' : '') . ($bgImg !== '' ? ' has-img' : '') . ($bg2 !== '' ? ' has-grad' : '') . ($marquee ? ' wwi-bn--marquee' : '') . ($critical ? ' wwi-bn--critical' : '') . ($deferred ? ' wwi-bn--exit' : '') . ($ab ? ' wwi-bn--ab' : '') . '" id="' . $uid . '" style="' . $style . '"'
+            . ' data-rot="' . $rot . '" data-freq="' . $freq . '" data-letters="' . $letters . '" data-session="1"' . ($countdown !== '' ? ' data-cd="' . $this->esc($countdown) . '"' : '')
+            . ' data-uid="' . $uid . '"' . ($track ? ' data-track="1"' : '') . ($behaviorTrack ? ' data-bt="1"' : '')
+            . ' data-exit="' . ($exit ? '1' : '0') . '" data-exit-min-time="' . $exitMinTime . '" data-exit-min-scroll="' . $exitMinScroll . '" data-exit-sensitivity="' . $exitSensitivity . '" data-exit-fallback="' . $exitFallback . '" data-exit-cart="' . (!empty($c['exit_intent_cart_only']) ? '1' : '0') . '" data-exit-exclude-checkout="' . (!empty($c['exit_intent_exclude_checkout']) ? '1' : '0') . '" data-exit-mobile="' . (!empty($c['exit_intent_mobile']) ? '1' : '0') . '"'
+            . ' data-inactivity="' . $inactivity . '" data-scroll-trigger="' . $scrollTrigger . '" data-time-trigger="' . $timeTrigger . '"'
+            . ' data-cart-summary="' . ($showCart ? '1' : '0') . '" data-cart-key="' . $this->esc($cartKey) . '" data-cart-cta-label="' . $this->esc($cartCtaLabel) . '" data-cart-cta-url="' . $this->esc($cartCtaUrl) . '" data-coupon="' . $this->esc($recoveryCoupon) . '"'
             . ' role="' . ($critical ? 'alert' : 'status') . '" aria-live="' . ($critical ? 'assertive' : 'polite') . '">';
         if ($mode === 'modal') {
             $h .= '<div class="wwi-bn__overlay" data-bn-close></div><div class="wwi-bn__box" role="dialog" aria-modal="true">';
@@ -284,6 +324,7 @@ class BannerWidget extends Widget
             foreach ($items as $i => $it) $h .= '<button type="button" class="wwi-bn__dot' . ($i === 0 ? ' is-on' : '') . '" data-go="' . $i . '"></button>';
             $h .= '</span>';
         }
+        if ($mode === 'modal' && $showCart) $h .= '<div class="wwi-bn__cart" data-bn-cart hidden></div>';
         if ($dismissible) {
             if ($mode === 'modal') $h .= '<button type="button" class="wwi-bn__ok" data-bn-close>' . $this->esc($closeLabel) . '</button>';
             else $h .= '<button type="button" class="wwi-bn__x" data-bn-close aria-label="Cerrar">✕</button>';
@@ -320,6 +361,14 @@ class BannerWidget extends Widget
 .wwi-bn__box{position:relative;width:min(92vw,440px);min-height:min(60vh,380px);margin:auto;top:50%;transform:translateY(-50%);border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1em;box-shadow:0 24px 60px rgba(0,0,0,.5);background:var(--wwi-bn-bg);color:var(--wwi-bn-fg);font-size:calc(var(--wwi-bn-fs) * 1.1);text-align:center;padding:2rem 1.4rem}
 .wwi-bn--modal.has-grad .wwi-bn__box{background:linear-gradient(135deg,var(--wwi-bn-bg),var(--wwi-bn-bg2))}
 .wwi-bn__ok{background:rgba(255,255,255,.22);border:0;color:inherit;border-radius:8px;padding:.5em 1.4em;font:inherit;font-weight:700;cursor:pointer}
+.wwi-bn__cart{width:100%;max-height:200px;overflow:auto;margin:.2em 0 .1em;text-align:left;border-top:1px solid rgba(255,255,255,.18);border-bottom:1px solid rgba(255,255,255,.18);padding:.55em 0}
+.wwi-bn__cart-item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:.28em 0;font-size:.82em;line-height:1.35}
+.wwi-bn__cart-item b{display:block;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wwi-bn__cart-item small{display:block;opacity:.72;font-size:.86em;margin-top:1px}
+.wwi-bn__cart-item span{white-space:nowrap;font-weight:800;font-size:.9em}
+.wwi-bn__cart-total{display:flex;justify-content:space-between;gap:10px;padding:.55em 0 .1em;font-weight:900;font-size:.92em}
+.wwi-bn__cart-cta{display:block;text-align:center;margin-top:.65em;padding:.65em .8em;border-radius:8px;background:rgba(255,255,255,.94);color:#111;text-decoration:none;font-weight:900;font-size:.9em}
+.wwi-bn__cart-cta:hover{background:#fff}
 .wwi-bn__cd{display:inline-block;margin-left:.6em;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:.03em}
 .wwi-bn--marquee{overflow:hidden}
 .wwi-bn--marquee .wwi-bn__item.is-on{display:inline-block!important;white-space:nowrap;animation:wwiBnMarquee 16s linear infinite}
@@ -358,13 +407,25 @@ class BannerWidget extends Widget
 <script>if(!window.__wwiBnInit){window.__wwiBnInit=1;(function(){
 function seen(k){try{return Number(localStorage.getItem(k)||0)}catch(e){return 0}}
 function setSeen(k,v){try{localStorage.setItem(k,v)}catch(e){}}
-function init(el){var id=el.id;var freq=el.getAttribute('data-freq')||'always';var sk='wwi-bn-'+id;
+function init(el){
+ var id=el.id;var freq=el.getAttribute('data-freq')||'always';var sk='wwi-bn-'+id;
+ var deferred=el.classList.contains('wwi-bn--exit');var shown=false;var start=Date.now();
+ var exit=el.getAttribute('data-exit')==='1';var exitMinTime=parseInt(el.getAttribute('data-exit-min-time')||'0',10)||0;
+ var exitMinScroll=parseInt(el.getAttribute('data-exit-min-scroll')||'0',10)||0;var sensitivity=parseInt(el.getAttribute('data-exit-sensitivity')||'12',10)||12;
+ var fallback=parseInt(el.getAttribute('data-exit-fallback')||'0',10)||0;var cartOnly=el.getAttribute('data-exit-cart')==='1';
+ var excludeCheckout=el.getAttribute('data-exit-exclude-checkout')==='1';var exitMobile=el.getAttribute('data-exit-mobile')==='1';
+ var inactivity=parseInt(el.getAttribute('data-inactivity')||'0',10)||0;var scrollTrigger=parseInt(el.getAttribute('data-scroll-trigger')||'0',10)||0;
+ var timeTrigger=parseInt(el.getAttribute('data-time-trigger')||'0',10)||0;var canBt=el.getAttribute('data-bt')==='1';
+ var canTrack=el.getAttribute('data-track')==='1';var tuid=el.getAttribute('data-uid');var cartKey=el.getAttribute('data-cart-key')||'sonika_cart';
+ var maxScroll=0;var inactivityTimer=null;var lastY=null;
+ function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+ function money(n){return '$'+Number(n||0).toLocaleString('es-CO')}
+ function markSeen(){if(freq==='once'||freq==='three')setSeen(sk,seen(sk)+1);if(freq==='session')try{sessionStorage.setItem(sk+'-seen','1')}catch(e){}}
  if((el.getAttribute('data-session')==='1')&&sessionStorage.getItem(sk+'-closed')==='1'){el.remove();return}
  if(freq==='once'&&seen(sk)>=1){el.remove();return}
  if(freq==='three'&&seen(sk)>=3){el.remove();return}
  if(freq==='session'&&sessionStorage.getItem(sk+'-seen')==='1'){el.remove();return}
- if(freq==='once'||freq==='three')setSeen(sk,seen(sk)+1);
- if(freq==='session')try{sessionStorage.setItem(sk+'-seen','1')}catch(e){}
+ if(!deferred)markSeen();
  var items=el.querySelectorAll('.wwi-bn__item');var dots=el.querySelectorAll('.wwi-bn__dot');var cur=0;
  function go(i){if(!items.length)return;cur=(i+items.length)%items.length;for(var j=0;j<items.length;j++){items[j].classList.toggle('is-on',j===cur)}for(var d=0;d<dots.length;d++){dots[d].classList.toggle('is-on',d===cur)}
   if(el.getAttribute('data-letters')==='typewriter'){var tx=items[cur].querySelector('.wwi-bn__tx');if(tx&&!tx.getAttribute('data-typed')){var full=tx.textContent;tx.textContent='';tx.setAttribute('data-typed','1');var n=0;var iv=setInterval(function(){tx.textContent=full.slice(0,++n);if(n>=full.length)clearInterval(iv)},28)}}}
@@ -373,13 +434,35 @@ function init(el){var id=el.id;var freq=el.getAttribute('data-freq')||'always';v
  for(var k=0;k<dots.length;k++){dots[k].addEventListener('click',function(e){e.preventDefault();var i=parseInt(this.getAttribute('data-go'),10);if(timer)clearInterval(timer);go(i)})}
  var letters=el.getAttribute('data-letters');if(letters==='gradient'){el.querySelectorAll('.wwi-bn__tx').forEach(function(t){t.classList.add('grad')})}
  if(letters==='typewriter'){go(0)}
- el.querySelectorAll('[data-bn-close]').forEach(function(b){b.addEventListener('click',function(){try{sessionStorage.setItem(sk+'-closed','1')}catch(e){}el.remove()})});
- var cdv=el.getAttribute('data-cd');var cds=el.querySelector('.wwi-bn__cd');if(cdv&&cds){var to=new Date(cdv.length<=10?cdv+'T00:00':cdv).getTime();var tick=function(){var d=to-Date.now();if(d<0)d=0;var s=Math.floor(d/1000);var dd=Math.floor(s/86400),hh=Math.floor((s%86400)/3600),mm=Math.floor((s%3600)/60),ss=s%60;function p(n){return (n<10?'0':'')+n}cds.textContent='⏳ '+(dd>0?dd+'d ':'')+p(hh)+':'+p(mm)+':'+p(ss)};tick();setInterval(tick,1000)}
- if(el.classList.contains('wwi-bn--exit')){(function(){var shown=false;function open(){if(shown)return;shown=true;el.classList.add('is-open')}var t=setTimeout(open,20000);document.addEventListener('mouseout',function(e){if(!e.relatedTarget&&e.clientY<=0){clearTimeout(t);open()}})})()}
  var ab=el.classList.contains('wwi-bn--ab');var variant='a';
  if(ab){try{variant=localStorage.getItem('wwi-bn-ab-'+id)||''}catch(e){}if(variant!=='a'&&variant!=='b'){variant=Math.random()<0.5?'a':'b';try{localStorage.setItem('wwi-bn-ab-'+id,variant)}catch(e){}}el.classList.add('ab-'+variant)}
- var tuid=el.getAttribute('data-uid');if(el.getAttribute('data-track')==='1'&&tuid){var evt=function(t){try{fetch('/api/v1/public/banner/event',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({uid:tuid,variant:variant,type:t}),keepalive:true})}catch(e){}};evt('impression');el.querySelectorAll('.wwi-bn__cta').forEach(function(a){a.addEventListener('click',function(){evt('click')})});}
- if(el.classList.contains('wwi-bn--modal')){document.addEventListener('keydown',function(e){if(e.key==='Escape'&&document.body.contains(el)){el.remove()}})}
+ function evt(t){if(!tuid)return;if((t==='impression'||t==='click')&&!canTrack)return;if((t==='exit_intent'||t==='behavior_trigger'||t==='dismiss'||t==='recovery_click')&&!canBt)return;try{fetch('/api/v1/public/banner/event',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({uid:tuid,variant:variant,type:t}),keepalive:true})}catch(e){}}
+ function cartItems(){try{var a=JSON.parse(localStorage.getItem(cartKey)||'[]');return Array.isArray(a)?a:[]}catch(e){return[]}}
+ function cartHasItems(){return cartItems().length>0}
+ function excluded(){var p=location.pathname;if(excludeCheckout&&(p==='/checkout'||p.indexOf('/checkout/')===0||p.indexOf('/pedido/')===0))return true;if(cartOnly&&!cartHasItems())return true;return false}
+ function exitAllowed(){if(!exit||excluded())return false;if(!exitMobile&&window.matchMedia&&window.matchMedia('(max-width:820px)').matches)return false;return true}
+ function ready(){var elapsed=(Date.now()-start)/1000;if(elapsed<exitMinTime)return false;if(maxScroll<exitMinScroll)return false;return !excluded()}
+ function renderCart(){var box=el.querySelector('[data-bn-cart]');if(!box)return;var list=cartItems();if(!list.length){box.hidden=true;return}var total=0,rows='';list.slice(0,8).forEach(function(it){var q=Math.max(1,parseInt(it.qty||1,10)||1);var p=Number(it.price||0);if(!isFinite(p)||p<0)p=0;total+=p*q;var nm=String(it.title||it.name||it.handle||'Producto');var sku=it.sku?(' · '+it.sku):'';rows+='<div class="wwi-bn__cart-item"><div><b>'+esc(nm)+'</b><small>x'+q+esc(sku)+'</small></div><span>'+money(p*q)+'</span></div>'});var cta=el.getAttribute('data-cart-cta-url')||'/checkout';var coupon=el.getAttribute('data-coupon')||'';if(coupon)cta+=(cta.indexOf('?')>=0?'&':'?')+'coupon='+encodeURIComponent(coupon);var label=el.getAttribute('data-cart-cta-label')||'Terminar mi compra';box.innerHTML=rows+'<div class="wwi-bn__cart-total"><span>Total</span><span>'+money(total)+'</span></div><a class="wwi-bn__cart-cta" href="'+esc(cta)+'">'+esc(label)+'</a>';box.hidden=false;var a=box.querySelector('.wwi-bn__cart-cta');if(a)a.addEventListener('click',function(){evt('recovery_click')})}
+ function open(source){if(shown||excluded())return;shown=true;el.classList.add('is-open');markSeen();renderCart();evt('impression');evt(source==='exit'?'exit_intent':'behavior_trigger')}
+ function tryOpen(source){if(shown||!ready())return;open(source)}
+ function onScroll(){var h=document.documentElement;var p=h.scrollTop/(h.scrollHeight-h.clientHeight||1)*100;if(p>maxScroll)maxScroll=Math.min(100,Math.round(p));if(scrollTrigger>0&&maxScroll>=scrollTrigger)tryOpen('scroll')}
+ function resetInactivity(){if(inactivity<=0)return;if(inactivityTimer)clearTimeout(inactivityTimer);inactivityTimer=setTimeout(function(){tryOpen('inactivity')},Math.max(inactivity,exitMinTime)*1000)}
+ if(deferred){
+   window.addEventListener('scroll',onScroll,{passive:true});onScroll();
+   if(inactivity>0){['mousemove','keydown','scroll','touchstart','click'].forEach(function(t){document.addEventListener(t,resetInactivity,{passive:true})});resetInactivity()}
+   if(timeTrigger>0)setTimeout(function(){tryOpen('time')},Math.max(timeTrigger,exitMinTime)*1000);
+   if(exit&&fallback>0)setTimeout(function(){if(exitAllowed())tryOpen('exit')},fallback);
+   if(exit){
+     document.addEventListener('mouseout',function(e){if(!e.relatedTarget&&e.clientY<=sensitivity&&exitAllowed())tryOpen('exit')},{passive:true});
+     document.addEventListener('mousemove',function(e){if(e.clientY<=sensitivity&&lastY!==null&&e.clientY<lastY-6&&exitAllowed())tryOpen('exit');lastY=e.clientY},{passive:true});
+   }
+ }
+ if(!deferred&&el.getAttribute('data-cart-summary')==='1')renderCart();
+ el.querySelectorAll('[data-bn-close]').forEach(function(b){b.addEventListener('click',function(){try{sessionStorage.setItem(sk+'-closed','1')}catch(e){}evt('dismiss');el.remove()})});
+ var cdv=el.getAttribute('data-cd');var cds=el.querySelector('.wwi-bn__cd');if(cdv&&cds){var to=new Date(cdv.length<=10?cdv+'T00:00':cdv).getTime();var tick=function(){var d=to-Date.now();if(d<0)d=0;var s=Math.floor(d/1000);var dd=Math.floor(s/86400),hh=Math.floor((s%86400)/3600),mm=Math.floor((s%3600)/60),ss=s%60;function p(n){return (n<10?'0':'')+n}cds.textContent='⏳ '+(dd>0?dd+'d ':'')+p(hh)+':'+p(mm)+':'+p(ss)};tick();setInterval(tick,1000)}
+ if(el.classList.contains('wwi-bn--modal')){document.addEventListener('keydown',function(e){if(e.key==='Escape'&&document.body.contains(el)){evt('dismiss');el.remove()}})}
+ if(!deferred)evt('impression');
+ el.querySelectorAll('.wwi-bn__cta').forEach(function(a){a.addEventListener('click',function(){evt('click')})});
 }
 document.addEventListener('DOMContentLoaded',function(){document.querySelectorAll('.wwi-bn:not([data-ready])').forEach(function(el){el.setAttribute('data-ready','1');init(el)})});
 if(document.readyState!=='loading'){document.querySelectorAll('.wwi-bn:not([data-ready])').forEach(function(el){el.setAttribute('data-ready','1');init(el)})}

@@ -18,9 +18,17 @@ class BannerStatsService
             id INT AUTO_INCREMENT PRIMARY KEY, site_id INT NOT NULL DEFAULT 1,
             banner_uid VARCHAR(64) NOT NULL, variant VARCHAR(8) NOT NULL DEFAULT 'a',
             impressions INT NOT NULL DEFAULT 0, clicks INT NOT NULL DEFAULT 0,
+            exit_intents INT NOT NULL DEFAULT 0, behavior_triggers INT NOT NULL DEFAULT 0,
+            dismissals INT NOT NULL DEFAULT 0, recovery_clicks INT NOT NULL DEFAULT 0,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
             UNIQUE KEY uk_bn (site_id, banner_uid, variant)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+        foreach (['exit_intents', 'behavior_triggers', 'dismissals', 'recovery_clicks'] as $col) {
+            try {
+                Database::instance()->exec("ALTER TABLE wwi_banner_stats ADD COLUMN IF NOT EXISTS `$col` INT NOT NULL DEFAULT 0");
+            } catch (\Throwable $e) {
+            }
+        }
         self::$ensured = true;
         return ['ok' => true, 'cached' => false];
     }
@@ -31,7 +39,15 @@ class BannerStatsService
         $uid = substr((string)preg_replace('/[^a-zA-Z0-9_-]/', '', $uid), 0, 64);
         if ($uid === '') return ['ok' => false];
         $variant = in_array($variant, ['a', 'b'], true) ? $variant : 'a';
-        $col = $type === 'click' ? 'clicks' : 'impressions';
+        $map = [
+            'impression' => 'impressions',
+            'click' => 'clicks',
+            'exit_intent' => 'exit_intents',
+            'behavior_trigger' => 'behavior_triggers',
+            'dismiss' => 'dismissals',
+            'recovery_click' => 'recovery_clicks',
+        ];
+        $col = $map[$type] ?? 'impressions';
         Database::instance()->prepare("INSERT INTO wwi_banner_stats (site_id, banner_uid, variant, `$col`) VALUES (@site_id, ?, ?, 1) ON DUPLICATE KEY UPDATE `$col` = `$col` + 1")
             ->execute([$uid, $variant]);
         return ['ok' => true];
@@ -41,7 +57,7 @@ class BannerStatsService
     {
         $this->ensureTables();
         $limit = max(1, min(500, $limit));
-        $st = Database::instance()->prepare("SELECT banner_uid, variant, impressions, clicks, updated_at FROM wwi_banner_stats WHERE site_id = @site_id ORDER BY impressions DESC LIMIT $limit");
+        $st = Database::instance()->prepare("SELECT banner_uid, variant, impressions, clicks, exit_intents, behavior_triggers, dismissals, recovery_clicks, updated_at FROM wwi_banner_stats WHERE site_id = @site_id ORDER BY impressions DESC LIMIT $limit");
         $st->execute();
         return $st->fetchAll();
     }
@@ -49,12 +65,27 @@ class BannerStatsService
     public function summary(): array
     {
         $this->ensureTables();
-        $st = Database::instance()->prepare("SELECT COUNT(*) c, COALESCE(SUM(impressions), 0) imp, COALESCE(SUM(clicks), 0) clk FROM wwi_banner_stats WHERE site_id = @site_id");
+        $st = Database::instance()->prepare("SELECT COUNT(*) c, COALESCE(SUM(impressions), 0) imp, COALESCE(SUM(clicks), 0) clk,
+            COALESCE(SUM(exit_intents), 0) exits, COALESCE(SUM(behavior_triggers), 0) behaviors,
+            COALESCE(SUM(dismissals), 0) dismissals, COALESCE(SUM(recovery_clicks), 0) recoveries
+            FROM wwi_banner_stats WHERE site_id = @site_id");
         $st->execute();
         $r = $st->fetch() ?: [];
         $imp = (int)($r['imp'] ?? 0);
         $clk = (int)($r['clk'] ?? 0);
-        return ['rows' => (int)($r['c'] ?? 0), 'impressions' => $imp, 'clicks' => $clk, 'ctr' => $imp ? round($clk * 100 / $imp, 2) : 0];
+        $exits = (int)($r['exits'] ?? 0);
+        $recoveries = (int)($r['recoveries'] ?? 0);
+        return [
+            'rows' => (int)($r['c'] ?? 0),
+            'impressions' => $imp,
+            'clicks' => $clk,
+            'ctr' => $imp ? round($clk * 100 / $imp, 2) : 0,
+            'exit_intents' => $exits,
+            'behavior_triggers' => (int)($r['behaviors'] ?? 0),
+            'dismissals' => (int)($r['dismissals'] ?? 0),
+            'recovery_clicks' => $recoveries,
+            'recovery_rate' => $exits ? round($recoveries * 100 / $exits, 2) : 0,
+        ];
     }
 
     public function clear(): array

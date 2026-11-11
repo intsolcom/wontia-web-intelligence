@@ -1524,12 +1524,14 @@ W.bnList=async function(){
         banners.forEach(function(b){
             h+='<div class="w-card" style="padding:14px">'
               +'<div class="w-flex-between" style="gap:8px;align-items:flex-start"><div><div style="font-weight:700">'+W.esc(b.name)+'</div><div style="font-size:11px;color:var(--w-muted)">'+W.esc(String(b.updated_at||''))+'</div></div>'
-              +(b.is_header?'<span class="w-badge" style="background:rgba(52,211,153,.15);color:#34d399">Barra superior</span>':'')+'</div>'
+              +(b.is_header?'<span class="w-badge" style="background:rgba(52,211,153,.15);color:#34d399">Barra superior</span>':'')
+              +(b.is_recovery?'<span class="w-badge" style="background:rgba(242,13,22,.15);color:#f87171">Recuperación</span>':'')+'</div>'
               +'<div class="w-flex w-gap-sm" style="flex-wrap:wrap;margin-top:10px">'
               +'<button class="w-btn '+(b.enabled?'w-btn-secondary':'w-btn-primary')+' w-btn-sm" onclick="wontia.bnToggle('+b.id+','+(b.enabled?0:1)+')">'+(b.enabled?'● Activo':'○ Inactivo')+'</button>'
               +'<button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.bnGo('+b.id+')">Configurar</button>'
               +'<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.bnDup('+b.id+')" title="Duplicar">⧉</button>'
               +(b.is_header?'':'<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.bnHeader('+b.id+')" title="Usar en la barra superior">↥ Barra</button>')
+              +(!b.is_recovery?'<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.bnRecovery('+b.id+')" title="Usar como aviso global de recuperación">🛒 Recuperación</button>':'')
               +'<button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.bnDel('+b.id+')" title="Eliminar">🗑</button>'
               +'</div></div>';
         });
@@ -1537,15 +1539,19 @@ W.bnList=async function(){
     }
     var r=await W.api('/api/v1/admin/banners/stats');
     var d=r.data||{};var s=d.summary||{};var items=d.items||[];
-    h+='<div class="w-flex-between" style="margin:18px 0 10px"><h3 style="margin:0">Métricas (impresiones / clics / CTR)</h3><button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.bnClearStats()">Borrar métricas</button></div>';
+    h+='<div class="w-flex-between" style="margin:18px 0 10px"><h3 style="margin:0">Métricas (impresiones / clics / salida / recuperación)</h3><button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.bnClearStats()">Borrar métricas</button></div>';
     h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:12px">'
       +'<div class="w-stat-card"><div class="w-stat-value">'+W.num(s.impressions||0)+'</div><div class="w-stat-label">Impresiones</div></div>'
       +'<div class="w-stat-card"><div class="w-stat-value">'+W.num(s.clicks||0)+'</div><div class="w-stat-label">Clics</div></div>'
       +'<div class="w-stat-card"><div class="w-stat-value">'+(s.ctr||0)+'%</div><div class="w-stat-label">CTR</div></div>'
+      +'<div class="w-stat-card"><div class="w-stat-value">'+W.num(s.exit_intents||0)+'</div><div class="w-stat-label">Intentos de salida</div></div>'
+      +'<div class="w-stat-card"><div class="w-stat-value">'+W.num(s.recovery_clicks||0)+'</div><div class="w-stat-label">Clics de recuperación</div></div>'
+      +'<div class="w-stat-card"><div class="w-stat-value">'+(s.recovery_rate||0)+'%</div><div class="w-stat-label">Recuperación</div></div>'
+      +'<div class="w-stat-card"><div class="w-stat-value">'+W.num(s.dismissals||0)+'</div><div class="w-stat-label">Cierres</div></div>'
       +'<div class="w-stat-card"><div class="w-stat-value">'+W.num(s.rows||0)+'</div><div class="w-stat-label">Avisos × variante</div></div></div>';
     if(items.length){
-        h+='<table class="w-table"><thead><tr><th>Aviso (uid)</th><th>Variante</th><th>Impresiones</th><th>Clics</th><th>CTR</th><th>Última</th></tr></thead><tbody>'
-          +items.map(function(x){var ctr=x.impressions?((x.clicks*100/x.impressions).toFixed(2)):0;return '<tr><td>'+W.esc(x.banner_uid)+'</td><td>'+W.esc(String(x.variant).toUpperCase())+'</td><td>'+W.num(x.impressions)+'</td><td>'+W.num(x.clicks)+'</td><td>'+ctr+'%</td><td>'+W.esc(String(x.updated_at||''))+'</td></tr>'}).join('')+'</tbody></table>';
+        h+='<table class="w-table"><thead><tr><th>Aviso (uid)</th><th>Variante</th><th>Impresiones</th><th>Clics</th><th>CTR</th><th>Salida</th><th>Cierre</th><th>Recuperación</th><th>Última</th></tr></thead><tbody>'
+          +items.map(function(x){var ctr=x.impressions?((x.clicks*100/x.impressions).toFixed(2)):0;var rr=x.exit_intents?((x.recovery_clicks*100/x.exit_intents).toFixed(2)):0;return '<tr><td>'+W.esc(x.banner_uid)+'</td><td>'+W.esc(String(x.variant).toUpperCase())+'</td><td>'+W.num(x.impressions)+'</td><td>'+W.num(x.clicks)+'</td><td>'+ctr+'%</td><td>'+W.num(x.exit_intents)+'</td><td>'+W.num(x.dismissals)+'</td><td>'+W.num(x.recovery_clicks)+' ('+rr+'%)</td><td>'+W.esc(String(x.updated_at||''))+'</td></tr>'}).join('')+'</tbody></table>';
     } else { h+='<div style="color:var(--w-muted);font-size:12px">Sin métricas aún.</div>'; }
     var t=await W.api('/api/v1/admin/banners/templates');
     var tpls=(t&&t.data)||[];
@@ -1560,6 +1566,7 @@ W.bnGo=function(id){window.location.hash='#banners/'+id};
 W.bnNew=async function(){var n=prompt('Nombre del banner:');if(!n)return;var r=await W.api('/api/v1/admin/banners',{method:'POST',body:{name:n}});if(r&&r.ok&&r.id){window.location.hash='#banners/'+r.id}else W.notify('Error al crear','error')};
 W.bnToggle=async function(id,v){var r=await W.api('/api/v1/admin/banners/'+id+'/toggle',{method:'POST',body:{enabled:v}});if(r.ok)W.bnList()};
 W.bnHeader=async function(id){var r=await W.api('/api/v1/admin/banners/'+id+'/header',{method:'POST',body:{}});if(r.ok){W.notify('Ahora está en la barra superior','success');W.bnList()}};
+W.bnRecovery=async function(id){var r=await W.api('/api/v1/admin/banners/'+id+'/recovery',{method:'POST',body:{}});if(r.ok){W.notify('Aviso marcado como recuperación global','success');W.bnList()}else W.notify((r&&r.message)||'No se pudo marcar','error')};
 W.bnDup=async function(id){var r=await W.api('/api/v1/admin/banners/'+id+'/duplicate',{method:'POST',body:{}});if(r.ok)W.bnList()};
 W.bnDel=async function(id){if(!confirm('¿Eliminar este banner?'))return;var r=await W.api('/api/v1/admin/banners/'+id,{method:'DELETE'});if(r.ok){W.notify('Eliminado','success');W.bnList()}};
 if(!window.__wwiBnUnload){window.__wwiBnUnload=1;window.addEventListener('beforeunload',function(e){if(W._bnDirty){e.preventDefault();e.returnValue=''}});}
@@ -6826,7 +6833,7 @@ W.renderStore=async function(tab){
     tab=tab||'productos';
     W.state.storeTab=tab;
     var app=document.getElementById('wontia-app');
-    var tabs=[['productos','Productos'],['contenido','Contenido'],['categorias','Categorías'],['pedidos','Pedidos'],['envios','Envíos'],['resenas','Reseñas'],['devoluciones','Devoluciones'],['cupones','Cupones'],['addi','Addi'],['config','Configuración']];
+    var tabs=[['productos','Productos'],['contenido','Contenido'],['categorias','Categorías'],['pedidos','Pedidos'],['carritos','Carritos abandonados'],['envios','Envíos'],['resenas','Reseñas'],['devoluciones','Devoluciones'],['cupones','Cupones'],['addi','Addi'],['config','Configuración']];
     var bar='<div class="w-brick-tabs">';
     tabs.forEach(function(t){bar+='<button class="w-brick-tab'+(tab===t[0]?' active':'')+'" onclick="wontia.storeGo(\''+t[0]+'\')">'+t[1]+'</button>'});
     bar+='<div style="flex:1"></div><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.storeEnsure()">Setup Tables</button></div>';
@@ -6836,7 +6843,7 @@ W.renderStore=async function(tab){
         document.getElementById('store-content').innerHTML='<div class="w-empty-state"><h3>Tienda no inicializada</h3><p>Crea las tablas de la tienda para empezar a vender.</p><button class="w-btn w-btn-primary" style="margin-top:12px" onclick="wontia.storeEnsure()">Crear tablas de la tienda</button></div>';
         return;
     }
-    var fns={productos:W.storeProducts,contenido:W.storeContentAudit,categorias:W.storeCategories,pedidos:W.storeOrders,envios:W.storeShipping,resenas:W.storeReviews,devoluciones:W.storeReturns,cupones:W.storeCoupons,addi:W.storeAddi,config:W.storeSettings};
+    var fns={productos:W.storeProducts,contenido:W.storeContentAudit,categorias:W.storeCategories,pedidos:W.storeOrders,carritos:W.storeAbandonedCarts,envios:W.storeShipping,resenas:W.storeReviews,devoluciones:W.storeReturns,cupones:W.storeCoupons,addi:W.storeAddi,config:W.storeSettings};
     (fns[tab]||W.storeProducts)();
 };
 
@@ -8153,6 +8160,85 @@ W.storeSettingsSave=async function(){
         store_payment_methods:methods,store_wompi_public_key:v('#ss-wompi-pub'),store_wompi_integrity_key:v('#ss-wompi-int'),store_wompi_events_key:v('#ss-wompi-evt')};
     var r=await W.api('/api/v1/admin/store/settings',{method:'PUT',body:payload});
     if(r.ok){W.notify('Configuración guardada','success');W.storeSettings()}
+};
+
+W.sacState={days:30,status:'',carts:[]};
+W.sacStatusLabel=function(s){return ({active:'Activo',abandoned:'Abandonado',contacted:'Recordado',recovered:'Recuperado',converted:'Convertido',dismissed:'Descartado'})[s]||s||''};
+W.sacStatusColor=function(s){return ({active:'#0d7a58',abandoned:'#b45309',contacted:'#2563eb',recovered:'#0d7a58',converted:'#0d7a58',dismissed:'#64748b'})[s]||'#64748b'};
+W.sacMoney=function(cents,cur){return W.ocMoney(cents||0,cur||'COP')};
+W.storeAbandonedCarts=async function(status,days){
+    var el=document.getElementById('store-content');if(!el)return;
+    if(status!==undefined)W.sacState.status=status;
+    if(days)W.sacState.days=parseInt(days,10)||30;
+    var st=W.sacState.status||'';var dDays=W.sacState.days||30;
+    el.innerHTML='<div style="color:var(--w-muted);padding:24px">Cargando carritos abandonados...</div>';
+    var r=await W.api('/api/v1/admin/store/abandoned-carts/overview?days='+encodeURIComponent(dDays)+'&status='+encodeURIComponent(st));
+    if(!r||!r.ok){el.innerHTML='<div class="w-empty-state"><h3>No se pudieron cargar los carritos</h3><p>Revisa que las tablas de la tienda estén creadas.</p></div>';return}
+    var d=r.data||{},m=d.metrics||{},t=d.traffic||{},f=d.funnel||{},lc=d.legacy_cart||{};W.sacState.carts=d.carts||[];
+    var kpi=function(v,l,color){return '<div class="w-card" style="flex:1;min-width:150px;text-align:center;margin:0"><div style="font-size:26px;font-weight:800;'+(color?'color:'+color:'')+'">'+W.num(v||0)+'</div><div style="font-size:11px;color:var(--w-muted);margin-top:4px">'+l+'</div></div>'};
+    var h='<div class="w-flex-between" style="gap:10px;flex-wrap:wrap;margin-bottom:12px"><div><h3 style="margin:0">Carritos abandonados</h3><p style="font-size:12px;color:var(--w-muted);margin:5px 0 0">Tráfico, embudo y carritos con productos sin compra. Datos de los últimos '+dDays+' días; excluye tráfico interno y bots cuando la fuente lo permite.</p></div><div style="display:flex;gap:6px;flex-wrap:wrap"><select class="w-input" style="width:110px" onchange="wontia.storeAbandonedCarts(undefined,this.value)"><option value="7"'+(dDays===7?' selected':'')+'>7 días</option><option value="30"'+(dDays===30?' selected':'')+'>30 días</option><option value="90"'+(dDays===90?' selected':'')+'>90 días</option></select><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.sacExport()">⬇ Exportar CSV</button></div></div>';
+    h+='<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">'+kpi(t.unique_visitors||0,'Visitantes únicos')+kpi(t.sessions||0,'Sesiones')+kpi(t.page_views||0,'Páginas vistas')+kpi(t.pages_per_session||0,'Páginas / sesión')+kpi((t.avg_time_seconds||0)+'s','Tiempo promedio')+'</div>';
+    h+='<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">'+kpi(m.active||0,'Carritos activos','#0d7a58')+kpi(m.abandoned||0,'Abandonados +'+ (m.abandon_minutes||30) +' min','#b45309')+kpi(W.sacMoney(m.open_value_cents),'Valor en riesgo','#b45309')+kpi(m.recovered||0,'Recuperados / convertidos','#0d7a58')+kpi((m.recovery_rate||0)+'%','Tasa de recuperación','#0d7a58')+kpi(W.sacMoney(m.recovered_value_cents),'Ingresos recuperados','#0d7a58')+'</div>';
+    h+='<div class="w-card" style="margin-bottom:12px;border-left:3px solid #F20D16"><div class="w-flex-between" style="gap:10px;flex-wrap:wrap"><div><h3 style="margin:0">Estrategia visual de recuperación</h3><p style="font-size:12px;color:var(--w-muted);margin:6px 0 0;max-width:760px">Aviso modal al detectar intención de salida con carrito: muestra los productos, total y un botón directo a checkout. Se muestra una vez por sesión, no aparece en checkout/pedido y respeta el consentimiento del Banner.</p></div><div style="display:flex;gap:6px;flex-wrap:wrap"><button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.sacCreateBanner()">Crear aviso de recuperación</button><button class="w-btn w-btn-secondary w-btn-sm" onclick="window.location.hash=\'#banners\'">Abrir Banners</button><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.sacRunRecovery()">Recordar por email</button></div></div></div>';
+    h+='<div class="w-card" style="margin-bottom:12px"><h3 style="margin:0 0 8px">Embudo del sitio</h3><div style="display:flex;gap:10px;flex-wrap:wrap">'+kpi(f.product_view||0,'Vieron producto')+kpi(f.cart_add||0,'Agregaron al carrito')+kpi(f.checkout_start||0,'Iniciaron checkout')+kpi(f.purchase||0,'Compraron','#0d7a58')+'</div><p style="font-size:11px;color:var(--w-muted);margin:8px 0 0">El embudo usa eventos con consentimiento. Si falta un evento, revisa la instrumentación antes de concluir que no ocurrió.</p></div>';
+    h+='<div class="w-card" style="margin-bottom:12px;border-left:3px solid #64748b"><h3 style="margin:0 0 4px">Carritos invitados históricos</h3><p style="font-size:11.5px;color:var(--w-muted);margin:0 0 10px">Datos agregados del tracking anterior. Desde ahora también guardamos el detalle por sesión para poder ver productos y recuperar el carrito.</p><div style="display:flex;gap:10px;flex-wrap:wrap">'+kpi(lc.guest_carts||0,'Carritos invitados')+kpi(lc.guest_items||0,'Ítems')+kpi(W.sacMoney(lc.guest_value_cents),'Valor estimado')+kpi(lc.checkout_abandons||0,'Abandonos en checkout')+'</div></div>';
+    var filters=[['','Todos'],['active','Activos'],['abandoned','Abandonados'],['recovered','Recuperados']];
+    h+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">'+filters.map(function(x){return '<button class="w-btn '+(st===x[0]?'w-btn-primary':'w-btn-secondary')+' w-btn-sm" onclick="wontia.storeAbandonedCarts(\''+x[0]+'\','+dDays+')">'+x[1]+'</button>'}).join('')+'<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.storeAbandonedCarts(\''+st+'\','+dDays+')">↻ Actualizar</button></div>';
+    var carts=W.sacState.carts||[];
+    if(!carts.length){h+='<div class="w-empty-state"><h3>Sin carritos en este filtro</h3><p>Los carritos aparecen cuando un visitante agrega productos y la sesión se captura con consentimiento. También se importan los carritos guardados de clientes con sesión.</p></div>'}
+    else{
+        h+='<div style="overflow:auto"><table class="w-table"><thead><tr><th>Cliente</th><th>Carrito</th><th>Valor</th><th>Origen</th><th>Última actividad</th><th>Estado</th><th></th></tr></thead><tbody>';
+        carts.forEach(function(c){
+            var items=(c.items||[]).length;var name=c.customer_name||c.customer_email||'Invitado';var email=c.customer_email?(' · '+c.customer_email):'';
+            var origin=[c.source,c.medium,c.campaign].filter(Boolean).join(' / ')||'Directo';
+            h+='<tr><td><b>'+W.esc(name)+'</b><div style="font-size:10.5px;color:var(--w-muted)">'+W.esc(email)+'</div></td><td>'+items+' producto(s) · '+W.num(c.qty||0)+' uds.<div style="font-size:10.5px;color:var(--w-muted)">'+W.esc((c.last_page||'').slice(0,60))+'</div></td><td><b>'+W.sacMoney(c.value_cents,c.currency)+'</b></td><td style="font-size:11px">'+W.esc(origin)+'<div style="font-size:10px;color:var(--w-muted)">'+W.esc(c.device||'')+'</div></td><td>'+W.esc((c.updated_at||'').slice(0,16))+'<div style="font-size:10px;color:var(--w-muted)">hace '+W.num(c.age_minutes||0)+' min</div></td><td><span class="w-badge" style="background:'+W.sacStatusColor(c.status)+';color:#fff">'+W.esc(W.sacStatusLabel(c.status))+'</span></td><td style="white-space:nowrap"><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.sacOpen('+c.id+')">Ver</button>'+(c.customer_email?' <button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.sacContact('+c.id+')">Recordar</button>':'')+' <button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.sacMark('+c.id+',\'recovered\')">Recuperado</button> <button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.sacDelete('+c.id+')">🗑</button></td></tr>';
+        });
+        h+='</tbody></table></div>';
+    }
+    el.innerHTML=h;
+};
+W.sacOpen=function(id){
+    var c=(W.sacState.carts||[]).filter(function(x){return String(x.id)===String(id)})[0];if(!c)return;
+    var items=(c.items||[]);var rows='';
+    items.forEach(function(it){rows+='<tr><td>'+W.esc(it.title||it.handle||'')+'<div style="font-size:10px;color:var(--w-muted)">'+W.esc(it.sku||'')+'</div></td><td>'+W.num(it.qty||1)+'</td><td>'+W.sacMoney(it.price_cents||0,c.currency)+'</td><td>'+W.sacMoney((it.price_cents||0)*(it.qty||1),c.currency)+'</td></tr>'});
+    var h='<div style="font-size:12px;line-height:1.8"><div><b>Cliente:</b> '+W.esc(c.customer_name||'Invitado')+' '+W.esc(c.customer_email||'')+'</div><div><b>Sesión:</b> <span style="font-family:monospace;font-size:10px">'+W.esc(c.session_id||'')+'</span></div><div><b>Origen:</b> '+W.esc([c.source,c.medium,c.campaign].filter(Boolean).join(' / ')||'Directo')+'</div><div><b>Landing:</b> '+W.esc(c.landing_url||'—')+'</div><div><b>Última página:</b> '+W.esc(c.last_page||'—')+'</div><div><b>Estado:</b> '+W.esc(W.sacStatusLabel(c.status))+' · <b>hace</b> '+W.num(c.age_minutes||0)+' min</div>'+(c.recovered_order_uuid?'<div><b>Pedido recuperado:</b> <span style="font-family:monospace;font-size:10px">'+W.esc(c.recovered_order_uuid)+'</span></div>':'')+'</div><h4 style="margin:14px 0 6px">Productos</h4><table class="w-table"><thead><tr><th>Producto</th><th>Cant.</th><th>Precio</th><th>Subtotal</th></tr></thead><tbody>'+rows+'</tbody></table>';
+    var footer='<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cerrar</button>';
+    if(c.status!=='recovered'&&c.status!=='converted')footer+=' <button class="w-btn w-btn-primary" onclick="wontia.sacMark('+c.id+',\'recovered\');wontia.closeModal()">Marcar recuperado</button>';
+    W.modal('Carrito abandonado',h,footer);
+};
+W.sacMark=async function(id,status){
+    var r=await W.api('/api/v1/admin/store/abandoned-carts/'+id+'/status',{method:'POST',body:{status:status,channel:'manual'}});
+    if(r&&r.ok){W.notify('Carrito actualizado','success');W.storeAbandonedCarts(W.sacState.status,W.sacState.days)}else W.notify((r&&r.message)||'No se pudo actualizar','error');
+};
+W.sacContact=async function(id){
+    var c=(W.sacState.carts||[]).filter(function(x){return String(x.id)===String(id)})[0];if(!c||!c.customer_email)return;
+    var subject=encodeURIComponent('Tu carrito te espera en SONIKA');
+    var body=encodeURIComponent('Hola '+(c.customer_name||'')+',\n\nDejaste estos productos en tu carrito:\n'+(c.items||[]).map(function(i){return '• '+(i.title||i.handle)+' x'+(i.qty||1)}).join('\n')+'\n\nTermina tu compra aquí: https://sonika.com.co/checkout\n\nSi ya compraste, ignora este mensaje.');
+    try{window.open('mailto:'+encodeURIComponent(c.customer_email)+'?subject='+subject+'&body='+body,'_blank')}catch(e){}
+    await W.api('/api/v1/admin/store/abandoned-carts/'+id+'/status',{method:'POST',body:{status:'contacted',channel:'email'}});
+    W.storeAbandonedCarts(W.sacState.status,W.sacState.days);
+};
+W.sacDelete=async function(id){
+    if(!confirm('¿Eliminar este registro de carrito abandonado?'))return;
+    var r=await W.api('/api/v1/admin/store/abandoned-carts/'+id,{method:'DELETE'});
+    if(r&&r.ok){W.notify('Registro eliminado','success');W.storeAbandonedCarts(W.sacState.status,W.sacState.days)}else W.notify((r&&r.message)||'No se pudo eliminar','error');
+};
+W.sacRunRecovery=async function(){
+    var r=await W.api('/api/v1/admin/store/abandoned-carts/recovery-run',{method:'POST',body:{}});
+    if(r&&r.ok){var d=r.data||{};W.notify('Recuperación ejecutada: '+(d.sent||0)+' email(s) de '+(d.considered||0)+' carrito(s)','success');W.storeAbandonedCarts(W.sacState.status,W.sacState.days)}else W.notify((r&&r.message)||'No se pudo ejecutar','error');
+};
+W.sacCreateBanner=async function(){
+    if(!confirm('Se creará un aviso modal de recuperación con resumen del carrito. ¿Continuar?'))return;
+    var r=await W.api('/api/v1/admin/store/abandoned-carts/banner-preset',{method:'POST',body:{}});
+    if(r&&r.ok&&r.id){W.notify(r.message||'Aviso creado','success');window.location.hash='#banners/'+r.id}else W.notify((r&&r.message)||'No se pudo crear el aviso','error');
+};
+W.sacExport=async function(){
+    try{
+        var days=W.sacState.days||30;
+        var res=await fetch('/api/v1/admin/store/abandoned-carts/export?days='+days,{headers:W.token?{Authorization:'Bearer '+W.token}:{}});
+        if(!res.ok){W.notify('No se pudo exportar','error');return}
+        var blob=await res.blob();var u=URL.createObjectURL(blob);var a=document.createElement('a');a.href=u;a.download='carritos-abandonados.csv';document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(u);
+    }catch(e){W.notify('No se pudo exportar','error')}
 };
 
 W.storeMaintenance=async function(){
