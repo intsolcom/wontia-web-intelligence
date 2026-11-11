@@ -6,6 +6,7 @@
     "author": "Wontia",
     "category": "marketing",
     "brick_class": "App\\Bricks\\TrackingConversion\\TrackingConversionBrick",
+    "admin_panel": "tracking-conversion",
     "requires": {
         "php": ">=8.1",
         "extensions": ["pdo_mysql", "json"]

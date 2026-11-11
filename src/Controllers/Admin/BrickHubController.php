@@ -55,17 +55,38 @@ class BrickHubController
                     'installed_id' => $brick['id'],
                     'status' => $brick['status'],
                     'category' => $brick['category'],
+                    'description' => $brick['description'] ?? '',
+                    'admin_panel' => $this->adminPanelForBrick($brick),
                 ];
             }
         }
 
         $lifecycle = new \App\Services\BrickLifecycleService();
         foreach ($availableBricks as &$ab) {
+            if (empty($ab['admin_panel'])) {
+                foreach ($installed as $ib) {
+                    if ($ib['slug'] === $ab['slug']) {
+                        $ab['admin_panel'] = $this->adminPanelForBrick($ib);
+                        break;
+                    }
+                }
+            }
             $ab['lifecycle'] = $lifecycle->resolve($ab['slug'], ['functional' => true, 'type' => 'repo']);
         }
         unset($ab);
 
         Response::json(['ok' => true, 'data' => array_values($availableBricks), 'total' => count($availableBricks)]);
+    }
+
+    private function adminPanelForBrick(array $brick): string
+    {
+        $path = trim((string)($brick['installed_path'] ?? ''));
+        if ($path === '') return '';
+        $root = defined('ROOT_DIR') ? ROOT_DIR : dirname(__DIR__, 3);
+        $file = $root . '/' . trim($path, '/') . '/brick.json';
+        if (!is_file($file)) return '';
+        $meta = json_decode((string)@file_get_contents($file), true);
+        return is_array($meta) ? trim((string)($meta['admin_panel'] ?? '')) : '';
     }
 
     public function sources(): void

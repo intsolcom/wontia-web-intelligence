@@ -3595,7 +3595,7 @@ W.bmLoad=async function(force){
     }
     (bhList||[]).forEach(function(b){
         if(sgl&&b.slug===sgl.slug)return;
-        items.push({slug:b.slug,name:b.name,category:b.category||'general',version:b.version||'1.0.0',launched_at:b.created_at||b.installed_at||'',origin:'brickhub',installed:!!b.installed,installed_version:b.installed_version||'',installed_id:b.installed_id||null,source_id:b.source_id||0,source_name:b.source_name||'Repo',desc:b.description||'Brick instalable desde repositorio',uses_ai:false,usage_count:0,update_available:false,lifecycle:b.lifecycle||lcFor(b.slug),readiness:null});
+        items.push({slug:b.slug,name:b.name,category:b.category||'general',version:b.version||'1.0.0',launched_at:b.created_at||b.installed_at||'',origin:'brickhub',installed:!!b.installed,installed_version:b.installed_version||'',installed_id:b.installed_id||null,source_id:b.source_id||0,source_name:b.source_name||'Repo',desc:b.description||'Brick instalable desde repositorio',uses_ai:false,usage_count:0,update_available:false,lifecycle:b.lifecycle||lcFor(b.slug),readiness:null,admin_panel:b.admin_panel||''});
     });
     if(sgl)items.push({slug:'seo-global-launch',name:'SEO Global Launch',category:'system',version:sgl.version||'1.0.0',launched_at:'',origin:'incubator',installed:!!sgl.installed,installed_version:sgl.version||'1.0.0',installed_id:null,source_id:0,source_name:'Incubadora',desc:'Motor SEO full-site: scan, IA de metadatos, autofix, JSON-LD, auditoría y tracker de bots.',uses_ai:true,usage_count:0,update_available:false,lifecycle:lcFor('seo-global-launch')||{state:'incubator',brick_type:'incubator',maturity:'beta',countdown:null},readiness:null});
     var seen={},uniq=[];
@@ -3638,6 +3638,7 @@ W.bmCard=function(it){
         actions+='<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.showBrickConfig(\''+W.esc(it.slug)+'\')">Configurar</button>';
     }else if(it.origin==='brickhub'){
         if(it.installed){
+            if(it.admin_panel)actions+='<button class="w-btn w-btn-primary w-btn-sm" onclick="window.location.hash=\'#'+W.esc(it.admin_panel)+'\'">Configurar</button>';
             if(it.update_available)actions+='<button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.bmUpdate('+it.installed_id+',\''+W.esc(it.slug)+'\')">🔄 Actualizar</button>';
             else actions+='<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.bhCheckUpdate('+it.installed_id+')">Check Update</button>';
             actions+='<button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.bmUninstall(this,'+it.installed_id+',\''+W.esc(it.name)+'\',\''+W.esc(it.slug)+'\')">Desacoplar</button>';
@@ -4449,6 +4450,7 @@ W.showBrickConfig=async function(type){
     if(type==='banner'){ window.location.hash='#banners'; return; }
     if(type==='mega-menu'){ window.location.hash='#mega-menu'; return; }
     if(type==='sonika-hero'){ window.location.hash='#hero'; return; }
+    if(type==='tracking-conversion'){ window.location.hash='#tracking-conversion'; return; }
     var d=await W.api('/api/v1/admin/bricks/'+type);
     var b=d.data||{};
     var schema=b.configSchema||[];

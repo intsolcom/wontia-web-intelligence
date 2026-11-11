@@ -1,6 +1,7 @@
 <?php
 namespace App\Controllers\Admin;
 
+use App\Core\BrickSystem;
 use App\Core\Database;
 use App\Core\Request;
 use App\Core\Response;
@@ -32,14 +33,14 @@ class BrickController
 
     public function show(Request $request, string $type = ''): void
     {
-        $class = WidgetRegistry::get($type);
+        $class = $this->resolveClass($type);
         if (!$class) Response::error('BRICK not found', 404);
         Response::json(['ok' => true, 'data' => [
             'meta' => $class::meta(),
-            'configSchema' => $class::configSchema(),
-            'defaultConfig' => $class::defaultConfig(),
-            'adminPreview' => $class::adminPreview(),
-            'editContract' => $class::editContract(),
+            'configSchema' => method_exists($class, 'configSchema') ? $class::configSchema() : [],
+            'defaultConfig' => method_exists($class, 'defaultConfig') ? $class::defaultConfig() : [],
+            'adminPreview' => method_exists($class, 'adminPreview') ? $class::adminPreview() : '',
+            'editContract' => method_exists($class, 'editContract') ? $class::editContract() : [],
         ]]);
     }
 
@@ -50,17 +51,24 @@ class BrickController
 
     public function config(Request $request, string $type = ''): void
     {
-        $class = WidgetRegistry::get($type);
+        $class = $this->resolveClass($type);
         if (!$class) Response::error('BRICK not found', 404);
-        Response::json(['ok' => true, 'data' => ['config' => $this->savedConfig($class, $type)]]);
+        $config = method_exists($class, 'config') ? $class::config() : $this->savedConfig($class, $type);
+        Response::json(['ok' => true, 'data' => ['config' => $config]]);
     }
 
     public function saveConfig(Request $request, string $type = ''): void
     {
-        $class = WidgetRegistry::get($type);
+        $class = $this->resolveClass($type);
         if (!$class) Response::error('BRICK not found', 404);
         $in = (array)(((array)$request->json())['config'] ?? []);
-        $clean = $this->sanitizeConfig($class::configSchema(), $in);
+        if (method_exists($class, 'saveConfig')) {
+            $result = $class::saveConfig($in);
+            Response::json($result);
+            return;
+        }
+        $schema = method_exists($class, 'configSchema') ? $class::configSchema() : [];
+        $clean = $this->sanitizeConfig($schema, $in);
         $key = 'brick_config_' . $type;
         $db = Database::instance();
         $db->prepare("DELETE FROM settings WHERE site_id = @site_id AND `key` = ?")->execute([$key]);
@@ -96,7 +104,7 @@ class BrickController
 
     private function savedConfig(string $class, string $type): array
     {
-        $out = $class::defaultConfig();
+        $out = method_exists($class, 'defaultConfig') ? $class::defaultConfig() : [];
         try {
             $st = Database::instance()->prepare("SELECT `value` FROM settings WHERE site_id = @site_id AND `key` = ? LIMIT 1");
             $st->execute(['brick_config_' . $type]);
@@ -169,14 +177,26 @@ class BrickController
     public function preview(Request $request, string $type = ''): void
     {
         $class = WidgetRegistry::get($type);
-        if (!$class) Response::error('BRICK not found', 404);
+        if (!$class) {
+            $brickClass = $this->resolveClass($type);
+            if ($brickClass && method_exists($brickClass, 'adminPreview')) {
+                header('Content-Type: text/html; charset=utf-8');
+                echo '<!DOCTYPE html><html lang="es" data-theme="dark"><head><meta charset="utf-8"/>'
+                    . '<meta name="viewport" content="width=device-width,initial-scale=1.0"/>'
+                    . '<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>'
+                    . '<style>body{margin:0;padding:18px;background:#0b1220;font-family:Inter,sans-serif}</style>'
+                    . '</head><body>' . $brickClass::adminPreview() . '</body></html>';
+                return;
+            }
+            Response::error('BRICK not found', 404);
+        }
         $showcase = new BrickShowcaseService();
         if ($showcase->count($type) > 0) {
             header('Content-Type: text/html; charset=utf-8');
             echo $showcase->renderCarousel($type, (string)($class::meta()['name'] ?? $type));
             return;
         }
-        $config = $class::defaultConfig();
+        $config = $this->savedConfig($class, $type);
         $html = (new $class())->render(is_array($config) ? $config : []);
         $theme = 'default';
         try {
@@ -253,6 +273,20 @@ class BrickController
             }
         } catch (\Throwable $e) {}
         return $out;
+    }
+
+    private function resolveClass(string $type): ?string
+    {
+        $widget = WidgetRegistry::get($type);
+        if ($widget) return $widget;
+        try {
+            $brick = BrickSystem::findBySlug($type);
+            if ($brick && !empty($brick['brick_class']) && class_exists($brick['brick_class'])) {
+                return (string)$brick['brick_class'];
+            }
+        } catch (\Throwable $e) {
+        }
+        return null;
     }
 
     private function brickExists(string $slug): bool
