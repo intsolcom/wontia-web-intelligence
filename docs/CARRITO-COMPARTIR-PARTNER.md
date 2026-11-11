@@ -13,7 +13,9 @@ En cada producto del carrito (`/carrito`) aparecen dos acciones:
 1. **Compartir** — comparte el producto con un amigo, familiar o conocido.
 2. **Comparte y gana** — abre la experiencia de Partner SONIKA con enlace de afiliado y comisión estimada.
 
-Los botones solo se muestran en el carrito, no en el checkout. Tampoco aparecen si el producto está agotado o tiene un problema de disponibilidad.
+Los mismos dos botones están disponibles en la ficha de producto (`/producto/{handle}`), debajo de las acciones de compra y de los sellos de confianza.
+
+Los botones no se muestran en el checkout. Tampoco aparecen si el producto está agotado o tiene un problema de disponibilidad.
 
 ---
 
@@ -132,6 +134,10 @@ El parámetro `to` solo acepta rutas internas que empiecen por `/`. Si intenta s
 - Carrito con dos productos reales:
   - 4 disparadores (2 por producto).
   - Sin botones en checkout.
+- Ficha de producto:
+  - Dos disparadores con producto, precio e imagen reales.
+  - Modal de amigo y modo Partner.
+  - Imagen de historia con la imagen externa del producto.
 - Modo amigo:
   - Mensaje, plantillas, enlace, copiar y WhatsApp.
   - Imagen 1080 × 1920 para estado/historia.
@@ -163,7 +169,7 @@ El parámetro `to` solo acepta rutas internas que empiecen por `/`. Si intenta s
 
 - `public/assets/js/sonika-payments.js` — botones por producto en el carrito.
 - `templates/themes/sonika/lib.php` — contexto del Partner y carga de assets.
-- `templates/themes/sonika/router.php` — sesión en carrito y destino seguro en `/r/{code}`.
+- `templates/themes/sonika/router.php` — sesión en carrito/producto, botones en la ficha de producto y destino seguro en `/r/{code}`.
 - `templates/themes/sonika/carrito.php` — carga de los assets de compartir.
 
 ---

@@ -1198,6 +1198,7 @@ if (($segments[0] ?? '') === 'producto' && !empty($segments[1])) {
     if ($product) {
         $cat = null;
         foreach (sonika_categories() as $c) { if (sonika_match($product, $c['kw'])) { $cat = $c; break; } }
+        if (!empty($_COOKIE[session_name()])) \App\Core\Session::start();
         sonika_site_head(($product['title'] ?? 'Producto') . ' — SONIKA', mb_substr(strip_tags($product['body_html'] ?? ''), 0, 155));
         $crumbs = [];
         if ($cat) { $crumbs[$cat['name']] = '/' . $cat['slug']; }
@@ -1259,6 +1260,20 @@ if (($segments[0] ?? '') === 'producto' && !empty($segments[1])) {
             <div class="trust" style="justify-content:flex-start;gap:16px;border:none;padding:0">
               <span>🚚 <b><?= sonika_esc(\App\Core\Lang::get('shipping_national', 'Envío nacional')) ?></b></span><span>🛡️ <b><?= sonika_esc(\App\Core\Lang::get('warranty', 'Garantía')) ?></b></span><span>💳 <b><?= sonika_esc(\App\Core\Lang::get('secure_payment', 'Pago seguro')) ?></b></span>
             </div>
+            <?php if ($avail): ?>
+            <div class="pdp-share" aria-label="Compartir producto">
+              <div class="pdp-share__head"><b>Comparte este producto</b><small>Recomienda o gana comisión como Partner.</small></div>
+              <div class="pdp-share__actions">
+                <button type="button" class="skshare-trigger" data-skshare="friend" data-ref="<?= sonika_esc((string)($product['handle'] ?? '')) ?>" data-title="<?= sonika_esc((string)($product['title'] ?? '')) ?>" data-price-cents="<?= (int)round(((float)$price) * 100) ?>" data-image="<?= sonika_esc((string)$img) ?>" data-track="compartir producto" aria-label="Compartir <?= sonika_esc((string)($product['title'] ?? '')) ?> con un amigo, familiar o conocido">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></svg><span>Compartir</span>
+                </button>
+                <button type="button" class="skshare-trigger skshare-trigger--partner" data-skshare="partner" data-ref="<?= sonika_esc((string)($product['handle'] ?? '')) ?>" data-title="<?= sonika_esc((string)($product['title'] ?? '')) ?>" data-price-cents="<?= (int)round(((float)$price) * 100) ?>" data-image="<?= sonika_esc((string)$img) ?>" data-track="compartir partner" aria-label="Comparte este producto como Partner SONIKA y gana comisión">
+                  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8L12 2Z"/></svg><span><b>Comparte y gana</b><small>Partner SONIKA</small></span>
+                </button>
+              </div>
+            </div>
+            <?php sonika_share_assets(); ?>
+            <?php endif; ?>
           </div>
         </section>
 

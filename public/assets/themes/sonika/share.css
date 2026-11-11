@@ -22,6 +22,20 @@
 .skshare-trigger--partner b{font-size:10.5px;font-weight:850;letter-spacing:-.01em}
 .skshare-trigger--partner small{font-size:7.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#fca5a5}
 
+/* ── Ficha de producto ── */
+.pdp-share{margin:20px 0 0;padding-top:16px;border-top:1px solid #ececec}
+.pdp-share__head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:0 0 10px}
+.pdp-share__head b{font-size:10.5px;font-weight:850;letter-spacing:.12em;text-transform:uppercase;color:#6f6b63}
+.pdp-share__head small{font-size:11px;line-height:1.4;color:#6f6b63}
+.pdp-share__actions{display:flex;gap:8px;flex-wrap:wrap}
+.pdp-share__actions .skshare-trigger{min-height:44px;padding:9px 13px;font-size:11.5px}
+.pdp-share__actions .skshare-trigger--partner b{font-size:11.5px}
+.pdp-share__actions .skshare-trigger--partner small{font-size:8px}
+@media(max-width:640px){
+  .pdp-share__actions{flex-direction:column}
+  .pdp-share__actions .skshare-trigger{width:100%;justify-content:center}
+}
+
 /* ── Modal ── */
 .skshare{
   --sk-ink:#111111;--sk-muted:#6b7280;--sk-soft:#6f6b63;--sk-line:#e7e5df;--sk-bg:#faf9f6;
