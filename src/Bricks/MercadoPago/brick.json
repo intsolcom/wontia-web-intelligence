@@ -1,0 +1,36 @@
+{
+    "name": "Mercado Pago",
+    "slug": "mercadopago",
+    "version": "1.0.0",
+    "description": "Pasarela Mercado Pago completa para el checkout: credenciales manuales (Client ID, Client Secret y Public Key), Checkout Pro, Checkout API con tokenización de tarjeta, webhooks firmados, conciliación, reembolsos y diagnóstico de credenciales.",
+    "author": "Wontia",
+    "category": "ecommerce",
+    "brick_class": "App\\Bricks\\MercadoPago\\MercadoPagoBrick",
+    "requires": {
+        "php": ">=8.1",
+        "extensions": ["curl", "json", "openssl"]
+    },
+    "config": {
+        "enabled": false,
+        "environment": "sandbox",
+        "mode": "checkout_pro",
+        "max_installments": 12,
+        "binary_mode": true
+    },
+    "features": [
+        "Credenciales manuales: Client ID, Client Secret y Public Key (cifradas en reposo)",
+        "Access Token manual opcional y token automático vía OAuth client_credentials",
+        "Flujo OAuth authorization_code con PKCE para conectar la cuenta vendedora",
+        "Checkout Pro con preferencia, back_urls y auto_return",
+        "Checkout API (brick) con tokenización de tarjeta en el navegador",
+        "Webhooks con validación HMAC x-signature y protección contra duplicados",
+        "Conciliación y sincronización manual de pagos desde el panel",
+        "Reembolsos totales y parciales",
+        "Diagnóstico de credenciales, salud de la integración y logs de webhooks",
+        "Panel administrativo con métricas, pruebas de conexión y guía paso a paso"
+    ],
+    "tags": ["mercadopago", "pago", "tarjeta", "checkout", "ecommerce", "webhook", "oauth"],
+    "changelog": {
+        "1.0.0": "Integración inicial: credenciales manuales, Checkout Pro, Checkout API, webhooks firmados, conciliación, reembolsos y panel completo"
+    }
+}

@@ -13,7 +13,8 @@
   var isCheckout = !!checkoutRoot;
   var proofForm = document.getElementById('skpayProofForm');
   var qrModal = document.getElementById('skqrModal');
-  if (!isCart && !isCheckout && !proofForm && !qrModal) return;
+  var mpBrickBox = document.getElementById('mpBrickContainer');
+  if (!isCart && !isCheckout && !proofForm && !qrModal && !mpBrickBox) return;
 
   var state = { items: readItems(), method: '', coupon: readCoupon(), points: 0, quote: null, busy: false, seq: 0, error: '' };
 
@@ -899,7 +900,7 @@
           state.points = 0;
           paintCount();
           var pay = d.data.payment || {};
-          if ((pay.method === 'addi' || pay.method === 'sistecredito') && pay.redirect_url) {
+          if ((pay.method === 'addi' || pay.method === 'sistecredito' || pay.method === 'mercadopago') && pay.redirect_url) {
             window.location.href = pay.redirect_url;
             return;
           }
@@ -1066,6 +1067,78 @@
     });
   }
 
+  function initMercadoPagoBrick() {
+    var box = document.getElementById('mpBrickContainer');
+    var cfg = window.SONIKA_MP || {};
+    if (!box || !cfg.public_key || !cfg.uuid) return;
+    var statusEl = document.getElementById('mpBrickStatus');
+    function setStatus(msg, cls) {
+      if (!statusEl) return;
+      statusEl.textContent = msg || '';
+      statusEl.className = 'skpay__status' + (cls ? ' skpay__status--' + cls : '');
+    }
+    function loadSdk(cb) {
+      if (window.MercadoPago) { cb(); return; }
+      var s = document.createElement('script');
+      s.src = 'https://sdk.mercadopago.com/js/v2';
+      s.async = true;
+      s.onload = cb;
+      s.onerror = function () { setStatus('No se pudo cargar el formulario de Mercado Pago. Revisa tu conexión.', 'err'); };
+      document.head.appendChild(s);
+    }
+    loadSdk(function () {
+      try {
+        var mp = new window.MercadoPago(String(cfg.public_key), { locale: 'es-CO' });
+        mp.bricks().create('cardPayment', 'mpBrickContainer', {
+          initialization: { amount: Number(cfg.amount) || 0 },
+          customization: {
+            visual: { style: { theme: 'default' } },
+            paymentMethods: { maxInstallments: Number(cfg.max_installments) || 12 }
+          },
+          callbacks: {
+            onReady: function () { setStatus(''); },
+            onError: function (err) {
+              var msg = (err && (err.message || (err.cause && err.cause[0] && err.cause[0].description))) || 'Revisa los datos de la tarjeta.';
+              setStatus(msg, 'err');
+            },
+            onSubmit: function (formData) {
+              setStatus('Procesando pago seguro...', 'pending');
+              box.setAttribute('aria-busy', 'true');
+              fetch('/api/v1/public/mercadopago/pay', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify({ uuid: cfg.uuid, formData: formData })
+              }).then(function (r) { return r.json(); }).then(function (d) {
+                box.removeAttribute('aria-busy');
+                var out = (d && d.data) || {};
+                var st = out.status || 'pending';
+                if (d && d.ok) {
+                  if (st === 'paid') {
+                    setStatus('Pago aprobado. Actualizando tu pedido...', 'ok');
+                    setTimeout(function () { location.reload(); }, 1200);
+                  } else if (st === 'failed') {
+                    setStatus(out.message || 'El pago fue rechazado. Prueba con otra tarjeta.', 'err');
+                  } else {
+                    setStatus('Pago pendiente de confirmación. Te avisaremos por correo.', 'pending');
+                    setTimeout(function () { location.reload(); }, 2600);
+                  }
+                } else {
+                  setStatus((d && d.message) || 'No se pudo procesar el pago. Intenta de nuevo.', 'err');
+                }
+              }).catch(function () {
+                box.removeAttribute('aria-busy');
+                setStatus('Error de conexión. Intenta de nuevo.', 'err');
+              });
+            }
+          }
+        });
+      } catch (e) {
+        setStatus('No se pudo iniciar el formulario de pago con tarjeta.', 'err');
+      }
+    });
+  }
+
   function init() {
     state.method = initialMethod();
     paintCount();
@@ -1076,6 +1149,7 @@
     initProof();
     initQrModal();
     initCopy();
+    initMercadoPagoBrick();
   }
 
   window.SonikaPayments = {

@@ -9604,8 +9604,17 @@ W.mountShareNav=function(){
     store.parentNode.insertBefore(a,store.nextSibling);
 };
 
+W.mountMercadoPagoNav=function(){
+    if(document.querySelector('.w-nav-item[data-panel="mercadopago"]'))return;
+    var siste=document.querySelector('.w-nav-item[data-panel="sistecredito"]');
+    if(!siste||!siste.parentNode)return;
+    var a=document.createElement('a');a.href='#mercadopago';a.className='w-nav-item';a.setAttribute('data-panel','mercadopago');
+    a.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h4"/></svg>Mercado Pago';
+    siste.parentNode.insertBefore(a,siste.nextSibling);
+};
+
 window.addEventListener('hashchange',function(){W.router()});
-window.addEventListener('load',function(){W.mountShareNav();W.mountTopbar();W.router();W.updateBHBadge();setInterval(W.updateBHBadge,300000);W.watchVersion();W.agentBridgePoll()});
+window.addEventListener('load',function(){W.mountShareNav();W.mountMercadoPagoNav();W.mountTopbar();W.router();W.updateBHBadge();setInterval(W.updateBHBadge,300000);W.watchVersion();W.agentBridgePoll()});
 window.wontia=W;
 window.W=W;
 })();
