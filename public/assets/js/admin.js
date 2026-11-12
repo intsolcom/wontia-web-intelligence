@@ -2879,6 +2879,10 @@ W.renderNavPanel=async function(){
     var r=await W.api('/api/v1/admin/nav'); var d=r.data||{};
     var st=await W.api('/api/v1/admin/nav/style'); var s=(st&&st.data)||{};
     var locs=d.locations||{}, menus=d.menus||{};
+    W._navItems={};
+    Object.keys(menus).forEach(function(loc){
+        (menus[loc]&&menus[loc].items||[]).forEach(function(it){W._navItems[it.id]=Object.assign({location:loc,location_label:locs[loc]||loc},it);});
+    });
     var html=W.navAppearance(s);
     html+='<div class="w-card" style="padding:14px 18px;margin-bottom:14px"><div style="font-size:13px;font-weight:700">Navegación administrable</div><div style="font-size:11px;color:var(--w-muted);margin-top:4px;line-height:1.6">Edita los menús del sitio. El tema los consume automáticamente, sin tocar código.</div></div>';
     Object.keys(locs).forEach(function(loc){
@@ -2889,11 +2893,12 @@ W.renderNavPanel=async function(){
             html+='<table class="w-table"><thead><tr><th>Etiqueta</th><th>URL</th><th>Visible</th><th>Padre</th><th></th></tr></thead><tbody>';
             items.forEach(function(it){
                 var opts='<option value="0">— Raíz —</option>'+tops.filter(function(t){return t.id!==it.id}).map(function(t){return '<option value="'+t.id+'"'+(it.parent_id===t.id?' selected':'')+'>'+W.esc(t.label)+'</option>'}).join('');
-                html+='<tr id="navrow-'+it.id+'"><td><input class="w-input nav-label" value="'+W.esc(it.label)+'" style="min-width:130px"/></td>'
+                var subPreview=it.subtitle?('<div style="font-size:10px;color:var(--w-muted);margin-top:3px;line-height:1.35"><b style="font-weight:700">Subtítulo:</b> '+W.esc(it.subtitle)+' <span style="opacity:.7">· '+(W.esc(it.subtitle_animation||'none'))+' · '+(parseInt(it.subtitle_interval,10)||10)+'s</span></div>'):'';
+                html+='<tr id="navrow-'+it.id+'"><td><input class="w-input nav-label" value="'+W.esc(it.label)+'" style="min-width:130px"/>'+subPreview+'</td>'
                     +'<td><input class="w-input nav-url" value="'+W.esc(it.url)+'" style="min-width:150px"/></td>'
                     +'<td style="text-align:center"><input type="checkbox" class="nav-visible" '+(it.is_visible?'checked':'')+'/></td>'
                     +'<td><select class="w-select nav-parent">'+opts+'</select></td>'
-                    +'<td style="white-space:nowrap"><button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.navSaveRow('+it.id+',\''+loc+'\')">Guardar</button> <button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.navDel('+it.id+')">✕</button></td></tr>';
+                    +'<td style="white-space:nowrap"><button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.navSaveRow('+it.id+',\''+loc+'\')">Guardar</button> <button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.navSubtitleEditor('+it.id+')" title="Subtítulo, animación y color">Subtítulo</button> <button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.navDel('+it.id+')">✕</button></td></tr>';
             });
             html+='</tbody></table>';
         } else html+='<div style="font-size:12px;color:var(--w-muted);padding:8px 0">Sin elementos.</div>';
@@ -2921,6 +2926,50 @@ W.navDel=async function(id){
     var r=await W.api('/api/v1/admin/nav/items/'+id,{method:'DELETE'});
     if(r.ok){W.notify('Eliminado','success');W.renderNavPanel();}
 };
+W.navSubtitleEditor=function(id){
+    var it=W._navItems&&W._navItems[id]; if(!it){W.notify('Elemento no encontrado','error');return}
+    var sub=it.subtitle||'', anim=it.subtitle_animation||'none', interval=parseInt(it.subtitle_interval,10)||10, size=parseInt(it.subtitle_size,10)||10, color=/^#[0-9a-f]{6}$/i.test(String(it.subtitle_color||''))?it.subtitle_color:'#c9c9c9';
+    var opts=[['none','Sin animación'],['rise','Subir desde abajo'],['fade','Aparecer con fade'],['slide','Deslizar suave']].map(function(o){return '<option value="'+o[0]+'"'+(anim===o[0]?' selected':'')+'>'+o[1]+'</option>'}).join('');
+    var body='<style>@keyframes navSubPreviewRise{0%{transform:translateY(110%);opacity:0}7%{transform:translateY(0);opacity:1}88%{transform:translateY(0);opacity:1}100%{transform:translateY(-110%);opacity:0}}@keyframes navSubPreviewFade{0%{opacity:0}7%{opacity:1}88%{opacity:1}100%{opacity:0}}@keyframes navSubPreviewSlide{0%{transform:translateY(7px);opacity:0}7%{transform:translateY(0);opacity:1}88%{transform:translateY(0);opacity:1}100%{transform:translateY(-4px);opacity:0}}</style>'
+        +'<div style="font-size:11px;color:var(--w-muted);line-height:1.55;margin-bottom:12px"><b style="color:var(--w-text)">'+W.esc(it.label)+'</b> · '+W.esc(it.location_label||it.location||'Menú')+'<br>El subtítulo aparece debajo del nombre, con una tipografía menor. La animación se repite cada N segundos.</div>'
+        +'<div class="w-form-group"><label class="w-label">Subtítulo</label><input class="w-input" id="nav-sub-text" maxlength="220" value="'+W.esc(sub)+'" placeholder="Comparte, vende y gana."/></div>'
+        +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div class="w-form-group"><label class="w-label">Animación</label><select class="w-select" id="nav-sub-anim">'+opts+'</select></div><div class="w-form-group"><label class="w-label">Repetir cada (segundos)</label><input class="w-input" type="number" min="3" max="60" id="nav-sub-interval" value="'+interval+'"/></div></div>'
+        +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div class="w-form-group"><label class="w-label">Tamaño (px)</label><input class="w-input" type="number" min="8" max="16" id="nav-sub-size" value="'+size+'"/></div><div class="w-form-group"><label class="w-label">Color</label><input type="color" id="nav-sub-color" value="'+W.esc(color)+'" style="width:100%;height:40px;border:1px solid var(--w-border);border-radius:8px;background:none;cursor:pointer;padding:3px"/></div></div>'
+        +'<div style="margin-top:10px"><div class="w-flex-between" style="margin-bottom:6px"><label class="w-label" style="margin:0">Vista previa</label><button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.navSubtitlePreview(1)">▶ Probar animación</button></div><div style="background:#111;padding:12px 16px;border-radius:10px;display:inline-block;min-width:280px;max-width:100%"><div style="display:flex;flex-direction:column;align-items:flex-start;gap:2px"><span id="nav-sub-preview-label" style="color:#fff;font-size:13.5px;font-weight:600;white-space:nowrap">'+W.esc(it.label)+'</span><span id="nav-sub-preview-clip" style="display:block;overflow:hidden;height:1.25em;max-width:260px"><span id="nav-sub-preview-inner" style="display:block;color:#c9c9c9;font-size:10px;font-weight:500;line-height:1.2">'+W.esc(sub||'Comparte, vende y gana.')+'</span></span></div></div></div>';
+    W.modal('Subtítulo del menú',body,'<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cancelar</button><button class="w-btn w-btn-secondary" onclick="wontia.navSubtitleClear('+id+')">Quitar subtítulo</button><button class="w-btn w-btn-primary" onclick="wontia.navSubtitleSave('+id+')">Guardar subtítulo</button>');
+    ['nav-sub-text','nav-sub-anim','nav-sub-interval','nav-sub-size','nav-sub-color'].forEach(function(x){var el=document.getElementById(x);if(!el)return;el.addEventListener('input',function(){W.navSubtitlePreview()});el.addEventListener('change',function(){W.navSubtitlePreview()});});
+    W.navSubtitlePreview();
+};
+W.navSubtitlePreview=function(restart){
+    var inner=document.getElementById('nav-sub-preview-inner'); if(!inner)return;
+    var text=(document.getElementById('nav-sub-text')||{}).value||'';
+    var anim=(document.getElementById('nav-sub-anim')||{}).value||'none';
+    var interval=parseInt((document.getElementById('nav-sub-interval')||{}).value,10)||10;
+    var size=parseInt((document.getElementById('nav-sub-size')||{}).value,10)||10;
+    var color=(document.getElementById('nav-sub-color')||{}).value||'#c9c9c9';
+    inner.textContent=text||'Comparte, vende y gana.';
+    inner.style.color=text?color:'#8a8a8a';
+    inner.style.fontSize=Math.max(8,Math.min(16,size))+'px';
+    inner.style.animation='none';
+    if(restart){void inner.offsetWidth;}
+    if(anim==='rise')inner.style.animation='navSubPreviewRise '+Math.max(3,Math.min(60,interval))+'s cubic-bezier(.2,.8,.2,1) infinite';
+    else if(anim==='fade')inner.style.animation='navSubPreviewFade '+Math.max(3,Math.min(60,interval))+'s ease-in-out infinite';
+    else if(anim==='slide')inner.style.animation='navSubPreviewSlide '+Math.max(3,Math.min(60,interval))+'s cubic-bezier(.2,.8,.2,1) infinite';
+    else {inner.style.transform='none';inner.style.opacity='1';}
+};
+W.navSubtitleSave=async function(id,clear){
+    var body=clear?{subtitle:'',subtitle_animation:'none',subtitle_interval:10,subtitle_size:10,subtitle_color:''}:{
+        subtitle:(document.getElementById('nav-sub-text')||{}).value||'',
+        subtitle_animation:(document.getElementById('nav-sub-anim')||{}).value||'none',
+        subtitle_interval:parseInt((document.getElementById('nav-sub-interval')||{}).value,10)||10,
+        subtitle_size:parseInt((document.getElementById('nav-sub-size')||{}).value,10)||10,
+        subtitle_color:(document.getElementById('nav-sub-color')||{}).value||''
+    };
+    var r=await W.api('/api/v1/admin/nav/items/'+id+'/subtitle',{method:'POST',body:body});
+    if(r&&r.ok){W.notify(clear?'Subtítulo eliminado':'Subtítulo guardado','success');W.closeModal();W.renderNavPanel();}
+    else W.notify((r&&r.message)||'No se pudo guardar el subtítulo','error');
+};
+W.navSubtitleClear=function(id){W.navSubtitleSave(id,true)};
 W.loadGf=function(f){f=(f||'').trim();if(!f)return;var id='gf-'+f.replace(/\s+/g,'-');if(document.getElementById(id))return;var l=document.createElement('link');l.id=id;l.rel='stylesheet';l.href='https://fonts.googleapis.com/css2?family='+encodeURIComponent(f)+':wght@400;500;600;700;800&display=swap';document.head.appendChild(l);};
 W.navAppearance=function(s){
     s=s||{};

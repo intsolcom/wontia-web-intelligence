@@ -22,6 +22,11 @@ CREATE TABLE IF NOT EXISTS nav_items (
     sort_order INT NOT NULL DEFAULT 0,
     is_visible TINYINT NOT NULL DEFAULT 1,
     target VARCHAR(20) NOT NULL DEFAULT '_self',
+    subtitle VARCHAR(220) NOT NULL DEFAULT '',
+    subtitle_animation VARCHAR(20) NOT NULL DEFAULT 'none',
+    subtitle_interval INT NOT NULL DEFAULT 10,
+    subtitle_size INT NOT NULL DEFAULT 10,
+    subtitle_color VARCHAR(20) NOT NULL DEFAULT '',
     KEY idx_menu (menu_id, sort_order),
     KEY idx_site (site_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

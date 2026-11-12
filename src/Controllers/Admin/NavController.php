@@ -51,6 +51,13 @@ class NavController
         Response::json($r);
     }
 
+    public function subtitle(Request $req, string $id = ''): void
+    {
+        $this->requireEditor();
+        $result = $this->svc()->saveSubtitle((int)$id, $req->json());
+        Response::json($result, !empty($result['ok']) ? 200 : 422);
+    }
+
     public function deleteItem(Request $req, string $id): void
     {
         $this->requireEditor();

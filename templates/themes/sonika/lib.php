@@ -1924,16 +1924,27 @@ if (count($__cur) > 1 && (string)wwi_setting('store_currency_switcher', '') === 
 $__navAbove = ((string)(sonika_nav_style()['position'] ?? 'below') === 'above');
 ob_start();
 ?>
+  <?php
+  $__allPrimaryNav = wwi_nav('primary', false);
+  $__hasPartnerNav = false;
+  foreach ($__allPrimaryNav as $__navItem) {
+      if (strpos((string)($__navItem['url'] ?? ''), '/sonika-partners') === 0) { $__hasPartnerNav = true; break; }
+  }
+  $__partnerSeeded = ((string)wwi_setting('sonika_partner_nav_seeded', '')) === '1';
+  $__primaryNav = wwi_nav('primary');
+  ?>
   <nav class="mainnav" aria-label="Menú principal">
     <div class="wrap">
       <ul>
         <li><a href="/">Inicio</a></li>
         <li><a href="/tienda">Tienda</a></li>
         <li><a href="/directorio" class="dir-link">Directorio Sonika</a></li>
-        <li><a href="/sonika-partners" class="dir-link">SONIKA Partners — Comparte, vende y gana</a></li>
-        <?php foreach (wwi_nav('primary') as $it): if (in_array(mb_strtolower(trim((string)$it['label'])), ['inicio', 'tienda'], true)) continue; $hot = (mb_stripos((string)$it['label'], 'oferta') !== false); ?>
+        <?php if (!$__hasPartnerNav && !$__partnerSeeded): ?>
+        <li><a href="/sonika-partners" class="dir-link has-mnl-sub"><span class="mnl-label">SONIKA Partners</span><span class="mnl-sub" data-anim="rise" style="--mnl-sub-interval:10s;--mnl-sub-size:10px;--mnl-sub-color:#c9c9c9"><span class="mnl-sub__inner">Comparte, vende y gana.</span></span></a></li>
+        <?php endif; ?>
+        <?php foreach ($__primaryNav as $it): if (in_array(mb_strtolower(trim((string)$it['label'])), ['inicio', 'tienda'], true)) continue; $hot = (mb_stripos((string)$it['label'], 'oferta') !== false); $__sub = trim((string)($it['subtitle'] ?? '')); $__subAnim = in_array((string)($it['subtitle_animation'] ?? 'none'), ['none', 'rise', 'fade', 'slide'], true) ? (string)$it['subtitle_animation'] : 'none'; $__subInterval = max(3, min(60, (int)($it['subtitle_interval'] ?? 10))); $__subSize = max(8, min(16, (int)($it['subtitle_size'] ?? 10))); $__subColor = preg_match('/^#[0-9a-f]{6}$/i', (string)($it['subtitle_color'] ?? '')) ? (string)$it['subtitle_color'] : ''; $__linkClass = trim(($hot ? 'hot ' : '') . ($__sub !== '' ? 'has-mnl-sub' : '')); ?>
         <li<?= !empty($it['children']) ? ' class="has-sub"' : '' ?>>
-          <a href="<?= sonika_esc($it['url']) ?>"<?= $hot ? ' class="hot"' : '' ?>><?= sonika_esc($it['label']) ?><?= !empty($it['children']) ? ' <span aria-hidden="true">&#9662;</span>' : '' ?></a>
+          <a href="<?= sonika_esc($it['url']) ?>"<?= $__linkClass !== '' ? ' class="' . sonika_esc($__linkClass) . '"' : '' ?>><span class="mnl-label"><?= sonika_esc($it['label']) ?><?= !empty($it['children']) ? ' <span aria-hidden="true">&#9662;</span>' : '' ?></span><?php if ($__sub !== ''): ?><span class="mnl-sub" data-anim="<?= sonika_esc($__subAnim) ?>" style="--mnl-sub-interval:<?= $__subInterval ?>s;--mnl-sub-size:<?= $__subSize ?>px;<?= $__subColor !== '' ? '--mnl-sub-color:' . sonika_esc($__subColor) . ';' : '' ?>"><span class="mnl-sub__inner"><?= sonika_esc($__sub) ?></span></span><?php endif; ?></a>
           <?php if (!empty($it['children'])): ?>
           <div class="submenu">
             <?php foreach ($it['children'] as $ch): ?>
@@ -2837,6 +2848,18 @@ if (!function_exists('sonika_css')) {
         .mainnav li>a{display:block;padding:13px 14px;color:#fff;font-size:13.5px;font-weight:600;white-space:nowrap}
         .mainnav li>a:hover,.mainnav li>a:focus-visible{background:#1f1f1f;color:#fff;border-bottom:2px solid var(--brand);outline:none}
         .mainnav li>a.hot{color:#fff;background:rgba(242,13,22,.14);border-bottom:2px solid var(--brand)}
+        .mainnav li>a .mnl-label{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+        .mainnav li>a.has-mnl-sub{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;padding-top:8px;padding-bottom:8px;white-space:normal;line-height:1.05}
+        .mainnav .mnl-sub{display:block;overflow:hidden;height:1.25em;max-width:240px;color:var(--mnl-sub-color,#c9c9c9);font-size:var(--mnl-sub-size,10px);font-weight:500;line-height:1.2;letter-spacing:.01em;opacity:.92}
+        .mainnav .mnl-sub__inner{display:block;transform:translateY(110%);opacity:0;will-change:transform,opacity}
+        .mainnav .mnl-sub[data-anim="rise"] .mnl-sub__inner{animation:mnlSubRise var(--mnl-sub-interval,10s) cubic-bezier(.2,.8,.2,1) infinite}
+        .mainnav .mnl-sub[data-anim="fade"] .mnl-sub__inner{animation:mnlSubFade var(--mnl-sub-interval,10s) ease-in-out infinite}
+        .mainnav .mnl-sub[data-anim="slide"] .mnl-sub__inner{animation:mnlSubSlide var(--mnl-sub-interval,10s) cubic-bezier(.2,.8,.2,1) infinite}
+        .mainnav .mnl-sub[data-anim="none"] .mnl-sub__inner,.mainnav .mnl-sub[data-anim=""] .mnl-sub__inner{transform:none;opacity:1;animation:none}
+        @keyframes mnlSubRise{0%{transform:translateY(110%);opacity:0}7%{transform:translateY(0);opacity:1}88%{transform:translateY(0);opacity:1}100%{transform:translateY(-110%);opacity:0}}
+        @keyframes mnlSubFade{0%{opacity:0}7%{opacity:1}88%{opacity:1}100%{opacity:0}}
+        @keyframes mnlSubSlide{0%{transform:translateY(7px);opacity:0}7%{transform:translateY(0);opacity:1}88%{transform:translateY(0);opacity:1}100%{transform:translateY(-4px);opacity:0}}
+        @media(prefers-reduced-motion:reduce){.mainnav .mnl-sub__inner{animation:none!important;transform:none!important;opacity:1!important}}
         .mainnav .submenu{position:absolute;left:0;top:100%;min-width:210px;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 18px 40px rgba(0,0,0,.14);padding:8px;display:none;z-index:120}
         .mainnav li.has-sub:hover .submenu,.mainnav li.has-sub:focus-within .submenu{display:block}
         .mainnav .submenu a{display:block;padding:9px 12px;border-radius:8px;color:var(--ink);font-size:13px;font-weight:500}

@@ -814,6 +814,7 @@ $r->delete('/media/{id}/purge', [\App\Controllers\Admin\MediaController::class, 
 
     $r->get('/nav', [\App\Controllers\Admin\NavController::class, 'index']);
     $r->post('/nav/items', [\App\Controllers\Admin\NavController::class, 'saveItem']);
+    $r->post('/nav/items/{id}/subtitle', [\App\Controllers\Admin\NavController::class, 'subtitle']);
     $r->delete('/nav/items/{id}', [\App\Controllers\Admin\NavController::class, 'deleteItem']);
     $r->post('/nav/reorder', [\App\Controllers\Admin\NavController::class, 'reorder']);
 $r->get('/nav/style', [\App\Controllers\Admin\NavController::class, 'style']);
