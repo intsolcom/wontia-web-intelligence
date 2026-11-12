@@ -130,7 +130,99 @@ El parámetro `to` solo acepta rutas internas que empiecen por `/`. Si intenta s
 
 ---
 
-## 5. Privacidad
+## 5. Panel administrable
+
+La función se administra desde:
+
+```text
+Menú lateral → Tienda → Compartir producto
+```
+
+También aparece como pestaña dentro de **Tienda → Compartir producto**.
+
+### Qué se puede configurar
+
+- **Activación**:
+  - Activar/desactivar todo.
+  - Carrito.
+  - Ficha de producto.
+  - Productos agotados.
+- **Botones**:
+  - Alto en carrito y ficha.
+  - Radio de borde.
+  - Tamaño de letra.
+  - Ancho completo.
+  - Sombra del botón Partner.
+  - Colores de fondo, letra, borde y subtexto para amigo y Partner.
+  - Etiquetas y subtextos.
+  - Texto secundario del botón Partner: automático, comisión, tasa, personalizado o sin texto.
+- **Destinos**:
+  - WhatsApp.
+  - Estado de WhatsApp.
+  - Historia de Instagram.
+  - Facebook.
+  - Historia de Facebook.
+  - Email.
+  - Copiar enlace.
+  - Menú nativo.
+- **Imagen**:
+  - Formato historia 9:16 o cuadrado 1:1.
+  - Colores de fondo, texto, acento y texto suave.
+  - Marca, CTA, pie de imagen y etiquetas de enlace.
+  - Mostrar u ocultar el enlace en la imagen.
+  - Vista previa del formato.
+- **Textos**:
+  - Títulos y subtítulos del modo amigo, Partner aprobado, invitado y en revisión.
+  - Línea de apoyo.
+  - Plantillas de mensaje para amigo y Partner.
+  - Plantilla inicial.
+- **Comportamiento**:
+  - Editor de mensaje.
+  - Plantillas.
+  - Caja de enlace.
+  - Comisión estimada.
+  - Puntos SONIKA.
+- **Vista previa en vivo** de los botones.
+- **Restaurar** valores por defecto.
+
+### Persistencia
+
+La configuración se guarda por sitio en:
+
+```text
+settings.site_id
+settings.key = sonika_share_config
+settings.value = JSON
+```
+
+No requiere migración nueva; usa la tabla `settings` existente.
+
+### API
+
+```text
+GET  /api/v1/admin/store/share-settings
+PUT  /api/v1/admin/store/share-settings
+POST /api/v1/admin/store/share-settings/reset
+```
+
+Permisos:
+
+- Lectura: `superadmin`, `admin`, `editor`.
+- Escritura: `superadmin`, `admin`.
+
+### Aplicación en el sitio
+
+`sonika_share_assets()` entrega:
+
+- `window.SONIKA_SHARE` con toda la configuración.
+- Variables CSS (`--skshare-*`) para la apariencia de los botones, tarjeta y modal.
+- El CSS y JS del modal.
+
+Los cambios aplican al recargar la página; no requieren tocar código ni desplegar.
+
+---
+
+## 6. Privacidad
 
 - No se envía nada a terceros hasta que el usuario pulsa una acción de compartir.
 - La imagen se genera en el navegador.
@@ -140,7 +232,7 @@ El parámetro `to` solo acepta rutas internas que empiecen por `/`. Si intenta s
 
 ---
 
-## 6. Accesibilidad y experiencia
+## 7. Accesibilidad y experiencia
 
 - Modal con `role="dialog"`, `aria-modal` y título asociado.
 - Cierre con `Escape`, botón y clic fuera.
@@ -152,7 +244,7 @@ El parámetro `to` solo acepta rutas internas que empiecen por `/`. Si intenta s
 
 ---
 
-## 7. Pruebas realizadas
+## 8. Pruebas realizadas
 
 - Carrito con dos productos reales:
   - 4 disparadores (2 por producto).
@@ -185,24 +277,28 @@ El parámetro `to` solo acepta rutas internas que empiecen por `/`. Si intenta s
 
 ---
 
-## 8. Archivos
+## 9. Archivos
 
 ### Nuevos
 
 - `public/assets/themes/sonika/share.css`
 - `public/assets/js/sonika-share.js`
+- `src/Services/ShareSettingsService.php`
+- `src/Controllers/Admin/ShareSettingsController.php`
 - `docs/CARRITO-COMPARTIR-PARTNER.md`
 
 ### Modificados
 
 - `public/assets/js/sonika-payments.js` — botones por producto en el carrito.
-- `templates/themes/sonika/lib.php` — contexto del Partner y carga de assets.
+- `public/assets/js/admin.js` — panel Tienda → Compartir producto y acceso en el menú lateral.
+- `public/api.php` — endpoints de configuración de compartir.
+- `templates/themes/sonika/lib.php` — contexto del Partner, configuración y carga de assets.
 - `templates/themes/sonika/router.php` — sesión en carrito/producto, botones en la ficha de producto y destino seguro en `/r/{code}`.
 - `templates/themes/sonika/carrito.php` — carga de los assets de compartir.
 
 ---
 
-## 9. Rollback
+## 10. Rollback
 
 - Restaurar el respaldo:
   - `/tmp/share-feature-backup-20261112.tgz`
@@ -213,7 +309,7 @@ El parámetro `to` solo acepta rutas internas que empiecen por `/`. Si intenta s
 
 ---
 
-## 10. Limitaciones
+## 11. Limitaciones
 
 - Instagram y Facebook no permiten publicar una historia directamente desde una web. Se entrega la imagen y se usa el menú nativo o la descarga.
 - La comisión mostrada es una estimación; la comisión final depende de la compra confirmada, descuentos, outlet y reglas del programa.

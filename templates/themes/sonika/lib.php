@@ -2402,15 +2402,41 @@ if (!function_exists('sonika_partner_share_context')) {
         return $out;
     }
 }
+if (!function_exists('sonika_share_settings')) {
+    function sonika_share_settings(): array
+    {
+        try {
+            return (new \App\Services\ShareSettingsService())->get();
+        } catch (\Throwable $e) {
+            return (new \App\Services\ShareSettingsService())->defaults();
+        }
+    }
+}
+if (!function_exists('sonika_share_enabled')) {
+    function sonika_share_enabled(string $context = 'cart'): bool
+    {
+        try {
+            return (new \App\Services\ShareSettingsService())->enabledFor($context);
+        } catch (\Throwable $e) {
+            return true;
+        }
+    }
+}
 if (!function_exists('sonika_share_assets')) {
     function sonika_share_assets(): void
     {
         $ctx = sonika_partner_share_context();
+        $svc = new \App\Services\ShareSettingsService();
+        $share = $svc->get();
         $json = json_encode($ctx, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+        $shareJson = json_encode($share, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
         $css = (int)(@filemtime(ROOT_DIR . '/public/assets/themes/sonika/share.css') ?: 1);
         $js = (int)(@filemtime(ROOT_DIR . '/public/assets/js/sonika-share.js') ?: 1);
+        $vars = [];
+        foreach ($svc->cssVars() as $key => $value) $vars[] = $key . ':' . $value;
         echo '<link rel="stylesheet" href="/assets/themes/sonika/share.css?v=' . $css . '" />';
-        echo '<script>window.SONIKA_PARTNER=' . $json . ';</script>';
+        if ($vars) echo '<style>:root{' . implode(';', $vars) . '}</style>';
+        echo '<script>window.SONIKA_PARTNER=' . $json . ';window.SONIKA_SHARE=' . $shareJson . ';</script>';
         echo '<script src="/assets/js/sonika-share.js?v=' . $js . '" defer></script>';
     }
 }

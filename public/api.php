@@ -588,6 +588,9 @@ $r->post('/banners/{id}/recovery', [\App\Controllers\Admin\BannerAdminController
     $r->delete('/store/shipping/rates/{id}', [\App\Controllers\Admin\StoreController::class, 'shippingRateDelete']);
 $r->get('/store/settings', [\App\Controllers\Admin\StoreController::class, 'settings']);
 $r->put('/store/settings', [\App\Controllers\Admin\StoreController::class, 'settingsSave']);
+    $r->get('/store/share-settings', [\App\Controllers\Admin\ShareSettingsController::class, 'show']);
+    $r->put('/store/share-settings', [\App\Controllers\Admin\ShareSettingsController::class, 'save']);
+    $r->post('/store/share-settings/reset', [\App\Controllers\Admin\ShareSettingsController::class, 'reset']);
     $r->get('/store/abandoned-carts/overview', [\App\Controllers\Admin\AbandonedCartController::class, 'overview']);
     $r->get('/store/abandoned-carts/export', [\App\Controllers\Admin\AbandonedCartController::class, 'export']);
     $r->post('/store/abandoned-carts/recovery-run', [\App\Controllers\Admin\AbandonedCartController::class, 'runRecovery']);

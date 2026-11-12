@@ -51,10 +51,11 @@ W.router=function(){
     if(panel==='seo-global-launch'&&!id){id='resumen';}
     if(panel!=='bricks'){W.state.brickHost=null;W.state.bhHost=null}
     document.querySelectorAll('.w-nav-item').forEach(function(a){a.classList.toggle('active',a.dataset.panel===panel)});
+    document.querySelectorAll('.w-nav-item[data-store-tab]').forEach(function(a){a.classList.toggle('active',panel==='store'&&id===a.getAttribute('data-store-tab'))});
     if(panel==='hero'){var _heroNav=document.querySelector('.w-nav-item[data-panel="bricks"]');if(_heroNav)_heroNav.classList.add('active');}
     var title=document.getElementById('panel-title');
     var titles={dashboard:'Dashboard',wwi:'WWI — Sistema',store:'Tienda',sistecredito:'Sistecrédito','order-center':'Central de pedidos','mega-menu':'Mega Menú',hero:'SONIKA Hero Builder',directory:'Directorio Sonika',toques:'Toques',monas:'Moñas',pages:'Pages',sections:'Sections',bricks:'Bricks',brickhub:'BrickHub',brick:'AI BRICK',factory:'Factory',portal:'Mi Portal',blog:'Blog',media:'Media',banners:'Banners',seo:'SEO','seo-global-launch':'SEO Global Launch','tia-command-center':'TIA Command Center',analytics:'Analytics','tracking-conversion':'Tracking & Conversion',settings:'Settings',users:'Users'};
-    if(title)title.textContent=titles[panel]||panel;
+    if(title)title.textContent=(panel==='store'&&id==='compartir')?'Compartir producto':(titles[panel]||panel);
     var app=document.getElementById('wontia-app');
     if(!app)return;
     W.vt(function(){
@@ -2962,6 +2963,7 @@ W.cpSync=function(id,src){
     if(src==='h'&&c&&hx&&/^#[0-9a-fA-F]{6}$/.test(hx.value))c.value=hx.value;
     var v=(c&&c.value)||'#000000'; if(rgb){rgb.textContent=W.hexToRgb(v)+'  '+v}
     W.navPreview();
+    if (typeof W.sharePreview === 'function' && document.getElementById('share-preview')) W.sharePreview();
 };
 W.cpSet=function(id,val){var c=document.getElementById('cp-'+id),hx=document.getElementById('cph-'+id);if(c)c.value=val;if(hx)hx.value=val;W.cpSync(id,'c')};
 W.cpEye=async function(id){if(!window.EyeDropper){W.notify('El cuentagotas no está disponible en este navegador','error');return}try{var r=await new EyeDropper().open();W.cpSet(id,r.sRGBHex)}catch(e){}};
@@ -6833,7 +6835,7 @@ W.renderStore=async function(tab){
     tab=tab||'productos';
     W.state.storeTab=tab;
     var app=document.getElementById('wontia-app');
-    var tabs=[['productos','Productos'],['contenido','Contenido'],['categorias','Categorías'],['pedidos','Pedidos'],['carritos','Carritos abandonados'],['envios','Envíos'],['resenas','Reseñas'],['devoluciones','Devoluciones'],['cupones','Cupones'],['addi','Addi'],['config','Configuración']];
+    var tabs=[['productos','Productos'],['contenido','Contenido'],['categorias','Categorías'],['pedidos','Pedidos'],['carritos','Carritos abandonados'],['compartir','Compartir producto'],['envios','Envíos'],['resenas','Reseñas'],['devoluciones','Devoluciones'],['cupones','Cupones'],['addi','Addi'],['config','Configuración']];
     var bar='<div class="w-brick-tabs">';
     tabs.forEach(function(t){bar+='<button class="w-brick-tab'+(tab===t[0]?' active':'')+'" onclick="wontia.storeGo(\''+t[0]+'\')">'+t[1]+'</button>'});
     bar+='<div style="flex:1"></div><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.storeEnsure()">Setup Tables</button></div>';
@@ -6843,7 +6845,7 @@ W.renderStore=async function(tab){
         document.getElementById('store-content').innerHTML='<div class="w-empty-state"><h3>Tienda no inicializada</h3><p>Crea las tablas de la tienda para empezar a vender.</p><button class="w-btn w-btn-primary" style="margin-top:12px" onclick="wontia.storeEnsure()">Crear tablas de la tienda</button></div>';
         return;
     }
-    var fns={productos:W.storeProducts,contenido:W.storeContentAudit,categorias:W.storeCategories,pedidos:W.storeOrders,carritos:W.storeAbandonedCarts,envios:W.storeShipping,resenas:W.storeReviews,devoluciones:W.storeReturns,cupones:W.storeCoupons,addi:W.storeAddi,config:W.storeSettings};
+    var fns={productos:W.storeProducts,contenido:W.storeContentAudit,categorias:W.storeCategories,pedidos:W.storeOrders,carritos:W.storeAbandonedCarts,compartir:W.storeShareSettings,envios:W.storeShipping,resenas:W.storeReviews,devoluciones:W.storeReturns,cupones:W.storeCoupons,addi:W.storeAddi,config:W.storeSettings};
     (fns[tab]||W.storeProducts)();
 };
 
@@ -8241,6 +8243,228 @@ W.sacExport=async function(){
     }catch(e){W.notify('No se pudo exportar','error')}
 };
 
+/* ── Compartir producto: panel administrable ── */
+W._shareCfg = null;
+W._shareTab = 'botones';
+W._shareColorKeys = ['button_bg','button_text','button_border','button_sub','partner_bg','partner_text','partner_accent','partner_sub','card_bg','card_border','modal_accent','modal_ink','modal_muted','modal_soft','modal_bg','modal_line','modal_dialog_bg','image_bg','image_ink','image_accent','image_muted'];
+W._shareChannelKeys = ['whatsapp','whatsapp_status','instagram_story','facebook','facebook_story','email','copy_link','native_share'];
+
+W.storeShareSettings = async function(tab){
+    var el = document.getElementById('store-content'); if (!el) return;
+    W._shareTab = tab || W._shareTab || 'botones';
+    el.innerHTML = '<div style="color:var(--w-muted);padding:24px">Cargando configuración de compartir...</div>';
+    var r = await W.api('/api/v1/admin/store/share-settings');
+    if (!r || !r.ok) {
+        el.innerHTML = '<div class="w-empty-state"><h3>No se pudo cargar</h3><p>Revisa la conexión o los permisos.</p></div>';
+        return;
+    }
+    W._shareCfg = r.data || {};
+    W.renderShareSettings();
+};
+
+W.renderShareSettings = function(){
+    var el = document.getElementById('store-content'); if (!el) return;
+    var cfg = W._shareCfg || {};
+    var tabs = [['botones','Botones'],['destinos','Destinos'],['imagen','Imagen'],['textos','Textos'],['comportamiento','Comportamiento']];
+    var h = '<div class="w-flex-between" style="gap:10px;flex-wrap:wrap;margin-bottom:12px"><div><h3 style="margin:0">Compartir producto</h3><p style="font-size:12px;color:var(--w-muted);margin:5px 0 0;max-width:760px">Controla la apariencia de los botones, los destinos, los formatos de imagen y los textos del modo amigo y del modo Partner.</p></div><div class="w-flex w-gap-sm" style="flex-wrap:wrap"><button class="w-btn w-btn-secondary" onclick="wontia.shareReset()">Restaurar</button><button class="w-btn w-btn-primary" onclick="wontia.shareSave()">Guardar cambios</button></div></div>';
+    h += '<div class="w-card" style="padding:14px;margin-bottom:14px"><div class="w-flex-between" style="margin-bottom:10px"><div style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--w-muted);font-weight:800">Vista previa en vivo</div><span class="w-badge">Carrito y ficha</span></div><div id="share-preview"></div></div>';
+    h += '<div class="w-brick-tabs" id="share-tabs">' + tabs.map(function(t){return '<button class="w-brick-tab'+(W._shareTab===t[0]?' active':'')+'" data-share-tab="'+t[0]+'" onclick="wontia.shareTab(\''+t[0]+'\')">'+t[1]+'</button>'}).join('') + '</div>';
+    h += '<div id="share-tab-body"></div>';
+    el.innerHTML = h;
+    W.renderShareTabBody();
+    W.sharePreview();
+};
+
+W.shareTab = function(tab){
+    W.shareSyncConfig();
+    W._shareTab = tab;
+    document.querySelectorAll('#share-tabs [data-share-tab]').forEach(function(x){ x.classList.toggle('active', x.getAttribute('data-share-tab') === tab); });
+    W.renderShareTabBody();
+    W.sharePreview();
+};
+
+W.shareSyncConfig = function(){
+    var cfg = W._shareCfg || {};
+    Object.keys(cfg).forEach(function(k){
+        if (k === 'channels') return;
+        var e = document.getElementById('share-' + k);
+        if (!e) return;
+        cfg[k] = (e.type === 'checkbox') ? (e.checked ? 1 : 0) : e.value;
+    });
+    (W._shareColorKeys || []).forEach(function(k){
+        var e = document.getElementById('cph-' + k);
+        if (e) cfg[k] = e.value;
+    });
+    var channels = {};
+    var current = cfg.channels || {};
+    (W._shareChannelKeys || []).forEach(function(k){
+        var e = document.querySelector('[data-share-channel="' + k + '"]');
+        channels[k] = e ? (e.checked ? 1 : 0) : (current[k] ? 1 : 0);
+    });
+    cfg.channels = channels;
+    W._shareCfg = cfg;
+    return cfg;
+};
+
+W.renderShareTabBody = function(){
+    var b = document.getElementById('share-tab-body'); if (!b) return;
+    b.innerHTML = W.shareTabHtml(W._shareTab);
+    b.addEventListener('input', W.sharePreview);
+    b.addEventListener('change', W.sharePreview);
+    W.shareColorInit();
+    W.shareImagePreview();
+};
+
+W.shareTabHtml = function(tab){
+    var cfg = W._shareCfg || {};
+    var h = '';
+    var sec = function(title, body, note){ return '<div class="w-card" style="padding:14px;margin-bottom:12px"><div class="w-flex-between" style="gap:10px;flex-wrap:wrap;margin-bottom:10px"><h4 style="margin:0;font-size:13px">'+W.esc(title)+'</h4>'+(note?'<span style="font-size:10.5px;color:var(--w-muted)">'+W.esc(note)+'</span>':'')+'</div>'+body+'</div>'; };
+    var text = function(key,label,ph){ var v=cfg[key]==null?'':cfg[key]; return '<div class="w-form-group"><label class="w-label">'+W.esc(label)+'</label><input class="w-input" id="share-'+key+'" value="'+W.esc(v)+'" placeholder="'+W.esc(ph||'')+'"/></div>'; };
+    var area = function(key,label,ph){ var v=cfg[key]==null?'':cfg[key]; return '<div class="w-form-group"><label class="w-label">'+W.esc(label)+'</label><textarea class="w-input" id="share-'+key+'" rows="3">'+W.esc(v)+'</textarea><div style="font-size:10px;color:var(--w-muted);margin-top:2px">'+W.esc(ph||'')+'</div></div>'; };
+    var num = function(key,label,min,max,unit){ var v=parseInt(cfg[key],10); if (isNaN(v)) v=min; return '<div class="w-form-group"><label class="w-label">'+W.esc(label)+' <span id="share-'+key+'-v" style="color:var(--w-muted);font-weight:400">'+v+(unit||'')+'</span></label><input type="range" min="'+min+'" max="'+max+'" value="'+v+'" id="share-'+key+'" oninput="document.getElementById(\'share-'+key+'-v\').textContent=this.value+\''+(unit||'')+'\';wontia.sharePreview()" style="width:100%"/></div>'; };
+    var toggle = function(key,label,desc){ return '<label class="w-card" style="display:flex;gap:10px;align-items:flex-start;padding:11px 12px;margin:0 0 8px;cursor:pointer"><input type="checkbox" id="share-'+key+'" '+(cfg[key]?'checked':'')+' style="margin-top:2px"/><span><b style="font-size:12.5px">'+W.esc(label)+'</b>'+(desc?'<span style="display:block;font-size:10.5px;color:var(--w-muted);margin-top:3px;line-height:1.45">'+W.esc(desc)+'</span>':'')+'</span></label>'; };
+    var select = function(key,label,opts){ return '<div class="w-form-group"><label class="w-label">'+W.esc(label)+'</label><select class="w-select" id="share-'+key+'">'+opts.map(function(o){return '<option value="'+W.esc(o[0])+'"'+(String(cfg[key])===String(o[0])?' selected':'')+'>'+W.esc(o[1])+'</option>'}).join('')+'</select></div>'; };
+    var channel = function(key,label,desc){ var on = cfg.channels && cfg.channels[key]; return '<label class="w-card" style="display:flex;gap:10px;align-items:flex-start;padding:12px;margin:0;cursor:pointer"><input type="checkbox" data-share-channel="'+key+'" '+(on?'checked':'')+' style="margin-top:2px"/><span><b style="font-size:12.5px">'+W.esc(label)+'</b><span style="display:block;font-size:10.5px;color:var(--w-muted);margin-top:3px;line-height:1.45">'+W.esc(desc)+'</span></span></label>'; };
+
+    if (tab === 'botones') {
+        h += sec('Activación', toggle('enabled','Activar compartir producto','Muestra u oculta la función en todo el sitio.') + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px">' + toggle('enabled_cart','En el carrito','Botones dentro de cada producto del carrito.') + toggle('enabled_product','En la ficha de producto','Bloque de compartir debajo de la compra.') + '</div>' + toggle('show_unavailable','Permitir en productos agotados','Muestra los botones aunque el producto no esté disponible.'));
+        h += sec('Tamaño y forma', '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">' + num('button_height','Alto en carrito',36,86,'px') + num('button_height_product','Alto en ficha',40,96,'px') + num('button_radius','Radio de borde',4,28,'px') + num('button_font_size','Letra en carrito',10,20,'px') + num('button_font_size_product','Letra en ficha',10,22,'px') + '</div>' + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;margin-top:8px">' + toggle('button_full_width','Ocupar todo el ancho','Los dos botones se reparten la fila en dos columnas iguales.') + toggle('button_shadow','Sombra en el botón Partner','Un detalle de profundidad para el botón negro.') + '</div>');
+        h += sec('Colores de los botones', '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px">' + W.colorPick('button_bg','Fondo Compartir',cfg.button_bg || '#ffffff') + W.colorPick('button_text','Letra Compartir',cfg.button_text || '#111111') + W.colorPick('button_border','Borde Compartir',cfg.button_border || '#ddd9d0') + W.colorPick('button_sub','Subtexto Compartir',cfg.button_sub || '#6f6b63') + W.colorPick('partner_bg','Fondo Partner',cfg.partner_bg || '#111111') + W.colorPick('partner_text','Letra Partner',cfg.partner_text || '#ffffff') + W.colorPick('partner_accent','Acento Partner',cfg.partner_accent || '#ff5a61') + W.colorPick('partner_sub','Subtexto Partner',cfg.partner_sub || '#fca5a5') + '</div>');
+        h += sec('Tarjeta de la ficha', '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px">' + W.colorPick('card_bg','Fondo de la tarjeta',cfg.card_bg || '#faf9f6') + W.colorPick('card_border','Borde de la tarjeta',cfg.card_border || '#e7e5df') + num('card_radius','Radio de la tarjeta',0,28,'px') + '</div>');
+        h += sec('Apariencia del modal', '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px">' + W.colorPick('modal_dialog_bg','Fondo del modal',cfg.modal_dialog_bg || '#ffffff') + W.colorPick('modal_bg','Fondo suave',cfg.modal_bg || '#faf9f6') + W.colorPick('modal_ink','Texto principal',cfg.modal_ink || '#111111') + W.colorPick('modal_muted','Texto secundario',cfg.modal_muted || '#6b7280') + W.colorPick('modal_soft','Texto terciario',cfg.modal_soft || '#6f6b63') + W.colorPick('modal_line','Líneas y bordes',cfg.modal_line || '#e7e5df') + W.colorPick('modal_accent','Acento del modal',cfg.modal_accent || '#F20D16') + '</div>');
+        h += sec('Etiquetas', '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px">' + text('button_friend_label','Título Compartir','Compartir') + text('button_friend_sub','Subtexto Compartir','Con un amigo') + text('button_partner_label','Título Partner','Comparte y gana') + text('button_partner_sub','Subtexto Partner','Partner SONIKA') + '</div>' + select('partner_note_mode','Texto secundario del botón Partner',[['auto','Automático (comisión o estado)'],['commission','Monto estimado'],['rate','Tasa actual'],['custom','Texto personalizado'],['none','Sin subtexto']]) + text('partner_note_text','Texto personalizado del botón','Ej. Gana comisión'));
+    } else if (tab === 'destinos') {
+        h += '<div class="w-card" style="padding:14px;margin-bottom:12px"><div style="font-size:12px;color:var(--w-muted);line-height:1.55">Activa solo los canales que quieres ofrecer. Los desactivados desaparecen del modal en el carrito y en la ficha de producto.</div></div>';
+        h += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px">' +
+            channel('whatsapp','WhatsApp','Mensaje listo con el enlace del producto o de atribución.') +
+            channel('whatsapp_status','Estado de WhatsApp','Imagen vertical u horizontal con el enlace visible.') +
+            channel('instagram_story','Historia de Instagram','Imagen con el enlace visible para el sticker.') +
+            channel('facebook','Facebook','Publicación del enlace con la vista previa del producto.') +
+            channel('facebook_story','Historia de Facebook','Imagen con el enlace visible.') +
+            channel('email','Email','Asunto y mensaje con el enlace.') +
+            channel('copy_link','Copiar enlace','Copia el enlace del producto o de Partner.') +
+            channel('native_share','Más opciones','Menú nativo del sistema (Web Share API).') +
+            '</div>';
+    } else if (tab === 'imagen') {
+        h += '<div style="display:grid;grid-template-columns:minmax(0,1.2fr) minmax(220px,.8fr);gap:14px;align-items:start">';
+        h += '<div>';
+        h += sec('Formato', select('image_format','Formato de la imagen',[['story','Historia 9:16 (1080 × 1920)'],['square','Cuadrado 1:1 (1080 × 1080)']]) + toggle('image_show_link','Mostrar el enlace en la imagen','La imagen lleva el enlace visible para que no se pierda al compartirla.'));
+        h += sec('Colores de la imagen', '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px">' + W.colorPick('image_bg','Fondo',cfg.image_bg || '#F6F6F3') + W.colorPick('image_ink','Texto',cfg.image_ink || '#111111') + W.colorPick('image_accent','Acento',cfg.image_accent || '#F20D16') + W.colorPick('image_muted','Texto suave',cfg.image_muted || '#6f6b63') + '</div>');
+        h += sec('Textos de la imagen', text('image_brand','Marca','SONIKA') + text('image_cta','Botón / CTA','Compra en sonika.com.co') + text('image_footer','Pie de imagen','Envíos a toda Colombia · Garantía SONIKA') + text('image_link_label_friend','Etiqueta enlace amigo','ENLACE DEL PRODUCTO') + text('image_link_label_partner','Etiqueta enlace Partner','TU ENLACE DE PARTNER'));
+        h += '</div><div><div class="w-card" style="padding:12px"><div style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--w-muted);font-weight:800;margin-bottom:8px">Vista del formato</div><div id="share-image-preview"></div></div></div></div>';
+    } else if (tab === 'textos') {
+        h += sec('Modo amigo', text('friend_title','Título','Una recomendación que vale la pena.') + text('friend_sub','Subtítulo','Elige el canal...'));
+        h += sec('Modo Partner aprobado', text('partner_title','Título','Tu recomendación tiene recompensa.') + text('partner_sub','Subtítulo','Comparte con tu enlace...'));
+        h += sec('Partner invitado', text('join_title','Título','Comparte lo que amas. Gana por hacerlo.') + text('join_sub','Subtítulo','Tu recomendación puede convertirse en una comisión...'));
+        h += sec('Partner en revisión', text('pending_title','Título','Tu perfil está en revisión.') + text('pending_sub','Subtítulo','Cuando tu solicitud sea aprobada...'));
+        h += sec('Mensaje de apoyo', text('support_line','Línea de apoyo','Comprando con mi enlace apoyas mi proyecto musical.'));
+        h += sec('Plantillas de mensaje', '<div style="font-size:11px;color:var(--w-muted);margin-bottom:8px">Variables disponibles: <code>{title}</code>, <code>{price}</code>, <code>{url}</code>.</div>' + select('default_template','Plantilla inicial',[['directo','Directo'],['curioso','Curioso'],['recomiendo','Cercano']]) + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px">' + area('template_directo_friend','Directo · amigo') + area('template_directo_partner','Directo · Partner') + area('template_curioso_friend','Curioso · amigo') + area('template_curioso_partner','Curioso · Partner') + area('template_recomiendo_friend','Cercano · amigo') + area('template_recomiendo_partner','Cercano · Partner') + '</div>');
+    } else {
+        h += sec('Contenido del modal', '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px">' + toggle('show_composer','Mostrar editor de mensaje','Permite editar el texto antes de enviarlo.') + toggle('show_templates','Mostrar plantillas','Chips Directo, Curioso y Cercano.') + toggle('show_link_box','Mostrar caja de enlace','Enlace listo para copiar.') + toggle('show_commission','Mostrar comisión estimada','Monto estimado y tasa actual.') + toggle('show_points','Mostrar Puntos SONIKA','Progreso a la siguiente tasa.') + '</div>');
+        h += sec('Comportamiento', '<div style="font-size:12px;color:var(--w-muted);line-height:1.6">La identificación del Partner se toma de la sesión activa. Si el Partner está aprobado, el enlace usa <code>/r/{code}/p/{handle}</code>; si no, se comparte el enlace público del producto. Los canales y la apariencia se aplican sin recargar el código.</div>');
+    }
+    return h;
+};
+
+W.shareColorInit = function(){
+    (W._shareColorKeys || []).forEach(function(id){
+        var c = document.getElementById('cp-' + id), hx = document.getElementById('cph-' + id);
+        if (c && hx) { c.value = hx.value; W.cpSync(id, 'c'); }
+    });
+};
+
+W.sharePreview = function(){
+    var box = document.getElementById('share-preview'); if (!box) return;
+    var cfg = W._shareCfg || {};
+    var g = function(k, d){ var e = document.getElementById('share-'+k); return e ? e.value : (cfg[k] == null ? d : cfg[k]); };
+    var c = function(k, d){ var e = document.getElementById('cph-'+k); return (e && e.value) || cfg[k] || d; };
+    var b = function(k, d){ var e = document.getElementById('share-'+k); return e ? !!e.checked : (cfg[k] == null ? d : !!cfg[k]); };
+    var color = function(v, d){ return /^#[0-9a-fA-F]{3,8}$/.test(String(v||'')) ? v : d; };
+    var height = Math.max(36, Math.min(86, parseInt(g('button_height', cfg.button_height || 48), 10) || 48));
+    var radius = Math.max(4, Math.min(28, parseInt(g('button_radius', cfg.button_radius || 12), 10) || 12));
+    var font = Math.max(10, Math.min(20, parseInt(g('button_font_size', cfg.button_font_size || 12), 10) || 12));
+    var friendBg = color(c('button_bg', cfg.button_bg || '#ffffff'), '#ffffff');
+    var friendFg = color(c('button_text', cfg.button_text || '#111111'), '#111111');
+    var friendBd = color(c('button_border', cfg.button_border || '#ddd9d0'), '#ddd9d0');
+    var friendSub = color(c('button_sub', cfg.button_sub || '#6f6b63'), '#6f6b63');
+    var partnerBg = color(c('partner_bg', cfg.partner_bg || '#111111'), '#111111');
+    var partnerFg = color(c('partner_text', cfg.partner_text || '#ffffff'), '#ffffff');
+    var partnerAccent = color(c('partner_accent', cfg.partner_accent || '#ff5a61'), '#ff5a61');
+    var partnerSub = color(c('partner_sub', cfg.partner_sub || '#fca5a5'), '#fca5a5');
+    var cardBg = color(c('card_bg', cfg.card_bg || '#faf9f6'), '#faf9f6');
+    var cardBd = color(c('card_border', cfg.card_border || '#e7e5df'), '#e7e5df');
+    var cardRadius = Math.max(0, Math.min(28, parseInt(g('card_radius', cfg.card_radius || 16), 10) || 16));
+    var shadow = b('button_shadow', cfg.button_shadow !== 0);
+    var friendLabel = g('button_friend_label', cfg.button_friend_label || 'Compartir');
+    var friendSubLabel = g('button_friend_sub', cfg.button_friend_sub || 'Con un amigo');
+    var partnerLabel = g('button_partner_label', cfg.button_partner_label || 'Comparte y gana');
+    var mode = g('partner_note_mode', cfg.partner_note_mode || 'auto');
+    var partnerNote = 'Gana ~$14.315';
+    if (mode === 'none') partnerNote = '';
+    else if (mode === 'custom') partnerNote = g('partner_note_text', cfg.partner_note_text || 'Tu tasa');
+    else if (mode === 'rate') partnerNote = 'Tu tasa 3.5%';
+    else if (mode === 'commission') partnerNote = 'Gana ~$14.315';
+    var accent = color(c('modal_accent', cfg.modal_accent || '#F20D16'), '#F20D16');
+    var btn = function(bg, fg, bd, sub, icon, label, sublabel, accentColor, note){
+        return '<div style="display:flex;align-items:center;justify-content:center;gap:9px;min-height:'+height+'px;padding:9px 12px;border:1px solid '+bd+';border-radius:'+radius+'px;background:'+bg+';color:'+fg+';box-shadow:'+(shadow?'0 8px 18px rgba(17,17,17,.12)':'none')+'">'+icon+'<span style="display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-width:0"><b style="font-size:'+font+'px;font-weight:850;line-height:1.1">'+W.esc(label)+'</b>'+(note?'<small style="font-size:8px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:'+sub+';white-space:nowrap">'+W.esc(note)+'</small>':'')+'</span></div>';
+    };
+    var shareIcon = '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="'+friendFg+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></svg>';
+    var starIcon = '<svg width="19" height="19" viewBox="0 0 24 24" fill="'+partnerAccent+'"><path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8L12 2Z"/></svg>';
+    box.innerHTML = '<div style="padding:16px;background:'+cardBg+';border:1px solid '+cardBd+';border-radius:'+cardRadius+'px"><div style="display:flex;align-items:center;gap:7px;font-size:10px;font-weight:850;letter-spacing:.12em;text-transform:uppercase;color:#111;margin-bottom:12px"><span style="width:6px;height:6px;border-radius:2px;background:'+accent+'"></span>Comparte este producto</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'+btn(friendBg, friendFg, friendBd, friendSub, shareIcon, friendLabel, '', friendSub, friendSubLabel)+btn(partnerBg, partnerFg, partnerBg, partnerSub, starIcon, partnerLabel, partnerAccent, partnerSub, partnerNote)+'</div></div>';
+    if (typeof W.shareImagePreview === 'function') W.shareImagePreview();
+};
+
+W.shareImagePreview = function(){
+    var box = document.getElementById('share-image-preview'); if (!box) return;
+    var cfg = W._shareCfg || {};
+    var g = function(k, d){ var e = document.getElementById('share-'+k); return e ? e.value : (cfg[k] == null ? d : cfg[k]); };
+    var c = function(k, d){ var e = document.getElementById('cph-'+k); return (e && e.value) || cfg[k] || d; };
+    var b = function(k, d){ var e = document.getElementById('share-'+k); return e ? !!e.checked : (cfg[k] == null ? d : !!cfg[k]); };
+    var color = function(v, d){ return /^#[0-9a-fA-F]{3,8}$/.test(String(v||'')) ? v : d; };
+    var format = g('image_format', cfg.image_format || 'story');
+    var bg = color(c('image_bg', cfg.image_bg || '#F6F6F3'), '#F6F6F3');
+    var ink = color(c('image_ink', cfg.image_ink || '#111111'), '#111111');
+    var accent = color(c('image_accent', cfg.image_accent || '#F20D16'), '#F20D16');
+    var muted = color(c('image_muted', cfg.image_muted || '#6f6b63'), '#6f6b63');
+    var brand = g('image_brand', cfg.image_brand || 'SONIKA');
+    var cta = g('image_cta', cfg.image_cta || 'Compra en sonika.com.co');
+    var footer = g('image_footer', cfg.image_footer || 'Envíos a toda Colombia · Garantía SONIKA');
+    var showLink = b('image_show_link', cfg.image_show_link !== 0);
+    var ratio = format === 'square' ? '1 / 1' : '9 / 16';
+    box.innerHTML = '<div style="width:100%;max-width:230px;margin:0 auto;aspect-ratio:'+ratio+';background:'+bg+';border:1px solid #e7e5df;border-radius:14px;overflow:hidden;padding:12px;box-sizing:border-box;color:'+ink+';display:flex;flex-direction:column;gap:6px"><div style="display:flex;align-items:center;justify-content:space-between"><b style="font-size:9px;letter-spacing:.08em">'+W.esc(brand)+'</b><span style="width:22px;height:3px;background:'+accent+'"></span></div><div style="font-size:6px;letter-spacing:.1em;color:'+muted+';text-transform:uppercase">PARTNER SONIKA</div><div style="flex:1;min-height:48px;background:#fff;border:1px solid #e7e5df;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:24px;color:#c9c5bb">♪</div><div style="font-size:11px;font-weight:850;line-height:1.15">Producto SONIKA</div><div style="font-size:14px;font-weight:900;color:'+accent+'">$409.000</div>'+(showLink?'<div style="font-size:6px;font-weight:800;letter-spacing:.08em;color:'+muted+'">ENLACE DEL PRODUCTO</div><div style="background:#fff;border:1px solid #e7e5df;border-radius:5px;padding:4px;font-size:6.5px;text-align:center;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">sonika.com.co/producto/ukel16</div>':'')+'<div style="background:'+ink+';color:'+bg+';border-radius:5px;padding:5px;text-align:center;font-size:7px;font-weight:800">'+W.esc(cta)+'</div><div style="font-size:5.5px;color:'+muted+';line-height:1.3">'+W.esc(footer)+'</div></div>';
+};
+
+W.shareCollect = function(){
+    var cfg = W.shareSyncConfig() || {};
+    var out = {};
+    Object.keys(cfg).forEach(function(k){ out[k] = cfg[k]; });
+    return out;
+};
+
+W.shareSave = async function(){
+    var cfg = W.shareCollect();
+    var r = await W.api('/api/v1/admin/store/share-settings', { method: 'PUT', body: cfg });
+    if (r && r.ok) {
+        W._shareCfg = r.data || cfg;
+        W.notify('Configuración guardada', 'success');
+        W.renderShareSettings();
+    } else {
+        W.notify((r && r.message) || 'No se pudo guardar', 'error');
+    }
+};
+
+W.shareReset = async function(){
+    if (!confirm('¿Restaurar la apariencia y los textos por defecto de Compartir producto?')) return;
+    var r = await W.api('/api/v1/admin/store/share-settings/reset', { method: 'POST', body: {} });
+    if (r && r.ok) {
+        W._shareCfg = r.data || {};
+        W.notify('Configuración restaurada', 'success');
+        W.renderShareSettings();
+    } else {
+        W.notify((r && r.message) || 'No se pudo restaurar', 'error');
+    }
+};
+
 W.storeMaintenance=async function(){
     var r=await W.api('/api/v1/admin/store/maintenance',{method:'POST',body:{}});
     if(r.ok)W.notify('Pedidos vencidos liberados: '+((r.data&&r.data.released)||0),'success');
@@ -9316,8 +9540,23 @@ W.watchVersion=function(){
     document.addEventListener('visibilitychange',function(){if(!document.hidden)check()});
 };
 
+W.mountShareNav=function(){
+    if(document.querySelector('.w-nav-item[data-store-tab="compartir"]'))return;
+    var store=document.querySelector('.w-nav-item[data-panel="store"]');
+    if(!store||!store.parentNode)return;
+    if(!document.getElementById('w-nav-sub-style')){
+        var st=document.createElement('style');st.id='w-nav-sub-style';
+        st.textContent='.w-nav-sub{padding-left:40px;font-size:12.5px;font-weight:600;color:#8593ab}.w-nav-sub svg{width:15px!important;height:15px!important;opacity:.85}.w-nav-sub.active{color:#67e8f9}.w-nav-sub.active::before{left:22px;top:26%;bottom:26%;width:2px}';
+        document.head.appendChild(st);
+    }
+    var a=document.createElement('a');
+    a.href='#store/compartir';a.className='w-nav-item w-nav-sub';a.setAttribute('data-store-tab','compartir');
+    a.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></svg>Compartir producto';
+    store.parentNode.insertBefore(a,store.nextSibling);
+};
+
 window.addEventListener('hashchange',function(){W.router()});
-window.addEventListener('load',function(){W.mountTopbar();W.router();W.updateBHBadge();setInterval(W.updateBHBadge,300000);W.watchVersion();W.agentBridgePoll()});
+window.addEventListener('load',function(){W.mountShareNav();W.mountTopbar();W.router();W.updateBHBadge();setInterval(W.updateBHBadge,300000);W.watchVersion();W.agentBridgePoll()});
 window.wontia=W;
 window.W=W;
 })();

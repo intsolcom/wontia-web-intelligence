@@ -7,8 +7,35 @@
   'use strict';
 
   var P = window.SONIKA_PARTNER || {};
+  var S = window.SONIKA_SHARE || {};
   var root = null;
   var toastTimer = null;
+
+  var IMG = {
+    format: S.image_format === 'square' ? 'square' : 'story',
+    bg: S.image_bg || '#F6F6F3',
+    ink: S.image_ink || '#111111',
+    accent: S.image_accent || '#F20D16',
+    muted: S.image_muted || '#6f6b63',
+    brand: S.image_brand || 'SONIKA',
+    cta: S.image_cta || 'Compra en sonika.com.co',
+    footer: S.image_footer || 'Envíos a toda Colombia · Garantía SONIKA',
+    showLink: S.image_show_link === undefined ? true : !!S.image_show_link,
+    labelFriend: S.image_link_label_friend || 'ENLACE DEL PRODUCTO',
+    labelPartner: S.image_link_label_partner || 'TU ENLACE DE PARTNER',
+    cardBorder: S.card_border || '#e7e5df'
+  };
+
+  function on(key, fallback) {
+    var v = S[key];
+    if (v === undefined || v === null) return fallback;
+    return !!v;
+  }
+
+  function channel(key) {
+    if (!S.channels || typeof S.channels !== 'object') return true;
+    return !!S.channels[key];
+  }
 
   var state = {
     mode: 'friend',
@@ -38,33 +65,53 @@
     download: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>'
   };
 
+  var DEFAULT_TEMPLATES = {
+    directo: {
+      friend: 'Mira este {title} en SONIKA ({price}). Te lo recomiendo: {url}',
+      partner: 'Mira este {title} en SONIKA ({price}). Lo elegí para ti: {url}'
+    },
+    curioso: {
+      friend: '¿Ya viste este {title}? Está en SONIKA por {price}. Míralo aquí: {url}',
+      partner: '¿Ya viste este {title}? Está en SONIKA por {price}. Te dejo mi enlace: {url}'
+    },
+    recomiendo: {
+      friend: 'Te recomiendo este {title}. Lo encuentras en SONIKA por {price}: {url}',
+      partner: 'Te recomiendo este {title} de SONIKA. Sé que te va a gustar: {url}'
+    }
+  };
+
+  function applyTemplate(template, p, u) {
+    var t = String(template || '');
+    var price = p.priceLabel || '';
+    if (price) {
+      t = t.replace(/\{price\}/g, price);
+    } else {
+      t = t.replace(/\s*\(\{price\}\)/g, '').replace(/\s+por\s+\{price\}/g, '').replace(/\{price\}/g, '');
+    }
+    return t.replace(/\{title\}/g, p.title).replace(/\{url\}/g, u);
+  }
+
+  function templateText(key, mode) {
+    var configured = S['template_' + key + '_' + mode];
+    if (typeof configured === 'string' && configured.trim() !== '') return configured;
+    return DEFAULT_TEMPLATES[key][mode];
+  }
+
   var TEMPLATES = {
     directo: {
       label: 'Directo',
-      friend: function (p, u) {
-        return 'Mira este ' + p.title + ' en SONIKA' + (p.priceLabel ? ' (' + p.priceLabel + ')' : '') + '. Te lo recomiendo: ' + u;
-      },
-      partner: function (p, u) {
-        return 'Mira este ' + p.title + ' en SONIKA' + (p.priceLabel ? ' (' + p.priceLabel + ')' : '') + '. Lo elegí para ti: ' + u;
-      }
+      friend: function (p, u) { return applyTemplate(templateText('directo', 'friend'), p, u); },
+      partner: function (p, u) { return applyTemplate(templateText('directo', 'partner'), p, u); }
     },
     curioso: {
       label: 'Curioso',
-      friend: function (p, u) {
-        return '¿Ya viste este ' + p.title + '? Está en SONIKA' + (p.priceLabel ? ' por ' + p.priceLabel : '') + '. Míralo aquí: ' + u;
-      },
-      partner: function (p, u) {
-        return '¿Ya viste este ' + p.title + '? Está en SONIKA' + (p.priceLabel ? ' por ' + p.priceLabel : '') + '. Te dejo mi enlace: ' + u;
-      }
+      friend: function (p, u) { return applyTemplate(templateText('curioso', 'friend'), p, u); },
+      partner: function (p, u) { return applyTemplate(templateText('curioso', 'partner'), p, u); }
     },
     recomiendo: {
       label: 'Cercano',
-      friend: function (p, u) {
-        return 'Te recomiendo este ' + p.title + '. Lo encuentras en SONIKA' + (p.priceLabel ? ' por ' + p.priceLabel : '') + ': ' + u;
-      },
-      partner: function (p, u) {
-        return 'Te recomiendo este ' + p.title + ' de SONIKA. Sé que te va a gustar: ' + u;
-      }
+      friend: function (p, u) { return applyTemplate(templateText('recomiendo', 'friend'), p, u); },
+      partner: function (p, u) { return applyTemplate(templateText('recomiendo', 'partner'), p, u); }
     }
   };
 
@@ -136,7 +183,7 @@
     var t = TEMPLATES[state.template] || TEMPLATES.directo;
     var partnerMode = state.mode === 'partner' && P.approved;
     var msg = (partnerMode ? t.partner : t.friend)(state.product, currentUrl());
-    if (partnerMode && state.support) msg += '\n\nComprando con mi enlace apoyas mi proyecto musical.';
+    if (partnerMode && state.support) msg += '\n\n' + (S.support_line || 'Comprando con mi enlace apoyas mi proyecto musical.');
     return msg;
   }
 
@@ -207,45 +254,58 @@
   function partnerCardHtml() {
     var name = String(P.name || '').trim();
     var hello = name ? ('Hola ' + name + ', comparte y gana con este producto.') : 'Hola, comparte y gana con este producto.';
-    return '<div class="skshare__partner">' +
+    var showCommission = on('show_commission', true);
+    var showPoints = on('show_points', true);
+    var h = '<div class="skshare__partner">' +
       '<p class="skshare__hello">SONIKA PARTNERS</p>' +
-      '<h3 class="skshare__ptitle">' + esc(hello) + '</h3>' +
-      '<div class="skshare__prow">' +
-      '<div class="skshare__earn" id="skshare-earn">' + money(estimateCommission()) + '<small>Comisión estimada por unidad</small></div>' +
-      '<span class="skshare__rate" id="skshare-rate">' + pct(currentRate()) + (state.isOutlet ? ' outlet' : ' actual') + '</span>' +
-      '</div>' +
-      '<div class="skshare__meter"><i style="width:' + progressPct() + '%"></i></div>' +
-      '<p class="skshare__pnote" id="skshare-pnote">' + commissionNote() + '</p>' +
-      '</div>';
+      '<h3 class="skshare__ptitle">' + esc(hello) + '</h3>';
+    if (showCommission) {
+      h += '<div class="skshare__prow">' +
+        '<div class="skshare__earn" id="skshare-earn">' + money(estimateCommission()) + '<small>Comisión estimada por unidad</small></div>' +
+        '<span class="skshare__rate" id="skshare-rate">' + pct(currentRate()) + (state.isOutlet ? ' outlet' : ' actual') + '</span>' +
+        '</div>';
+    }
+    if (showPoints) {
+      h += '<div class="skshare__meter"><i style="width:' + progressPct() + '%"></i></div>' +
+        '<p class="skshare__pnote" id="skshare-pnote">' + commissionNote() + '</p>';
+    }
+    h += '</div>';
+    return h;
   }
 
   function actionsSection() {
     var partner = state.mode === 'partner' && P.approved;
+    var formatLabel = IMG.format === 'square' ? 'Imagen cuadrada 1:1' : 'Imagen vertical 9:16';
+    var h = '';
+    if (channel('whatsapp')) {
+      h += action('wa', 'skshare__ico--wa', partner ? 'WhatsApp con mi enlace' : 'Enviar por WhatsApp', partner ? 'Mensaje + enlace de Partner' : 'Mensaje listo para enviar', 'data-skshare-wa', 'skshare__action--wa skshare__action--wide');
+    }
+    if (channel('whatsapp_status')) h += action('img', 'skshare__ico--img', 'Estado de WhatsApp', formatLabel, 'data-skshare-story="whatsapp"');
+    if (channel('instagram_story')) h += action('ig', 'skshare__ico--ig', 'Historia de Instagram', formatLabel, 'data-skshare-story="instagram"');
+    if (channel('facebook')) h += action('fb', 'skshare__ico--fb', 'Facebook', 'Publicar el enlace', 'data-skshare-fb');
+    if (channel('facebook_story')) h += action('img', 'skshare__ico--img', 'Historia de Facebook', formatLabel, 'data-skshare-story="facebook"');
+    if (channel('copy_link')) h += action('copy', 'skshare__ico--copy', 'Copiar enlace', partner ? 'Tu enlace de Partner' : 'Listo para pegar', 'data-skshare-copy');
+    if (channel('email')) h += action('mail', 'skshare__ico--copy', 'Email', 'Enviar por correo', 'data-skshare-email');
+    if (channel('native_share')) h += action('share', 'skshare__ico--copy', 'Más opciones', 'Compartir del sistema', 'data-skshare-native', 'skshare__action--wide');
+    if (!h) return '';
     return '<div class="skshare__section">' +
       '<div class="skshare__label"><b>Compartir ahora</b><span>1 toque</span></div>' +
-      '<div class="skshare__actions">' +
-      action('wa', 'skshare__ico--wa', partner ? 'WhatsApp con mi enlace' : 'Enviar por WhatsApp', partner ? 'Mensaje + enlace de Partner' : 'Mensaje listo para enviar', 'data-skshare-wa', 'skshare__action--wa skshare__action--wide') +
-      action('img', 'skshare__ico--img', 'Estado de WhatsApp', 'Imagen vertical 9:16', 'data-skshare-story="whatsapp"') +
-      action('ig', 'skshare__ico--ig', 'Historia de Instagram', 'Imagen vertical 9:16', 'data-skshare-story="instagram"') +
-      action('fb', 'skshare__ico--fb', 'Facebook', 'Publicar el enlace', 'data-skshare-fb') +
-      action('img', 'skshare__ico--img', 'Historia de Facebook', 'Imagen vertical 9:16', 'data-skshare-story="facebook"') +
-      action('copy', 'skshare__ico--copy', 'Copiar enlace', partner ? 'Tu enlace de Partner' : 'Listo para pegar', 'data-skshare-copy') +
-      action('mail', 'skshare__ico--copy', 'Email', 'Enviar por correo', 'data-skshare-email') +
-      action('share', 'skshare__ico--copy', 'Más opciones', 'Compartir del sistema', 'data-skshare-native', 'skshare__action--wide') +
-      '</div></div>';
+      '<div class="skshare__actions">' + h + '</div></div>';
   }
 
   function composerHtml() {
-    var chips = Object.keys(TEMPLATES).map(function (k) {
+    if (!on('show_composer', true)) return '';
+    var showTemplates = on('show_templates', true);
+    var chips = showTemplates ? Object.keys(TEMPLATES).map(function (k) {
       return '<button type="button" class="skshare__chip' + (state.template === k ? ' is-on' : '') + '" data-skshare-template="' + k + '">' + esc(TEMPLATES[k].label) + '</button>';
-    }).join('');
+    }).join('') : '';
     var support = '';
     if (state.mode === 'partner' && P.approved) {
-      support = '<label class="skshare__support"><input type="checkbox" data-skshare-support' + (state.support ? ' checked' : '') + ' /> <span>Incluir “comprando con mi enlace apoyas mi proyecto musical”.</span></label>';
+      support = '<label class="skshare__support"><input type="checkbox" data-skshare-support' + (state.support ? ' checked' : '') + ' /> <span>Incluir “' + esc(S.support_line || 'comprando con mi enlace apoyas mi proyecto musical') + '”.</span></label>';
     }
     return '<div class="skshare__composer">' +
       '<div class="skshare__label"><b>Tu mensaje</b><span>Editable</span></div>' +
-      '<div class="skshare__chips">' + chips + '</div>' +
+      (chips ? '<div class="skshare__chips">' + chips + '</div>' : '') +
       '<textarea class="skshare__textarea" id="skshare-message" maxlength="700" aria-label="Mensaje para compartir">' + esc(state.message) + '</textarea>' +
       support +
       '<div class="skshare__composer-foot"><span>El enlace se agrega solo si falta.</span><button type="button" class="skshare__mini" data-skshare-copymsg>Copiar mensaje</button></div>' +
@@ -253,6 +313,7 @@
   }
 
   function linkHtml() {
+    if (!on('show_link_box', true)) return '';
     var partner = state.mode === 'partner' && P.approved;
     return '<div class="skshare__link">' +
       '<div class="skshare__label"><b>' + (partner ? 'Tu enlace de Partner' : 'Enlace del producto') + '</b><span>' + (partner ? 'Comisión activa' : 'Para pegar donde quieras') + '</span></div>' +
@@ -280,12 +341,12 @@
   }
 
   function friendHtml() {
-    return headHtml('Compartir producto', 'Una recomendación que vale la pena.', 'Elige el canal. El mensaje ya está listo; tú decides cómo enviarlo.') +
+    return headHtml('Compartir producto', S.friend_title || 'Una recomendación que vale la pena.', S.friend_sub || 'Elige el canal. El mensaje ya está listo; tú decides cómo enviarlo.') +
       productHtml() + actionsSection() + composerHtml() + linkHtml() + footerHtml('friend');
   }
 
   function partnerJoinHtml() {
-    return headHtml('SONIKA Partners', 'Comparte lo que amas. Gana por hacerlo.', 'Tu recomendación puede convertirse en una comisión. Así funciona el programa.') +
+    return headHtml('SONIKA Partners', S.join_title || 'Comparte lo que amas. Gana por hacerlo.', S.join_sub || 'Tu recomendación puede convertirse en una comisión. Así funciona el programa.') +
       productHtml() +
       '<div class="skshare__join">' +
       '<div class="skshare__join-top"><div><p class="skshare__hello" style="color:#6f6b63">COMISIÓN POR VENTA</p><div class="skshare__big">3% → 7%</div><p class="skshare__sub" style="margin-top:6px">Base del 3%. Sube con Puntos SONIKA y racha semanal.</p></div><span class="skshare__seal">Partner<br>SONIKA</span></div>' +
@@ -304,7 +365,7 @@
   }
 
   function partnerPendingHtml() {
-    return headHtml('SONIKA Partners', 'Tu perfil está en revisión.', 'Cuando tu solicitud sea aprobada, tus enlaces activarán comisiones automáticamente.') +
+    return headHtml('SONIKA Partners', S.pending_title || 'Tu perfil está en revisión.', S.pending_sub || 'Cuando tu solicitud sea aprobada, tus enlaces activarán comisiones automáticamente.') +
       productHtml() +
       '<div class="skshare__notice"><b>Estamos revisando tu solicitud.</b>Mientras tanto, puedes compartir el producto con un amigo o familiar. Las comisiones se activan al aprobar tu perfil.</div>' +
       '<div class="skshare__section"><div class="skshare__actions">' +
@@ -315,7 +376,7 @@
   }
 
   function partnerApprovedHtml() {
-    return headHtml('SONIKA Partners', 'Tu recomendación tiene recompensa.', 'Comparte con tu enlace. Tú pones la recomendación; SONIKA pone la tienda.') +
+    return headHtml('SONIKA Partners', S.partner_title || 'Tu recomendación tiene recompensa.', S.partner_sub || 'Comparte con tu enlace. Tú pones la recomendación; SONIKA pone la tienda.') +
       productHtml() + partnerCardHtml() + actionsSection() + composerHtml() + linkHtml() + footerHtml('partner');
   }
 
@@ -411,7 +472,7 @@
     state.product = product;
     state.productUrl = productUrl(product.ref);
     state.partnerUrl = (P.approved && P.code) ? affiliateUrl(product.ref, P.code) : state.productUrl;
-    state.template = 'directo';
+    state.template = S.default_template || 'directo';
     state.support = true;
     state.message = buildMessage();
     state.isOutlet = false;
@@ -460,7 +521,7 @@
     mode = mode === 'partner' ? 'partner' : 'friend';
     if (state.mode === mode) return;
     state.mode = mode;
-    state.template = 'directo';
+    state.template = S.default_template || 'directo';
     state.preview = null;
     if (state.story && state.story.url) {
       try { URL.revokeObjectURL(state.story.url); } catch (e) {}
@@ -704,8 +765,9 @@
   function createStoryBlob(product, mode) {
     return new Promise(function (resolve, reject) {
       var canvas = document.createElement('canvas');
+      var isSquare = IMG.format === 'square';
       canvas.width = 1080;
-      canvas.height = 1920;
+      canvas.height = isSquare ? 1080 : 1920;
       var ctx = canvas.getContext('2d');
       if (!ctx) { reject(new Error('canvas')); return; }
       var shareLink = currentUrl();
@@ -729,7 +791,8 @@
         if (done) return;
         done = true;
         try {
-          drawStory(ctx, img, product, mode, shareLink);
+          if (isSquare) drawStorySquare(ctx, img, product, mode, shareLink);
+          else drawStory(ctx, img, product, mode, shareLink);
           finish();
         } catch (e) {
           reject(e);
@@ -752,20 +815,20 @@
 
   function drawStory(ctx, img, product, mode, link) {
     var W = 1080, H = 1920;
-    ctx.fillStyle = '#F6F6F3';
+    ctx.fillStyle = IMG.bg;
     ctx.fillRect(0, 0, W, H);
 
-    ctx.fillStyle = '#111';
+    ctx.fillStyle = IMG.ink;
     ctx.fillRect(0, 0, W, 150);
-    ctx.fillStyle = '#fff';
+    ctx.fillStyle = IMG.bg;
     ctx.textBaseline = 'middle';
     ctx.font = '900 44px Sora, system-ui, sans-serif';
-    ctx.fillText('SONIKA', 72, 76);
-    ctx.fillStyle = '#F20D16';
+    ctx.fillText(IMG.brand, 72, 76);
+    ctx.fillStyle = IMG.accent;
     ctx.fillRect(72, 110, 64, 6);
     ctx.textBaseline = 'alphabetic';
 
-    ctx.fillStyle = '#6f6b63';
+    ctx.fillStyle = IMG.muted;
     ctx.font = '800 23px Sora, system-ui, sans-serif';
     ctx.fillText(mode === 'partner' ? 'PARTNER SONIKA' : 'RECOMENDADO', 72, 230);
 
@@ -773,7 +836,7 @@
     ctx.fillStyle = '#fff';
     roundRect(ctx, cx, cy, cw, ch, 32);
     ctx.fill();
-    ctx.strokeStyle = '#e7e5df';
+    ctx.strokeStyle = IMG.cardBorder;
     ctx.lineWidth = 2;
     ctx.stroke();
 
@@ -797,58 +860,162 @@
       lines = lines.slice(0, 3);
       lines[2] = lines[2].replace(/\s+\S*$/, '') + '…';
     }
-    ctx.fillStyle = '#111';
+    ctx.fillStyle = IMG.ink;
     ctx.font = titleFont;
     var ty = 1030;
     lines.forEach(function (line, i) { ctx.fillText(line, 72, ty + i * 66); });
 
     var priceY = ty + lines.length * 66 + 30;
     if (product.priceLabel) {
-      ctx.fillStyle = '#F20D16';
+      ctx.fillStyle = IMG.accent;
       ctx.font = '900 74px Sora, system-ui, sans-serif';
       ctx.fillText(product.priceLabel, 72, priceY);
     }
 
     if (mode === 'partner' && P.name) {
-      ctx.fillStyle = '#6b7280';
+      ctx.fillStyle = IMG.muted;
       ctx.font = '700 28px Sora, system-ui, sans-serif';
       ctx.fillText('Recomendado por ' + String(P.name).slice(0, 42), 72, priceY + 54);
     }
 
-    var linkText = String(link || '').replace(/^https?:\/\//, '').replace(/\/$/, '');
-    var linkLabel = mode === 'partner' ? 'TU ENLACE DE PARTNER' : 'ENLACE DEL PRODUCTO';
-    var linkY = 1360;
-    ctx.fillStyle = '#6f6b63';
-    ctx.font = '800 20px Sora, system-ui, sans-serif';
-    ctx.fillText(linkLabel, 72, linkY - 14);
-    ctx.fillStyle = '#fff';
-    roundRect(ctx, 72, linkY, 936, 64, 14);
-    ctx.fill();
-    ctx.strokeStyle = '#e7e5df';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    var linkFont = '800 30px Sora, system-ui, sans-serif';
-    ctx.font = linkFont;
-    if (ctx.measureText(linkText).width > 860) linkFont = '800 24px Sora, system-ui, sans-serif';
-    ctx.font = linkFont;
-    ctx.fillStyle = '#111';
-    ctx.textAlign = 'center';
-    ctx.fillText(linkText, 72 + 468, linkY + 41);
-    ctx.textAlign = 'left';
+    if (IMG.showLink) {
+      var linkText = String(link || '').replace(/^https?:\/\//, '').replace(/\/$/, '');
+      var linkLabel = mode === 'partner' ? IMG.labelPartner : IMG.labelFriend;
+      var linkY = 1360;
+      ctx.fillStyle = IMG.muted;
+      ctx.font = '800 20px Sora, system-ui, sans-serif';
+      ctx.fillText(linkLabel, 72, linkY - 14);
+      ctx.fillStyle = '#fff';
+      roundRect(ctx, 72, linkY, 936, 64, 14);
+      ctx.fill();
+      ctx.strokeStyle = IMG.cardBorder;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      var linkFont = '800 30px Sora, system-ui, sans-serif';
+      ctx.font = linkFont;
+      if (ctx.measureText(linkText).width > 860) linkFont = '800 24px Sora, system-ui, sans-serif';
+      ctx.font = linkFont;
+      ctx.fillStyle = IMG.ink;
+      ctx.textAlign = 'center';
+      ctx.fillText(linkText, 72 + 468, linkY + 41);
+      ctx.textAlign = 'left';
+    }
 
-    var by = 1450;
-    ctx.fillStyle = '#111';
+    var by = IMG.showLink ? 1450 : 1360;
+    ctx.fillStyle = IMG.ink;
     roundRect(ctx, 72, by, 936, 112, 18);
     ctx.fill();
-    ctx.fillStyle = '#fff';
+    ctx.fillStyle = IMG.bg;
     ctx.font = '800 34px Sora, system-ui, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('Compra en sonika.com.co', 72 + 468, by + 71);
+    ctx.fillText(IMG.cta, 72 + 468, by + 71);
     ctx.textAlign = 'left';
 
-    ctx.fillStyle = '#6f6b63';
+    ctx.fillStyle = IMG.muted;
     ctx.font = '600 24px Sora, system-ui, sans-serif';
-    ctx.fillText('Envíos a toda Colombia · Garantía SONIKA', 72, 1630);
+    ctx.fillText(IMG.footer, 72, IMG.showLink ? 1630 : 1540);
+  }
+
+  function drawStorySquare(ctx, img, product, mode, link) {
+    var W = 1080, H = 1080;
+    ctx.fillStyle = IMG.bg;
+    ctx.fillRect(0, 0, W, H);
+
+    ctx.fillStyle = IMG.ink;
+    ctx.fillRect(0, 0, W, 96);
+    ctx.fillStyle = IMG.bg;
+    ctx.textBaseline = 'middle';
+    ctx.font = '900 38px Sora, system-ui, sans-serif';
+    ctx.fillText(IMG.brand, 60, 49);
+    ctx.fillStyle = IMG.accent;
+    ctx.fillRect(60, 74, 56, 5);
+    ctx.textBaseline = 'alphabetic';
+
+    ctx.fillStyle = IMG.muted;
+    ctx.font = '800 20px Sora, system-ui, sans-serif';
+    ctx.fillText(mode === 'partner' ? 'PARTNER SONIKA' : 'RECOMENDADO', 60, 142);
+
+    var cx = 60, cy = 170, cw = 420, ch = 420;
+    ctx.fillStyle = '#fff';
+    roundRect(ctx, cx, cy, cw, ch, 24);
+    ctx.fill();
+    ctx.strokeStyle = IMG.cardBorder;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    if (img && img.width) {
+      drawImageContain(ctx, img, cx + 32, cy + 32, cw - 64, ch - 64);
+    } else {
+      ctx.fillStyle = '#efeee9';
+      roundRect(ctx, cx + 32, cy + 32, cw - 64, ch - 64, 18);
+      ctx.fill();
+      ctx.fillStyle = '#c9c5bb';
+      ctx.font = '900 150px Sora, system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('♪', cx + cw / 2, cy + ch / 2 + 50);
+      ctx.textAlign = 'left';
+    }
+
+    var tx = 520, tw = 488;
+    var titleFont = '800 44px Sora, system-ui, sans-serif';
+    var lines = wrapText(ctx, product.title || 'Producto SONIKA', tw, titleFont);
+    if (lines.length > 3) {
+      lines = lines.slice(0, 3);
+      lines[2] = lines[2].replace(/\s+\S*$/, '') + '…';
+    }
+    ctx.fillStyle = IMG.ink;
+    ctx.font = titleFont;
+    var ty = 220;
+    lines.forEach(function (line, i) { ctx.fillText(line, tx, ty + i * 52); });
+
+    var priceY = ty + lines.length * 52 + 34;
+    if (product.priceLabel) {
+      ctx.fillStyle = IMG.accent;
+      ctx.font = '900 58px Sora, system-ui, sans-serif';
+      ctx.fillText(product.priceLabel, tx, priceY);
+    }
+
+    if (mode === 'partner' && P.name) {
+      ctx.fillStyle = IMG.muted;
+      ctx.font = '700 22px Sora, system-ui, sans-serif';
+      ctx.fillText('Recomendado por ' + String(P.name).slice(0, 42), tx, priceY + 42);
+    }
+
+    if (IMG.showLink) {
+      var linkText = String(link || '').replace(/^https?:\/\//, '').replace(/\/$/, '');
+      var linkLabel = mode === 'partner' ? IMG.labelPartner : IMG.labelFriend;
+      var linkY = 630;
+      ctx.fillStyle = IMG.muted;
+      ctx.font = '800 17px Sora, system-ui, sans-serif';
+      ctx.fillText(linkLabel, 60, linkY - 12);
+      ctx.fillStyle = '#fff';
+      roundRect(ctx, 60, linkY, 960, 56, 12);
+      ctx.fill();
+      ctx.strokeStyle = IMG.cardBorder;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      var linkFont = '800 24px Sora, system-ui, sans-serif';
+      ctx.font = linkFont;
+      if (ctx.measureText(linkText).width > 880) linkFont = '800 20px Sora, system-ui, sans-serif';
+      ctx.font = linkFont;
+      ctx.fillStyle = IMG.ink;
+      ctx.textAlign = 'center';
+      ctx.fillText(linkText, 60 + 480, linkY + 36);
+      ctx.textAlign = 'left';
+    }
+
+    var by = IMG.showLink ? 720 : 630;
+    ctx.fillStyle = IMG.ink;
+    roundRect(ctx, 60, by, 960, 92, 16);
+    ctx.fill();
+    ctx.fillStyle = IMG.bg;
+    ctx.font = '800 30px Sora, system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(IMG.cta, 60 + 480, by + 58);
+    ctx.textAlign = 'left';
+
+    ctx.fillStyle = IMG.muted;
+    ctx.font = '600 20px Sora, system-ui, sans-serif';
+    ctx.fillText(IMG.footer, 60, IMG.showLink ? 860 : 780);
   }
 
   function roundRect(ctx, x, y, w, h, r) {
@@ -912,12 +1079,52 @@
 
   function updatePartnerTriggers() {
     var nodes = document.querySelectorAll('.skshare-trigger--partner');
+    var mode = String(S.partner_note_mode || 'auto');
+    var custom = String(S.partner_note_text || '').trim();
     Array.prototype.forEach.call(nodes, function (btn) {
       var small = btn.querySelector('small');
       if (!small) return;
       var cents = Math.max(0, parseInt(btn.getAttribute('data-price-cents') || '0', 10) || 0);
+      var rate = Number(P.rate) || 0.03;
+      small.style.display = '';
+      if (mode === 'none') {
+        small.textContent = '';
+        small.style.display = 'none';
+        btn.setAttribute('title', 'Partner SONIKA');
+        return;
+      }
+      if (mode === 'custom') {
+        small.textContent = custom || 'Partner SONIKA';
+        btn.setAttribute('title', 'Partner SONIKA');
+        return;
+      }
+      if (mode === 'rate') {
+        if (P.logged_in && P.approved) {
+          small.textContent = 'Tu tasa ' + pct(rate);
+          btn.setAttribute('title', 'Partner SONIKA · tu tasa actual');
+        } else if (P.logged_in) {
+          small.textContent = 'En revisión';
+          btn.setAttribute('title', 'Partner SONIKA · perfil en revisión');
+        } else {
+          small.textContent = 'Hasta 7%';
+          btn.setAttribute('title', 'Partner SONIKA · comisiones hasta 7%');
+        }
+        return;
+      }
+      if (mode === 'commission') {
+        if (P.logged_in && P.approved) {
+          small.textContent = cents > 0 ? ('Gana ~' + money(cents * rate)) : ('Tu tasa ' + pct(rate));
+          btn.setAttribute('title', 'Partner SONIKA · comisión estimada por unidad');
+        } else if (P.logged_in) {
+          small.textContent = 'En revisión';
+          btn.setAttribute('title', 'Partner SONIKA · perfil en revisión');
+        } else {
+          small.textContent = 'Hasta 7%';
+          btn.setAttribute('title', 'Partner SONIKA · comisiones hasta 7%');
+        }
+        return;
+      }
       if (P.logged_in && P.approved && P.code) {
-        var rate = Number(P.rate) || 0.03;
         small.textContent = cents > 0 ? ('Gana ~' + money(cents * rate)) : ('Tu tasa ' + pct(rate));
         btn.setAttribute('title', 'Partner SONIKA · comisión estimada por unidad');
       } else if (P.logged_in && !P.approved) {

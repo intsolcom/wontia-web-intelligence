@@ -1,6 +1,7 @@
 (function () {
   'use strict';
   var PAY = window.SONIKA_PAY || {};
+  var SHARE = window.SONIKA_SHARE || {};
   var CARTKEY = window.SONIKA_CARTKEY || 'sonika_cart';
   var MKEY = 'sonika_pay_method';
   var CKEY = 'sonika_coupon';
@@ -511,14 +512,21 @@
         '</div><button type="button" class="skpay__link" data-skremove data-ref="' + escAttr(ref) + '">Eliminar</button>';
     }
     var shareHtml = '';
-    if (isCart && !compact && ref && !bad) {
+    var shareOn = SHARE.enabled === undefined ? true : !!SHARE.enabled;
+    var cartShareOn = SHARE.enabled_cart === undefined ? true : !!SHARE.enabled_cart;
+    var allowUnavailable = !!SHARE.show_unavailable;
+    if (isCart && !compact && ref && (!bad || allowUnavailable) && shareOn && cartShareOn) {
       var sharePrice = Number(line.original_unit_cents) || Math.round(after / qty);
       var shareAttrs = 'data-ref="' + escAttr(ref) + '" data-title="' + escAttr(title) + '" data-price-cents="' + Math.max(0, Math.round(sharePrice)) + '" data-image="' + escAttr(line.image || '') + '"';
+      var friendLabel = String(SHARE.button_friend_label || 'Compartir');
+      var friendSub = String(SHARE.button_friend_sub || 'Con un amigo');
+      var partnerLabel = String(SHARE.button_partner_label || 'Comparte y gana');
+      var partnerSub = String(SHARE.button_partner_sub || 'Partner SONIKA');
       shareHtml = '<div class="skpay__item-share">' +
-        '<button type="button" class="skshare-trigger" data-skshare="friend" ' + shareAttrs + ' data-track="compartir producto" aria-label="Compartir ' + escAttr(title) + ' con un amigo, familiar o conocido">' +
-        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></svg><span><b>Compartir</b><small>Con un amigo</small></span></button>' +
-        '<button type="button" class="skshare-trigger skshare-trigger--partner" data-skshare="partner" ' + shareAttrs + ' data-track="compartir partner" aria-label="Comparte este producto como Partner SONIKA y gana comisión">' +
-        '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8L12 2Z"/></svg><span><b>Comparte y gana</b><small>Partner SONIKA</small></span></button>' +
+        '<button type="button" class="skshare-trigger" data-skshare="friend" ' + shareAttrs + ' data-track="compartir producto" aria-label="' + escAttr(friendLabel) + ' ' + escAttr(title) + ' con un amigo, familiar o conocido">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></svg><span><b>' + esc(friendLabel) + '</b><small>' + esc(friendSub) + '</small></span></button>' +
+        '<button type="button" class="skshare-trigger skshare-trigger--partner" data-skshare="partner" ' + shareAttrs + ' data-track="compartir partner" aria-label="' + escAttr(partnerLabel) + ' como Partner SONIKA y gana comisión">' +
+        '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l1.8 6.2L20 10l-6.2 1.8L12 18l-1.8-6.2L4 10l6.2-1.8L12 2Z"/></svg><span><b>' + esc(partnerLabel) + '</b><small>' + esc(partnerSub) + '</small></span></button>' +
         '</div>';
     }
     return '<div class="skpay__item" data-line-ref="' + escAttr(ref) + '">' +
