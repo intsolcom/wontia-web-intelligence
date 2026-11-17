@@ -210,6 +210,17 @@ class SeoGlobalLaunchController
         Response::json(['ok' => true, 'data' => (new \App\Services\SeoVitalsService())->summary((int)$req->get('days', 30))]);
     }
 
+    public function gsc(Request $req): void
+    {
+        $svc = new \App\Services\SeoIntegrationService();
+        $result = $svc->gscSearchAnalytics(
+            (int)$req->get('days', 28),
+            (int)$req->get('limit', 25),
+            (string)$req->get('dimension', 'query')
+        );
+        Response::json($result);
+    }
+
     public function live(Request $req): void
     {
         $data = (new \App\Services\SeoLiveMonitorService())->overview(

@@ -6129,7 +6129,7 @@ W.renderSeoGlobalLaunch=async function(tab){
     app.innerHTML='<div style="text-align:center;padding:50px;color:var(--w-muted)">Cargando SEO Global Intelligence...</div>';
     var ov=(await W.api('/api/v1/admin/seo-global-launch')).data||{};
     var b=ov.brick||{}; var st=ov.stats||{};
-    var tabs=[['resumen','Resumen'],['monitoreo','Monitoreo en vivo'],['analitica','Analítica'],['mi-trafico','Mi tráfico'],['meta-ads','Pauta Meta'],['keywords','Keywords'],['tecnico','Técnico'],['integraciones','Integraciones'],['seguridad','Seguridad IP'],['redirecciones','Redirecciones'],['404s','404s'],['enlaces-rotos','Enlaces rotos']];
+    var tabs=[['resumen','Resumen'],['monitoreo','Monitoreo en vivo'],['analitica','Analítica'],['google','Google'],['mi-trafico','Mi tráfico'],['meta-ads','Pauta Meta'],['keywords','Keywords'],['tecnico','Técnico'],['integraciones','Integraciones'],['seguridad','Seguridad IP'],['redirecciones','Redirecciones'],['404s','404s'],['enlaces-rotos','Enlaces rotos']];
     var tabsHtml='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">'+tabs.map(function(x){return '<button class="w-btn '+(tab===x[0]?'w-btn-primary':'w-btn-secondary')+'" onclick="location.hash=\'#seo-global-launch/'+x[0]+'\'">'+x[1]+'</button>'}).join('')+'</div>';
     if(tab==='monitoreo'){
         app.innerHTML='<div style="margin-bottom:18px"><div style="font-size:20px;font-weight:800;letter-spacing:-.01em">SEO Global Intelligence</div><div style="font-size:12px;color:var(--w-muted);margin-top:4px">Monitoreo en vivo · peticiones, respuestas y comportamiento del sitio</div></div>'+tabsHtml
@@ -6154,6 +6154,11 @@ W.renderSeoGlobalLaunch=async function(tab){
     if(tab==='analitica'){
         app.innerHTML='<div style="margin-bottom:18px"><div style="font-size:20px;font-weight:800;letter-spacing:-.01em">SEO Global Intelligence</div><div style="font-size:12px;color:var(--w-muted);margin-top:4px">Analítica, embudo y oportunidades · excluye tráfico propio y bots</div></div>'+tabsHtml+'<div id="sgl-analytics"><div class="w-card" style="text-align:center;padding:30px;color:var(--w-muted)">Cargando analítica...</div></div>';
         W.sglAnalyticsLoad();
+        return;
+    }
+    if(tab==='google'){
+        app.innerHTML='<div style="margin-bottom:18px"><div style="font-size:20px;font-weight:800;letter-spacing:-.01em">SEO Global Intelligence</div><div style="font-size:12px;color:var(--w-muted);margin-top:4px">Google Search Console · consultas, páginas, clics e impresiones</div></div>'+tabsHtml+'<div id="sgl-gsc"><div class="w-card" style="text-align:center;padding:30px;color:var(--w-muted)">Cargando Search Console...</div></div>';
+        W.sglGscLoad();
         return;
     }
     if(tab==='mi-trafico'){
@@ -6336,6 +6341,46 @@ W.sglVitalsLoad=async function(){
     }
     h+='<div style="font-size:10px;color:var(--w-muted);margin-top:6px">'+W.esc(d.note||'')+'</div>';
     el.innerHTML=h;
+};
+W._sglGscDim='query';
+W._sglGscDays=28;
+W.sglGscLoad=async function(){
+    var box=document.getElementById('sgl-gsc'); if(!box)return;
+    var dim=W._sglGscDim||'query', days=W._sglGscDays||28;
+    var dims=[['query','Consultas'],['page','Páginas'],['query,page','Consulta + Página'],['country','Países'],['device','Dispositivos'],['date','Fechas']];
+    var dimOpts=dims.map(function(d){return '<option value="'+d[0]+'"'+(dim===d[0]?' selected':'')+'>'+d[1]+'</option>'}).join('');
+    var dayOpts=[7,28,90].map(function(d){return '<option value="'+d+'"'+(days===d?' selected':'')+'>'+d+' días</option>'}).join('');
+    var h='<div class="w-card" style="margin-bottom:14px"><div class="w-flex-between" style="gap:10px;flex-wrap:wrap"><div><h3 style="margin:0">Google Search Console</h3><p style="font-size:12px;color:var(--w-muted);margin:5px 0 0">Búsqueda orgánica de Google. Los datos pueden tardar 2-3 días en actualizarse.</p></div><div style="display:flex;gap:6px;flex-wrap:wrap"><select class="w-input" style="width:auto" onchange="W._sglGscDim=this.value;W.sglGscLoad()">'+dimOpts+'</select><select class="w-input" style="width:auto" onchange="W._sglGscDays=parseInt(this.value)||28;W.sglGscLoad()">'+dayOpts+'</select><button class="w-btn w-btn-secondary w-btn-sm" onclick="W.sglGscLoad()">Actualizar</button></div></div></div>';
+    var r=await W.api('/api/v1/admin/seo-global-launch/gsc?days='+days+'&dimension='+encodeURIComponent(dim)+'&limit=50');
+    if(!r||!r.ok||r.status!=='ok'){
+        var email='';
+        try{var ir=await W.api('/api/v1/admin/seo-global-launch/integrations');email=(ir&&ir.data&&ir.data.gsc&&ir.data.gsc.email)||''}catch(e){}
+        var msg=(r&&r.message)||'No se pudo consultar Search Console.';
+        h+='<div class="w-card" style="border-left:3px solid #fbbf24"><h3 style="margin:0 0 8px">Falta autorizar la cuenta de servicio</h3><p style="font-size:12px;color:var(--w-muted);line-height:1.6;margin:0 0 10px">'+W.esc(msg)+'</p>'
+          +'<div style="font-size:11px;color:var(--w-muted);margin-bottom:6px">Agrega esta cuenta en Search Console → Configuración → Usuarios y permisos (permiso Restringido o Completo):</div>'
+          +'<div style="font-family:var(--w-font-mono);font-size:11px;background:var(--w-bg2);border:1px solid var(--w-border);border-radius:8px;padding:9px;word-break:break-all;margin-bottom:10px">'+W.esc(email||'sonika-search-console@titanium-web-468409-d8.iam.gserviceaccount.com')+'</div>'
+          +'<div style="font-size:10px;color:var(--w-muted);margin-bottom:10px">Si la propiedad es de tipo Dominio, usa sc-domain:sonika.com.co en Integraciones.</div>'
+          +'<div style="display:flex;gap:8px;flex-wrap:wrap"><a class="w-btn w-btn-primary w-btn-sm" href="https://search.google.com/search-console" target="_blank" rel="noopener">Abrir Search Console</a><button class="w-btn w-btn-secondary w-btn-sm" onclick="W.sglGscLoad()">Probar de nuevo</button></div></div>';
+        box.innerHTML=h;
+        return;
+    }
+    var rows=r.rows||[], t=r.totals||{};
+    var kpi=function(v,l){return '<div class="w-stat-card"><div class="w-stat-value">'+v+'</div><div class="w-stat-label">'+l+'</div></div>'};
+    h+='<div class="w-stats">'+kpi(W.num(t.clicks||0),'Clics')+kpi(W.num(t.impressions||0),'Impresiones')+kpi((t.ctr||0)+'%','CTR')+kpi(W.num(rows.length),'Filas')+'</div>';
+    if(!rows.length){
+        h+='<div class="w-card"><div class="w-empty-state"><h3>Sin datos todavía</h3><p>Google no reporta datos para este período. Puede tardar 2-3 días después de autorizar la propiedad.</p></div></div>';
+        box.innerHTML=h;
+        return;
+    }
+    var labelNames={query:'Consulta',page:'Página','query,page':'Consulta / Página',date:'Fecha',country:'País',device:'Dispositivo'};
+    var label=labelNames[dim]||'Término';
+    h+='<div class="w-card" style="margin-top:14px"><h3 style="margin:0 0 10px">'+label+'s con más rendimiento</h3><div style="overflow:auto"><table class="w-table"><thead><tr><th>'+label+'</th><th>Clics</th><th>Impresiones</th><th>CTR</th><th>Posición</th></tr></thead><tbody>';
+    rows.forEach(function(x){
+        var key=(x.keys&&x.keys.length>1)?x.keys.join(' · '):(x.key||'');
+        h+='<tr><td style="max-width:420px;word-break:break-all;font-size:11px">'+W.esc(key)+'</td><td>'+W.num(x.clicks)+'</td><td>'+W.num(x.impressions)+'</td><td>'+Number(x.ctr||0).toFixed(2)+'%</td><td>'+Number(x.position||0).toFixed(1)+'</td></tr>';
+    });
+    h+='</tbody></table></div><div style="font-size:10px;color:var(--w-muted);margin-top:8px">'+W.esc(r.property||'')+' · '+W.esc(r.start||'')+' a '+W.esc(r.end||'')+'</div></div>';
+    box.innerHTML=h;
 };
 W.sglTechSaveConfig=async function(){
     var v=function(id){var el=document.getElementById(id);return el?el.value:''};

@@ -206,6 +206,74 @@ class SeoIntegrationService
         return ['ok' => $ok, 'status' => $ok ? 'ok' : 'error', 'http' => $result['http'], 'sitemap' => $sitemap, 'message' => $ok ? 'Sitemap enviado a Search Console.' : ('Google respondió HTTP ' . $result['http'] . '.')];
     }
 
+    /**
+     * Consulta Search Analytics (clics, impresiones, CTR, posición).
+     * Dimensiones permitidas: query, page, query,page, date, country, device.
+     */
+    public function gscSearchAnalytics(int $days = 28, int $limit = 25, string $dimension = 'query'): array
+    {
+        $credentials = $this->gscCredentials();
+        $property = $this->setting('seo_gsc_property');
+        if (!$credentials || $property === '') {
+            return ['ok' => false, 'status' => 'skipped', 'message' => 'Configura la cuenta de servicio y la propiedad de Search Console.'];
+        }
+        $token = $this->gscToken($credentials);
+        if (!$token) return ['ok' => false, 'status' => 'error', 'message' => 'No se pudo obtener el token de Google.'];
+        $allowed = ['query', 'page', 'query,page', 'date', 'country', 'device'];
+        if (!in_array($dimension, $allowed, true)) $dimension = 'query';
+        $days = max(1, min(365, $days));
+        $limit = max(1, min(1000, $limit));
+        $end = date('Y-m-d', strtotime('-1 day'));
+        $start = date('Y-m-d', strtotime('-' . $days . ' days'));
+        $body = json_encode([
+            'startDate' => $start,
+            'endDate' => $end,
+            'dimensions' => array_values(array_filter(array_map('trim', explode(',', $dimension)))),
+            'rowLimit' => $limit,
+            'dataState' => 'all',
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        $url = 'https://www.googleapis.com/webmasters/v3/sites/' . rawurlencode($property) . '/searchAnalytics/query';
+        $result = $this->request('POST', $url, ['Authorization: Bearer ' . $token, 'Content-Type: application/json'], $body);
+        if ($result['error']) return ['ok' => false, 'status' => 'error', 'message' => $result['error']];
+        $data = json_decode((string)$result['body'], true);
+        if ($result['http'] !== 200 || !is_array($data)) {
+            $message = (string)($data['error']['message'] ?? ('Google respondió HTTP ' . $result['http']));
+            return ['ok' => false, 'status' => 'error', 'http' => $result['http'], 'message' => $message];
+        }
+        $rows = [];
+        $totals = ['clicks' => 0, 'impressions' => 0];
+        foreach (($data['rows'] ?? []) as $row) {
+            $keys = array_map('strval', (array)($row['keys'] ?? []));
+            $clicks = (int)($row['clicks'] ?? 0);
+            $impressions = (int)($row['impressions'] ?? 0);
+            $totals['clicks'] += $clicks;
+            $totals['impressions'] += $impressions;
+            $rows[] = [
+                'key' => $keys[0] ?? '',
+                'keys' => $keys,
+                'clicks' => $clicks,
+                'impressions' => $impressions,
+                'ctr' => round(((float)($row['ctr'] ?? 0)) * 100, 2),
+                'position' => round((float)($row['position'] ?? 0), 1),
+            ];
+        }
+        return [
+            'ok' => true,
+            'status' => 'ok',
+            'property' => $property,
+            'start' => $start,
+            'end' => $end,
+            'dimension' => $dimension,
+            'rows' => $rows,
+            'count' => count($rows),
+            'totals' => [
+                'clicks' => $totals['clicks'],
+                'impressions' => $totals['impressions'],
+                'ctr' => $totals['impressions'] > 0 ? round($totals['clicks'] / $totals['impressions'] * 100, 2) : 0,
+            ],
+        ];
+    }
+
     public function bingTest(): array
     {
         $key = $this->decrypt($this->setting('seo_bing_key'));

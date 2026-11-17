@@ -257,3 +257,14 @@ Implementado:
 - Las pruebas usan `?rum_test=1` y se guardan con `is_test=1`; no entran en el resumen.
 - Limitación: INP y CLS son aproximaciones del navegador; no sustituyen CrUX ni PageSpeed. PageSpeed sigue bloqueado por cuota 0/día del proyecto Google.
 
+---
+
+## 10. Google Search Console
+
+- Pestaña **Google** en el panel.
+- Endpoint admin `GET /api/v1/admin/seo-global-launch/gsc?days=28&dimension=query`.
+- `SeoIntegrationService::gscSearchAnalytics()` consulta Search Analytics: clics, impresiones, CTR y posición por consulta, página, país, dispositivo o fecha.
+- Requiere autorizar `sonika-search-console@titanium-web-468409-d8.iam.gserviceaccount.com` en Search Console → Configuración → Usuarios y permisos.
+- Si la propiedad es de tipo Dominio, configurar `sc-domain:sonika.com.co` en Integraciones; si es prefijo de URL, `https://sonika.com.co/`.
+- Sin acceso, la pestaña muestra el correo, el botón para abrir Search Console y un botón para reintentar; el resto del panel sigue funcionando.
+

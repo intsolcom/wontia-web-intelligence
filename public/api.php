@@ -763,6 +763,7 @@ $r->delete('/media/{id}/purge', [\App\Controllers\Admin\MediaController::class, 
     $r->get('/seo-global-launch/opportunities', [\App\Controllers\Admin\SeoGlobalLaunchController::class, 'opportunities']);
     $r->get('/seo-global-launch/daily', [\App\Controllers\Admin\SeoGlobalLaunchController::class, 'daily']);
     $r->get('/seo-global-launch/vitals', [\App\Controllers\Admin\SeoGlobalLaunchController::class, 'vitals']);
+    $r->get('/seo-global-launch/gsc', [\App\Controllers\Admin\SeoGlobalLaunchController::class, 'gsc']);
     $r->get('/seo-global-launch/live', [\App\Controllers\Admin\SeoGlobalLaunchController::class, 'live']);
     $r->get('/seo-global-launch/integrations', [\App\Controllers\Admin\SeoGlobalLaunchController::class, 'integrations']);
     $r->post('/seo-global-launch/integrations', [\App\Controllers\Admin\SeoGlobalLaunchController::class, 'saveIntegrations']);
