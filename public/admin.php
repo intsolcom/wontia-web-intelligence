@@ -11,6 +11,16 @@ Session::start();
 
 $loggedIn = Session::isLoggedIn();
 $user = Session::user();
+$__adminAssetVersion = is_file(__DIR__ . '/assets/js/admin.js') ? (string)filemtime(__DIR__ . '/assets/js/admin.js') : (string)time();
+if ($loggedIn && ($_GET['panel'] ?? '') === 'seo-global-launch' && isset($_GET['fresh']) && $_GET['fresh'] === '1') {
+    header('Clear-Site-Data: "cache"');
+    header('Location: /admin.php?panel=seo-global-launch&v=' . rawurlencode($__adminAssetVersion) . '&fresh=done#seo-global-launch/monitoreo', true, 302);
+    exit;
+}
+if ($loggedIn && ($_GET['panel'] ?? '') === 'seo-global-launch' && !isset($_GET['v'])) {
+    header('Location: /admin.php?panel=seo-global-launch&v=' . rawurlencode($__adminAssetVersion) . '#seo-global-launch/monitoreo', true, 302);
+    exit;
+}
 
 $ocEnabled = true;
 try {
@@ -244,6 +254,28 @@ endif;
             Bricks
             <span id="bh-badge" class="w-badge w-badge-published" style="display:none;margin-left:auto;font-size:10px;padding:2px 8px;border-radius:10px;background:linear-gradient(120deg,#22d3ee,#8b5cf6);color:#041018;font-weight:700">0</span>
         </a>
+        <?php if (in_array(($user['role'] ?? ''), ['superadmin', 'admin', 'editor'], true)): ?>
+        <a href="/admin.php?panel=seo-global-launch&amp;v=<?= urlencode($__adminAssetVersion) ?>#seo-global-launch/monitoreo" class="w-nav-item" data-panel="seo-global-launch">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35M8 11h6M11 8v6"/></svg>
+            SEO Global Intelligence
+        </a>
+        <a href="#tia-command-center" class="w-nav-item" data-panel="tia-command-center">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h10M4 17h7"/><path d="M18 14l3 3-3 3"/></svg>
+            TIA Command Center
+        </a>
+        <a href="#directory" class="w-nav-item" data-panel="directory">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+            Directorio
+        </a>
+        <a href="#toques" class="w-nav-item" data-panel="toques">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg>
+            Toques
+        </a>
+        <a href="#monas" class="w-nav-item" data-panel="monas">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+            Moñas
+        </a>
+        <?php endif; ?>
         <?php if (($user['role'] ?? '') === 'client'): ?>
         <a href="#portal" class="w-nav-item" data-panel="portal">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
@@ -254,6 +286,16 @@ endif;
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg>
             Tienda
         </a>
+        <?php if (in_array(($user['role'] ?? ''), ['superadmin', 'admin'], true)): ?>
+        <a href="#sistecredito" class="w-nav-item" data-panel="sistecredito">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h4"/></svg>
+            Sistecrédito
+        </a>
+        <a href="#mercadopago" class="w-nav-item" data-panel="mercadopago">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h4"/></svg>
+            Mercado Pago
+        </a>
+        <?php endif; ?>
         <?php if ($ocEnabled && in_array(($user['role'] ?? ''), ['superadmin', 'admin', 'editor'], true)): ?>
         <a href="#order-center" class="w-nav-item" data-panel="order-center">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
@@ -264,6 +306,14 @@ endif;
         <a href="/admin-pqrf.php" class="w-nav-item">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/><path d="M8 9h8M8 13h5"/></svg>
             PQRS / PQRF
+        </a>
+        <a href="/admin-breb.php" class="w-nav-item">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM19 19h2v2h-2z"/></svg>
+            Pagos Bre-B
+        </a>
+        <a href="/admin-quotes.php" class="w-nav-item">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M8 13h8M8 17h5"/></svg>
+            Cotizaciones
         </a>
         <?php endif; ?>
         <a href="#blog" class="w-nav-item" data-panel="blog">
