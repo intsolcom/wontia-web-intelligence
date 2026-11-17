@@ -16,6 +16,8 @@ CREATE TABLE IF NOT EXISTS store_product_reviews (
     verified_purchase TINYINT NOT NULL DEFAULT 0,
     helpful INT NOT NULL DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_review_customer (site_id, product_ref, customer_id),
     KEY idx_prod (site_id, product_ref, status),
     KEY idx_cust (site_id, customer_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

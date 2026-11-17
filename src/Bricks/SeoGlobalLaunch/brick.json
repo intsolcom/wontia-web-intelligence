@@ -1,8 +1,8 @@
 {
-    "name": "SEO Global Launch",
+    "name": "SEO Global Intelligence",
     "slug": "seo-global-launch",
-    "version": "1.0.0",
-    "description": "Motor SEO full-site de un clic: meta tags, JSON-LD, Open Graph, Twitter Cards, sitemap, robots, canonical, breadcrumbs, alt text, auditoria de contenido y auto-fix con IA. Extraido de marcasbpo.com y convertido en brick instalable en cualquier sitio del ecosistema WWI.",
+    "version": "3.0.0",
+    "description": "Centro de inteligencia comercial y SEO: analítica, adquisición, embudo, campañas Meta, Search Console, auditoría técnica, rendimiento, oportunidades y API de lectura. Evolución del Brick SEO Global Launch.",
     "author": "Wontia",
     "category": "seo",
     "brick_class": "App\\Bricks\\SeoGlobalLaunch\\SeoGlobalLaunchBrick",
@@ -18,7 +18,22 @@
         "scan_blog_posts": true,
         "audit_alt_text": true,
         "audit_word_count": true,
-        "audit_headings": true
+        "audit_headings": true,
+        "enable_sitemap": true,
+        "enable_robots": true,
+        "enable_canonical": true,
+        "enable_hreflang": true,
+        "enable_cache": true,
+        "sitemap_cache_ttl": 600,
+        "robots_disallow": "/admin/\n/api/\n/install.php",
+        "robots_allow": "",
+        "robots_crawl_delay": 0,
+        "enable_redirects": true,
+        "enable_404_monitor": true,
+        "enable_broken_links": true,
+        "broken_links_batch": 10,
+        "enable_live_monitor": true,
+        "live_monitor_retention_days": 90
     },
     "features": [
         "Scan SEO full-site con score 0-100 (meta, schema, OG, tecnico, contenido)",
@@ -29,12 +44,23 @@
         "Head tags renderizables (title, meta, OG, Twitter, canonical)",
         "Auditoria de contenido: alt text, word count, headings",
         "Tracker de bots (Googlebot, Bingbot, GPTBot, etc.) via access log",
+        "Monitor en vivo de peticiones HTTP con latencia, estado, IP, ciudad, dispositivo y navegador",
+        "Seguridad IP: país/ciudad/ASN, verificación DNS de bots, scoring de ataque, campañas distribuidas y bloqueo manual",
+        "Aislamiento de tráfico propio: sesión admin, dispositivo firmado (sustituto de MAC) y allowlist IP/CIDR",
+        "Sección Mi tráfico con solicitudes, eventos, motivos, dispositivos y reclasificación histórica",
+        "Reporte de pauta Meta: fbclid, UTM, campañas, landings, embudo, compras atribuidas y exportación CSV",
+        "Retención configurable del monitor (90 días por defecto) para comparativas 24 h / 7 d / 30 d",
         "Historial de scores por scan",
         "Multi-tenant: cada sitio WWI tiene su propio set de datos",
         "IA via capa BRICK de WWI (proveedores, politicas, costos) con fallback a DeepSeek"
     ],
     "tags": ["seo", "meta", "schema", "json-ld", "sitemap", "robots", "open-graph", "twitter-card", "audit", "ai", "autofix"],
     "changelog": {
-        "1.0.0": "Extraccion desde marcasbpo.com: scan, generate, autofix, deepfix, auditoria, bots tracker, multi-tenant, IA via BRICK"
+        "3.0.0": "SEO Global Intelligence: medición canónica, eventos GA4, deduplicación, sesión unificada, agregados diarios, prompts IA en español y evolución del panel.",
+        "1.0.0": "Extraccion desde marcasbpo.com: scan, generate, autofix, deepfix, auditoria, bots tracker, multi-tenant, IA via BRICK",
+        "2.0.0": "Fase 1 tecnica: sitemap por sitio, robots configurable, canonical/hreflang, cache multi-tenant y panel tecnico.",
+        "2.1.0": "Monitor en vivo: peticiones HTTP, respuestas, latencia, IP, ciudad, dispositivo, navegador y terminal en el panel SEO.",
+        "2.2.0": "Seguridad IP: inteligencia de país/ciudad/ASN, verificación de bots, detección de ataques y campañas distribuidas, bloqueo y desbloqueo.",
+        "2.3.0": "Tráfico propio aislado (admin + dispositivo firmado + IP/CIDR), sección Mi tráfico y reporte de pauta Meta con fbclid/UTM, atribución histórica, conversiones y CSV."
     }
 }

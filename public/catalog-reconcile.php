@@ -9,6 +9,10 @@ define('ROOT_DIR', dirname(__DIR__));
 require ROOT_DIR . '/vendor/autoload.php';
 
 \App\Core\Config::load();
+// Pipeline post-sync: importar productos nuevos y reconstruir la taxonomía
+// ANTES de analizar, para que el informe y el sitio usen el mismo mapa.
+try { (new \App\Services\CatalogProductService())->syncIfNeeded(); } catch (\Throwable $e) {}
+try { (new \App\Services\CatalogTaxonomyService())->syncIfNeeded(); } catch (\Throwable $e) {}
 $theme = 'default';
 try {
     $theme = (string)(\App\Core\Database::instance()->query("SELECT theme FROM sites WHERE id = @site_id")->fetchColumn() ?: 'default');

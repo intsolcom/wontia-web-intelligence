@@ -1,0 +1,32 @@
+{
+    "name": "Productos recomendados",
+    "slug": "recommended-products",
+    "version": "1.0.0",
+    "description": "Sugerencias de venta cruzada en el carrito, con combinaciones por familia de producto, descuento progresivo y panel de configuraci��n.",
+    "author": "Wontia",
+    "category": "ecommerce",
+    "brick_class": "App\\Bricks\\RecommendedProducts\\RecommendedProductsBrick",
+    "requires": {
+        "php": ">=8.1",
+        "extensions": ["json", "pdo", "mbstring"]
+    },
+    "config": {
+        "enabled": true,
+        "title": "Completa tu sonido",
+        "max": 3,
+        "discount_enabled": true
+    },
+    "features": [
+        "Sugerencias contextuales por familia de producto",
+        "Matriz de combinaciones para guitarra, bajo, piano, bater��a, audio y mǭs",
+        "Descuento progresivo 0,5% / 1% / 1,5% para los 3 primeros recomendados",
+        "Descuento unitario y ahorro total en verde olivo",
+        "Panel en Tienda - Configuraci��n debajo de la organizaci��n del catǭlogo",
+        "Reglas de inventario, duplicados y fallback",
+        "API pǧblica y cǭlculo autoritativo en el servidor"
+    ],
+    "tags": ["carrito", "cross-sell", "venta cruzada", "recomendados", "ecommerce", "descuentos"],
+    "changelog": {
+        "1.0.0": "Brick inicial con recomendaciones, panel, API y descuento progresivo"
+    }
+}

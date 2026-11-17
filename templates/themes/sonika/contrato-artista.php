@@ -1,8 +1,12 @@
 <?php
-$contract = (new \App\Services\ArtistContractService())->current();
-$acceptance = $contract ? (new \App\Services\ArtistContractService())->latestAcceptance((int)$affiliate['id'], (int)$contract['id']) : null;
+$contractSvc = new \App\Services\ArtistContractService();
+$contract = $contractSvc->current();
+$acceptance = $contract ? $contractSvc->latestAcceptance((int)$affiliate['id'], (int)$contract['id']) : null;
 $signed = !empty($acceptance['signature_image']);
 $signatureSrc = $signed ? (string)$acceptance['signature_image'] : '';
+$contractBody = $contract ? $contractSvc->bodyFor($affiliate) : 'Contrato no disponible.';
+$profileKey = (string)($affiliate['profile_category'] ?? 'natural');
+$profileLabel = \App\Services\AffiliateService::PROFILE_CATEGORIES[$profileKey] ?? 'Persona natural';
 ?>
 <section class="ac">
   <style>
@@ -41,25 +45,32 @@ $signatureSrc = $signed ? (string)$acceptance['signature_image'] : '';
     .ac__signed p{font-size:11.5px;line-height:1.6;color:#4b6359;margin:0}
     .ac__signed img{width:100%;max-height:110px;object-fit:contain;background:#fff;border:1px solid #c6f0dc;border-radius:9px;padding:6px}
     .ac__hash{font-family:ui-monospace,Menlo,monospace;font-size:9.5px;word-break:break-all;color:#6b7280;margin-top:6px}
+    .ac__history{margin-top:18px;background:#fff;border:1px solid #e5e0d8;border-radius:16px;padding:16px 18px}
+    .ac__history h2{font:800 16px Sora,Inter,system-ui,sans-serif;margin:0 0 10px;color:#111}
+    .ac__history table{width:100%;border-collapse:collapse;font-size:11.5px}
+    .ac__history th,.ac__history td{padding:7px 6px;border-top:1px solid #eee;text-align:left;vertical-align:top}
+    .ac__history th{color:#777;font-size:9.5px;text-transform:uppercase;letter-spacing:.05em}
+    .ac__history .is-current{color:#0d7a58;font-weight:800}
     .ac__back{display:inline-flex;margin-top:16px;color:#51607a;font-size:12px;font-weight:750;text-decoration:none}
     @media(max-width:650px){.ac{padding-top:20px}.ac__wrap{padding:0 14px}.ac__doc{padding:16px;max-height:48vh}.ac__sign{padding:16px}.ac__fields{grid-template-columns:1fr}.ac__signed{grid-template-columns:1fr}.ac__signed img{max-height:140px}}
   </style>
   <div class="ac__wrap">
     <div class="ac__head">
-      <div><span class="ac__eyebrow">SONIKA Partners</span><h1>Contrato del Partner</h1><div class="ac__meta">Versión <?= sonika_esc((string)($contract['version'] ?? '—')) ?> · <?= sonika_esc((string)($contract['effective_at'] ?? '')) ?><br>Intsolcom, LLC · Intsolcom S.A.S. · NIT 901749025-8</div></div>
+      <div><span class="ac__eyebrow">SONIKA Partners</span><h1>Contrato del Partner</h1><div class="ac__meta">Perfil: <b><?= sonika_esc($profileLabel) ?></b> · Versión <?= sonika_esc((string)($contract['version'] ?? '-')) ?> · <?= sonika_esc((string)($contract['effective_at'] ?? '')) ?><br>Intsolcom, LLC · Intsolcom S.A.S. · NIT 901749025-8</div></div>
       <span class="ac__status<?= $signed ? ' ac__status--ok' : '' ?>"><?= $signed ? 'Contrato firmado' : 'Firma pendiente' ?></span>
     </div>
     <div class="ac__card">
-      <article class="ac__doc"><?= nl2br(sonika_esc((string)($contract['body'] ?? 'Contrato no disponible.'))) ?></article>
+      <article class="ac__doc"><?= nl2br(sonika_esc($contractBody)) ?></article>
       <?php if ($signed): ?>
       <div class="ac__signed">
-        <div><b>Firma electrónica registrada</b><p><?= sonika_esc((string)($acceptance['signer_name'] ?? '')) ?> · <?= sonika_esc((string)($acceptance['signed_at'] ?? '')) ?><br>Documento: <?= sonika_esc((string)($acceptance['signer_document'] ?? '')) ?></p><div class="ac__hash">Contrato: <?= sonika_esc((string)($acceptance['contract_hash'] ?? '')) ?><br>Firma: <?= sonika_esc((string)($acceptance['signature_hash'] ?? '')) ?></div></div>
+        <div><b>Firma electrónica registrada</b><p><?= sonika_esc((string)($acceptance['signer_name'] ?? '')) ?> · <?= sonika_esc((string)($acceptance['signed_at'] ?? '')) ?><br>Documento: <?= sonika_esc((string)($acceptance['signer_document'] ?? '')) ?><br>Perfil: <?= sonika_esc(\App\Services\AffiliateService::PROFILE_CATEGORIES[(string)($acceptance['profile_category'] ?? $profileKey)] ?? $profileLabel) ?></p><div class="ac__hash">Contrato: <?= sonika_esc((string)($acceptance['contract_hash'] ?? '')) ?><br>Firma: <?= sonika_esc((string)($acceptance['signature_hash'] ?? '')) ?></div></div>
         <?php if (str_starts_with($signatureSrc, 'data:image/png;base64,')): ?><img src="<?= sonika_esc($signatureSrc) ?>" alt="Firma del artista" /><?php endif; ?>
       </div>
       <?php else: ?>
       <div class="ac__sign">
         <h2>Firma para aceptar</h2>
         <p>Lee el contrato completo. Después escribe tu nombre y documento, firma con el dedo en el móvil o con el mouse en el computador y confirma la aceptación.</p>
+        <p>Este contrato es el mismo para todos los perfiles. Al firmar se registrará tu perfil: <b><?= sonika_esc($profileLabel) ?></b>.</p>
         <form id="artistContractForm" novalidate>
           <div class="ac__fields"><label>Nombre completo<input id="acName" value="<?= sonika_esc((string)($affiliate['full_name'] ?? '')) ?>" autocomplete="name" required /></label><label>Documento<input id="acDocument" value="<?= sonika_esc((string)($affiliate['doc_number'] ?? '')) ?>" inputmode="numeric" required /></label></div>
           <div class="ac__pad-wrap"><canvas id="acSignature" class="ac__pad" aria-label="Área para firmar"></canvas><div class="ac__pad-actions"><span class="ac__hint">Firma dentro del recuadro. Puedes usar el dedo o el mouse.</span><button type="button" class="ac__clear" id="acClear">Limpiar firma</button></div></div>
@@ -70,6 +81,27 @@ $signatureSrc = $signed ? (string)$acceptance['signature_image'] : '';
       </div>
       <?php endif; ?>
     </div>
+    <?php $history = $contractSvc->historyFor((int)$affiliate['id']); ?>
+    <?php if ($history): ?>
+    <div class="ac__history">
+      <h2>Historial de versiones</h2>
+      <table>
+        <thead><tr><th>Versión</th><th>Vigencia</th><th>Estado</th><th>Perfil</th><th>Firma</th></tr></thead>
+        <tbody>
+        <?php foreach ($history as $h): $signedH = !empty($h['signed_at']); $profileH = $signedH ? (\App\Services\AffiliateService::PROFILE_CATEGORIES[(string)($h['profile_category'] ?? 'natural')] ?? 'Persona natural') : '—'; ?>
+          <tr>
+            <td class="<?= (string)$h['version'] === (string)($contract['version'] ?? '') ? 'is-current' : '' ?>">v<?= sonika_esc((string)$h['version']) ?></td>
+            <td><?= sonika_esc((string)($h['effective_at'] ?? '—')) ?></td>
+            <td><?= $signedH ? 'Firmado' : 'Pendiente' ?></td>
+            <td><?= sonika_esc($profileH) ?></td>
+            <td><?= $signedH ? sonika_esc((string)($h['signed_at'] ?? '—')) : '—' ?></td>
+          </tr>
+        <?php endforeach; ?>
+        </tbody>
+      </table>
+      <p class="sp__note" style="margin:8px 0 0;color:#777;font-size:10.5px">El contrato vigente es la versión <?= sonika_esc((string)($contract['version'] ?? '—')) ?>. Las versiones anteriores se conservan como evidencia.</p>
+    </div>
+    <?php endif; ?>
     <a class="ac__back" href="/artista/<?= sonika_esc((string)($affiliate['slug'] ?? '')) ?>/panel">← Volver a Mi cuenta Partner SONIKA</a>
   </div>
   <script>

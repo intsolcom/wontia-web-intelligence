@@ -114,8 +114,8 @@ class FavoritesAlertService
             ];
         }
         try {
-            $st = $db->prepare('SELECT price_cents, stock, name, slug FROM store_products WHERE site_id = @site_id AND (slug = ? OR id = ?) LIMIT 1');
-            $st->execute([$ref, (int)$ref]);
+            $st = $db->prepare('SELECT price_cents, stock, name, slug FROM store_products WHERE site_id = @site_id AND (slug = ? OR catalog_handle = ? OR id = ?) LIMIT 1');
+            $st->execute([$ref, $ref, (int)$ref]);
             $row = $st->fetch();
             if ($row) {
                 return [

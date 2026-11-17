@@ -1,0 +1,24 @@
+.skdlg{position:fixed;inset:0;z-index:99999;display:grid;place-items:center;padding:18px;font-family:Inter,system-ui,sans-serif}
+.skdlg__backdrop{position:absolute;inset:0;background:rgba(12,16,24,.58);backdrop-filter:blur(5px);animation:skdlgFade .18s ease-out}
+.skdlg__panel{position:relative;width:min(430px,100%);background:#fff;border:1px solid #e5e7eb;border-radius:18px;box-shadow:0 28px 80px rgba(0,0,0,.24);padding:22px 22px 18px;color:#111;animation:skdlgIn .2s ease-out}
+.skdlg__brand{display:flex;align-items:center;gap:9px;margin-bottom:18px;color:#111;font-size:14px;font-weight:1000;letter-spacing:.13em}
+.skdlg__brand small{display:block;margin-top:2px;color:#7a7f87;font-size:8px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.skdlg__mark{width:31px;height:31px;border-radius:9px;background:#F20D16;color:#fff;display:grid;place-items:center;font-size:17px;font-weight:1000;letter-spacing:-.08em;box-shadow:0 7px 16px rgba(242,13,22,.25)}
+.skdlg__close{position:absolute;right:12px;top:12px;border:0;background:#f4f5f6;color:#6b7280;width:30px;height:30px;border-radius:50%;font:inherit;font-size:20px;line-height:1;cursor:pointer}
+.skdlg__close:hover{background:#eceef1;color:#111}
+.skdlg__title{margin:0 0 8px;font-size:20px;line-height:1.25;letter-spacing:-.03em;color:#111}
+.skdlg__message{margin:0;color:#5f6670;font-size:13px;line-height:1.6;white-space:pre-wrap}
+.skdlg__input{display:block;width:100%;margin-top:14px;padding:11px 12px;border:1px solid #d9dde3;border-radius:9px;font:inherit;font-size:14px;color:#111;outline:none}
+.skdlg__input:focus{border-color:#F20D16;box-shadow:0 0 0 3px rgba(242,13,22,.10)}
+.skdlg__actions{display:flex;justify-content:flex-end;gap:8px;margin-top:20px}
+.skdlg__btn{min-height:40px;padding:9px 14px;border-radius:9px;border:1px solid #d9dde3;background:#fff;color:#374151;font:inherit;font-size:12px;font-weight:800;cursor:pointer}
+.skdlg__btn:hover{background:#f8f9fa}
+.skdlg__btn--ok{background:#111;border-color:#111;color:#fff}
+.skdlg__btn--ok:hover{background:#2c2c2c}
+.skdlg--danger .skdlg__btn--ok{background:#c91622;border-color:#c91622}
+.skdlg--danger .skdlg__btn--ok:hover{background:#a80f1a}
+.skdlg .skdlg__btn:focus-visible,.skdlg__close:focus-visible{outline:3px solid rgba(242,13,22,.25);outline-offset:2px}
+.skdlg.is-closing{opacity:0;transition:opacity .15s}
+@keyframes skdlgIn{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:none}}
+@keyframes skdlgFade{from{opacity:0}to{opacity:1}}
+@media(max-width:480px){.skdlg{padding:12px}.skdlg__panel{padding:19px 17px 15px;border-radius:15px}.skdlg__actions{display:grid;grid-template-columns:1fr 1fr}.skdlg__btn{width:100%}}

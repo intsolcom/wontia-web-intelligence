@@ -1,4 +1,4 @@
--- SONIKA Artist Partners — Fase 1 (modelo de datos, modo simulación). Idempotente.
+-- SONIKA Partners — Fase 1 (modelo de datos, modo simulación). Idempotente.
 CREATE TABLE IF NOT EXISTS affiliate_profiles (
   id INT AUTO_INCREMENT PRIMARY KEY,
   site_id INT NOT NULL,

@@ -1,5 +1,5 @@
 # SONIKA VIBE — Manual de voz + diccionario + mapa de etiquetas + plan
-> Módulo de identidad cultural y UX writing para **SONIKA Artist Partners** y **SONIKA Sound League**.
+> Módulo de identidad cultural y UX writing para **SONIKA Partners** y **SONIKA Sound League**.
 > PEDS v1.0 · SDD/FID. Los identificadores internos (código, API, DB) **no cambian**.
 
 ## 1. Auditoría del sistema actual (Fase 0)

@@ -177,6 +177,8 @@ if (!function_exists('sonika_store_local')) {
                     'vendor' => (string)($r['vendor'] ?? ''),
                     'product_type' => $pt,
                     'body_html' => sonika_strip_miche_domain((string)($r['description'] ?? '')),
+                    '_seo_title' => trim((string)($r['seo_title'] ?? '')),
+                    '_seo_description' => trim((string)($r['seo_description'] ?? '')),
                     'published_at' => (string)($r['created_at'] ?? ''),
                     'images' => array_map(fn($u) => ['src' => $u], $imgs),
                     'tags' => $tags,
@@ -186,6 +188,14 @@ if (!function_exists('sonika_store_local')) {
                     '_catalog_handle' => (string)($r['catalog_handle'] ?? ''),
                     '_source' => (string)($r['source'] ?? 'local'),
                     '_local' => true,
+                    'free_shipping' => (int)($r['free_shipping'] ?? 0),
+                    'tax_exempt' => (int)($r['tax_exempt'] ?? 0),
+                    'visibility' => (string)($r['visibility'] ?? 'public'),
+                    'allowed_ips' => (string)($r['allowed_ips'] ?? ''),
+                    '_free_shipping' => (int)($r['free_shipping'] ?? 0),
+                    '_tax_exempt' => (int)($r['tax_exempt'] ?? 0),
+                    '_visibility' => (string)($r['visibility'] ?? 'public'),
+                    '_allowed_ips' => (string)($r['allowed_ips'] ?? ''),
                 ];
             }
         } catch (\Throwable $e) {
@@ -235,8 +245,9 @@ if (!function_exists('sonika_products')) {
             unset($product);
             return $products;
         };
+        $visible = static fn(array $products): array => array_values(array_filter($products, static fn($p) => \App\Services\IpAccessService::canViewProduct((array)$p)));
         $local = function_exists('sonika_store_local') ? sonika_store_local() : [];
-        if (!$local) return $cached = $normalizeVendors($ps);
+        if (!$local) return $cached = $visible($normalizeVendors($ps));
         $byHandle = [];
         foreach ($local as $p) {
             $key = trim((string)($p['_catalog_handle'] ?? '')) ?: (string)($p['handle'] ?? '');
@@ -251,6 +262,8 @@ if (!function_exists('sonika_products')) {
             $l = $byHandle[$handle];
             $used[$handle] = true;
             if (($l['status'] ?? 'draft') !== 'active') continue;
+            $p['handle'] = trim((string)($l['handle'] ?? '')) ?: $handle;
+            $p['_catalog_handle'] = (string)($l['_catalog_handle'] ?? '') ?: $handle;
             $p['title'] = trim((string)($l['title'] ?? '')) ?: (string)($p['title'] ?? '');
             $p['vendor'] = trim((string)($l['vendor'] ?? '')) ?: (string)($p['vendor'] ?? '');
             $p['product_type'] = trim((string)($l['product_type'] ?? '')) ?: (string)($p['product_type'] ?? '');
@@ -260,6 +273,14 @@ if (!function_exists('sonika_products')) {
             if (!empty($l['variants'][0])) $p['variants'][0] = $l['variants'][0];
             $p['_local'] = true;
             $p['_featured'] = (int)($l['_featured'] ?? 0);
+            $p['free_shipping'] = (int)($l['free_shipping'] ?? 0);
+            $p['_free_shipping'] = (int)($l['free_shipping'] ?? 0);
+            $p['tax_exempt'] = (int)($l['tax_exempt'] ?? 0);
+            $p['_tax_exempt'] = (int)($l['tax_exempt'] ?? 0);
+            $p['visibility'] = (string)($l['visibility'] ?? 'public');
+            $p['_visibility'] = (string)($l['visibility'] ?? 'public');
+            $p['allowed_ips'] = (string)($l['allowed_ips'] ?? '');
+            $p['_allowed_ips'] = (string)($l['allowed_ips'] ?? '');
             $out[] = $p;
         }
         $extras = [];
@@ -268,12 +289,38 @@ if (!function_exists('sonika_products')) {
             if ($key !== '' && isset($used[$key])) continue;
             if (($p['status'] ?? 'draft') === 'active') $extras[] = $p;
         }
-        return $cached = $normalizeVendors(array_merge($extras, $out));
+        return $cached = $visible($normalizeVendors(array_merge($extras, $out)));
     }
 }
 if (!function_exists('sonika_find')) {
     function sonika_find(string $handle): ?array {
         foreach (sonika_products() as $p) { if (($p['handle'] ?? '') === $handle) return $p; }
+        return null;
+    }
+}
+if (!function_exists('sonika_normalize_handle')) {
+    function sonika_normalize_handle(string $s): string {
+        $s = trim($s);
+        if ($s === '') return '';
+        if (function_exists('iconv')) {
+            $t = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $s);
+            if (is_string($t) && trim($t) !== '') $s = $t;
+        }
+        $s = strtolower($s);
+        $s = preg_replace('/[^a-z0-9]+/', '-', $s) ?? '';
+        return trim($s, '-');
+    }
+}
+if (!function_exists('sonika_find_fuzzy')) {
+    /** Busca un producto aunque el slug tenga espacios, mayúsculas o acentos. */
+    function sonika_find_fuzzy(string $handle): ?array {
+        $needle = sonika_normalize_handle($handle);
+        if ($needle === '') return null;
+        foreach (sonika_products() as $p) {
+            $h = (string)($p['handle'] ?? '');
+            if ($h === '') continue;
+            if (sonika_normalize_handle($h) === $needle) return $p;
+        }
         return null;
     }
 }
@@ -295,24 +342,125 @@ if (!function_exists('sonika_img')) {
         return $src ? $src . (str_contains($src, '?') ? '&' : '?') . 'width=' . $w : '';
     }
 }
+if (!function_exists('sonika_taxonomy')) {
+    /** Servicio único de taxonomía (o null si el despliegue aún no lo tiene). */
+    function sonika_taxonomy(): ?\App\Services\CatalogTaxonomyService {
+        static $svc = null;
+        static $checked = false;
+        if (!$checked) {
+            $checked = true;
+            if (class_exists('\\App\\Services\\CatalogTaxonomyService')) $svc = new \App\Services\CatalogTaxonomyService();
+        }
+        return $svc;
+    }
+}
 if (!function_exists('sonika_categories')) {
+    /** Categorías padre canónicas (Cuerdas, Percusión, Vientos...). */
     function sonika_categories(): array {
-        return [
-            ['slug' => 'percusion',     'name' => 'Percusión',   'icon' => 'drum', 'tags' => 'Baterías · Redoblantes · Cajones', 'kw' => ['PERCUS','BATER','REDOBL','PLATILL','CONGA','BONGO','DJEMBE','CAJON','CAJA','TIMBAL','MARAC','CAMPAN','PANDER','TAMBOR','GUIRO','CLAVE','CASTAN','XILOF','METALOF','PARCHE','BAQUETA','SHAKER','GUACHE']],
-            ['slug' => 'guitarras',     'name' => 'Cuerdas',     'icon' => 'guitar', 'tags' => 'Guitarras · Bajos · Ukeleles',    'kw' => ['GUITAR','BAJO','UKELELE','VIOLIN','VIOLA','VIOLONCHELO','CUERDA','PICK','CORREA','CAPODASTRO','ENCOR','PUENTE','CLAVIJERO']],
-            ['slug' => 'acordeon',      'name' => 'Vientos',     'icon' => 'accordion', 'tags' => 'Acordeones · Saxos · Trompetas','kw' => ['ACORDE','ARMONICA','CLARINET','FLAUTA','GAITA','MELODICA','SAXOF','SAX','TROMB','TROMPET','CORNO','OBOE','FAGOT','OCARINA']],
-            ['slug' => 'pianos',        'name' => 'Teclados',    'icon' => 'piano', 'tags' => 'Pianos · Sintetizadores',        'kw' => ['PIANO','TECLADO','SYNTH','SINTETIZ','CONTROLADOR','CASIO','CELVIANO','PRIVIA']],
-            ['slug' => 'amplificadores', 'name' => 'Audio',       'icon' => 'speaker', 'tags' => 'Amplificadores · Mixers · Parlantes','kw' => ['AMPLIF','CABINA','MIXER','PARLANT','PLANTA','PROCESAD','INTERFAZ','INTERFACE','MONITOR','AUDIFONO','CONSOLA','POTENCIA','CROSSOVER','ECUALIZ','DI ']],
-            ['slug' => 'microfono-miche', 'name' => 'Micrófonos', 'icon' => 'mic', 'tags' => 'Shure · Inalámbricos',          'kw' => ['MICROFON','MICRO','SHURE','INALAMBR']],
-            ['slug' => 'cabeza-movil',  'name' => 'Iluminación',  'icon' => 'light', 'tags' => 'Cabezas móviles · Par LED',     'kw' => ['CABEZA','PAR LED','PARLED','LED','HUMO','TRUSS','TENSOR','DIMMER','STROBO','MOVIL','LUZ','LUCE','BLINDER','REFLECTOR']],
-            ['slug' => 'cuerdas-guitarras', 'name' => 'Accesorios','icon' => 'box', 'tags' => 'Cuerdas · Correas · Forros',   'kw' => ['FORRO','FUNDA','SOPORTE','STAND','SILLA','ATRIL','RACK','CLAMP','CABLE','ACOPLE','LIMPIADOR','PROTECT','EMPUNADURA','AFINADOR','SORDINA','SLIDE','BANQUETA']],
+        static $cached = null;
+        if ($cached !== null) return $cached;
+        $svc = sonika_taxonomy();
+        if ($svc) {
+            $out = [];
+            foreach ($svc->topLevel() as $top) {
+                $top['url'] = '/' . $top['path'];
+                $top['children'] = $svc->children($top['key']);
+                $out[] = $top;
+            }
+            return $cached = $out;
+        }
+        return $cached = [
+            ['slug' => 'percusion',   'path' => 'percusion',   'name' => 'Percusión',   'icon' => 'drum',      'tags' => 'Baterías · Platillos · Congas · Parches', 'kw' => ['PERCUS','BATER','REDOBL','PLATILL','CONGA','BONGO','DJEMBE','CAJON','CAJA','TIMBAL','MARAC','CAMPAN','PANDER','TAMBOR','GUIRO','CLAVE','CASTAN','XILOF','METALOF','PARCHE','BAQUETA','SHAKER','GUACHE'], 'url' => '/percusion', 'children' => []],
+            ['slug' => 'cuerdas',     'path' => 'cuerdas',     'name' => 'Cuerdas',     'icon' => 'guitar',    'tags' => 'Guitarras · Bajos · Ukeleles · Violines',     'kw' => ['GUITAR','BAJO','BASS','UKELELE','VIOLIN','VIOLA','VIOLONCHELO','CONTRABAJO','ARPA','CUATRO','TIPLE','ENCORDADO','CUERDA'], 'url' => '/cuerdas', 'children' => []],
+            ['slug' => 'vientos',     'path' => 'vientos',     'name' => 'Vientos',     'icon' => 'accordion', 'tags' => 'Acordeones · Saxos · Trompetas · Flautas',    'kw' => ['ACORDE','ARMONICA','CLARINET','FLAUTA','GAITA','MELODICA','SAXOF','TROMB','TROMPET','CORNO','OBOE','FAGOT','OCARINA','BOQUILLA','CAÑA'], 'url' => '/vientos', 'children' => []],
+            ['slug' => 'teclados',    'path' => 'teclados',    'name' => 'Teclados',    'icon' => 'piano',     'tags' => 'Pianos · Sintetizadores · Controladores',     'kw' => ['PIANO','TECLADO','SYNTH','SINTETIZ','CONTROLADOR','MIDI','PAD','CASIO','CELVIANO','PRIVIA'], 'url' => '/teclados', 'children' => []],
+            ['slug' => 'audio',       'path' => 'audio',       'name' => 'Audio',       'icon' => 'speaker',   'tags' => 'Amplificadores · Cabinas · Mixers · Audífonos', 'kw' => ['AMPLIF','CABINA','MIXER','PARLANT','PLANTA','PROCESAD','INTERFAZ','INTERFACE','MONITOR','AUDIFONO','CONSOLA','POTENCIA','CROSSOVER','ECUALIZ','DI ','SPEAKER','TOCADISCOS','REPRODUCTOR'], 'url' => '/audio', 'children' => []],
+            ['slug' => 'microfonos',  'path' => 'microfonos',  'name' => 'Micrófonos',  'icon' => 'mic',       'tags' => 'Dinámicos · Condensador · Inalámbricos',       'kw' => ['MICROFON','MICRO','SHURE','INALAMBR','CONDENSADOR','DINAMICO'], 'url' => '/microfonos', 'children' => []],
+            ['slug' => 'iluminacion', 'path' => 'iluminacion', 'name' => 'Iluminación', 'icon' => 'light',     'tags' => 'Cabezas móviles · Par LED · Truss · Láseres', 'kw' => ['CABEZA','PAR LED','PARLED','LED','HUMO','TRUSS','TENSOR','DIMMER','STROBO','MOVIL','LUZ','LUCE','BLINDER','REFLECTOR','LASER'], 'url' => '/iluminacion', 'children' => []],
+            ['slug' => 'accesorios',  'path' => 'accesorios',  'name' => 'Accesorios',  'icon' => 'box',       'tags' => 'Soportes · Correas · Forros · Cables · Picks', 'kw' => ['FORRO','FUNDA','SOPORTE','STAND','SILLA','ATRIL','RACK','CLAMP','CABLE','ACOPLE','LIMPIADOR','PROTECT','EMPUNADURA','AFINADOR','SORDINA','SLIDE','BANQUETA','CORREA','PICK','CAPODASTRO','REPUESTO','PEDAL','KIT','BAQUETERO','CLAVIJERO'], 'url' => '/accesorios', 'children' => []],
         ];
     }
 }
 if (!function_exists('sonika_category')) {
+    /** Categoría por path (`cuerdas/guitarras/electricas`), alias legacy (`guitarras`) o slug único. */
     function sonika_category(string $slug): ?array {
-        foreach (sonika_categories() as $c) { if ($c['slug'] === $slug) return $c; }
+        $slug = trim(str_replace('\\', '/', $slug), '/');
+        if ($slug === '') return null;
+        $svc = sonika_taxonomy();
+        if ($svc) {
+            $node = $svc->find($slug);
+            if ($node) {
+                $node['children'] = $svc->children($node['key']);
+                return $node;
+            }
+        }
+        foreach (sonika_categories() as $c) {
+            if ((string)$c['slug'] === $slug) return $c;
+        }
         return null;
+    }
+}
+if (!function_exists('sonika_category_url')) {
+    function sonika_category_url(string $slug): string {
+        $cat = sonika_category($slug);
+        return $cat ? (string)$cat['url'] : '/' . ltrim($slug, '/');
+    }
+}
+if (!function_exists('sonika_category_keys')) {
+    /** Paths del nodo y sus descendientes (cacheado por request). */
+    function sonika_category_keys(string $key): array {
+        static $cache = [];
+        if (isset($cache[$key])) return $cache[$key];
+        $svc = sonika_taxonomy();
+        return $cache[$key] = $svc ? $svc->descendants($key) : [$key];
+    }
+}
+if (!function_exists('sonika_product_taxonomy')) {
+    function sonika_product_taxonomy(array $p): array {
+        $svc = sonika_taxonomy();
+        return $svc ? $svc->forProduct($p) : [];
+    }
+}
+if (!function_exists('sonika_product_in_category')) {
+    function sonika_product_in_category(array $p, string $key): bool {
+        $keys = sonika_category_keys($key);
+        if (!$keys) return false;
+        $set = array_fill_keys($keys, true);
+        $svc = sonika_taxonomy();
+        if (!$svc) {
+            $legacy = function_exists('sonika_legacy_slug') ? sonika_legacy_slug((string)sonika_effective_category($p)) : '';
+            return $legacy !== '' && isset($set[$legacy]);
+        }
+        foreach ($svc->productKeys($p) as $pk) {
+            if (isset($set[$pk])) return true;
+        }
+        return false;
+    }
+}
+if (!function_exists('sonika_category_ancestors')) {
+    function sonika_category_ancestors(string $slug): array {
+        $cat = sonika_category($slug);
+        $svc = sonika_taxonomy();
+        if (!$cat || !$svc) return [];
+        return $svc->ancestors((string)$cat['key']);
+    }
+}
+if (!function_exists('sonika_category_count')) {
+    function sonika_category_count(string $slug): int {
+        static $cache = [];
+        $cat = sonika_category($slug);
+        $svc = sonika_taxonomy();
+        if (!$cat || !$svc) return 0;
+        $key = (string)$cat['key'];
+        if (isset($cache[$key])) return $cache[$key];
+        $set = array_fill_keys($svc->descendants($key), true);
+        $n = 0;
+        foreach (sonika_products() as $p) {
+            foreach ($svc->productKeys($p) as $pk) {
+                if (isset($set[$pk])) { $n++; break; }
+            }
+        }
+        return $cache[$key] = $n;
     }
 }
 if (!function_exists('sonika_icon')) {
@@ -414,9 +562,14 @@ if (!function_exists('sonika_category_images')) {
     /** Lista de imágenes de la categoría: config (varias por slug) o la mejor del catálogo según el auditor. */
     function sonika_category_images(string $slug, int $w = 700): array {
         $cfg = [];
+        $alias = ['guitarras' => 'cuerdas', 'acordeon' => 'vientos', 'pianos' => 'teclados', 'amplificadores' => 'audio', 'microfono-miche' => 'microfonos', 'cabeza-movil' => 'iluminacion', 'cuerdas-guitarras' => 'accesorios'];
+        $want = $alias[strtolower(trim($slug))] ?? strtolower(trim($slug));
         $rows = function_exists('wwi_tc') ? (array)wwi_tc('sonika', 'home_cat_images', []) : [];
         foreach ($rows as $r) {
-            if (!is_array($r) || strtolower(trim((string)($r['slug'] ?? ''))) !== strtolower($slug)) continue;
+            if (!is_array($r)) continue;
+            $rowSlug = strtolower(trim((string)($r['slug'] ?? '')));
+            $rowSlug = $alias[$rowSlug] ?? $rowSlug;
+            if ($rowSlug !== $want) continue;
             $v = trim((string)($r['image'] ?? ''));
             if ($v === '') continue;
             if (str_starts_with($v, 'http') || str_starts_with($v, '/')) { $cfg[] = $v; continue; }
@@ -730,46 +883,39 @@ if (!function_exists('sonika_products_effective')) {
     }
 }
 if (!function_exists('sonika_guitar_subs')) {
-    /** Subcategorías CURADAS de "Cuerdas" (híbrida: lista curada + tags reales del catálogo). */
+    /** Subcategorías reales de Cuerdas > Guitarras. */
     function sonika_guitar_subs(): array {
-        return [
-            ['slug' => 'electricas',       'name' => 'Guitarras Eléctricas', 'tipos' => ['electrica', 'guitarra electrica'], 'labels' => 'Eléctrica · Guitarra Eléctrica'],
-            ['slug' => 'electroacusticas', 'name' => 'Electroacústicas',     'tipos' => ['electroacustica'],                  'labels' => 'Electroacústica'],
-            ['slug' => 'acusticas',        'name' => 'Acústicas',            'tipos' => ['acustica', 'guitarra acustica'],    'labels' => 'Acústica'],
-            ['slug' => 'clasicas',         'name' => 'Clásicas',             'tipos' => ['guitarra clasica', 'clasica'],      'labels' => 'Guitarra Clásica'],
-            ['slug' => 'bajos',            'name' => 'Bajos',                'tipos' => ['bajo', 'bajo electrico'],           'labels' => 'Bajo · Bajo Eléctrico'],
-        ];
+        $svc = sonika_taxonomy();
+        $out = [];
+        if ($svc) {
+            foreach ($svc->children('cuerdas/guitarras') as $child) {
+                $out[] = [
+                    'slug' => (string)$child['slug'],
+                    'path' => (string)$child['path'],
+                    'url' => (string)$child['url'],
+                    'name' => (string)$child['name'],
+                    'tipos' => [],
+                    'labels' => (string)$child['name'],
+                ];
+            }
+        }
+        return $out;
     }
 }
 if (!function_exists('sonika_guitar_sub_of')) {
-    /** Subcategoría curada de un producto (por tags de Tipo + respaldo por título), o '' si no aplica. */
+    /** Subcategoría de guitarra (slug local: electricas, acusticas...), o '' si no es guitarra. */
     function sonika_guitar_sub_of(array $p): string {
-        $types = [];
-        foreach ((array)($p['tags'] ?? []) as $tg) {
-            if (!is_string($tg)) continue;
-            if (preg_match('/^2\)\s*[^_]+_(.+)$/u', trim($tg), $m)) $types[] = sonika_fold(trim($m[1]));
-        }
-        if ($types) {
-            $bySlug = [];
-            foreach (sonika_guitar_subs() as $sub) $bySlug[$sub['slug']] = $sub;
-            foreach (['clasicas', 'electricas', 'electroacusticas', 'acusticas', 'bajos'] as $pslug) {
-                if (empty($bySlug[$pslug])) continue;
-                foreach ($bySlug[$pslug]['tipos'] as $t) { if (in_array($t, $types, true)) return $pslug; }
-            }
-        }
-        $hay = strtoupper((string)($p['title'] ?? '') . ' ' . (string)($p['product_type'] ?? ''));
-        if (str_contains($hay, 'ELECTRIC') && str_contains($hay, 'GUITARRA')) return 'electricas';
-        if (str_contains($hay, 'ELECTROACUST')) return 'electroacusticas';
-        if (str_contains($hay, 'CLASIC')) return 'clasicas';
-        if (str_contains($hay, 'ACUSTIC')) return 'acusticas';
-        if (str_contains($hay, 'BAJO') || str_contains($hay, 'BASS')) return 'bajos';
+        $tx = sonika_product_taxonomy($p);
+        $type = (string)($tx['type'] ?? '');
+        $prefix = 'cuerdas/guitarras/';
+        if (str_starts_with($type, $prefix)) return substr($type, strlen($prefix));
         return '';
     }
 }
 if (!function_exists('sonika_guitar_subs_used')) {
-    /** Subcategorías curadas con su conteo real (indexado padre→hija). */
+    /** Subcategorías de guitarra con conteo real e imagen. */
     function sonika_guitar_subs_used(?array $products = null): array {
-        $products = $products ?? sonika_category_products('guitarras');
+        $products = $products ?? sonika_category_products('cuerdas/guitarras');
         $counts = [];
         $img = [];
         foreach ($products as $p) {
@@ -780,7 +926,11 @@ if (!function_exists('sonika_guitar_subs_used')) {
             }
         }
         $out = [];
-        foreach (sonika_guitar_subs() as $sub) { $sub['count'] = $counts[$sub['slug']] ?? 0; $sub['thumb'] = $img[$sub['slug']] ?? ''; $out[] = $sub; }
+        foreach (sonika_guitar_subs() as $sub) {
+            $sub['count'] = $counts[$sub['slug']] ?? 0;
+            $sub['thumb'] = $img[$sub['slug']] ?? '';
+            $out[] = $sub;
+        }
         return $out;
     }
 }
@@ -788,19 +938,30 @@ if (!function_exists('sonika_category_products')) {
     function sonika_category_products(string $slug, string $sub = ''): array {
         $cat = sonika_category($slug);
         if (!$cat) return [];
+        $svc = sonika_taxonomy();
+        if ($svc) {
+            $rootKey = (string)$cat['key'];
+            if ($sub !== '') {
+                $subNode = $svc->find($sub);
+                if ($subNode) $rootKey = (string)$subNode['key'];
+            }
+            $set = array_fill_keys($svc->descendants($rootKey), true);
+            $out = [];
+            foreach (sonika_products() as $p) {
+                foreach ($svc->productKeys($p) as $pk) {
+                    if (isset($set[$pk])) { $out[] = $p; break; }
+                }
+            }
+            return $out;
+        }
+        // Fallback legacy (solo si el servicio de taxonomía no está disponible).
         $out = [];
         foreach (sonika_products() as $p) {
             $tagCat = sonika_effective_category($p);
             if ($tagCat !== '') {
                 if (sonika_legacy_slug($tagCat) === $slug) $out[] = $p;
             } elseif (sonika_match($p, $cat['kw'])) {
-                $out[] = $p; // respaldo: sin tag ni override
-            }
-        }
-        if ($sub !== '' && $slug === 'guitarras') {
-            $valid = array_column(sonika_guitar_subs(), 'slug');
-            if (in_array($sub, $valid, true)) {
-                $out = array_values(array_filter($out, fn($p) => sonika_guitar_sub_of($p) === $sub));
+                $out[] = $p;
             }
         }
         return $out;
@@ -1081,7 +1242,14 @@ if (!function_exists('sonika_show_sales_for_product')) {
         $selected = (array)($config['sales_categories'] ?? []);
         if (!$selected) return true;
         foreach (sonika_categories() as $category) {
-            if (!in_array((string)$category['slug'], $selected, true)) continue;
+            $isSelected = in_array((string)$category['slug'], $selected, true);
+            if (!$isSelected) {
+                foreach ($selected as $sel) {
+                    $selCat = sonika_category((string)$sel);
+                    if ($selCat && (string)$selCat['key'] === (string)$category['key']) { $isSelected = true; break; }
+                }
+            }
+            if (!$isSelected) continue;
             if (sonika_match($p, (array)($category['kw'] ?? []))) return true;
         }
         return false;
@@ -1258,8 +1426,7 @@ if (!function_exists('sonika_filter_collection')) {
                 $ok = false;
                 foreach ($cats as $cs) {
                     $c = sonika_category($cs); if (!$c) continue;
-                    $tag = function_exists('sonika_legacy_slug') ? sonika_legacy_slug((string)sonika_effective_category($p)) : '';
-                    if ($tag === $cs || ($tag === '' && sonika_match($p, $c['kw']))) { $ok = true; break; }
+                    if (sonika_product_in_category($p, (string)$c['key'])) { $ok = true; break; }
                 }
                 if (!$ok) return false;
             }
@@ -1372,10 +1539,9 @@ if (!function_exists('sonika_shop_filter_data')) {
             foreach (sonika_categories() as $cat) {
                 $count = 0;
                 foreach ($products as $p) {
-                    $tag = function_exists('sonika_legacy_slug') ? sonika_legacy_slug((string)sonika_effective_category($p)) : '';
-                    if ($tag === $cat['slug'] || ($tag === '' && sonika_match($p, $cat['kw']))) $count++;
+                    if (sonika_product_in_category($p, (string)$cat['key'])) $count++;
                 }
-                if ($count > 0) $categories[] = ['slug' => $cat['slug'], 'name' => $cat['name'], 'count' => $count];
+                if ($count > 0) $categories[] = ['slug' => $cat['slug'], 'path' => $cat['path'], 'url' => $cat['url'], 'name' => $cat['name'], 'count' => $count];
             }
         }
         $subs = [];
@@ -1760,7 +1926,7 @@ if (!function_exists('sonika_logo_tag')) {
     }
 }
 if (!function_exists('sonika_site_head')) {
-    function sonika_site_head(string $title, string $desc = '', ?string $canonicalUrl = null, bool $noIndex = false): void {
+    function sonika_site_head(string $title, string $desc = '', ?string $canonicalUrl = null, bool $noIndex = false, string $ogImage = ''): void {
         if (!empty($_GET['ref']) && preg_match('/^[a-zA-Z0-9_-]{4,64}$/', (string)$_GET['ref'])) {
             $__rc = (string)$_GET['ref'];
             $__rcSecure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
@@ -1775,6 +1941,7 @@ if (!function_exists('sonika_site_head')) {
             'slug' => $__seoPath,
         ];
         if ($canonicalUrl !== null && $canonicalUrl !== '') $pageMeta['canonical_url'] = $canonicalUrl;
+        if ($ogImage !== '') $pageMeta['og_image'] = $ogImage;
         if ($noIndex) $pageMeta['no_index'] = true;
         try {
             $__seoKeywords = (new \App\Services\SeoKeywordService())->keywordsForPath($__seoPath);
@@ -1806,6 +1973,7 @@ if (!function_exists('sonika_site_head')) {
     <link rel="stylesheet" href="/assets/themes/sonika/dialogs.css?v=<?= (int)(@filemtime(ROOT_DIR . '/public/assets/themes/sonika/dialogs.css') ?: 1) ?>" />
     <link rel="stylesheet" href="/assets/themes/sonika/stock-notifications.css?v=<?= (int)(@filemtime(ROOT_DIR . '/public/assets/themes/sonika/stock-notifications.css') ?: 1) ?>" />
     <link rel="stylesheet" href="/assets/themes/sonika/social-proof.css?v=<?= (int)(@filemtime(ROOT_DIR . '/public/assets/themes/sonika/social-proof.css') ?: 1) ?>" />
+    <?php sonika_attribution_assets(); ?>
     <?= wwi_cap_head() ?>
     <style><?= wwi_cap_css() ?></style>
 </head>
@@ -2151,21 +2319,23 @@ if (!function_exists('sonika_product_card')) {
         $__disableOosAdd = !empty(sonika_catalog_settings()['disable_oos_add']);
         ?>
         <div class="card">
-          <a class="thumb" href="/producto/<?= sonika_esc($p['handle']) ?>">
+          <a class="thumb" href="<?= sonika_esc(sonika_product_href((string)$p['handle'])) ?>">
             <?php if ($img): ?><img src="<?= sonika_esc($img) ?>" alt="<?= sonika_esc($p['title']) ?>" loading="lazy" /><?php endif; ?>
             <span class="badge <?= $avail ? '' : 'out' ?>"><?= $avail ? 'Disponible' : 'Agotado' ?></span>
             <?php if ($cmp > $price && $price > 0): ?><span class="badge off">Oferta</span><?php endif; ?>
+            <?php if (!empty($p['_free_shipping']) && empty($insights['free_shipping'])): ?><span class="badge free">Envío gratis</span><?php endif; ?>
+            <?php if (!empty($p['_tax_exempt'])): ?><span class="badge taxfree">Sin IVA</span><?php endif; ?>
           </a>
           <div class="card-body">
             <span class="vendor"><?= sonika_esc($p['vendor'] ?? '') ?></span>
-            <a class="ptitle" href="/producto/<?= sonika_esc($p['handle']) ?>"><?= sonika_esc($p['title']) ?></a>
+            <a class="ptitle" href="<?= sonika_esc(sonika_product_href((string)$p['handle'])) ?>"><?= sonika_esc($p['title']) ?></a>
             <div class="pricebox">
               <span class="price"><?= sonika_cop($price) ?></span>
               <?php if ($cmp > $price && $price > 0): ?><span class="cmp"><?= sonika_cop($cmp) ?></span><?php endif; ?>
             </div>
             <?= sonika_product_insights_html($insights) ?>
             <?php if ($avail || !$__disableOosAdd): ?>
-            <button class="add" type="button" data-add="<?= sonika_esc($p['handle']) ?>" data-title="<?= sonika_esc($p['title']) ?>" data-price="<?= (float)$price ?>" data-img="<?= sonika_esc($img) ?>" data-category="<?= sonika_esc($quoteCat) ?>" data-sku="<?= sonika_esc((string)(sonika_variant($p)['sku'] ?? '')) ?>" data-product-id="<?= (int)($p['id'] ?? 0) ?>"><?= sonika_esc((string)wwi_tc('sonika', 'card_add_label', 'Agregar')) ?></button>
+            <button class="add" type="button" data-add="<?= sonika_esc($p['handle']) ?>" data-title="<?= sonika_esc($p['title']) ?>" data-price="<?= (float)$price ?>" data-img="<?= sonika_esc($img) ?>" data-category="<?= sonika_esc($quoteCat) ?>" data-sku="<?= sonika_esc((string)(sonika_variant($p)['sku'] ?? '')) ?>" data-product-id="<?= (int)($p['id'] ?? 0) ?>" data-free-shipping="<?= !empty($p['_free_shipping']) ? '1' : '0' ?>"><?= sonika_esc((string)wwi_tc('sonika', 'card_add_label', 'Agregar')) ?></button>
             <?php else: ?>
             <?= sonika_stock_alert_html($p) ?>
             <?php endif; ?>
@@ -2232,10 +2402,58 @@ if (!function_exists('sonika_payments_config')) {
                 }
             } catch (\Throwable $e) {
             }
+            try {
+                $methodSvc = new \App\Services\CheckoutPaymentMethodService();
+                $visible = $methodSvc->visible();
+                $baseById = [];
+                foreach ((array)($cfg['methods'] ?? []) as $baseMethod) {
+                    $baseById[(string)($baseMethod['id'] ?? '')] = $baseMethod;
+                }
+                $ordered = [];
+                foreach ($visible as $vm) {
+                    $id = (string)($vm['id'] ?? '');
+                    if ($id === '') continue;
+                    $base = $baseById[$id] ?? $vm;
+                    $base['label'] = (string)($vm['label'] ?? ($base['label'] ?? $id));
+                    $base['description'] = (string)($vm['description'] ?? ($base['description'] ?? ''));
+                    $base['badge'] = (string)($vm['badge'] ?? ($base['badge'] ?? ''));
+                    $base['sort'] = (int)($vm['sort'] ?? 0);
+                    $base['scheduled'] = !empty($vm['scheduled']);
+                    $ordered[] = $base;
+                }
+                $cfg['methods'] = $ordered;
+                $cfg['default_method'] = $methodSvc->defaultMethod($visible);
+                $cfg['visible_methods_count'] = count($ordered);
+                $cfg['checkout_methods_configured'] = $methodSvc->isConfigured();
+            } catch (\Throwable $e) {
+            }
             return $cfg;
         } catch (\Throwable $e) {
             return ['enabled' => false, 'available' => false, 'label' => 'Bre-B', 'methods' => [['id' => 'request', 'label' => 'Coordinar pago por WhatsApp', 'fallback' => true]], 'currency' => 'COP', 'breb' => []];
         }
+    }
+}
+if (!function_exists('sonika_gift_card_checkout_section')) {
+    function sonika_gift_card_checkout_section(): void {
+        try {
+            (new \App\Services\GiftCardService())->ensureTables();
+        } catch (\Throwable $e) {
+            return;
+        }
+        ?>
+        <div class="skpay__section" id="skpayGiftCardSection">
+          <h2>Tarjeta de regalo <small>opcional</small></h2>
+          <p class="skpay__muted" style="margin:0 0 10px">Ingresa el código y el PIN de tu tarjeta SONIKA. Puedes usarla total o parcialmente.</p>
+          <div style="display:grid;grid-template-columns:1.25fr .75fr auto auto;gap:7px;align-items:center">
+            <input class="skpay__input" id="skpayGiftCardCode" placeholder="SNK-XXXX-XXXX-XXXX" autocomplete="off" maxlength="24" aria-label="Código de la tarjeta de regalo" />
+            <input class="skpay__input" id="skpayGiftCardPin" placeholder="PIN de 6 dígitos" inputmode="numeric" pattern="[0-9]*" autocomplete="off" maxlength="6" aria-label="PIN de la tarjeta de regalo" />
+            <button type="button" class="skpay__btn skpay__btn--secondary skpay__btn--sm" id="skpayGiftCardApply" style="margin:0">Aplicar</button>
+            <button type="button" class="skpay__link" id="skpayGiftCardClear" style="font-size:12px">Quitar</button>
+          </div>
+          <p class="skpay__tiny" id="skpayGiftCardMsg" role="status" aria-live="polite" style="margin-top:7px"></p>
+          <p class="skpay__tiny" style="margin:8px 0 0;color:#6b7280">¿No tienes tarjeta? <a href="/tarjetas-de-regalo" style="color:#F20D16;font-weight:700">Compra una tarjeta de regalo</a> o <a href="/tarjetas-de-regalo#consultar" style="color:#F20D16;font-weight:700">consulta tu saldo</a>.</p>
+        </div>
+        <?php
     }
 }
 if (!function_exists('sonika_payment_method_cards')) {
@@ -2249,27 +2467,35 @@ if (!function_exists('sonika_payment_method_cards')) {
             $label = (string)($m['label'] ?? 'Pago');
             $disabled = !empty($m['disabled']);
             $comingSoon = !empty($m['coming_soon']);
-            $desc = '';
-            $icon = '�?�';
+            $desc = trim((string)($m['description'] ?? ''));
+            $badge = trim((string)($m['badge'] ?? ''));
+            $icon = '▦';
             $logo = (string)($cfg['payment_logos'][$id] ?? ($m['logo'] ?? ''));
+            // Compatibilidad: el logo de Mercado Pago pudo guardarse como método manual.
+            if ($logo === '' && $id === 'mercadopago') {
+                foreach (['custom-mercado-pago', 'mp', 'mercado-pago'] as $legacyKey) {
+                    $candidate = trim((string)($cfg['payment_logos'][$legacyKey] ?? ''));
+                    if ($candidate !== '') { $logo = $candidate; break; }
+                }
+            }
             if ($logo !== '' && !preg_match('~^(https?://|/assets/)~i', $logo)) $logo = '';
             if ($id === 'breb') {
-                $desc = 'Escanea el QR y paga desde tu app bancaria.';
+                if ($desc === '') $desc = 'Escanea el QR y paga desde tu app bancaria.';
                 $icon = '▦';
             } elseif ($id === 'mercadopago') {
-                $desc = 'Te llevaremos a Mercado Pago para completar el pago.';
+                if ($desc === '') $desc = 'Te llevaremos a Mercado Pago para completar el pago.';
                 $icon = 'MP';
             } elseif ($id === 'epayco') {
-                $desc = 'Te llevaremos a ePayco para completar el pago.';
+                if ($desc === '') $desc = 'Te llevaremos a ePayco para completar el pago.';
                 $icon = 'eP';
             } elseif ($id === 'addi') {
-                $desc = 'Compra ahora y paga a cuotas con Addi.';
+                if ($desc === '') $desc = 'Compra ahora y paga a cuotas con Addi.';
                 $icon = 'A';
             } elseif ($id === 'sistecredito') {
-                $desc = 'Compra ahora y paga a cuotas con Sistecrédito.';
+                if ($desc === '') $desc = 'Compra ahora y paga a cuotas con Sistecrédito.';
                 $icon = 'SC';
             } else {
-                $desc = 'Coordinamos el pago y el envío contigo por WhatsApp.';
+                if ($desc === '') $desc = 'Coordinamos el pago y el envío contigo por WhatsApp.';
                 $icon = 'WA';
             }
             ?>
@@ -2277,7 +2503,7 @@ if (!function_exists('sonika_payment_method_cards')) {
               <input type="radio" name="<?= sonika_esc($name) ?>" value="<?= sonika_esc($id) ?>"<?= (!$disabled && $first) ? ' checked' : '' ?><?= $disabled ? ' disabled' : '' ?> />
               <span class="skpay__method-icon<?= $logo !== '' ? ' skpay__method-icon--logo' : '' ?>" aria-hidden="true"><?= $logo !== '' ? '<img src="' . sonika_esc($logo) . '" alt="" loading="lazy"/>' : sonika_esc($icon) ?></span>
               <span class="skpay__method-body">
-                <span class="skpay__method-title"><?= sonika_esc($label) ?><?php if ($id === 'breb'): ?> <span class="skpay__badge" data-sk-save hidden></span><?php elseif ($id === 'addi'): ?> <span class="skpay__badge skpay__badge--soft">Crédito</span><?php elseif ($id === 'sistecredito' && $disabled): ?> <span class="skpay__badge skpay__badge--soft">Próximamente</span><?php elseif ($id === 'request'): ?> <span class="skpay__badge skpay__badge--soft">Asistido</span><?php endif; ?></span>
+                <span class="skpay__method-title"><?= sonika_esc($label) ?><?php if ($id === 'breb'): ?> <span class="skpay__badge" data-sk-save hidden></span><?php endif; ?><?php if ($badge !== ''): ?> <span class="skpay__badge skpay__badge--soft"><?= sonika_esc($badge) ?></span><?php endif; ?></span>
                 <span class="skpay__method-desc"><?= sonika_esc($desc) ?></span>
                 <?php if ($id === 'addi' && empty($cfg['addi']['active'])): ?><span class="skpay__method-flag">Próximamente compra con Addi</span><?php endif; ?>
               </span>
@@ -2333,6 +2559,136 @@ if (!function_exists('sonika_addi_assets')) {
         }
     }
 }
+if (!function_exists('sonika_origin')) {
+    function sonika_origin(): string
+    {
+        $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+        $host = (string)($_SERVER['HTTP_HOST'] ?? 'sonika.com.co');
+        if (!preg_match('/^[a-z0-9.\-]+(:\d+)?$/i', $host)) $host = 'sonika.com.co';
+        return ($https ? 'https' : 'http') . '://' . $host;
+    }
+}
+if (!function_exists('sonika_aff_sanitize_code')) {
+    function sonika_aff_sanitize_code($code): string
+    {
+        $code = strtolower(trim((string)$code));
+        $code = preg_replace('/[^a-z0-9\-]/', '', $code) ?? '';
+        return substr($code, 0, 64);
+    }
+}
+if (!function_exists('sonika_aff_ref')) {
+    function sonika_aff_ref(): string
+    {
+        if (!empty($GLOBALS['__sonika_aff_ref'])) return sonika_aff_sanitize_code((string)$GLOBALS['__sonika_aff_ref']);
+        $fromQuery = sonika_aff_sanitize_code((string)($_GET['ref'] ?? ''));
+        if ($fromQuery !== '') return $fromQuery;
+        return sonika_aff_sanitize_code((string)($_COOKIE['sonika_aff'] ?? ''));
+    }
+}
+if (!function_exists('sonika_set_aff_ref')) {
+    function sonika_set_aff_ref($code): void
+    {
+        $code = sonika_aff_sanitize_code($code);
+        if ($code !== '') $GLOBALS['__sonika_aff_ref'] = $code;
+    }
+}
+if (!function_exists('sonika_aff_set_cookie')) {
+    function sonika_aff_set_cookie(string $code): void
+    {
+        $code = sonika_aff_sanitize_code($code);
+        if ($code === '') return;
+        $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+        if (!headers_sent()) {
+            @setcookie('sonika_aff', $code, [
+                'expires' => time() + (\App\Services\AffiliateService::COOKIE_DAYS * 86400),
+                'path' => '/',
+                'secure' => $secure,
+                'httponly' => false,
+                'samesite' => 'Lax',
+            ]);
+        }
+        $_COOKIE['sonika_aff'] = $code;
+    }
+}
+if (!function_exists('sonika_aff_capture')) {
+    /** Si llega ?ref=..., valida el código, registra el clic y fija la cookie persistente. */
+    function sonika_aff_capture(): void
+    {
+        static $done = false;
+        if ($done) return;
+        $done = true;
+        $fromQuery = sonika_aff_sanitize_code((string)($_GET['ref'] ?? ''));
+        if ($fromQuery === '') {
+            $cookie = sonika_aff_sanitize_code((string)($_COOKIE['sonika_aff'] ?? ''));
+            if ($cookie !== '') $GLOBALS['__sonika_aff_ref'] = $cookie;
+            return;
+        }
+        $GLOBALS['__sonika_aff_ref'] = $fromQuery;
+        $current = sonika_aff_sanitize_code((string)($_COOKIE['sonika_aff'] ?? ''));
+        if ($current === $fromQuery) return;
+        try {
+            $r = (new \App\Services\AffiliateService())->recordClick($fromQuery, (string)($_COOKIE['wwi_seo_sid'] ?? ''));
+            if (!$r) return;
+            $canonical = sonika_aff_sanitize_code((string)($r['code'] ?? $fromQuery));
+            if ($canonical === '') return;
+            $GLOBALS['__sonika_aff_ref'] = $canonical;
+            sonika_aff_set_cookie($canonical);
+        } catch (\Throwable $e) {
+        }
+    }
+}
+if (!function_exists('sonika_product_href')) {
+    function sonika_product_href(string $handle, string $ref = ''): string
+    {
+        $handle = trim($handle);
+        if ($handle === '') return '/tienda';
+        $ref = $ref !== '' ? sonika_aff_sanitize_code($ref) : sonika_aff_ref();
+        return '/producto/' . rawurlencode($handle) . ($ref !== '' ? '?ref=' . rawurlencode($ref) : '');
+    }
+}
+if (!function_exists('sonika_partner_auto_login')) {
+    /** Restaura la sesión del Partner desde la cookie “recordarme”. */
+    function sonika_partner_auto_login(): ?array
+    {
+        try {
+            if (session_status() !== PHP_SESSION_ACTIVE) \App\Core\Session::start();
+        } catch (\Throwable $e) {
+            return null;
+        }
+        if (!empty($_SESSION['ff_affiliate_id'])) return null;
+        $cookie = (string)($_COOKIE['sonika_partner_remember'] ?? '');
+        if ($cookie === '') return null;
+        try {
+            $aff = (new \App\Services\AffiliateService())->validateRememberToken($cookie);
+            if (!$aff) {
+                if (!headers_sent()) {
+                    @setcookie('sonika_partner_remember', '', ['expires' => time() - 3600, 'path' => '/', 'httponly' => true, 'samesite' => 'Lax']);
+                }
+                return null;
+            }
+            $_SESSION['ff_affiliate_id'] = (int)$aff['id'];
+            $_SESSION['ff_started_at'] = time();
+            \App\Core\Session::touch();
+            return $aff;
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+}
+if (!function_exists('sonika_attribution_assets')) {
+    function sonika_attribution_assets(): void
+    {
+        $data = [
+            'ref' => sonika_aff_ref(),
+            'cookie_days' => \App\Services\AffiliateService::COOKIE_DAYS,
+            'ttl_days' => \App\Services\AffiliateService::TTL_DAYS,
+        ];
+        $json = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+        $js = (int)(@filemtime(ROOT_DIR . '/public/assets/js/sonika-attribution.js') ?: 1);
+        echo '<script>window.SONIKA_AFF=' . $json . ';</script>';
+        echo '<script src="/assets/js/sonika-attribution.js?v=' . $js . '" defer></script>';
+    }
+}
 if (!function_exists('sonika_partner_share_context')) {
     function sonika_partner_share_context(): array
     {
@@ -2342,6 +2698,8 @@ if (!function_exists('sonika_partner_share_context')) {
             'name' => '',
             'status' => '',
             'code' => '',
+            'ref' => sonika_aff_ref(),
+            'code_url' => '',
             'rate' => 0.03,
             'cap' => 0.05,
             'streak_bonus' => 0.0,
@@ -2394,6 +2752,8 @@ if (!function_exists('sonika_partner_share_context')) {
             $out['name'] = mb_substr($name, 0, 80);
             $out['status'] = (string)($aff['status'] ?? '');
             $out['code'] = $approved ? (string)$svc->ensureLink($id) : '';
+            $out['code_url'] = $out['code'] !== '' ? '/r/' . rawurlencode($out['code']) : '';
+            $out['ref'] = sonika_aff_ref();
             $out['rate'] = (float)($calc['rate'] ?? 0.03);
             $out['cap'] = (float)($calc['cap'] ?? 0.05);
             $out['streak_bonus'] = (float)($calc['streak_bonus'] ?? 0);
@@ -2406,7 +2766,7 @@ if (!function_exists('sonika_partner_share_context')) {
             $out['orders'] = (int)($calc['orders'] ?? 0);
             $out['month_sales'] = (float)($calc['sales'] ?? 0);
             $out['profile_category'] = (string)($aff['profile_category'] ?? '');
-            $out['store_path'] = (string)$svc->storePath($aff);
+            $out['store_path'] = (string)$svc->publicPath($aff);
             $out['panel_url'] = $slug !== '' ? '/artista/' . rawurlencode($slug) . '/panel' : '/mi-antro';
         } catch (\Throwable $e) {
         }
@@ -2604,7 +2964,7 @@ if (!function_exists('sonika_css')) {
         .thumb img{width:100%;height:100%;object-fit:contain;mix-blend-mode:multiply;transition:transform .4s}
         .card:hover .thumb img{transform:scale(1.06)}
         .badge{position:absolute;top:10px;left:10px;background:var(--ok);color:#fff;font-size:10.5px;font-weight:700;padding:4px 9px;border-radius:20px}
-        .badge.out{background:#6B7280}.badge.off{background:var(--accent);left:auto;right:10px}
+        .badge.out{background:#6B7280}.badge.off{background:var(--accent);left:auto;right:10px}.badge.free{background:#0d9f72;top:36px}.badge.taxfree{background:#7c3aed;left:auto;right:10px;top:36px}
         .card-body{padding:14px;display:flex;flex-direction:column;gap:5px;flex:1;min-width:0}
         .vendor{font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--brand);text-transform:uppercase}
         .ptitle{font-size:13.5px;font-weight:600;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:38px}
@@ -2992,7 +3352,7 @@ if (!function_exists('sonika_js')) {
     if(!items.length){wrap.innerHTML='<div class="empty">Tu carrito está vacío. <a href="/tienda" style="color:var(--brand);font-weight:600">Explorar tienda →</a></div>'; if(sum) sum.innerHTML=''; return;}
     var subtotal=0;
     wrap.innerHTML=items.map(function(i){subtotal+=(i.price||0)*(i.qty||0);var q=i.qty||1;
-      return '<div class="cart-item"><img src="'+esc(i.img||'')+'" alt=""><div><a href="/producto/'+esc(i.handle)+'" style="font-weight:600">'+esc(i.title||'')+'</a><div style="color:var(--muted);font-size:14px;margin-top:4px">'+money(i.price)+'</div></div><div style="text-align:right"><div class="qty"><button type="button" onclick="SonikaCart.set(\''+esc(i.handle)+'\','+(q-1)+')">−</button><input value="'+q+'" readonly><button type="button" onclick="SonikaCart.set(\''+esc(i.handle)+'\','+(q+1)+')">+</button></div><a href="#" onclick="event.preventDefault();SonikaCart.remove(\''+esc(i.handle)+'\')" style="display:block;margin-top:8px;color:#DC2626;font-size:13px">Eliminar</a></div></div>';
+      return '<div class="cart-item"><img src="'+esc(i.img||'')+'" alt=""><div><a href="/producto/'+esc(i.handle)+'" style="font-weight:600">'+esc(i.title||'')+'</a><div style="color:var(--muted);font-size:14px;margin-top:4px">'+money(i.price)+(i.free_shipping?' <span style="color:#0d7a58;font-weight:700;font-size:12px">· Envío gratis</span>':'')+'</div></div><div style="text-align:right"><div class="qty"><button type="button" onclick="SonikaCart.set(\''+esc(i.handle)+'\','+(q-1)+')">−</button><input value="'+q+'" readonly><button type="button" onclick="SonikaCart.set(\''+esc(i.handle)+'\','+(q+1)+')">+</button></div><a href="#" onclick="event.preventDefault();SonikaCart.remove(\''+esc(i.handle)+'\')" style="display:block;margin-top:8px;color:#DC2626;font-size:13px">Eliminar</a></div></div>';
     }).join('');
     if(sum) sum.innerHTML='<h3 style="font-family:Sora,sans-serif;margin-bottom:10px">Resumen</h3><div class="row"><span>Subtotal</span><span>'+money(subtotal)+'</span></div><div class="row"><span>Envío</span><span>Calculado al pagar</span></div><div class="row total"><span>Total</span><span>'+money(subtotal)+'</span></div><a class="btn-buy" style="width:100%;margin-top:16px;display:block;text-align:center" href="/checkout">Finalizar compra</a>'+(window.SONIKA_WA?'<a class="cta" style="width:100%;margin:10px 0 0;justify-content:center;background:#25D366;color:#fff;border:0" href="#" onclick="event.preventDefault();window.sonikaWhatsappFromCart&&window.sonikaWhatsappFromCart()">Pedir por WhatsApp</a>':'')+'<a class="cta sec" href="/tienda" style="width:100%;margin:10px 0 0;justify-content:center">Seguir comprando</a>';
   }
@@ -3004,7 +3364,7 @@ if (!function_exists('sonika_js')) {
       if(b.dataset.goCart==='1'){window.location.href=b.dataset.cartUrl||'/carrito';return}
       var q=b.dataset.qtyTarget?parseInt((document.getElementById(b.dataset.qtyTarget)||{}).value||'1',10):1;
       if(!(q>0)) q=1;
-      window.SonikaCart.add({handle:b.dataset.add,title:b.dataset.title,price:parseFloat(b.dataset.price),img:b.dataset.img,sku:b.dataset.sku||'',product_id:b.dataset.productId||''},q);
+      window.SonikaCart.add({handle:b.dataset.add,title:b.dataset.title,price:parseFloat(b.dataset.price),img:b.dataset.img,sku:b.dataset.sku||'',product_id:b.dataset.productId||'',free_shipping:b.dataset.freeShipping==='1'},q);
       if(b.hasAttribute('data-pdp-add')){
         var w=b.closest('.pdp-actions'),m=w?w.querySelector('[data-pdp-add-more]'):null,s=w?w.querySelector('[data-pdp-cart-shortcut]'):null,st=document.querySelector('[data-pdp-status]');
         if(s)s.hidden=true;b.disabled=true;b.classList.remove('is-go-cart');b.classList.add('is-added');b.textContent='Agregado \u2713';

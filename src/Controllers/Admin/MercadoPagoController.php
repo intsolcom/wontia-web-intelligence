@@ -52,6 +52,18 @@ class MercadoPagoController
         }
     }
 
+    public function diagnosticPreference(Request $req): void
+    {
+        $this->authorize();
+        try {
+            $amount = (int)($req->input('amount_cents', 1000000));
+            $r = $this->svc()->createDiagnosticPreference($amount);
+            Response::json($r, !empty($r['ok']) ? 200 : 422);
+        } catch (\Throwable $e) {
+            Response::error('No se pudo crear la preferencia de diagnóstico.', 500);
+        }
+    }
+
     public function paymentShow(Request $req, string $id): void
     {
         $this->authorize();

@@ -22,7 +22,42 @@ class HeroController
     public function index(): void
     {
         $s = $this->svc();
-        Response::json(['ok' => true, 'data' => ['slides' => $s->all(), 'types' => $s->contentTypes()]]);
+        Response::json(['ok' => true, 'data' => ['slides' => $s->all(), 'types' => $s->contentTypes(), 'theme' => ['active' => $s->activeTheme(), 'themes' => $s->themes(), 'config' => $s->themeConfig()]]]);
+    }
+
+    public function theme(): void
+    {
+        $s = $this->svc();
+        Response::json(['ok' => true, 'data' => ['active' => $s->activeTheme(), 'themes' => $s->themes(), 'config' => $s->themeConfig()]]);
+    }
+
+    public function saveTheme(Request $req): void
+    {
+        $s = $this->svc();
+        $d = (array)$req->json();
+        $result = ['ok' => true];
+        if (isset($d['active_theme']) && $d['active_theme'] !== '') {
+            $r = $s->setTheme((string)$d['active_theme']);
+            if (empty($r['ok'])) Response::json($r);
+            $result['active_theme'] = $r['active_theme'];
+            if (isset($r['cache_version'])) $result['cache_version'] = $r['cache_version'];
+        }
+        if (isset($d['config']) && is_array($d['config'])) {
+            $r = $s->saveThemeConfig($d['config']);
+            if (empty($r['ok'])) Response::json($r);
+            $result['config'] = $r['config'];
+            if (isset($r['cache_version'])) $result['cache_version'] = $r['cache_version'];
+            if (isset($r['save_summary'])) $result['save_summary'] = $r['save_summary'];
+        }
+        Response::json($result);
+    }
+
+    /** Purga la versión de assets, OPcache y caché propia del Hero. */
+    public function purgeCache(): void
+    {
+        $r = $this->svc()->purgeCache();
+        header('Cache-Control: no-store');
+        Response::json($r, !empty($r['ok']) ? 200 : 500);
     }
 
     public function save(Request $req): void

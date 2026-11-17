@@ -51,7 +51,7 @@ class SonikaHeroWidget extends Widget
         $svc = new HeroService();
         $theme = $svc->activeTheme();
         if ($theme === 'the-sound-takes-over') {
-            return $this->renderSoundTakesOver($svc->themeConfig(), $svc->published());
+            return $this->renderSoundTakesOver($svc->themeConfig(), $svc->published(), $svc->cacheVersion());
         }
         $slides = $svc->published();
         if (!$slides) return '';
@@ -94,9 +94,9 @@ class SonikaHeroWidget extends Widget
         return $h;
     }
 
-    private function renderSoundTakesOver(array $cfg, array $slides): string
+    private function renderSoundTakesOver(array $cfg, array $slides, int $cacheVersion = 0): string
     {
-        $slidesData = $this->soundSlides($cfg, $slides);
+        $slidesData = $this->soundSlides($cfg, $slides, $cacheVersion);
         if (!$slidesData) return '';
         $first = $slidesData[0];
         $instruments = !empty($cfg['show_categories']) ? $this->soundInstruments($cfg) : [];
@@ -133,7 +133,7 @@ class SonikaHeroWidget extends Widget
         $mCtaValue = (int)($cfg['mobile_cta_width_value'] ?? 100);
         $mCtaValue = $mCtaUnit === '%' ? max(20, min(100, $mCtaValue)) : max(40, min(340, $mCtaValue));
         $mCtaWidth = $mCtaValue . $mCtaUnit;
-        $mHeight = max(480, min(720, (int)($cfg['mobile_height'] ?? 580)));
+        $mHeight = max(360, min(960, (int)($cfg['mobile_height'] ?? 580)));
         $mSubLines = max(1, min(4, (int)($cfg['mobile_description_lines'] ?? 2)));
         $fmtScale = static function (float $value): string {
             return rtrim(rtrim(number_format($value, 3, '.', ''), '0'), '.');
@@ -150,7 +150,7 @@ class SonikaHeroWidget extends Widget
         $hasActions = $hasPrimary || $hasFirstVideo || $hasFirstLink;
 
         $h = $this->soundAssets();
-        $h .= '<div class="sth sth--m-cta-' . $mCtaMode . '" data-sth-hero data-sth-autoplay="' . $autoplay . '" data-sth-focus="' . $focusIndex . '" data-sth-focus-mobile="' . $focusIndexMobile . '" data-sth-img-ms="' . $imageMs . '" data-sth-label-max="' . $labelMax . '" style="--sth-h:' . $height . 'px;--sth-ov:' . round($overlay, 2) . ';--sth-focus-scale:' . $focusScale . ';--sth-focus-scale-mobile:' . $focusScaleMobile . ';--sth-edge-opacity:' . $edgeOpacity . ';--sth-edge-scale:' . $edgeScale . ';--sth-near-scale:' . $nearScale . ';--sth-m-h:' . $mHeight . 'px;--sth-m-sub-lines:' . $mSubLines . ';--sth-m-copy-y:' . $mCopyY . ';--sth-m-cards-y:' . $mCardsY . ';--sth-m-copy-scale:' . $fmtScale($mCopyScale) . ';--sth-m-eyebrow-scale:' . $fmtScale($mEyebrowScale) . ';--sth-m-title-scale:' . $fmtScale($mTitleScale) . ';--sth-m-sub-scale:' . $fmtScale($mSubScale) . ';--sth-m-cta-scale:' . $fmtScale($mCtaScale) . ';--sth-m-cta-w:' . $mCtaWidth . '">';
+        $h .= '<div class="sth sth--m-cta-' . $mCtaMode . '" data-sth-hero data-hero-v="' . $cacheVersion . '" data-sth-autoplay="' . $autoplay . '" data-sth-focus="' . $focusIndex . '" data-sth-focus-mobile="' . $focusIndexMobile . '" data-sth-img-ms="' . $imageMs . '" data-sth-label-max="' . $labelMax . '" style="--sth-h:' . $height . 'px;--sth-ov:' . round($overlay, 2) . ';--sth-focus-scale:' . $focusScale . ';--sth-focus-scale-mobile:' . $focusScaleMobile . ';--sth-edge-opacity:' . $edgeOpacity . ';--sth-edge-scale:' . $edgeScale . ';--sth-near-scale:' . $nearScale . ';--sth-m-h:' . $mHeight . 'px;--sth-m-sub-lines:' . $mSubLines . ';--sth-m-copy-y:' . $mCopyY . ';--sth-m-cards-y:' . $mCardsY . ';--sth-m-copy-scale:' . $fmtScale($mCopyScale) . ';--sth-m-eyebrow-scale:' . $fmtScale($mEyebrowScale) . ';--sth-m-title-scale:' . $fmtScale($mTitleScale) . ';--sth-m-sub-scale:' . $fmtScale($mSubScale) . ';--sth-m-cta-scale:' . $fmtScale($mCtaScale) . ';--sth-m-cta-w:' . $mCtaWidth . '">';
         $h .= '<section class="sth__stage" aria-label="SONIKA - El Sonido Se Apodera">';
         $h .= '<div class="sth__bg" aria-hidden="true">';
         foreach ($slidesData as $i => $slide) {
@@ -285,13 +285,13 @@ class SonikaHeroWidget extends Widget
         return [['desktop' => '/assets/uploads/wontia_2c020fab54677229.webp', 'mobile' => '/assets/uploads/wontia_4a97a4f3251c0c73.png', 'alt' => 'Escenario SONIKA', 'focal' => '42% 50%']];
     }
 
-    private function soundSlides(array $cfg, array $classicSlides): array
+    private function soundSlides(array $cfg, array $classicSlides, int $cacheVersion = 0): array
     {
         $out = [];
         foreach ((array)($cfg['slides'] ?? []) as $i => $row) {
             if (!is_array($row) || empty($row['enabled'])) continue;
-            $desktop = $this->mediaUrl((string)($row['desktop'] ?? ''));
-            $mobile = $this->mediaUrl((string)($row['mobile'] ?? ''));
+            $desktop = $this->versionedUrl($this->mediaUrl((string)($row['desktop'] ?? '')), $cacheVersion);
+            $mobile = $this->versionedUrl($this->mediaUrl((string)($row['mobile'] ?? '')), $cacheVersion);
             if ($desktop === '' && $mobile === '') continue;
 
             $id = preg_replace('/[^a-z0-9\-]/', '', strtolower((string)($row['id'] ?? ''))) ?: 'slide-' . ($i + 1);
@@ -323,20 +323,29 @@ class SonikaHeroWidget extends Widget
             $composition = is_array($row['composition'] ?? null) ? $row['composition'] : [];
             $bgD = is_array($composition['background']['desktop'] ?? null) ? $composition['background']['desktop'] : null;
             $bgM = is_array($composition['background']['mobile'] ?? null) ? $composition['background']['mobile'] : null;
-            $bgStyle = '';
+            $blurDesktop = $desktop !== '' ? $desktop : $mobile;
+            $blurMobile = $mobile !== '' ? $mobile : $blurDesktop;
+            $zoomD = $bgD ? max(50, min(250, (float)($bgD['zoom'] ?? 100))) : 100;
+            $zoomM = $bgM ? max(50, min(250, (float)($bgM['zoom'] ?? 100))) : 100;
+            $fitD = $bgD && in_array((string)($bgD['fit'] ?? 'cover'), ['cover', 'contain'], true) ? (string)$bgD['fit'] : 'cover';
+            $fitM = $bgM && in_array((string)($bgM['fit'] ?? 'cover'), ['cover', 'contain'], true) ? (string)$bgM['fit'] : 'cover';
+            $blurOpD = ($zoomD < 100 || $fitD === 'contain') ? 1 : 0;
+            $blurOpM = ($zoomM < 100 || $fitM === 'contain') ? 1 : 0;
+            $bgStyle = '--sth-blur-d:' . $this->cssUrl($blurDesktop) . ';--sth-blur-m:' . $this->cssUrl($blurMobile)
+                . ';--sth-blur-op-d:' . $blurOpD . ';--sth-blur-op-m:' . $blurOpM . ';';
             if ($bgD) {
-                $bgStyle .= '--sth-bg-zoom-d:' . round(max(100, min(250, (float)($bgD['zoom'] ?? 100))) / 100, 4)
+                $bgStyle .= '--sth-bg-zoom-d:' . round($zoomD / 100, 4)
                     . ';--sth-bg-x-d:' . max(-100, min(100, (float)($bgD['x'] ?? 0))) . '%'
                     . ';--sth-bg-y-d:' . max(-100, min(100, (float)($bgD['y'] ?? 0))) . '%'
                     . ';--sth-bg-focal-d:' . max(0, min(100, (float)($bgD['focal_x'] ?? 50))) . '% ' . max(0, min(100, (float)($bgD['focal_y'] ?? 50))) . '%'
-                    . ';--sth-bg-fit-d:' . (in_array((string)($bgD['fit'] ?? 'cover'), ['cover', 'contain'], true) ? (string)$bgD['fit'] : 'cover') . ';';
+                    . ';--sth-bg-fit-d:' . $fitD . ';';
             }
             if ($bgM) {
-                $bgStyle .= '--sth-bg-zoom-m:' . round(max(100, min(250, (float)($bgM['zoom'] ?? 100))) / 100, 4)
+                $bgStyle .= '--sth-bg-zoom-m:' . round($zoomM / 100, 4)
                     . ';--sth-bg-x-m:' . max(-100, min(100, (float)($bgM['x'] ?? 0))) . '%'
                     . ';--sth-bg-y-m:' . max(-100, min(100, (float)($bgM['y'] ?? 0))) . '%'
                     . ';--sth-bg-focal-m:' . max(0, min(100, (float)($bgM['focal_x'] ?? 50))) . '% ' . max(0, min(100, (float)($bgM['focal_y'] ?? 50))) . '%'
-                    . ';--sth-bg-fit-m:' . (in_array((string)($bgM['fit'] ?? 'cover'), ['cover', 'contain'], true) ? (string)$bgM['fit'] : 'cover') . ';';
+                    . ';--sth-bg-fit-m:' . $fitM . ';';
             }
 
             $legacySize = (float)($row['title_size'] ?? 100);
@@ -375,6 +384,11 @@ class SonikaHeroWidget extends Widget
         if (array_key_exists('slides', $cfg)) return [];
 
         $backgrounds = $this->soundBackgrounds($cfg, $classicSlides);
+        foreach ($backgrounds as &$bg) {
+            $bg['desktop'] = $this->versionedUrl((string)($bg['desktop'] ?? ''), $cacheVersion);
+            $bg['mobile'] = $this->versionedUrl((string)($bg['mobile'] ?? ''), $cacheVersion);
+        }
+        unset($bg);
         $eyebrow = trim((string)($cfg['eyebrow'] ?? ''));
         $title = trim((string)($cfg['title'] ?? ''));
         $subtitle = trim((string)($cfg['subtitle'] ?? ''));
@@ -429,6 +443,12 @@ class SonikaHeroWidget extends Widget
             $slug = preg_replace('/[^a-z0-9\-]/', '', strtolower((string)($row['slug'] ?? '')));
             $href = $this->mediaUrl((string)($row['href'] ?? ''));
             if ($href === '' || str_starts_with($href, '/assets/')) $href = '/tienda';
+            // La taxonomía manda: si el slug del hero ya tiene categoría canónica,
+            // el enlace va directo a su URL jerárquica (aunque la config sea legacy).
+            if ($slug !== '' && function_exists('sonika_category') && function_exists('sonika_category_url')) {
+                $__heroCat = sonika_category($slug);
+                if ($__heroCat) $href = sonika_category_url($slug);
+            }
             $image = $this->mediaUrl((string)($row['image'] ?? ''));
             if ($slug === 'baquetas' && ($image === '' || str_contains($image, 'BAQUETAVICFIRTHA.CLASSIC.PUNTAMADERA5AVG'))) {
                 $image = 'https://cdn.shopify.com/s/files/1/0269/4178/4117/products/BAQ039.png?v=1574455593&width=640';
@@ -649,7 +669,8 @@ class SonikaHeroWidget extends Widget
 .sth__bg{position:absolute;inset:0;z-index:0;overflow:hidden;background:#07080d}
 .sth__pic{position:absolute;inset:0;display:block;opacity:0;transition:opacity .9s cubic-bezier(.22,1,.36,1)}
 .sth__pic.is-on{opacity:1}
-.sth__pic img{display:block;width:100%;height:100%;object-fit:var(--sth-bg-fit-d,cover);object-position:var(--sth-bg-focal-d,var(--sth-focal,50% 50%));transform:translate(var(--sth-bg-x-d,0%),var(--sth-bg-y-d,0%)) scale(var(--sth-bg-zoom-d,1.015));transform-origin:var(--sth-bg-focal-d,var(--sth-focal,50% 50%))}
+.sth__pic::before{content:"";position:absolute;inset:-10%;z-index:0;background-image:var(--sth-blur-d,none);background-size:cover;background-position:var(--sth-focal,50% 50%);filter:blur(30px) brightness(.55) saturate(1.15);transform:scale(1.08);pointer-events:none;opacity:var(--sth-blur-op-d,0);transition:opacity .3s ease}
+.sth__pic img{position:relative;z-index:1;display:block;width:100%;height:100%;object-fit:var(--sth-bg-fit-d,cover);object-position:var(--sth-bg-focal-d,var(--sth-focal,50% 50%));transform:translate(var(--sth-bg-x-d,0%),var(--sth-bg-y-d,0%)) scale(var(--sth-bg-zoom-d,1.015));transform-origin:var(--sth-bg-focal-d,var(--sth-focal,50% 50%))}
 .sth__scrim{position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(90deg,rgba(4,5,9,.94) 0%,rgba(4,5,9,.78) 32%,rgba(4,5,9,.26) 62%,rgba(4,5,9,.72) 100%),linear-gradient(0deg,rgba(4,5,9,var(--sth-ov,.55)) 0%,rgba(4,5,9,.12) 46%,rgba(4,5,9,0) 72%)}
 .sth__inner{position:relative;z-index:2;box-sizing:border-box;width:100%;max-width:1440px;height:100%;margin:0 auto;padding:clamp(26px,3.5vw,48px) clamp(19px,4.25vw,60px) 29px;display:grid;grid-template-columns:minmax(0,1fr) minmax(238px,280px);gap:clamp(17px,2.9vw,46px);align-items:center}
 .sth__copy{position:relative;max-width:720px;min-width:0;min-height:clamp(200px,22vw,280px);display:flex;flex-direction:column;justify-content:center;transition:opacity .18s ease,transform .18s ease}
@@ -730,7 +751,7 @@ class SonikaHeroWidget extends Widget
 .sth-video__box iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
 .sth-video__close{position:absolute;top:-42px;right:0;width:32px;height:32px;padding:0;border-radius:50%;border:1px solid rgba(255,255,255,.35);background:rgba(0,0,0,.35);color:#fff;font-size:22px;line-height:1;cursor:pointer;display:grid;place-items:center}
 html.sth-video-open,html.sth-video-open body{overflow:hidden}
-@media(max-width:900px){.sth__stage{height:var(--sth-m-h,580px);height:min(var(--sth-m-h,580px),100dvh);min-height:0}.sth__pic img{object-fit:var(--sth-bg-fit-m,cover);object-position:var(--sth-bg-focal-m,var(--sth-focal,50% 50%));transform:translate(var(--sth-bg-x-m,0%),var(--sth-bg-y-m,0%)) scale(var(--sth-bg-zoom-m,1.015));transform-origin:var(--sth-bg-focal-m,var(--sth-focal,50% 50%))}.sth__inner{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) auto;align-content:stretch;gap:14px;padding-bottom:54px;height:100%;overflow:hidden}.sth__copy{max-width:760px;min-height:0;overflow:hidden}.sth__cats{display:flex;flex-direction:column;gap:8px;max-height:none;padding:0}.sth__inst-viewport{height:auto;overflow:hidden;padding:8px 4px}.sth__inst-nav{position:static;flex-direction:row;justify-content:flex-end;gap:6px;padding:0 2px 4px;pointer-events:auto}.sth__inst-arrow{width:26px;height:26px}.sth__inst-arrow svg{transform:rotate(-90deg)}.sth__inst-track{flex-direction:row;gap:7px}.sth__cat.is-focus{transform:scale(var(--sth-focus-scale-mobile,1.32))}.sth__cat.is-focus:hover{transform:scale(var(--sth-focus-scale-mobile,1.32)) translateX(-2px)}.sth__cat{flex:0 0 135px;width:135px;height:45px;min-height:45px;grid-template-columns:36px minmax(0,1fr) 13px;gap:6px}.sth__catimg{width:36px;height:32px}.sth__catlabel{font-size:9.5px}.sth__cat.is-edge:not(.is-focus),.sth__cat.is-near:not(.is-focus){opacity:1;transform:none}.sth__cat.is-edge:not(.is-focus):hover,.sth__cat.is-edge:not(.is-focus):focus-visible,.sth__cat.is-near:not(.is-focus):hover,.sth__cat.is-near:not(.is-focus):focus-visible{transform:none}.sth__nav{left:clamp(19px,4.25vw,60px);bottom:12px}}
+@media(max-width:900px){.sth__stage{height:var(--sth-m-h,580px);height:min(var(--sth-m-h,580px),100dvh);min-height:0}.sth__pic img{object-fit:var(--sth-bg-fit-m,cover);object-position:var(--sth-bg-focal-m,var(--sth-focal,50% 50%));transform:translate(var(--sth-bg-x-m,0%),var(--sth-bg-y-m,0%)) scale(var(--sth-bg-zoom-m,1.015));transform-origin:var(--sth-bg-focal-m,var(--sth-focal,50% 50%))}.sth__pic::before{background-image:var(--sth-blur-m,var(--sth-blur-d));opacity:var(--sth-blur-op-m,var(--sth-blur-op-d,0))}.sth__inner{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) auto;align-content:stretch;gap:14px;padding-bottom:54px;height:100%;overflow:hidden}.sth__copy{max-width:760px;min-height:0;overflow:hidden}.sth__cats{display:flex;flex-direction:column;gap:8px;max-height:none;padding:0}.sth__inst-viewport{height:auto;overflow:hidden;padding:8px 4px}.sth__inst-nav{position:static;flex-direction:row;justify-content:flex-end;gap:6px;padding:0 2px 4px;pointer-events:auto}.sth__inst-arrow{width:26px;height:26px}.sth__inst-arrow svg{transform:rotate(-90deg)}.sth__inst-track{flex-direction:row;gap:7px}.sth__cat.is-focus{transform:scale(var(--sth-focus-scale-mobile,1.32))}.sth__cat.is-focus:hover{transform:scale(var(--sth-focus-scale-mobile,1.32)) translateX(-2px)}.sth__cat{flex:0 0 135px;width:135px;height:45px;min-height:45px;grid-template-columns:36px minmax(0,1fr) 13px;gap:6px}.sth__catimg{width:36px;height:32px}.sth__catlabel{font-size:9.5px}.sth__cat.is-edge:not(.is-focus),.sth__cat.is-near:not(.is-focus){opacity:1;transform:none}.sth__cat.is-edge:not(.is-focus):hover,.sth__cat.is-edge:not(.is-focus):focus-visible,.sth__cat.is-near:not(.is-focus):hover,.sth__cat.is-near:not(.is-focus):focus-visible{transform:none}.sth__nav{left:clamp(19px,4.25vw,60px);bottom:12px}}
 @media(max-width:700px){.sth__stage{height:var(--sth-m-h,580px);height:min(var(--sth-m-h,580px),100dvh);min-height:0}.sth__inner{display:flex;flex-direction:column;align-items:stretch;justify-content:space-between;gap:12px;padding:24px 14px 50px;height:100%;overflow:hidden}.sth__copy{flex:1 1 auto;min-height:0;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end}.sth__title{font-size:var(--sth-title-size-mobile,clamp(31px,8.5vw,46px));margin:12px 0 10px}.sth__sub{font-size:11px;margin-bottom:15px;display:-webkit-box;-webkit-line-clamp:var(--sth-m-sub-lines,2);-webkit-box-orient:vertical;overflow:hidden}.sth__actions{display:grid;grid-template-columns:1fr;gap:8px;flex:0 0 auto}.sth__btn{width:100%;min-height:35px}.sth__cats{gap:7px;margin:0 -14px;padding:0 14px;flex:0 0 auto}.sth__cats::-webkit-scrollbar{display:none}.sth__cats-head{display:flex;font-size:7px;padding:0 2px 2px}.sth__inst-viewport{height:auto;padding:8px 4px}.sth__inst-track{flex-direction:row;gap:22px}.sth__cat{flex:0 0 98px;width:98px;height:43px;min-height:43px;grid-template-columns:28px minmax(0,1fr);gap:4px;padding:4px 5px 4px 4px}.sth__catimg{width:28px;height:25px}.sth__catlabel{font-size:8.5px;line-height:1.1;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}.sth__catarrow{display:none}.sth__nav{position:absolute;left:0;right:0;bottom:10px;justify-content:center;margin:0}.sth-benefits__in{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px 12px;padding:9px 14px}.sth-benefit b{font-size:9.5px}.sth-benefit small{font-size:8.5px}.sth-video__close{top:-36px}
 .sth__copy{transform:translateY(var(--sth-m-copy-y,0px)) scale(var(--sth-m-copy-scale,1));transform-origin:left top}
 .sth__copy.is-changing{transform:translateY(calc(var(--sth-m-copy-y,0px) + 8px)) scale(var(--sth-m-copy-scale,1))}
@@ -1298,6 +1319,21 @@ HTML;
         if ($url === '') return '';
         if (str_starts_with($url, '/') || preg_match('~^https?://~i', $url)) return $url;
         return '';
+    }
+
+    /** URL segura para una variable CSS url("..."). */
+    private function cssUrl(string $url): string
+    {
+        $url = str_replace(['"', "'", '\\', '(', ')', '<', '>', "\n", "\r"], '', trim($url));
+        return $url !== '' ? 'url("' . $url . '")' : 'none';
+    }
+
+    /** Añade la versión del Hero para romper caché de imágenes. */
+    private function versionedUrl(string $url, int $version): string
+    {
+        if ($url === '' || $version <= 0) return $url;
+        $sep = str_contains($url, '?') ? '&' : '?';
+        return $url . $sep . '_hv=' . $version;
     }
 
     private function linkUrl(string $url): string

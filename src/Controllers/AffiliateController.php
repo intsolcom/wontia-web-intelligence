@@ -122,25 +122,43 @@ class AffiliateController
         header('Content-Type: application/json');
         header('Cache-Control: no-store');
         \App\Core\Session::start();
-        $p = (new AffiliateService())->loginVerify((string)($in['email'] ?? ''), (string)($in['code'] ?? ''));
+        $svc = new AffiliateService();
+        $p = $svc->loginVerify((string)($in['email'] ?? ''), (string)($in['code'] ?? ''));
         if (!$p) { echo json_encode(['ok' => false, 'message' => 'Código incorrecto o vencido.']); return; }
+        session_regenerate_id(true);
         $_SESSION['ff_affiliate_id'] = $p['id'];
         $_SESSION['ff_started_at'] = time();
-        echo json_encode(['ok' => true, 'slug' => $p['slug'], 'name' => $p['name']], JSON_UNESCAPED_UNICODE);
+        \App\Core\Session::touch();
+        $remember = !empty($in['remember']);
+        if ($remember) {
+            $token = $svc->createRememberToken((int)$p['id']);
+            if ($token !== '') {
+                $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+                @setcookie('sonika_partner_remember', $token, [
+                    'expires' => time() + (AffiliateService::REMEMBER_DAYS * 86400),
+                    'path' => '/',
+                    'secure' => $secure,
+                    'httponly' => true,
+                    'samesite' => 'Lax',
+                ]);
+            }
+        }
+        echo json_encode(['ok' => true, 'slug' => $p['slug'], 'name' => $p['name'], 'expires_in' => \App\Core\Session::LIFETIME_SECONDS, 'remember' => $remember], JSON_UNESCAPED_UNICODE);
     }
 
-    /** GET /api/v1/public/affiliates/session — segundos restantes de la sesión (60 min). */
+    /** GET /api/v1/public/affiliates/session — segundos restantes de la sesión. */
     public function sessionInfo($request)
     {
         header('Content-Type: application/json');
         header('Cache-Control: no-store');
         \App\Core\Session::start();
         if (empty($_SESSION['ff_affiliate_id'])) { echo json_encode(['ok' => false, 'message' => 'Sesión no iniciada.']); return; }
-        $started = (int)($_SESSION['ff_started_at'] ?? time());
-        echo json_encode(['ok' => true, 'expires_in' => max(0, \App\Core\Session::LIFETIME_SECONDS - (time() - $started))], JSON_UNESCAPED_UNICODE);
+        $_SESSION['ff_started_at'] = time();
+        \App\Core\Session::touch();
+        echo json_encode(['ok' => true, 'expires_in' => \App\Core\Session::LIFETIME_SECONDS], JSON_UNESCAPED_UNICODE);
     }
 
-    /** POST /api/v1/public/affiliates/session/extend — renueva la sesión por 60 min más. */
+    /** POST /api/v1/public/affiliates/session/extend — renueva la sesión. */
     public function sessionExtend($request)
     {
         header('Content-Type: application/json');
@@ -148,6 +166,7 @@ class AffiliateController
         \App\Core\Session::start();
         if (empty($_SESSION['ff_affiliate_id'])) { echo json_encode(['ok' => false, 'message' => 'Sesión no iniciada.']); return; }
         $_SESSION['ff_started_at'] = time();
+        \App\Core\Session::touch();
         echo json_encode(['ok' => true, 'expires_in' => \App\Core\Session::LIFETIME_SECONDS], JSON_UNESCAPED_UNICODE);
     }
 
@@ -155,9 +174,64 @@ class AffiliateController
     public function logout($request)
     {
         \App\Core\Session::start();
-        unset($_SESSION['ff_affiliate_id']);
+        $remember = (string)($_COOKIE['sonika_partner_remember'] ?? '');
+        if ($remember !== '') {
+            try { (new AffiliateService())->revokeRememberToken($remember); } catch (\Throwable $e) {}
+            @setcookie('sonika_partner_remember', '', ['expires' => time() - 3600, 'path' => '/', 'httponly' => true, 'samesite' => 'Lax']);
+        }
+        unset($_SESSION['ff_affiliate_id'], $_SESSION['ff_started_at']);
+        \App\Core\Session::touch();
         header('Content-Type: application/json');
         echo json_encode(['ok' => true]);
+    }
+
+    /** GET /api/v1/public/affiliates/store — tienda del Partner dentro del panel. */
+    public function store($request)
+    {
+        header('Content-Type: application/json');
+        header('Cache-Control: no-store');
+        \App\Core\Session::start();
+        $affiliateId = (int)($_SESSION['ff_affiliate_id'] ?? 0);
+        if ($affiliateId <= 0) { http_response_code(401); echo json_encode(['ok' => false, 'message' => 'Sesión requerida.']); return; }
+        echo json_encode((new AffiliateService())->storeData($affiliateId), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    }
+
+    /** POST /api/v1/public/affiliates/store/product — agregar/quitar producto de Mi Tienda. */
+    public function storeProduct($request)
+    {
+        header('Content-Type: application/json');
+        header('Cache-Control: no-store');
+        \App\Core\Session::start();
+        $affiliateId = (int)($_SESSION['ff_affiliate_id'] ?? 0);
+        if ($affiliateId <= 0) { http_response_code(401); echo json_encode(['ok' => false, 'message' => 'Sesión requerida.']); return; }
+        $in = json_decode((string)file_get_contents('php://input'), true);
+        if (!is_array($in)) $in = $_POST;
+        $action = (string)($in['action'] ?? 'add');
+        if (!in_array($action, ['add', 'remove'], true)) $action = 'add';
+        echo json_encode((new AffiliateService())->storeProductToggle($affiliateId, (string)($in['handle'] ?? ''), $action), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    }
+
+    /** GET /api/v1/public/affiliates/attribution — estado del enlace y la cookie. */
+    public function attribution($request)
+    {
+        header('Content-Type: application/json');
+        header('Cache-Control: no-store');
+        \App\Core\Session::start();
+        $affiliateId = (int)($_SESSION['ff_affiliate_id'] ?? 0);
+        if ($affiliateId <= 0) { http_response_code(401); echo json_encode(['ok' => false, 'message' => 'Sesión requerida.']); return; }
+        $svc = new AffiliateService();
+        $aff = $svc->getById($affiliateId);
+        if (!$aff) { http_response_code(404); echo json_encode(['ok' => false, 'message' => 'Partner no encontrado.']); return; }
+        $code = $svc->ensureLink($affiliateId);
+        echo json_encode([
+            'ok' => true,
+            'code' => $code,
+            'link' => $code !== '' ? '/r/' . rawurlencode($code) : '',
+            'store_path' => $svc->publicPath($aff),
+            'stats' => $svc->attributionStats($affiliateId),
+            'cookie_days' => AffiliateService::COOKIE_DAYS,
+            'ttl_days' => AffiliateService::TTL_DAYS,
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     }
 
     /** POST /api/v1/public/affiliates/wizard — guarda pasos del wizard que no se deducen de datos. */
@@ -171,6 +245,20 @@ class AffiliateController
         $in = json_decode((string)file_get_contents('php://input'), true);
         if (!is_array($in)) $in = $_POST;
         echo json_encode((new AffiliateService())->markWizardStep($affiliateId, (string)($in['step'] ?? '')), JSON_UNESCAPED_UNICODE);
+    }
+
+    /** POST /api/v1/public/affiliates/visibility — preferencia de perfil público del Partner. */
+    public function visibility($request)
+    {
+        $in = json_decode((string)file_get_contents('php://input'), true);
+        if (!is_array($in)) $in = $_POST;
+        header('Content-Type: application/json');
+        header('Cache-Control: no-store');
+        \App\Core\Session::start();
+        $affiliateId = (int)($_SESSION['ff_affiliate_id'] ?? 0);
+        if ($affiliateId <= 0) { http_response_code(401); echo json_encode(['ok' => false, 'message' => 'Sesión requerida.']); return; }
+        $enabled = filter_var($in['public_profile_enabled'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        echo json_encode((new AffiliateService())->setPublicProfileEnabled($affiliateId, $enabled), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     }
 
     /** POST /api/v1/public/affiliates/contract — solicitud de contratación (público). */
@@ -276,7 +364,7 @@ class AffiliateController
         if ($r) {
             $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
             @setcookie('sonika_aff', (string)$r['code'], [
-                'expires' => time() + (AffiliateService::TTL_DAYS * 86400),
+                'expires' => time() + (AffiliateService::COOKIE_DAYS * 86400),
                 'path' => '/',
                 'secure' => $secure,
                 'httponly' => false,

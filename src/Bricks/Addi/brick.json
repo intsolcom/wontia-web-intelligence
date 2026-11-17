@@ -1,0 +1,32 @@
+{
+    "name": "Addi",
+    "slug": "addi",
+    "version": "1.0.0",
+    "description": "Integración de pago a cuotas con Addi para el checkout SONIKA: configuración, widget, transacciones, callback y cancelaciones.",
+    "author": "Wontia",
+    "category": "ecommerce",
+    "brick_class": "App\\Bricks\\Addi\\AddiBrick",
+    "requires": {
+        "php": ">=8.1",
+        "extensions": ["curl", "json", "openssl"]
+    },
+    "config": {
+        "enabled": false,
+        "environment": "staging",
+        "widget_enabled": true
+    },
+    "features": [
+        "Checkout Addi con redirección a originación de crédito",
+        "Config endpoint para mínimos, máximos y disponibilidad",
+        "Autenticación OAuth contra Addi Auth",
+        "Callback con Basic Auth y respuesta idempotente",
+        "Widget Addi en ficha de producto",
+        "Panel de configuración, prueba y transacciones",
+        "Cancelación total o parcial desde el panel",
+        "Credenciales cifradas en reposo"
+    ],
+    "tags": ["addi", "pago", "credito", "cuotas", "ecommerce", "checkout"],
+    "changelog": {
+        "1.0.0": "Integración inicial: checkout, widget, callback, panel de administración y cancelaciones"
+    }
+}

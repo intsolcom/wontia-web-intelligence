@@ -30,6 +30,7 @@ class ArtistContractService
             contract_id INT NOT NULL,
             contract_code VARCHAR(40) NOT NULL,
             contract_version VARCHAR(20) NOT NULL,
+            profile_category VARCHAR(20) DEFAULT NULL,
             accepted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             ip_hash CHAR(64) DEFAULT NULL,
             user_agent VARCHAR(300) DEFAULT NULL,
@@ -44,7 +45,19 @@ class ArtistContractService
             UNIQUE KEY uq_site_aff_contract (site_id, affiliate_id, contract_id),
             INDEX idx_aff (site_id, affiliate_id)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+        $db->exec("CREATE TABLE IF NOT EXISTS affiliate_contract_reminders (
+            id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            site_id INT NOT NULL,
+            affiliate_id INT NOT NULL,
+            contract_id INT NOT NULL,
+            status VARCHAR(20) NOT NULL DEFAULT 'sent',
+            sent_at DATETIME NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY uq_contract_reminder (site_id, affiliate_id, contract_id),
+            INDEX idx_contract_reminder_contract (site_id, contract_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
         foreach ([
+            'profile_category VARCHAR(20) NULL',
             'signature_image MEDIUMTEXT NULL',
             'signature_hash CHAR(64) NULL',
             'contract_hash CHAR(64) NULL',
@@ -56,10 +69,10 @@ class ArtistContractService
         ] as $column) {
             try { $db->exec('ALTER TABLE affiliate_acceptances ADD COLUMN ' . $column); } catch (\Throwable $e) {}
         }
-        $st = $db->prepare("SELECT id FROM affiliate_contracts WHERE site_id = @site_id AND code = 'sonika_partners' AND version = '1.1' LIMIT 1");
+        $st = $db->prepare("SELECT id FROM affiliate_contracts WHERE site_id = @site_id AND code = 'sonika_partners' AND version = '1.2' LIMIT 1");
         $st->execute();
         if (!$st->fetchColumn()) {
-            $db->prepare("INSERT INTO affiliate_contracts (site_id, code, version, title, body, effective_at, status, created_at) VALUES (@site_id, 'sonika_partners', '1.1', ?, ?, CURDATE(), 'published', NOW())")
+            $db->prepare("INSERT INTO affiliate_contracts (site_id, code, version, title, body, effective_at, status, created_at) VALUES (@site_id, 'sonika_partners', '1.2', ?, ?, CURDATE(), 'published', NOW())")
                 ->execute(['Contrato de participación en SONIKA Partners — Programa de Distribuidores', $this->body()]);
         }
         self::$ready = true;
@@ -75,12 +88,105 @@ class ArtistContractService
         return $st->fetch() ?: null;
     }
 
+    public function bodyFor(?array $affiliate = null): string
+    {
+        $body = $this->body();
+        $label = 'el perfil seleccionado al registrarse (Artista, Influencer, Persona natural o Comercial)';
+        if ($affiliate) {
+            $category = (string)($affiliate['profile_category'] ?? 'natural');
+            $label = AffiliateService::PROFILE_CATEGORIES[$category] ?? 'Persona natural';
+        }
+        return str_replace('{{PERFIL}}', $label, $body);
+    }
+
     public function latestAcceptance(int $affiliateId, int $contractId): ?array
     {
         $this->ensure();
         $st = Database::instance()->prepare("SELECT * FROM affiliate_acceptances WHERE site_id = @site_id AND affiliate_id = ? AND contract_id = ? LIMIT 1");
         $st->execute([$affiliateId, $contractId]);
         return $st->fetch() ?: null;
+    }
+
+    public function historyFor(int $affiliateId): array
+    {
+        $this->ensure();
+        try {
+            $st = Database::instance()->prepare("SELECT c.id, c.version, c.title, c.effective_at, c.status,
+                    a.signed_at, a.profile_category, a.contract_hash
+                FROM affiliate_contracts c
+                LEFT JOIN affiliate_acceptances a
+                  ON a.site_id = c.site_id AND a.contract_id = c.id AND a.affiliate_id = ?
+                WHERE c.site_id = @site_id AND c.code = 'sonika_partners'
+                ORDER BY c.id DESC");
+            $st->execute([$affiliateId]);
+            return $st->fetchAll();
+        } catch (\Throwable $e) {
+            return [];
+        }
+    }
+
+    public function sendPendingReminders(int $days = 3, int $limit = 50): array
+    {
+        $this->ensure();
+        $contract = $this->current();
+        if (!$contract) return ['ok' => false, 'message' => 'Contrato no disponible.'];
+        $days = max(1, min(60, $days));
+        $limit = max(1, min(200, $limit));
+        $cutoff = date('Y-m-d H:i:s', time() - ($days * 86400));
+        $db = Database::instance();
+        try {
+            $st = $db->prepare("SELECT p.id, p.email, p.full_name, p.public_name, p.artist_name, p.profile_category
+                FROM affiliate_profiles p
+                WHERE p.site_id = @site_id AND p.email <> '' AND p.created_at < :cutoff
+                  AND p.status NOT IN ('REJECTED', 'SUSPENDED', 'TERMINATED')
+                  AND NOT EXISTS (
+                      SELECT 1 FROM affiliate_acceptances a
+                      WHERE a.site_id = p.site_id AND a.affiliate_id = p.id
+                        AND a.contract_id = :cid1 AND a.signed_at IS NOT NULL
+                  )
+                  AND NOT EXISTS (
+                      SELECT 1 FROM affiliate_contract_reminders r
+                      WHERE r.site_id = p.site_id AND r.affiliate_id = p.id AND r.contract_id = :cid2
+                  )
+                ORDER BY p.id ASC LIMIT $limit");
+            $st->execute(['cutoff' => $cutoff, 'cid1' => (int)$contract['id'], 'cid2' => (int)$contract['id']]);
+            $profiles = $st->fetchAll();
+        } catch (\Throwable $e) {
+            return ['ok' => false, 'message' => 'No se pudieron consultar los contratos pendientes.'];
+        }
+        $sent = 0;
+        $failed = 0;
+        $es = class_exists('\\App\\Services\\EmailService') ? new \App\Services\EmailService() : null;
+        $ins = $db->prepare("INSERT INTO affiliate_contract_reminders (site_id, affiliate_id, contract_id, status, sent_at)
+            VALUES (@site_id, ?, ?, ?, NOW())
+            ON DUPLICATE KEY UPDATE status = VALUES(status), sent_at = NOW()");
+        $base = 'https://sonika.com.co';
+        foreach ($profiles as $profile) {
+            $name = trim((string)(($profile['artist_name'] ?? '') ?: (($profile['public_name'] ?? '') ?: ($profile['full_name'] ?? ''))));
+            $profileLabel = AffiliateService::PROFILE_CATEGORIES[(string)($profile['profile_category'] ?? 'natural')] ?? 'Persona natural';
+            $html = '<div style="font-family:Arial,sans-serif;line-height:1.65;color:#222">'
+                . '<p>Hola ' . htmlspecialchars($name, ENT_QUOTES, 'UTF-8') . ',</p>'
+                . '<p>Tu registro en <b>SONIKA Partners</b> está casi listo. Falta firmar el contrato <b>versión ' . htmlspecialchars((string)$contract['version'], ENT_QUOTES, 'UTF-8') . '</b> para activar tu participación y tus comisiones.</p>'
+                . '<p>Perfil registrado: <b>' . htmlspecialchars($profileLabel, ENT_QUOTES, 'UTF-8') . '</b>.</p>'
+                . '<p><a href="' . $base . '/artista/contrato" style="display:inline-block;background:#F20D16;color:#fff;padding:12px 18px;border-radius:8px;text-decoration:none;font-weight:700">Firmar contrato ahora</a></p>'
+                . '<p style="font-size:12px;color:#666">Si ya firmaste, ignora este mensaje. Si aún no verificaste tu correo, puedes hacerlo desde tu panel de Partner.</p></div>';
+            $ok = false;
+            if ($es) {
+                try { $ok = $es->sendHtml((string)$profile['email'], 'Firma tu contrato de SONIKA Partners', $html); } catch (\Throwable $e) {}
+            }
+            try {
+                $ins->execute([(int)$profile['id'], (int)$contract['id'], $ok ? 'sent' : 'failed']);
+            } catch (\Throwable $e) {
+            }
+            if ($ok) $sent++; else $failed++;
+        }
+        return [
+            'ok' => true,
+            'contract_version' => (string)$contract['version'],
+            'candidates' => count($profiles),
+            'sent' => $sent,
+            'failed' => $failed,
+        ];
     }
 
     public function sign(int $affiliateId, array $in): array
@@ -108,23 +214,33 @@ class ArtistContractService
         if ($width < 80 || $height < 40) return ['ok' => false, 'message' => 'La firma es demasiado pequeña.'];
         $signatureData = 'data:image/png;base64,' . base64_encode($binary);
         $signatureHash = hash('sha256', $binary);
-        $contractHash = hash('sha256', (string)$contract['body']);
+        $db = Database::instance();
+        $profileCategory = 'natural';
+        $profile = null;
+        try {
+            $st = $db->prepare('SELECT * FROM affiliate_profiles WHERE id = ? AND site_id = @site_id LIMIT 1');
+            $st->execute([$affiliateId]);
+            $profile = $st->fetch() ?: null;
+            if ($profile) $profileCategory = (string)($profile['profile_category'] ?? 'natural');
+        } catch (\Throwable $e) {
+        }
+        $contractHash = hash('sha256', $this->bodyFor($profile));
         $ipHash = hash('sha256', (string)($_SERVER['REMOTE_ADDR'] ?? ''));
         $ua = mb_substr((string)($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 300);
-        $db = Database::instance();
         try {
-            $db->prepare("INSERT INTO affiliate_acceptances (site_id, affiliate_id, contract_id, contract_code, contract_version, ip_hash, user_agent, signature_image, signature_hash, contract_hash, signer_name, signer_document, signed_at, signed_ip_hash, signed_user_agent) VALUES (@site_id, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?) ON DUPLICATE KEY UPDATE signature_image = VALUES(signature_image), signature_hash = VALUES(signature_hash), contract_hash = VALUES(contract_hash), signer_name = VALUES(signer_name), signer_document = VALUES(signer_document), signed_at = NOW(), signed_ip_hash = VALUES(signed_ip_hash), signed_user_agent = VALUES(signed_user_agent), accepted_at = NOW()")
+            $db->prepare("INSERT INTO affiliate_acceptances (site_id, affiliate_id, contract_id, contract_code, contract_version, profile_category, ip_hash, user_agent, signature_image, signature_hash, contract_hash, signer_name, signer_document, signed_at, signed_ip_hash, signed_user_agent) VALUES (@site_id, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?) ON DUPLICATE KEY UPDATE profile_category = VALUES(profile_category), signature_image = VALUES(signature_image), signature_hash = VALUES(signature_hash), contract_hash = VALUES(contract_hash), signer_name = VALUES(signer_name), signer_document = VALUES(signer_document), signed_at = NOW(), signed_ip_hash = VALUES(signed_ip_hash), signed_user_agent = VALUES(signed_user_agent), accepted_at = NOW()")
                 ->execute([
-                    $affiliateId, (int)$contract['id'], (string)$contract['code'], (string)$contract['version'],
+                    $affiliateId, (int)$contract['id'], (string)$contract['code'], (string)$contract['version'], $profileCategory,
                     $ipHash, $ua, $signatureData, $signatureHash, $contractHash, $name, $document, $ipHash, $ua,
                 ]);
             $db->prepare('UPDATE affiliate_profiles SET contract_version = ? WHERE id = ? AND site_id = @site_id')
                 ->execute([(string)$contract['version'], $affiliateId]);
-            $this->log($affiliateId, 'contract_signed', ['version' => (string)$contract['version'], 'hash' => $contractHash]);
+            $this->log($affiliateId, 'contract_signed', ['version' => (string)$contract['version'], 'hash' => $contractHash, 'profile_category' => $profileCategory]);
             return [
                 'ok' => true,
                 'message' => 'Contrato firmado correctamente.',
                 'contract_version' => (string)$contract['version'],
+                'profile_category' => $profileCategory,
                 'contract_hash' => $contractHash,
                 'signature_hash' => $signatureHash,
                 'signed_at' => date('Y-m-d H:i:s'),
@@ -156,8 +272,8 @@ El Partner actúa de manera independiente, voluntaria y autónoma. Este contrato
 2. OBJETO
 El Partner participa en SONIKA Partners para promover la marca y los productos de SONIKA mediante un enlace, catálogo, página, contenido o recomendación personal, recibiendo una comisión únicamente por ventas válidamente atribuidas, conforme a la fórmula, reglas y topes de este contrato.
 
-3. CATEGORÍA INTERNA DEL PARTNER
-Intsolcom podrá clasificar internamente al Partner como artista, influencer/creador o persona natural. Esta categoría se usa únicamente para personalizar la experiencia, sugerir herramientas, segmentar comunicaciones, generar reportes internos y activar módulos opcionales. La categoría interna NO modifica la comisión, la atribución, el contrato, los derechos, las obligaciones ni el pago. Ninguna categoría otorga exclusividad, territorio, representación de marca ni derechos adicionales.
+3. PERFIL DEL PARTNER
+El Partner se registra bajo el perfil de {{PERFIL}}. Este perfil se usa únicamente para personalizar la experiencia, sugerir herramientas, segmentar comunicaciones, generar reportes internos y activar módulos opcionales. Para los perfiles distintos de Artista, no se incluyen servicios de contratación para eventos, presentaciones, toques, moñas, booking ni representación artística. El perfil NO modifica la comisión, la atribución, el contrato, los derechos, las obligaciones ni el pago. Ningún perfil otorga exclusividad, territorio, representación de marca ni derechos adicionales.
 
 4. AUTORIZACIÓN DE CONTENIDO, IMAGEN Y VOZ (OPCIONAL)
 Si el Partner decide tener página pública, aparecer en directorios o entregar contenido, autoriza a Intsolcom de forma no exclusiva para usar, reproducir, comunicar, publicar, adaptar, distribuir y promocionar su imagen, voz, nombre artístico o público, semblanza, fotografías, videos, audios, textos y publicaciones entregadas en el marco del programa. Esta autorización es opt-in y no es requisito para participar ni para recibir comisiones.

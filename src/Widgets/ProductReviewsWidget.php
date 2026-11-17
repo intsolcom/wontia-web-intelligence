@@ -52,10 +52,15 @@ class ProductReviewsWidget extends Widget
 
         $svc = new ReviewService();
         $summary = $svc->summary($ref);
+        $simRating = (new \App\Services\ProductInsightsService())->ratingForRef($ref);
+        $isSimulated = !empty($simRating['simulated']) && (int)($simRating['count'] ?? 0) > 0;
+        if ($isSimulated) {
+            $summary = ['count' => (int)$simRating['count'], 'average' => (float)$simRating['average'], 'dist' => $simRating['dist']];
+        }
         $items = $svc->forProduct($ref, $limit);
         $me = (new CustomerService())->current();
-        $canWrite = false;
-        if ($me && $showForm && !$svc->alreadyReviewed((int)$me['id'], $ref)) $canWrite = true;
+        $mine = $me ? $svc->mineForProduct((int)$me['id'], $ref) : null;
+        $canWrite = (bool)($me && $showForm);
 
         $h = '<div class="prw" id="' . $uid . '" data-ref="' . $refEsc . '">';
         $h .= '<style>'
@@ -88,7 +93,7 @@ class ProductReviewsWidget extends Widget
         $h .= '</div></div>';
 
         if (!$items) {
-            $h .= '<p style="color:#777;margin-top:14px">' . $this->esc(\App\Core\Lang::get('no_reviews', 'Aún no hay reseñas. ¡Sé el primero!')) . '</p>';
+            $h .= '<p style="color:#777;margin-top:14px">' . $this->esc($isSimulated ? 'Valoraciones iniciales de la comunidad. Aún no hay comentarios publicados.' : \App\Core\Lang::get('no_reviews', 'Aún no hay reseñas. ¿Sé el primero!')) . '</p>';
         } else {
             foreach ($items as $r) {
                 $h .= '<div class="prw-item"><div class="top"><div><b>' . $this->esc((string)($r['title'] ?: 'Reseña')) . '</b> ' . $this->stars((float)$r['rating'])
@@ -101,13 +106,11 @@ class ProductReviewsWidget extends Widget
 
         if ($canWrite) {
             $h .= '<div class="prw-form"><h4 style="margin:0 0 6px">' . $this->esc(\App\Core\Lang::get('write_review', 'Escribe tu reseña')) . '</h4>'
-                . '<div class="prw-stars" id="' . $uid . '-stars" data-v="5">' . $this->stars(5) . '</div>'
-                . '<input type="text" id="' . $uid . '-title" placeholder="' . $this->esc(\App\Core\Lang::get('review_title', 'Título (opcional)')) . '" maxlength="120" />'
-                . '<textarea id="' . $uid . '-body" rows="3" placeholder="' . $this->esc(\App\Core\Lang::get('review_placeholder', '¿Qué te pareció el producto?')) . '" maxlength="2000"></textarea>'
-                . '<button type="button" id="' . $uid . '-send">' . $this->esc(\App\Core\Lang::get('publish_review', 'Publicar reseña')) . '</button>'
+                . '<div class="prw-stars" id="' . $uid . '-stars" data-v="' . (int)($mine['rating'] ?? 5) . '">' . $this->stars((float)($mine['rating'] ?? 5)) . '</div>'
+                . '<input type="text" id="' . $uid . '-title" value="' . $this->esc((string)($mine['title'] ?? '')) . '" placeholder="' . $this->esc(\App\Core\Lang::get('review_title', 'Título (opcional)')) . '" maxlength="160" />'
+                . '<textarea id="' . $uid . '-body" rows="3" placeholder="' . $this->esc(\App\Core\Lang::get('review_placeholder', '¿Qué te pareció el producto? (opcional)')) . '" maxlength="500">' . $this->esc((string)($mine['body'] ?? '')) . '</textarea>'
+                . '<button type="button" id="' . $uid . '-send">' . $this->esc($mine ? 'Actualizar valoración' : \App\Core\Lang::get('publish_review', 'Publicar reseña')) . '</button>'
                 . '<div class="prw-msg" id="' . $uid . '-msg"></div></div>';
-        } elseif ($me && $showForm && $svc->alreadyReviewed((int)$me['id'], $ref)) {
-            $h .= '<p style="color:#777;margin-top:14px">Gracias, ya enviaste tu reseña para este producto.</p>';
         } elseif ($showForm) {
             $h .= '<p style="margin-top:14px"><a href="/cuenta?tab=reviews" style="font-weight:600">' . $this->esc(\App\Core\Lang::get('review_login', 'Inicia sesión para escribir una reseña')) . ' →</a></p>';
         }
@@ -117,9 +120,9 @@ class ProductReviewsWidget extends Widget
         $h .= '<script>(function(){var root=document.getElementById("' . $uid . '");if(!root)return;'
             . 'root.querySelectorAll(".prw-help").forEach(function(a){a.addEventListener("click",function(e){e.preventDefault();var id=a.getAttribute("data-id");'
             . 'wontia&&wontia.api?(wontia.api("/api/v1/public/store/reviews/"+id+"/helpful",{method:"POST",body:{}}).then(function(r){if(r&&r.ok){var n=a.textContent.replace(/[^0-9]/g,"");a.textContent="Útil ("+(parseInt(n||0,1)+1)+")"}})):0;});});'
-            . 'var st=document.getElementById("' . $uid . '-stars");if(st){var setStars=function(v){st.setAttribute("data-v",v);st.innerHTML="";for(var i=1;i<=5;i++){var s=document.createElement("span");s.textContent="\\u2605";s.style.color=i<=v?"#F5A623":"#DDD";s.addEventListener("click",function(){setStars(parseInt(this.getAttribute("data-i")))});s.setAttribute("data-i",i);st.appendChild(s)}};setStars(5);'
+            . 'var st=document.getElementById("' . $uid . '-stars");if(st){var setStars=function(v){st.setAttribute("data-v",v);st.innerHTML="";for(var i=1;i<=5;i++){var s=document.createElement("span");s.textContent="\\u2605";s.style.color=i<=v?"#F5A623":"#DDD";s.addEventListener("click",function(){setStars(parseInt(this.getAttribute("data-i")))});s.setAttribute("data-i",i);st.appendChild(s)}};setStars(parseInt(st.getAttribute("data-v")||"5"));'
             . 'var btn=document.getElementById("' . $uid . '-send");if(btn){btn.addEventListener("click",function(){var msg=document.getElementById("' . $uid . '-msg");'
-            . 'var body=document.getElementById("' . $uid . '-body").value.trim();if(body.length<5){msg.textContent="Escribe al menos unas palabras.";msg.style.color="#DC2626";return;}'
+            . 'var body=document.getElementById("' . $uid . '-body").value.trim();if(body.length>500){msg.textContent="Máximo 500 caracteres.";msg.style.color="#DC2626";return;}'
             . 'btn.disabled=true;msg.style.color="#777";msg.textContent="Enviando...";'
             . 'fetch("/api/v1/public/account/reviews",{method:"POST",headers:{"Content-Type":"application/json"},credentials:"same-origin",body:JSON.stringify({product_ref:root.getAttribute("data-ref"),rating:parseInt(st.getAttribute("data-v")),title:document.getElementById("' . $uid . '-title").value,body:body})})'
             . '.then(function(r){return r.json()}).then(function(r){if(r&&r.ok){msg.style.color="#1E7A4B";msg.textContent=r.message||"¡Gracias!";setTimeout(function(){location.reload()},900)}else{btn.disabled=false;msg.style.color="#DC2626";msg.textContent=(r&&(r.message||(r.data&&r.data.message)))||"No se pudo publicar."}}).catch(function(){btn.disabled=false;msg.style.color="#DC2626";msg.textContent="Error de red."});});}'

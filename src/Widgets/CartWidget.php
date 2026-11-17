@@ -15,7 +15,7 @@ class CartWidget extends Widget
 
     public static function meta(): array
     {
-        return ['id' => 'cart', 'name' => 'Carrito de compras', 'icon' => 'cart', 'category' => 'header', 'version' => '1.0.0'];
+        return ['id' => 'cart', 'name' => 'Carrito de compras', 'icon' => 'cart', 'category' => 'header', 'version' => '1.1.0'];
     }
 
     public static function configSchema(): array
@@ -67,11 +67,13 @@ class CartWidget extends Widget
         $storeKey = trim((string)($c['storage_key'] ?? ''));
         if ($storeKey === '') $storeKey = 'wwi_cart_' . $site;
 
+        $breb = false;
+        try { $breb = (new \App\Services\BrebService())->available(); } catch (\Throwable $e) { $breb = false; }
         $uid = 'wc' . substr(md5($accent . $pos . $site), 0, 5);
         $h = $this->assets();
         $h .= '<div class="wwi-cart" id="' . $uid . '" data-site="' . $site . '" data-key="' . $this->esc($storeKey) . '" data-drawer="' . ($drawer ? '1' : '0') . '" data-pos="' . $pos . '"'
             . ' data-cart="' . $this->esc($cartUrl) . '" data-checkout="' . $this->esc($checkoutUrl) . '" data-empty="' . $this->esc($empty) . '" data-title="' . $this->esc($title) . '"'
-            . ' data-free="' . $free . '" data-validate="' . ($doValidate ? '1' : '0') . '"'
+            . ' data-free="' . $free . '" data-validate="' . ($doValidate ? '1' : '0') . '" data-breb="' . ($breb ? '1' : '0') . '"'
             . ($accent !== '' ? ' style="--wwi-cart-accent:' . $accent . '"' : '') . '>';
         $h .= '<button type="button" class="icon-btn wwi-cart__btn" aria-haspopup="' . ($drawer ? 'true' : 'false') . '" aria-label="' . $this->esc($label) . '">'
             . '<span class="ic" aria-hidden="true">' . $this->esc($icon) . '</span>'
@@ -120,6 +122,7 @@ class CartWidget extends Widget
 .wwi-cart__cta a.p1{background:var(--wwi-cart-accent,var(--brand,#F20D16));color:#fff}
 .wwi-cart__cta a.p2{background:#F5F5F5;color:var(--ink,#111)}
 .wwi-cart__warn{margin:6px 0;font-size:12px;color:#B45309}
+.wwi-cart__breb{margin:8px 0;padding:7px 9px;border:1px solid #C9E8D2;background:#F3FBF6;border-radius:8px;color:#166534;font-size:11.5px;line-height:1.4;font-weight:650}
 .wwi-cart__empty{padding:22px 6px;color:var(--muted,#777);text-align:center;font-size:13px}
 .wwi-cart__badge--pop{animation:wwiCartPop .45s ease}
 @keyframes wwiCartPop{0%{transform:scale(.55)}60%{transform:scale(1.28)}100%{transform:scale(1)}}
@@ -159,8 +162,9 @@ window.wwiCartRender=function(root){
  var cp=window.__wwiCartCpn[site];
  var cpLine=cp?('<div style="display:flex;justify-content:space-between;font-size:13px;color:#1E7A4B"><span>Cupón '+cp.code+'</span><span>−'+money(cp.disc)+'</span></div>'):'';
  var tot=sub-(cp?cp.disc:0);if(tot<0)tot=0;
- var cpnVal='';try{cpnVal=localStorage.getItem('wwi_coupon_'+site)||''}catch(e){}
- foot.innerHTML=fh+cpLine+'<div style="display:flex;gap:6px;margin:8px 0"><input id="wc-cpn-'+site+'" value="'+cpnVal+'" placeholder="Cupón" style="flex:1;padding:8px;border:1px solid #E6E6E6;border-radius:8px;font:inherit"/><button type="button" class="wwi-cart__cpnbtn" style="padding:8px 12px;border:0;border-radius:8px;background:#111;color:#fff;font-weight:700;cursor:pointer">Aplicar</button></div><div class="wwi-cart__cmsg" style="font-size:12px;margin-bottom:8px"></div><div class="wwi-cart__sub"><span>Total</span><span>'+money(tot)+'</span></div><div class="wwi-cart__cta"><a class="p2" href="'+root.getAttribute('data-cart')+'">Ver carrito</a><a class="p1" href="'+root.getAttribute('data-checkout')+'">Pagar</a></div>';
+  var cpnVal='';try{cpnVal=localStorage.getItem('wwi_coupon_'+site)||''}catch(e){}
+  var brebLine=root.getAttribute('data-breb')==='1'?'<div class="wwi-cart__breb">Paga con Bre-B y ahorra en el checkout. El descuento se aplica al elegir el método.</div>':'';
+  foot.innerHTML=fh+cpLine+brebLine+'<div style="display:flex;gap:6px;margin:8px 0"><input id="wc-cpn-'+site+'" value="'+cpnVal+'" placeholder="Cupón" style="flex:1;padding:8px;border:1px solid #E6E6E6;border-radius:8px;font:inherit"/><button type="button" class="wwi-cart__cpnbtn" style="padding:8px 12px;border:0;border-radius:8px;background:#111;color:#fff;font-weight:700;cursor:pointer">Aplicar</button></div><div class="wwi-cart__cmsg" style="font-size:12px;margin-bottom:8px"></div><div class="wwi-cart__sub"><span>Total</span><span>'+money(tot)+'</span></div><div class="wwi-cart__cta"><a class="p2" href="'+root.getAttribute('data-cart')+'">Ver carrito</a><a class="p1" href="'+root.getAttribute('data-checkout')+'">Pagar</a></div>';
  var cpbtn=foot.querySelector('.wwi-cart__cpnbtn');var cpmsg=foot.querySelector('.wwi-cart__cmsg');
  if(cpbtn)cpbtn.onclick=function(){var inp=document.getElementById('wc-cpn-'+site);var code=((inp&&inp.value)||'').trim();if(!code){window.__wwiCartCpn[site]=null;try{localStorage.removeItem('wwi_coupon_'+site)}catch(e){}window.wwiCartRender(root);return}
   fetch('/api/v1/public/cart/coupon',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:code,subtotal_cents:Math.round(sub*100)})}).then(function(r){return r.json()}).then(function(d){if(d&&d.ok&&d.data&&d.data.ok){window.__wwiCartCpn[site]={code:d.data.code,disc:d.data.discount_cents/100};try{localStorage.setItem('wwi_coupon_'+site,d.data.code)}catch(e){}window.wwiCartRender(root)}else{cpmsg.style.color='#DC2626';cpmsg.textContent=(d&&d.data&&d.data.message)||'Cupón no válido';}}).catch(function(){});};

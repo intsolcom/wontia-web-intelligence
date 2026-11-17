@@ -20,8 +20,16 @@ class ReviewService
             title VARCHAR(160) NULL, body TEXT NULL, status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'pending',
             verified_purchase TINYINT NOT NULL DEFAULT 0, helpful INT NOT NULL DEFAULT 0,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            UNIQUE KEY uk_review_customer (site_id, product_ref, customer_id),
             KEY idx_prod (site_id, product_ref, status), KEY idx_cust (site_id, customer_id)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+        foreach ([
+            "ALTER TABLE store_product_reviews ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP",
+            "ALTER TABLE store_product_reviews ADD UNIQUE KEY uk_review_customer (site_id, product_ref, customer_id)",
+        ] as $alter) {
+            try { Database::instance()->exec($alter); } catch (\Throwable $e) {}
+        }
         self::$ensured = true;
         return ['ok' => true, 'cached' => false];
     }
@@ -74,18 +82,27 @@ class ReviewService
         $body = trim((string)($d['body'] ?? ''));
         if ($ref === '') return ['ok' => false, 'message' => 'Falta el producto.'];
         if ($rating < 1 || $rating > 5) return ['ok' => false, 'message' => 'La calificación debe ser de 1 a 5 estrellas.'];
-        if (mb_strlen($body) < 5) return ['ok' => false, 'message' => 'Escribe al menos unas palabras.'];
+        if (mb_strlen($body) > 500) return ['ok' => false, 'message' => 'El comentario no puede superar 500 caracteres.'];
         $s = $this->settings();
         $verified = $this->purchased($customerId, (string)($d['email'] ?? ''), $ref) ? 1 : 0;
         if ($s['require_purchase'] && !$verified) return ['ok' => false, 'message' => 'Solo puedes reseñar productos que hayas comprado.'];
         $db = Database::instance();
         $dc = $db->prepare("SELECT id FROM store_product_reviews WHERE site_id = @site_id AND product_ref = ? AND customer_id = ? LIMIT 1");
         $dc->execute([$ref, $customerId]);
-        if ($dc->fetchColumn()) return ['ok' => false, 'message' => 'Ya reseñaste este producto.'];
+        $existing = $dc->fetchColumn();
         $status = $s['auto_approve'] ? 'approved' : 'pending';
+        $title = mb_substr(trim((string)($d['title'] ?? '')), 0, 160);
+        if ($existing) {
+            $db->prepare("UPDATE store_product_reviews SET author_name = ?, rating = ?, title = ?, body = ?, status = ?, verified_purchase = ?, updated_at = NOW() WHERE id = ? AND site_id = @site_id")
+                ->execute([mb_substr($name, 0, 120), $rating, $title, $body, $status, $verified, (int)$existing]);
+            return ['ok' => true, 'id' => (int)$existing, 'status' => $status, 'message' => $status === 'approved' ? 'Valoración actualizada.' : 'Valoración enviada para revisión.'];
+        }
+        $count = $db->prepare("SELECT COUNT(*) FROM store_product_reviews WHERE site_id = @site_id AND customer_id = ? AND created_at >= (NOW() - INTERVAL 1 HOUR)");
+        $count->execute([$customerId]);
+        if ((int)$count->fetchColumn() >= 10) return ['ok' => false, 'message' => 'Demasiadas valoraciones. Espera unos minutos.'];
         $db->prepare("INSERT INTO store_product_reviews (site_id, product_ref, customer_id, author_name, rating, title, body, status, verified_purchase) VALUES (@site_id, ?, ?, ?, ?, ?, ?, ?, ?)")
-           ->execute([$ref, $customerId, mb_substr($name, 0, 120), $rating, mb_substr(trim((string)($d['title'] ?? '')), 0, 160), $body, $status, $verified]);
-        return ['ok' => true, 'id' => (int)$db->lastInsertId(), 'status' => $status, 'message' => $status === 'approved' ? '¡Gracias por tu reseña!' : 'Reseña enviada. Se publicará tras revisión.'];
+           ->execute([$ref, $customerId, mb_substr($name, 0, 120), $rating, $title, $body, $status, $verified]);
+        return ['ok' => true, 'id' => (int)$db->lastInsertId(), 'status' => $status, 'message' => $status === 'approved' ? '¡Gracias por tu valoración!' : 'Valoración enviada. Se publicará tras revisión.'];
     }
 
     public function mine(int $customerId): array
@@ -102,6 +119,27 @@ class ReviewService
         $st = Database::instance()->prepare("SELECT id FROM store_product_reviews WHERE site_id = @site_id AND customer_id = ? AND product_ref = ? LIMIT 1");
         $st->execute([$customerId, $ref]);
         return (bool)$st->fetchColumn();
+    }
+
+    public function mineForProduct(int $customerId, string $ref): ?array
+    {
+        $this->ensureTables();
+        $st = Database::instance()->prepare("SELECT id, rating, title, body, status, created_at, updated_at FROM store_product_reviews WHERE site_id = @site_id AND customer_id = ? AND product_ref = ? LIMIT 1");
+        $st->execute([$customerId, $ref]);
+        return $st->fetch() ?: null;
+    }
+
+    public function summaryMany(array $refs): array
+    {
+        $this->ensureTables();
+        $refs = array_values(array_unique(array_filter(array_map('strval', $refs))));
+        if (!$refs) return [];
+        $in = implode(',', array_fill(0, count($refs), '?'));
+        $st = Database::instance()->prepare("SELECT product_ref, COUNT(*) c, AVG(rating) avg FROM store_product_reviews WHERE site_id = @site_id AND status = 'approved' AND product_ref IN ($in) GROUP BY product_ref");
+        $st->execute($refs);
+        $out = [];
+        foreach ($st->fetchAll() as $r) $out[(string)$r['product_ref']] = ['count' => (int)$r['c'], 'average' => round((float)$r['avg'], 1)];
+        return $out;
     }
 
     public function listAll(string $status = '', string $ref = '', int $limit = 200): array

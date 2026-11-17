@@ -1,0 +1,5836 @@
+{
+  "source": "DANE DIVIPOLA - base operativa de departamentos y municipios",
+  "generated_at": "2026-10-28T16:34:33.413Z",
+  "totals": {
+    "departments": 33,
+    "municipalities": 1119
+  },
+  "departments": [
+    {
+      "code": "91",
+      "name": "Amazonas",
+      "capital": "Leticia",
+      "municipalities": [
+        {
+          "code": "91263",
+          "name": "El Encanto",
+          "province": "Amazonas"
+        },
+        {
+          "code": "91405",
+          "name": "La Chorrera",
+          "province": "Amazonas"
+        },
+        {
+          "code": "91407",
+          "name": "La Pedrera",
+          "province": "Amazonas"
+        },
+        {
+          "code": "91430",
+          "name": "La Victoria",
+          "province": "Amazonas"
+        },
+        {
+          "code": "91001",
+          "name": "Leticia",
+          "province": "Amazonas"
+        },
+        {
+          "code": "91460",
+          "name": "Miriti - Paraná",
+          "province": "Amazonas"
+        },
+        {
+          "code": "91530",
+          "name": "Puerto Alegria",
+          "province": "Amazonas"
+        },
+        {
+          "code": "91536",
+          "name": "Puerto Arica",
+          "province": "Amazonas"
+        },
+        {
+          "code": "91540",
+          "name": "Puerto Nariño",
+          "province": "Amazonas"
+        },
+        {
+          "code": "91669",
+          "name": "Puerto Santander",
+          "province": "Amazonas"
+        },
+        {
+          "code": "91798",
+          "name": "Tarapacá",
+          "province": "Amazonas"
+        }
+      ]
+    },
+    {
+      "code": "05",
+      "name": "Antioquia",
+      "capital": "Medellín",
+      "municipalities": [
+        {
+          "code": "05002",
+          "name": "Abejorral",
+          "province": "Oriente"
+        },
+        {
+          "code": "05004",
+          "name": "Abriaquí",
+          "province": "Occidente"
+        },
+        {
+          "code": "05021",
+          "name": "Alejandría",
+          "province": "Oriente"
+        },
+        {
+          "code": "05030",
+          "name": "Amaga",
+          "province": "Suroeste"
+        },
+        {
+          "code": "05031",
+          "name": "Amalfi",
+          "province": "Nordeste"
+        },
+        {
+          "code": "05034",
+          "name": "Andes",
+          "province": "Suroeste"
+        },
+        {
+          "code": "05036",
+          "name": "Angelopolis",
+          "province": "Suroeste"
+        },
+        {
+          "code": "05038",
+          "name": "Angostura",
+          "province": "Norte"
+        },
+        {
+          "code": "05040",
+          "name": "Anorí",
+          "province": "Nordeste"
+        },
+        {
+          "code": "05044",
+          "name": "Anza",
+          "province": "Occidente"
+        },
+        {
+          "code": "05045",
+          "name": "Apartadó",
+          "province": "Uraba"
+        },
+        {
+          "code": "05051",
+          "name": "Arboletes",
+          "province": "Uraba"
+        },
+        {
+          "code": "05055",
+          "name": "Argelia",
+          "province": "Oriente"
+        },
+        {
+          "code": "05059",
+          "name": "Armenia",
+          "province": "Occidente"
+        },
+        {
+          "code": "05079",
+          "name": "Barbosa",
+          "province": "Valle Del Aburra"
+        },
+        {
+          "code": "05088",
+          "name": "Bello",
+          "province": "Valle Del Aburra"
+        },
+        {
+          "code": "05086",
+          "name": "Belmira",
+          "province": "Norte"
+        },
+        {
+          "code": "05091",
+          "name": "Betania",
+          "province": "Suroeste"
+        },
+        {
+          "code": "05093",
+          "name": "Betulia",
+          "province": "Suroeste"
+        },
+        {
+          "code": "05107",
+          "name": "Briceño",
+          "province": "Norte"
+        },
+        {
+          "code": "05113",
+          "name": "Buriticá",
+          "province": "Occidente"
+        },
+        {
+          "code": "05120",
+          "name": "Cáceres",
+          "province": "Bajo Cauca"
+        },
+        {
+          "code": "05125",
+          "name": "Caicedo",
+          "province": "Suroeste"
+        },
+        {
+          "code": "05129",
+          "name": "Caldas",
+          "province": "Valle Del Aburra"
+        },
+        {
+          "code": "05134",
+          "name": "Campamento",
+          "province": "Norte"
+        },
+        {
+          "code": "05138",
+          "name": "Cañasgordas",
+          "province": "Occidente"
+        },
+        {
+          "code": "05142",
+          "name": "Caracolí",
+          "province": "Magdalena Medio"
+        },
+        {
+          "code": "05145",
+          "name": "Caramanta",
+          "province": "Suroeste"
+        },
+        {
+          "code": "05147",
+          "name": "Carepa",
+          "province": "Uraba"
+        },
+        {
+          "code": "05148",
+          "name": "Carmen De Viboral",
+          "province": "Oriente"
+        },
+        {
+          "code": "05150",
+          "name": "Carolina",
+          "province": "Norte"
+        },
+        {
+          "code": "05154",
+          "name": "Caucasia",
+          "province": "Bajo Cauca"
+        },
+        {
+          "code": "05172",
+          "name": "Chigorodó",
+          "province": "Uraba"
+        },
+        {
+          "code": "05190",
+          "name": "Cisneros",
+          "province": "Nordeste"
+        },
+        {
+          "code": "05101",
+          "name": "Ciudad Bolívar",
+          "province": "Suroeste"
+        },
+        {
+          "code": "05197",
+          "name": "Cocorná",
+          "province": "Oriente"
+        },
+        {
+          "code": "05206",
+          "name": "Concepción",
+          "province": "Oriente"
+        },
+        {
+          "code": "05209",
+          "name": "Concordia",
+          "province": "Suroeste"
+        },
+        {
+          "code": "05212",
+          "name": "Copacabana",
+          "province": "Valle Del Aburra"
+        },
+        {
+          "code": "05234",
+          "name": "Dabeiba",
+          "province": "Occidente"
+        },
+        {
+          "code": "05237",
+          "name": "Don Matias",
+          "province": "Norte"
+        },
+        {
+          "code": "05240",
+          "name": "Ebéjico",
+          "province": "Occidente"
+        },
+        {
+          "code": "05250",
+          "name": "El Bagre",
+          "province": "Bajo Cauca"
+        },
+        {
+          "code": "05264",
+          "name": "Entrerrios",
+          "province": "Norte"
+        },
+        {
+          "code": "05266",
+          "name": "Envigado",
+          "province": "Valle Del Aburra"
+        },
+        {
+          "code": "05282",
+          "name": "Fredonia",
+          "province": "Suroeste"
+        },
+        {
+          "code": "05284",
+          "name": "Frontino",
+          "province": "Occidente"
+        },
+        {
+          "code": "05306",
+          "name": "Giraldo",
+          "province": "Occidente"
+        },
+        {
+          "code": "05308",
+          "name": "Girardota",
+          "province": "Valle Del Aburra"
+        },
+        {
+          "code": "05310",
+          "name": "Gómez Plata",
+          "province": "Norte"
+        },
+        {
+          "code": "05313",
+          "name": "Granada",
+          "province": "Oriente"
+        },
+        {
+          "code": "05315",
+          "name": "Guadalupe",
+          "province": "Norte"
+        },
+        {
+          "code": "05318",
+          "name": "Guarne",
+          "province": "Oriente"
+        },
+        {
+          "code": "05321",
+          "name": "Guatape",
+          "province": "Oriente"
+        },
+        {
+          "code": "05347",
+          "name": "Heliconia",
+          "province": "Occidente"
+        },
+        {
+          "code": "05353",
+          "name": "Hispania",
+          "province": "Suroeste"
+        },
+        {
+          "code": "05360",
+          "name": "Itagui",
+          "province": "Valle Del Aburra"
+        },
+        {
+          "code": "05361",
+          "name": "Ituango",
+          "province": "Norte"
+        },
+        {
+          "code": "05364",
+          "name": "Jardín",
+          "province": "Suroeste"
+        },
+        {
+          "code": "05368",
+          "name": "Jericó",
+          "province": "Suroeste"
+        },
+        {
+          "code": "05376",
+          "name": "La Ceja",
+          "province": "Oriente"
+        },
+        {
+          "code": "05380",
+          "name": "La Estrella",
+          "province": "Valle Del Aburra"
+        },
+        {
+          "code": "05390",
+          "name": "La Pintada",
+          "province": "Suroeste"
+        },
+        {
+          "code": "05400",
+          "name": "La Unión",
+          "province": "Oriente"
+        },
+        {
+          "code": "05411",
+          "name": "Liborina",
+          "province": "Occidente"
+        },
+        {
+          "code": "05425",
+          "name": "Maceo",
+          "province": "Magdalena Medio"
+        },
+        {
+          "code": "05440",
+          "name": "Marinilla",
+          "province": "Oriente"
+        },
+        {
+          "code": "05001",
+          "name": "Medellín",
+          "province": "Valle Del Aburra"
+        },
+        {
+          "code": "05467",
+          "name": "Montebello",
+          "province": "Suroeste"
+        },
+        {
+          "code": "05475",
+          "name": "Murindó",
+          "province": "Uraba"
+        },
+        {
+          "code": "05480",
+          "name": "Mutata",
+          "province": "Uraba"
+        },
+        {
+          "code": "05483",
+          "name": "Nariño",
+          "province": "Oriente"
+        },
+        {
+          "code": "05495",
+          "name": "Nechí",
+          "province": "Bajo Cauca"
+        },
+        {
+          "code": "05490",
+          "name": "Necoclí",
+          "province": "Uraba"
+        },
+        {
+          "code": "05501",
+          "name": "Olaya",
+          "province": "Occidente"
+        },
+        {
+          "code": "05541",
+          "name": "Peñol",
+          "province": "Oriente"
+        },
+        {
+          "code": "05543",
+          "name": "Peque",
+          "province": "Occidente"
+        },
+        {
+          "code": "05576",
+          "name": "Pueblorrico",
+          "province": "Suroeste"
+        },
+        {
+          "code": "05579",
+          "name": "Puerto Berrio",
+          "province": "Magdalena Medio"
+        },
+        {
+          "code": "05585",
+          "name": "Puerto Nare",
+          "province": "Magdalena Medio"
+        },
+        {
+          "code": "05591",
+          "name": "Puerto Triunfo",
+          "province": "Magdalena Medio"
+        },
+        {
+          "code": "05604",
+          "name": "Remedios",
+          "province": "Nordeste"
+        },
+        {
+          "code": "05607",
+          "name": "Retiro",
+          "province": "Oriente"
+        },
+        {
+          "code": "05615",
+          "name": "Rionegro",
+          "province": "Oriente"
+        },
+        {
+          "code": "05628",
+          "name": "Sabanalarga",
+          "province": "Occidente"
+        },
+        {
+          "code": "05631",
+          "name": "Sabaneta",
+          "province": "Valle Del Aburra"
+        },
+        {
+          "code": "05642",
+          "name": "Salgar",
+          "province": "Suroeste"
+        },
+        {
+          "code": "05647",
+          "name": "San Andrés",
+          "province": "Norte"
+        },
+        {
+          "code": "05649",
+          "name": "San Carlos",
+          "province": "Oriente"
+        },
+        {
+          "code": "05652",
+          "name": "San Francisco",
+          "province": "Oriente"
+        },
+        {
+          "code": "05656",
+          "name": "San Jerónimo",
+          "province": "Occidente"
+        },
+        {
+          "code": "05658",
+          "name": "San José De La Montaña",
+          "province": "Norte"
+        },
+        {
+          "code": "05659",
+          "name": "San Juan De Uraba",
+          "province": "Uraba"
+        },
+        {
+          "code": "05660",
+          "name": "San Luis",
+          "province": "Oriente"
+        },
+        {
+          "code": "05664",
+          "name": "San Pedro",
+          "province": "Norte"
+        },
+        {
+          "code": "05665",
+          "name": "San Pedro De Uraba",
+          "province": "Uraba"
+        },
+        {
+          "code": "05667",
+          "name": "San Rafael",
+          "province": "Oriente"
+        },
+        {
+          "code": "05670",
+          "name": "San Roque",
+          "province": "Nordeste"
+        },
+        {
+          "code": "05674",
+          "name": "San Vicente",
+          "province": "Oriente"
+        },
+        {
+          "code": "05679",
+          "name": "Santa Barbara",
+          "province": "Suroeste"
+        },
+        {
+          "code": "05686",
+          "name": "Santa Rosa De Osos",
+          "province": "Norte"
+        },
+        {
+          "code": "05042",
+          "name": "Santafé De Antioquia",
+          "province": "Occidente"
+        },
+        {
+          "code": "05690",
+          "name": "Santo Domingo",
+          "province": "Nordeste"
+        },
+        {
+          "code": "05697",
+          "name": "Santuario",
+          "province": "Oriente"
+        },
+        {
+          "code": "05736",
+          "name": "Segovia",
+          "province": "Nordeste"
+        },
+        {
+          "code": "05756",
+          "name": "Sonson",
+          "province": "Oriente"
+        },
+        {
+          "code": "05761",
+          "name": "Sopetran",
+          "province": "Occidente"
+        },
+        {
+          "code": "05789",
+          "name": "Támesis",
+          "province": "Suroeste"
+        },
+        {
+          "code": "05790",
+          "name": "Tarazá",
+          "province": "Bajo Cauca"
+        },
+        {
+          "code": "05792",
+          "name": "Tarso",
+          "province": "Suroeste"
+        },
+        {
+          "code": "05809",
+          "name": "Titiribí",
+          "province": "Suroeste"
+        },
+        {
+          "code": "05819",
+          "name": "Toledo",
+          "province": "Norte"
+        },
+        {
+          "code": "05837",
+          "name": "Turbo",
+          "province": "Uraba"
+        },
+        {
+          "code": "05842",
+          "name": "Uramita",
+          "province": "Occidente"
+        },
+        {
+          "code": "05847",
+          "name": "Urrao",
+          "province": "Suroeste"
+        },
+        {
+          "code": "05854",
+          "name": "Valdivia",
+          "province": "Norte"
+        },
+        {
+          "code": "05856",
+          "name": "Valparaiso",
+          "province": "Suroeste"
+        },
+        {
+          "code": "05858",
+          "name": "Vegachí",
+          "province": "Nordeste"
+        },
+        {
+          "code": "05861",
+          "name": "Venecia",
+          "province": "Suroeste"
+        },
+        {
+          "code": "05873",
+          "name": "Vigía Del Fuerte",
+          "province": "Uraba"
+        },
+        {
+          "code": "05885",
+          "name": "Yalí",
+          "province": "Nordeste"
+        },
+        {
+          "code": "05887",
+          "name": "Yarumal",
+          "province": "Norte"
+        },
+        {
+          "code": "05890",
+          "name": "Yolombó",
+          "province": "Nordeste"
+        },
+        {
+          "code": "05893",
+          "name": "Yondó",
+          "province": "Magdalena Medio"
+        },
+        {
+          "code": "05895",
+          "name": "Zaragoza",
+          "province": "Bajo Cauca"
+        }
+      ]
+    },
+    {
+      "code": "81",
+      "name": "Arauca",
+      "capital": "Arauca",
+      "municipalities": [
+        {
+          "code": "81001",
+          "name": "Arauca",
+          "province": "Arauca"
+        },
+        {
+          "code": "81065",
+          "name": "Arauquita",
+          "province": "Arauca"
+        },
+        {
+          "code": "81220",
+          "name": "Cravo Norte",
+          "province": "Arauca"
+        },
+        {
+          "code": "81300",
+          "name": "Fortul",
+          "province": "Arauca"
+        },
+        {
+          "code": "81591",
+          "name": "Puerto Rondón",
+          "province": "Arauca"
+        },
+        {
+          "code": "81736",
+          "name": "Saravena",
+          "province": "Arauca"
+        },
+        {
+          "code": "81794",
+          "name": "Tame",
+          "province": "Arauca"
+        }
+      ]
+    },
+    {
+      "code": "88",
+      "name": "San Andrés y Providencia",
+      "capital": "San Andrés",
+      "municipalities": [
+        {
+          "code": "88564",
+          "name": "Providencia Y Santa Catalina",
+          "province": "Archipiélago De San Andrés"
+        },
+        {
+          "code": "88001",
+          "name": "San Andrés",
+          "province": "Sin Provincia"
+        }
+      ]
+    },
+    {
+      "code": "08",
+      "name": "Atlántico",
+      "capital": "Barranquilla",
+      "municipalities": [
+        {
+          "code": "08078",
+          "name": "Baranoa",
+          "province": "Centro Oriente"
+        },
+        {
+          "code": "08001",
+          "name": "Barranquilla",
+          "province": "Norte"
+        },
+        {
+          "code": "08137",
+          "name": "Campo De La Cruz",
+          "province": "Sur"
+        },
+        {
+          "code": "08141",
+          "name": "Candelaria",
+          "province": "Sur"
+        },
+        {
+          "code": "08296",
+          "name": "Galapa",
+          "province": "Norte"
+        },
+        {
+          "code": "08372",
+          "name": "Juan De Acosta",
+          "province": "Occidental"
+        },
+        {
+          "code": "08421",
+          "name": "Luruaco",
+          "province": "Sur"
+        },
+        {
+          "code": "08433",
+          "name": "Malambo",
+          "province": "Norte"
+        },
+        {
+          "code": "08436",
+          "name": "Manati",
+          "province": "Sur"
+        },
+        {
+          "code": "08520",
+          "name": "Palmar De Varela",
+          "province": "Centro Oriente"
+        },
+        {
+          "code": "08549",
+          "name": "Piojó",
+          "province": "Occidental"
+        },
+        {
+          "code": "08558",
+          "name": "Polonuevo",
+          "province": "Centro Oriente"
+        },
+        {
+          "code": "08560",
+          "name": "Ponedera",
+          "province": "Centro Oriente"
+        },
+        {
+          "code": "08573",
+          "name": "Puerto Colombia",
+          "province": "Norte"
+        },
+        {
+          "code": "08606",
+          "name": "Repelon",
+          "province": "Sur"
+        },
+        {
+          "code": "08634",
+          "name": "Sabanagrande",
+          "province": "Centro Oriente"
+        },
+        {
+          "code": "08638",
+          "name": "Sabanalarga",
+          "province": "Centro Oriente"
+        },
+        {
+          "code": "08675",
+          "name": "Santa Lucia",
+          "province": "Sur"
+        },
+        {
+          "code": "08685",
+          "name": "Santo Tomas",
+          "province": "Centro Oriente"
+        },
+        {
+          "code": "08758",
+          "name": "Soledad",
+          "province": "Norte"
+        },
+        {
+          "code": "08770",
+          "name": "Suan",
+          "province": "Sur"
+        },
+        {
+          "code": "08832",
+          "name": "Tubara",
+          "province": "Occidental"
+        },
+        {
+          "code": "08849",
+          "name": "Usiacuri",
+          "province": "Occidental"
+        }
+      ]
+    },
+    {
+      "code": "11",
+      "name": "Bogotá D.C.",
+      "capital": "Bogotá",
+      "municipalities": [
+        {
+          "code": "11001",
+          "name": "Bogotá D.C.",
+          "province": "Bogotá"
+        }
+      ]
+    },
+    {
+      "code": "13",
+      "name": "Bolívar",
+      "capital": "Cartagena",
+      "municipalities": [
+        {
+          "code": "13006",
+          "name": "Achí",
+          "province": "Mojana Bolivarense"
+        },
+        {
+          "code": "13030",
+          "name": "Altos Del Rosario",
+          "province": "Loba"
+        },
+        {
+          "code": "13042",
+          "name": "Arenal",
+          "province": "Magdalena Medio Bolivarense"
+        },
+        {
+          "code": "13052",
+          "name": "Arjona",
+          "province": "Dique Bolivarense"
+        },
+        {
+          "code": "13062",
+          "name": "Arroyohondo",
+          "province": "Dique Bolivarense"
+        },
+        {
+          "code": "13074",
+          "name": "Barranco De Loba",
+          "province": "Loba"
+        },
+        {
+          "code": "13140",
+          "name": "Calamar",
+          "province": "Dique Bolivarense"
+        },
+        {
+          "code": "13160",
+          "name": "Cantagallo",
+          "province": "Magdalena Medio Bolivarense"
+        },
+        {
+          "code": "13244",
+          "name": "Carmen De Bolívar",
+          "province": "Montes De Maria"
+        },
+        {
+          "code": "13001",
+          "name": "Cartagena",
+          "province": "Dique Bolivarense"
+        },
+        {
+          "code": "13188",
+          "name": "Cicuco",
+          "province": "Depresion Momposina"
+        },
+        {
+          "code": "13222",
+          "name": "Clemencia",
+          "province": "Dique Bolivarense"
+        },
+        {
+          "code": "13212",
+          "name": "Córdoba",
+          "province": "Montes De Maria"
+        },
+        {
+          "code": "13248",
+          "name": "El Guamo",
+          "province": "Montes De Maria"
+        },
+        {
+          "code": "13268",
+          "name": "El Peñon",
+          "province": "Loba"
+        },
+        {
+          "code": "13300",
+          "name": "Hatillo De Loba",
+          "province": "Depresion Momposina"
+        },
+        {
+          "code": "13430",
+          "name": "Magangué",
+          "province": "Mojana Bolivarense"
+        },
+        {
+          "code": "13433",
+          "name": "Mahates",
+          "province": "Dique Bolivarense"
+        },
+        {
+          "code": "13440",
+          "name": "Margarita",
+          "province": "Depresion Momposina"
+        },
+        {
+          "code": "13442",
+          "name": "María La Baja",
+          "province": "Montes De Maria"
+        },
+        {
+          "code": "13468",
+          "name": "Mompós",
+          "province": "Depresion Momposina"
+        },
+        {
+          "code": "13458",
+          "name": "Montecristo",
+          "province": "Mojana Bolivarense"
+        },
+        {
+          "code": "13473",
+          "name": "Morales",
+          "province": "Magdalena Medio Bolivarense"
+        },
+        {
+          "code": "13549",
+          "name": "Pinillos",
+          "province": "Mojana Bolivarense"
+        },
+        {
+          "code": "13580",
+          "name": "Regidor",
+          "province": "Loba"
+        },
+        {
+          "code": "13600",
+          "name": "Río Viejo",
+          "province": "Loba"
+        },
+        {
+          "code": "13620",
+          "name": "San Cristobal",
+          "province": "Dique Bolivarense"
+        },
+        {
+          "code": "13647",
+          "name": "San Estanislao",
+          "province": "Dique Bolivarense"
+        },
+        {
+          "code": "13650",
+          "name": "San Fernando",
+          "province": "Depresion Momposina"
+        },
+        {
+          "code": "13654",
+          "name": "San Jacinto",
+          "province": "Montes De Maria"
+        },
+        {
+          "code": "13655",
+          "name": "San Jacinto Del Cauca",
+          "province": "Mojana Bolivarense"
+        },
+        {
+          "code": "13657",
+          "name": "San Juan Nepomuceno",
+          "province": "Montes De Maria"
+        },
+        {
+          "code": "13667",
+          "name": "San Martin De Loba",
+          "province": "Loba"
+        },
+        {
+          "code": "13670",
+          "name": "San Pablo",
+          "province": "Magdalena Medio Bolivarense"
+        },
+        {
+          "code": "13673",
+          "name": "Santa Catalina",
+          "province": "Dique Bolivarense"
+        },
+        {
+          "code": "13683",
+          "name": "Santa Rosa De Lima",
+          "province": "Dique Bolivarense"
+        },
+        {
+          "code": "13688",
+          "name": "Santa Rosa Del Sur",
+          "province": "Magdalena Medio Bolivarense"
+        },
+        {
+          "code": "13744",
+          "name": "Simití",
+          "province": "Magdalena Medio Bolivarense"
+        },
+        {
+          "code": "13760",
+          "name": "Soplaviento",
+          "province": "Dique Bolivarense"
+        },
+        {
+          "code": "13780",
+          "name": "Talaigua Nuevo",
+          "province": "Depresion Momposina"
+        },
+        {
+          "code": "13810",
+          "name": "Tiquisio",
+          "province": "Mojana Bolivarense"
+        },
+        {
+          "code": "13836",
+          "name": "Turbaco",
+          "province": "Dique Bolivarense"
+        },
+        {
+          "code": "13838",
+          "name": "Turbana",
+          "province": "Dique Bolivarense"
+        },
+        {
+          "code": "13873",
+          "name": "Villanueva",
+          "province": "Dique Bolivarense"
+        },
+        {
+          "code": "13894",
+          "name": "Zambrano",
+          "province": "Montes De Maria"
+        }
+      ]
+    },
+    {
+      "code": "15",
+      "name": "Boyacá",
+      "capital": "Tunja",
+      "municipalities": [
+        {
+          "code": "15022",
+          "name": "Almeida",
+          "province": "Oriente"
+        },
+        {
+          "code": "15047",
+          "name": "Aquitania",
+          "province": "Sugamuxi"
+        },
+        {
+          "code": "15051",
+          "name": "Arcabuco",
+          "province": "Ricaurte"
+        },
+        {
+          "code": "15087",
+          "name": "Belén",
+          "province": "Tundama"
+        },
+        {
+          "code": "15090",
+          "name": "Berbeo",
+          "province": "Lengupa"
+        },
+        {
+          "code": "15092",
+          "name": "Betéitiva",
+          "province": "Valderrama"
+        },
+        {
+          "code": "15097",
+          "name": "Boavita",
+          "province": "Norte"
+        },
+        {
+          "code": "15104",
+          "name": "Boyacá",
+          "province": "Marquez"
+        },
+        {
+          "code": "15106",
+          "name": "Briceño",
+          "province": "Occidente"
+        },
+        {
+          "code": "15109",
+          "name": "Buenavista",
+          "province": "Occidente"
+        },
+        {
+          "code": "15114",
+          "name": "Busbanzá",
+          "province": "Tundama"
+        },
+        {
+          "code": "15131",
+          "name": "Caldas",
+          "province": "Occidente"
+        },
+        {
+          "code": "15135",
+          "name": "Campohermoso",
+          "province": "Lengupa"
+        },
+        {
+          "code": "15162",
+          "name": "Cerinza",
+          "province": "Tundama"
+        },
+        {
+          "code": "15172",
+          "name": "Chinavita",
+          "province": "Neira"
+        },
+        {
+          "code": "15176",
+          "name": "Chiquinquirá",
+          "province": "Occidente"
+        },
+        {
+          "code": "15232",
+          "name": "Chíquiza",
+          "province": "Centro"
+        },
+        {
+          "code": "15180",
+          "name": "Chiscas",
+          "province": "Gutierrez"
+        },
+        {
+          "code": "15183",
+          "name": "Chita",
+          "province": "Valderrama"
+        },
+        {
+          "code": "15185",
+          "name": "Chitaraque",
+          "province": "Ricaurte"
+        },
+        {
+          "code": "15187",
+          "name": "Chivatá",
+          "province": "Centro"
+        },
+        {
+          "code": "15236",
+          "name": "Chivor",
+          "province": "Oriente"
+        },
+        {
+          "code": "15189",
+          "name": "Ciénega",
+          "province": "Marquez"
+        },
+        {
+          "code": "15204",
+          "name": "Cómbita",
+          "province": "Centro"
+        },
+        {
+          "code": "15212",
+          "name": "Coper",
+          "province": "Occidente"
+        },
+        {
+          "code": "15215",
+          "name": "Corrales",
+          "province": "Tundama"
+        },
+        {
+          "code": "15218",
+          "name": "Covarachía",
+          "province": "Norte"
+        },
+        {
+          "code": "15223",
+          "name": "Cubará",
+          "province": "Gutierrez"
+        },
+        {
+          "code": "15224",
+          "name": "Cucaita",
+          "province": "Centro"
+        },
+        {
+          "code": "15226",
+          "name": "Cuítiva",
+          "province": "Sugamuxi"
+        },
+        {
+          "code": "15238",
+          "name": "Duitama",
+          "province": "Tundama"
+        },
+        {
+          "code": "15244",
+          "name": "El Cocuy",
+          "province": "Gutierrez"
+        },
+        {
+          "code": "15248",
+          "name": "El Espino",
+          "province": "Gutierrez"
+        },
+        {
+          "code": "15272",
+          "name": "Firavitoba",
+          "province": "Sugamuxi"
+        },
+        {
+          "code": "15276",
+          "name": "Floresta",
+          "province": "Tundama"
+        },
+        {
+          "code": "15293",
+          "name": "Gachantivá",
+          "province": "Ricaurte"
+        },
+        {
+          "code": "15296",
+          "name": "Gameza",
+          "province": "Sugamuxi"
+        },
+        {
+          "code": "15299",
+          "name": "Garagoa",
+          "province": "Neira"
+        },
+        {
+          "code": "15317",
+          "name": "Guacamayas",
+          "province": "Gutierrez"
+        },
+        {
+          "code": "15322",
+          "name": "Guateque",
+          "province": "Oriente"
+        },
+        {
+          "code": "15325",
+          "name": "Guayatá",
+          "province": "Oriente"
+        },
+        {
+          "code": "15332",
+          "name": "Güicán",
+          "province": "Gutierrez"
+        },
+        {
+          "code": "15362",
+          "name": "Iza",
+          "province": "Sugamuxi"
+        },
+        {
+          "code": "15367",
+          "name": "Jenesano",
+          "province": "Marquez"
+        },
+        {
+          "code": "15368",
+          "name": "Jericó",
+          "province": "Valderrama"
+        },
+        {
+          "code": "15380",
+          "name": "La Capilla",
+          "province": "Oriente"
+        },
+        {
+          "code": "15403",
+          "name": "La Uvita",
+          "province": "Norte"
+        },
+        {
+          "code": "15401",
+          "name": "La Victoria",
+          "province": "Occidente"
+        },
+        {
+          "code": "15377",
+          "name": "Labranzagrande",
+          "province": "La Libertad"
+        },
+        {
+          "code": "15425",
+          "name": "Macanal",
+          "province": "Neira"
+        },
+        {
+          "code": "15442",
+          "name": "Maripí",
+          "province": "Occidente"
+        },
+        {
+          "code": "15455",
+          "name": "Miraflores",
+          "province": "Lengupa"
+        },
+        {
+          "code": "15464",
+          "name": "Mongua",
+          "province": "Sugamuxi"
+        },
+        {
+          "code": "15466",
+          "name": "Monguí",
+          "province": "Sugamuxi"
+        },
+        {
+          "code": "15469",
+          "name": "Moniquirá",
+          "province": "Ricaurte"
+        },
+        {
+          "code": "15476",
+          "name": "Motavita",
+          "province": "Centro"
+        },
+        {
+          "code": "15480",
+          "name": "Muzo",
+          "province": "Occidente"
+        },
+        {
+          "code": "15491",
+          "name": "Nobsa",
+          "province": "Sugamuxi"
+        },
+        {
+          "code": "15494",
+          "name": "Nuevo Colón",
+          "province": "Marquez"
+        },
+        {
+          "code": "15500",
+          "name": "Oicatá",
+          "province": "Centro"
+        },
+        {
+          "code": "15507",
+          "name": "Otanche",
+          "province": "Occidente"
+        },
+        {
+          "code": "15511",
+          "name": "Pachavita",
+          "province": "Neira"
+        },
+        {
+          "code": "15514",
+          "name": "Páez",
+          "province": "Lengupa"
+        },
+        {
+          "code": "15516",
+          "name": "Paipa",
+          "province": "Tundama"
+        },
+        {
+          "code": "15518",
+          "name": "Pajarito",
+          "province": "La Libertad"
+        },
+        {
+          "code": "15522",
+          "name": "Panqueba",
+          "province": "Gutierrez"
+        },
+        {
+          "code": "15531",
+          "name": "Pauna",
+          "province": "Occidente"
+        },
+        {
+          "code": "15533",
+          "name": "Paya",
+          "province": "La Libertad"
+        },
+        {
+          "code": "15537",
+          "name": "Paz De Río",
+          "province": "Valderrama"
+        },
+        {
+          "code": "15542",
+          "name": "Pesca",
+          "province": "Sugamuxi"
+        },
+        {
+          "code": "15550",
+          "name": "Pisba",
+          "province": "La Libertad"
+        },
+        {
+          "code": "15572",
+          "name": "Puerto Boyacá",
+          "province": "Occidente"
+        },
+        {
+          "code": "15580",
+          "name": "Quípama",
+          "province": "Occidente"
+        },
+        {
+          "code": "15599",
+          "name": "Ramiriquí",
+          "province": "Marquez"
+        },
+        {
+          "code": "15600",
+          "name": "Ráquira",
+          "province": "Ricaurte"
+        },
+        {
+          "code": "15621",
+          "name": "Rondón",
+          "province": "Marquez"
+        },
+        {
+          "code": "15632",
+          "name": "Saboyá",
+          "province": "Occidente"
+        },
+        {
+          "code": "15638",
+          "name": "Sáchica",
+          "province": "Ricaurte"
+        },
+        {
+          "code": "15646",
+          "name": "Samacá",
+          "province": "Centro"
+        },
+        {
+          "code": "15660",
+          "name": "San Eduardo",
+          "province": "Lengupa"
+        },
+        {
+          "code": "15664",
+          "name": "San José De Pare",
+          "province": "Ricaurte"
+        },
+        {
+          "code": "15667",
+          "name": "San Luis De Gaceno",
+          "province": "Neira"
+        },
+        {
+          "code": "15673",
+          "name": "San Mateo",
+          "province": "Norte"
+        },
+        {
+          "code": "15676",
+          "name": "San Miguel De Sema",
+          "province": "Occidente"
+        },
+        {
+          "code": "15681",
+          "name": "San Pablo Borbur",
+          "province": "Occidente"
+        },
+        {
+          "code": "15693",
+          "name": "San Rosa Viterbo",
+          "province": "Tundama"
+        },
+        {
+          "code": "15690",
+          "name": "Santa María",
+          "province": "Neira"
+        },
+        {
+          "code": "15696",
+          "name": "Santa Sofía",
+          "province": "Ricaurte"
+        },
+        {
+          "code": "15686",
+          "name": "Santana",
+          "province": "Ricaurte"
+        },
+        {
+          "code": "15720",
+          "name": "Sativanorte",
+          "province": "Norte"
+        },
+        {
+          "code": "15723",
+          "name": "Sativasur",
+          "province": "Norte"
+        },
+        {
+          "code": "15740",
+          "name": "Siachoque",
+          "province": "Centro"
+        },
+        {
+          "code": "15753",
+          "name": "Soatá",
+          "province": "Norte"
+        },
+        {
+          "code": "15757",
+          "name": "Socha",
+          "province": "Valderrama"
+        },
+        {
+          "code": "15755",
+          "name": "Socotá",
+          "province": "Valderrama"
+        },
+        {
+          "code": "15759",
+          "name": "Sogamoso",
+          "province": "Sugamuxi"
+        },
+        {
+          "code": "15761",
+          "name": "Somondoco",
+          "province": "Oriente"
+        },
+        {
+          "code": "15762",
+          "name": "Sora",
+          "province": "Centro"
+        },
+        {
+          "code": "15764",
+          "name": "Soracá",
+          "province": "Centro"
+        },
+        {
+          "code": "15763",
+          "name": "Sotaquirá",
+          "province": "Centro"
+        },
+        {
+          "code": "15774",
+          "name": "Susacón",
+          "province": "Norte"
+        },
+        {
+          "code": "15776",
+          "name": "Sutamarchán",
+          "province": "Ricaurte"
+        },
+        {
+          "code": "15778",
+          "name": "Sutatenza",
+          "province": "Oriente"
+        },
+        {
+          "code": "15790",
+          "name": "Tasco",
+          "province": "Valderrama"
+        },
+        {
+          "code": "15798",
+          "name": "Tenza",
+          "province": "Oriente"
+        },
+        {
+          "code": "15804",
+          "name": "Tibaná",
+          "province": "Marquez"
+        },
+        {
+          "code": "15806",
+          "name": "Tibasosa",
+          "province": "Sugamuxi"
+        },
+        {
+          "code": "15808",
+          "name": "Tinjacá",
+          "province": "Ricaurte"
+        },
+        {
+          "code": "15810",
+          "name": "Tipacoque",
+          "province": "Norte"
+        },
+        {
+          "code": "15814",
+          "name": "Toca",
+          "province": "Centro"
+        },
+        {
+          "code": "15816",
+          "name": "Togüí",
+          "province": "Ricaurte"
+        },
+        {
+          "code": "15820",
+          "name": "Tópaga",
+          "province": "Sugamuxi"
+        },
+        {
+          "code": "15822",
+          "name": "Tota",
+          "province": "Sugamuxi"
+        },
+        {
+          "code": "15001",
+          "name": "Tunja",
+          "province": "Centro"
+        },
+        {
+          "code": "15832",
+          "name": "Tununguá",
+          "province": "Occidente"
+        },
+        {
+          "code": "15835",
+          "name": "Turmequé",
+          "province": "Marquez"
+        },
+        {
+          "code": "15837",
+          "name": "Tuta",
+          "province": "Centro"
+        },
+        {
+          "code": "15839",
+          "name": "Tutazá",
+          "province": "Tundama"
+        },
+        {
+          "code": "15842",
+          "name": "Umbita",
+          "province": "Marquez"
+        },
+        {
+          "code": "15861",
+          "name": "Ventaquemada",
+          "province": "Centro"
+        },
+        {
+          "code": "15407",
+          "name": "Villa De Leyva",
+          "province": "Ricaurte"
+        },
+        {
+          "code": "15879",
+          "name": "Viracachá",
+          "province": "Marquez"
+        },
+        {
+          "code": "15897",
+          "name": "Zetaquira",
+          "province": "Lengupa"
+        }
+      ]
+    },
+    {
+      "code": "17",
+      "name": "Caldas",
+      "capital": "Manizales",
+      "municipalities": [
+        {
+          "code": "17013",
+          "name": "Aguadas",
+          "province": "Norte"
+        },
+        {
+          "code": "17042",
+          "name": "Anserma",
+          "province": "Bajo Occidente"
+        },
+        {
+          "code": "17050",
+          "name": "Aranzazu",
+          "province": "Norte"
+        },
+        {
+          "code": "17088",
+          "name": "Belalcázar",
+          "province": "Bajo Occidente"
+        },
+        {
+          "code": "17174",
+          "name": "Chinchina",
+          "province": "Centro"
+        },
+        {
+          "code": "17272",
+          "name": "Filadelfia",
+          "province": "Alto Occidente"
+        },
+        {
+          "code": "17380",
+          "name": "La Dorada",
+          "province": "Oriente"
+        },
+        {
+          "code": "17388",
+          "name": "La Merced",
+          "province": "Alto Occidente"
+        },
+        {
+          "code": "17001",
+          "name": "Manizales",
+          "province": "Centro"
+        },
+        {
+          "code": "17433",
+          "name": "Manzanares",
+          "province": "Alto Oriente"
+        },
+        {
+          "code": "17442",
+          "name": "Marmato",
+          "province": "Alto Occidente"
+        },
+        {
+          "code": "17444",
+          "name": "Marquetalia",
+          "province": "Alto Oriente"
+        },
+        {
+          "code": "17446",
+          "name": "Marulanda",
+          "province": "Alto Oriente"
+        },
+        {
+          "code": "17486",
+          "name": "Neira",
+          "province": "Centro"
+        },
+        {
+          "code": "17495",
+          "name": "Norcasia",
+          "province": "Oriente"
+        },
+        {
+          "code": "17513",
+          "name": "Pácora",
+          "province": "Norte"
+        },
+        {
+          "code": "17524",
+          "name": "Palestina",
+          "province": "Centro"
+        },
+        {
+          "code": "17541",
+          "name": "Pensilvania",
+          "province": "Alto Oriente"
+        },
+        {
+          "code": "17614",
+          "name": "Riosucio",
+          "province": "Alto Occidente"
+        },
+        {
+          "code": "17616",
+          "name": "Risaralda",
+          "province": "Bajo Occidente"
+        },
+        {
+          "code": "17653",
+          "name": "Salamina",
+          "province": "Norte"
+        },
+        {
+          "code": "17662",
+          "name": "Samaná",
+          "province": "Oriente"
+        },
+        {
+          "code": "17665",
+          "name": "San José",
+          "province": "Bajo Occidente"
+        },
+        {
+          "code": "17777",
+          "name": "Supía",
+          "province": "Alto Occidente"
+        },
+        {
+          "code": "17867",
+          "name": "Victoria",
+          "province": "Oriente"
+        },
+        {
+          "code": "17873",
+          "name": "Villamaria",
+          "province": "Centro"
+        },
+        {
+          "code": "17877",
+          "name": "Viterbo",
+          "province": "Bajo Occidente"
+        }
+      ]
+    },
+    {
+      "code": "18",
+      "name": "Caquetá",
+      "capital": "Florencia",
+      "municipalities": [
+        {
+          "code": "18029",
+          "name": "Albania",
+          "province": "Caquetá"
+        },
+        {
+          "code": "18094",
+          "name": "Belén De Los Andaquies",
+          "province": "Caquetá"
+        },
+        {
+          "code": "18150",
+          "name": "Cartagena Del Chairá",
+          "province": "Caquetá"
+        },
+        {
+          "code": "18205",
+          "name": "Currillo",
+          "province": "Caquetá"
+        },
+        {
+          "code": "18247",
+          "name": "El Doncello",
+          "province": "Caquetá"
+        },
+        {
+          "code": "18256",
+          "name": "El Paujil",
+          "province": "Caquetá"
+        },
+        {
+          "code": "18001",
+          "name": "Florencia",
+          "province": "Caquetá"
+        },
+        {
+          "code": "18410",
+          "name": "La Montañita",
+          "province": "Caquetá"
+        },
+        {
+          "code": "18460",
+          "name": "Milan",
+          "province": "Caquetá"
+        },
+        {
+          "code": "18479",
+          "name": "Morelia",
+          "province": "Caquetá"
+        },
+        {
+          "code": "18592",
+          "name": "Puerto Rico",
+          "province": "Caquetá"
+        },
+        {
+          "code": "18610",
+          "name": "San Jose Del Fragua",
+          "province": "Caquetá"
+        },
+        {
+          "code": "18753",
+          "name": "San Vicente Del Caguán",
+          "province": "Caquetá"
+        },
+        {
+          "code": "18756",
+          "name": "Solano",
+          "province": "Caquetá"
+        },
+        {
+          "code": "18785",
+          "name": "Solita",
+          "province": "Caquetá"
+        },
+        {
+          "code": "18860",
+          "name": "Valparaiso",
+          "province": "Caquetá"
+        }
+      ]
+    },
+    {
+      "code": "85",
+      "name": "Casanare",
+      "capital": "Yopal",
+      "municipalities": [
+        {
+          "code": "85010",
+          "name": "Aguazul",
+          "province": "Casanare"
+        },
+        {
+          "code": "85015",
+          "name": "Chameza",
+          "province": "Casanare"
+        },
+        {
+          "code": "85125",
+          "name": "Hato Corozal",
+          "province": "Casanare"
+        },
+        {
+          "code": "85136",
+          "name": "La Salina",
+          "province": "Casanare"
+        },
+        {
+          "code": "85139",
+          "name": "Maní",
+          "province": "Casanare"
+        },
+        {
+          "code": "85162",
+          "name": "Monterrey",
+          "province": "Casanare"
+        },
+        {
+          "code": "85225",
+          "name": "Nunchía",
+          "province": "Casanare"
+        },
+        {
+          "code": "85230",
+          "name": "Orocué",
+          "province": "Casanare"
+        },
+        {
+          "code": "85250",
+          "name": "Paz De Ariporo",
+          "province": "Casanare"
+        },
+        {
+          "code": "85263",
+          "name": "Pore",
+          "province": "Casanare"
+        },
+        {
+          "code": "85279",
+          "name": "Recetor",
+          "province": "Casanare"
+        },
+        {
+          "code": "85300",
+          "name": "Sabanalarga",
+          "province": "Casanare"
+        },
+        {
+          "code": "85315",
+          "name": "Sácama",
+          "province": "Casanare"
+        },
+        {
+          "code": "85325",
+          "name": "San Luis De Palenque",
+          "province": "Casanare"
+        },
+        {
+          "code": "85400",
+          "name": "Támara",
+          "province": "Casanare"
+        },
+        {
+          "code": "85410",
+          "name": "Tauramena",
+          "province": "Casanare"
+        },
+        {
+          "code": "85430",
+          "name": "Trinidad",
+          "province": "Casanare"
+        },
+        {
+          "code": "85440",
+          "name": "Villanueva",
+          "province": "Casanare"
+        },
+        {
+          "code": "85001",
+          "name": "Yopal",
+          "province": "Casanare"
+        }
+      ]
+    },
+    {
+      "code": "19",
+      "name": "Cauca",
+      "capital": "Popayán",
+      "municipalities": [
+        {
+          "code": "19022",
+          "name": "Almaguer",
+          "province": "Sur"
+        },
+        {
+          "code": "19050",
+          "name": "Argelia",
+          "province": "Sur"
+        },
+        {
+          "code": "19075",
+          "name": "Balboa",
+          "province": "Sur"
+        },
+        {
+          "code": "19100",
+          "name": "Bolívar",
+          "province": "Sur"
+        },
+        {
+          "code": "19110",
+          "name": "Buenos Aires",
+          "province": "Norte"
+        },
+        {
+          "code": "19130",
+          "name": "Cajibío",
+          "province": "Centro"
+        },
+        {
+          "code": "19137",
+          "name": "Caldono",
+          "province": "Oriente"
+        },
+        {
+          "code": "19142",
+          "name": "Caloto",
+          "province": "Norte"
+        },
+        {
+          "code": "19212",
+          "name": "Corinto",
+          "province": "Norte"
+        },
+        {
+          "code": "19256",
+          "name": "El Tambo",
+          "province": "Centro"
+        },
+        {
+          "code": "19290",
+          "name": "Florencia",
+          "province": "Sur"
+        },
+        {
+          "code": "19318",
+          "name": "Guapi",
+          "province": "Occidente"
+        },
+        {
+          "code": "19355",
+          "name": "Inzá",
+          "province": "Oriente"
+        },
+        {
+          "code": "19364",
+          "name": "Jambalo",
+          "province": "Oriente"
+        },
+        {
+          "code": "19392",
+          "name": "La Sierra",
+          "province": "Centro"
+        },
+        {
+          "code": "19397",
+          "name": "La Vega",
+          "province": "Sur"
+        },
+        {
+          "code": "19418",
+          "name": "Lopez",
+          "province": "Occidente"
+        },
+        {
+          "code": "19450",
+          "name": "Mercaderes",
+          "province": "Sur"
+        },
+        {
+          "code": "19455",
+          "name": "Miranda",
+          "province": "Norte"
+        },
+        {
+          "code": "19473",
+          "name": "Morales",
+          "province": "Centro"
+        },
+        {
+          "code": "19513",
+          "name": "Padilla",
+          "province": "Norte"
+        },
+        {
+          "code": "19517",
+          "name": "Paez",
+          "province": "Oriente"
+        },
+        {
+          "code": "19532",
+          "name": "Patia",
+          "province": "Sur"
+        },
+        {
+          "code": "19533",
+          "name": "Piamonte",
+          "province": "Sur"
+        },
+        {
+          "code": "19548",
+          "name": "Piendamo",
+          "province": "Centro"
+        },
+        {
+          "code": "19001",
+          "name": "Popayán",
+          "province": "Centro"
+        },
+        {
+          "code": "19573",
+          "name": "Puerto Tejada",
+          "province": "Norte"
+        },
+        {
+          "code": "19585",
+          "name": "Purace",
+          "province": "Oriente"
+        },
+        {
+          "code": "19622",
+          "name": "Rosas",
+          "province": "Centro"
+        },
+        {
+          "code": "19693",
+          "name": "San Sebastian",
+          "province": "Sur"
+        },
+        {
+          "code": "19701",
+          "name": "Santa Rosa",
+          "province": "Sur"
+        },
+        {
+          "code": "19698",
+          "name": "Santander De Quilichao",
+          "province": "Norte"
+        },
+        {
+          "code": "19743",
+          "name": "Silvia",
+          "province": "Oriente"
+        },
+        {
+          "code": "19760",
+          "name": "Sotara",
+          "province": "Centro"
+        },
+        {
+          "code": "19780",
+          "name": "Suarez",
+          "province": "Norte"
+        },
+        {
+          "code": "19785",
+          "name": "Sucre",
+          "province": "Sur"
+        },
+        {
+          "code": "19807",
+          "name": "Timbio",
+          "province": "Centro"
+        },
+        {
+          "code": "19809",
+          "name": "Timbiqui",
+          "province": "Occidente"
+        },
+        {
+          "code": "19821",
+          "name": "Toribio",
+          "province": "Oriente"
+        },
+        {
+          "code": "19824",
+          "name": "Totoro",
+          "province": "Oriente"
+        },
+        {
+          "code": "19845",
+          "name": "Villa Rica",
+          "province": "Norte"
+        }
+      ]
+    },
+    {
+      "code": "20",
+      "name": "Cesar",
+      "capital": "Valledupar",
+      "municipalities": [
+        {
+          "code": "20011",
+          "name": "Aguachica",
+          "province": "Sur"
+        },
+        {
+          "code": "20013",
+          "name": "Agustín Codazzi",
+          "province": "Norte"
+        },
+        {
+          "code": "20032",
+          "name": "Astrea",
+          "province": "Noroccidental"
+        },
+        {
+          "code": "20045",
+          "name": "Becerril",
+          "province": "Central"
+        },
+        {
+          "code": "20060",
+          "name": "Bosconia",
+          "province": "Noroccidental"
+        },
+        {
+          "code": "20175",
+          "name": "Chimichagua",
+          "province": "Central"
+        },
+        {
+          "code": "20178",
+          "name": "Chiriguana",
+          "province": "Central"
+        },
+        {
+          "code": "20228",
+          "name": "Curumaní",
+          "province": "Central"
+        },
+        {
+          "code": "20238",
+          "name": "El Copey",
+          "province": "Noroccidental"
+        },
+        {
+          "code": "20250",
+          "name": "El Paso",
+          "province": "Noroccidental"
+        },
+        {
+          "code": "20295",
+          "name": "Gamarra",
+          "province": "Sur"
+        },
+        {
+          "code": "20310",
+          "name": "González",
+          "province": "Sur"
+        },
+        {
+          "code": "20383",
+          "name": "La Gloria",
+          "province": "Sur"
+        },
+        {
+          "code": "20400",
+          "name": "La Jagua De Ibirico",
+          "province": "Central"
+        },
+        {
+          "code": "20621",
+          "name": "La Paz",
+          "province": "Norte"
+        },
+        {
+          "code": "20443",
+          "name": "Manaure",
+          "province": "Norte"
+        },
+        {
+          "code": "20517",
+          "name": "Pailitas",
+          "province": "Central"
+        },
+        {
+          "code": "20550",
+          "name": "Pelaya",
+          "province": "Sur"
+        },
+        {
+          "code": "20570",
+          "name": "Pueblo Bello",
+          "province": "Norte"
+        },
+        {
+          "code": "20614",
+          "name": "Río De Oro",
+          "province": "Sur"
+        },
+        {
+          "code": "20710",
+          "name": "San Alberto",
+          "province": "Sur"
+        },
+        {
+          "code": "20750",
+          "name": "San Diego",
+          "province": "Norte"
+        },
+        {
+          "code": "20770",
+          "name": "San Martín",
+          "province": "Sur"
+        },
+        {
+          "code": "20787",
+          "name": "Tamalameque",
+          "province": "Central"
+        },
+        {
+          "code": "20001",
+          "name": "Valledupar",
+          "province": "Norte"
+        }
+      ]
+    },
+    {
+      "code": "27",
+      "name": "Chocó",
+      "capital": "Quibdó",
+      "municipalities": [
+        {
+          "code": "27006",
+          "name": "Acandí",
+          "province": "Darien"
+        },
+        {
+          "code": "27025",
+          "name": "Alto Baudó",
+          "province": "Pacifico Sur"
+        },
+        {
+          "code": "27050",
+          "name": "Atrato",
+          "province": "Atrato"
+        },
+        {
+          "code": "27073",
+          "name": "Bagadó",
+          "province": "Atrato"
+        },
+        {
+          "code": "27075",
+          "name": "Bahía Solano",
+          "province": "Pacifico Norte"
+        },
+        {
+          "code": "27077",
+          "name": "Bajo Baudó",
+          "province": "Pacifico Sur"
+        },
+        {
+          "code": "27086",
+          "name": "Belén De Bajira",
+          "province": "Darien"
+        },
+        {
+          "code": "27099",
+          "name": "Bojaya",
+          "province": "Atrato"
+        },
+        {
+          "code": "27135",
+          "name": "Canton De San Pablo",
+          "province": "San Juan"
+        },
+        {
+          "code": "27150",
+          "name": "Carmén Del Darién",
+          "province": "Darien"
+        },
+        {
+          "code": "27160",
+          "name": "Certegui",
+          "province": "San Juan"
+        },
+        {
+          "code": "27205",
+          "name": "Condoto",
+          "province": "San Juan"
+        },
+        {
+          "code": "27245",
+          "name": "El Carmen De Atrato",
+          "province": "Atrato"
+        },
+        {
+          "code": "27250",
+          "name": "El Litoral Del San Juan",
+          "province": "Pacifico Sur"
+        },
+        {
+          "code": "27361",
+          "name": "Itsmina",
+          "province": "San Juan"
+        },
+        {
+          "code": "27372",
+          "name": "Juradó",
+          "province": "Pacifico Norte"
+        },
+        {
+          "code": "27413",
+          "name": "Lloró",
+          "province": "Atrato"
+        },
+        {
+          "code": "27425",
+          "name": "Medio Atrato",
+          "province": "Atrato"
+        },
+        {
+          "code": "27430",
+          "name": "Medio Baudó",
+          "province": "Pacifico Sur"
+        },
+        {
+          "code": "27450",
+          "name": "Medio San Juan",
+          "province": "San Juan"
+        },
+        {
+          "code": "27491",
+          "name": "Nóvita",
+          "province": "San Juan"
+        },
+        {
+          "code": "27495",
+          "name": "Nuquí",
+          "province": "Pacifico Norte"
+        },
+        {
+          "code": "27001",
+          "name": "Quibdó",
+          "province": "Atrato"
+        },
+        {
+          "code": "27580",
+          "name": "Río Frío",
+          "province": "San Juan"
+        },
+        {
+          "code": "27600",
+          "name": "Rio Quito",
+          "province": "Atrato"
+        },
+        {
+          "code": "27615",
+          "name": "Riosucio",
+          "province": "Darien"
+        },
+        {
+          "code": "27660",
+          "name": "San José Del Palmar",
+          "province": "San Juan"
+        },
+        {
+          "code": "27745",
+          "name": "Sipí",
+          "province": "San Juan"
+        },
+        {
+          "code": "27787",
+          "name": "Tadó",
+          "province": "San Juan"
+        },
+        {
+          "code": "27800",
+          "name": "Unguía",
+          "province": "Darien"
+        },
+        {
+          "code": "27810",
+          "name": "Union Panamericana",
+          "province": "San Juan"
+        }
+      ]
+    },
+    {
+      "code": "23",
+      "name": "Córdoba",
+      "capital": "Montería",
+      "municipalities": [
+        {
+          "code": "23068",
+          "name": "Ayapel",
+          "province": "San Jorge"
+        },
+        {
+          "code": "23079",
+          "name": "Buenavista",
+          "province": "San Jorge"
+        },
+        {
+          "code": "23090",
+          "name": "Canalete",
+          "province": "Costanera"
+        },
+        {
+          "code": "23162",
+          "name": "Cereté",
+          "province": "Sinu Medio"
+        },
+        {
+          "code": "23168",
+          "name": "Chimá",
+          "province": "Bajo Sinu"
+        },
+        {
+          "code": "23182",
+          "name": "Chinú",
+          "province": "Sabanas"
+        },
+        {
+          "code": "23189",
+          "name": "Ciénaga De Oro",
+          "province": "Sinu Medio"
+        },
+        {
+          "code": "23300",
+          "name": "Cotorra",
+          "province": "Bajo Sinu"
+        },
+        {
+          "code": "23350",
+          "name": "La Apartada",
+          "province": "San Jorge"
+        },
+        {
+          "code": "23417",
+          "name": "Lorica",
+          "province": "Bajo Sinu"
+        },
+        {
+          "code": "23419",
+          "name": "Los Córdobas",
+          "province": "Costanera"
+        },
+        {
+          "code": "23464",
+          "name": "Momil",
+          "province": "Bajo Sinu"
+        },
+        {
+          "code": "23500",
+          "name": "Moñitos",
+          "province": "Costanera"
+        },
+        {
+          "code": "23466",
+          "name": "Montelíbano",
+          "province": "San Jorge"
+        },
+        {
+          "code": "23001",
+          "name": "Montería",
+          "province": "Centro"
+        },
+        {
+          "code": "23555",
+          "name": "Planeta Rica",
+          "province": "San Jorge"
+        },
+        {
+          "code": "23570",
+          "name": "Pueblo Nuevo",
+          "province": "San Jorge"
+        },
+        {
+          "code": "23574",
+          "name": "Puerto Escondido",
+          "province": "Costanera"
+        },
+        {
+          "code": "23580",
+          "name": "Puerto Libertador",
+          "province": "San Jorge"
+        },
+        {
+          "code": "23586",
+          "name": "Purísima",
+          "province": "Bajo Sinu"
+        },
+        {
+          "code": "23660",
+          "name": "Sahagún",
+          "province": "Sabanas"
+        },
+        {
+          "code": "23670",
+          "name": "San Andrés Sotavento",
+          "province": "Sabanas"
+        },
+        {
+          "code": "23672",
+          "name": "San Antero",
+          "province": "Costanera"
+        },
+        {
+          "code": "23675",
+          "name": "San Bernardo Del Viento",
+          "province": "Costanera"
+        },
+        {
+          "code": "23678",
+          "name": "San Carlos",
+          "province": "Sinu Medio"
+        },
+        {
+          "code": "23686",
+          "name": "San Pelayo",
+          "province": "Sinu Medio"
+        },
+        {
+          "code": "23807",
+          "name": "Tierralta",
+          "province": "Alto Sinu"
+        },
+        {
+          "code": "23855",
+          "name": "Valencia",
+          "province": "Alto Sinu"
+        }
+      ]
+    },
+    {
+      "code": "25",
+      "name": "Cundinamarca",
+      "capital": "Bogotá",
+      "municipalities": [
+        {
+          "code": "25001",
+          "name": "Agua De Dios",
+          "province": "Alto Magdalena"
+        },
+        {
+          "code": "25019",
+          "name": "Albán",
+          "province": "Gualiva"
+        },
+        {
+          "code": "25035",
+          "name": "Anapoima",
+          "province": "Tequendama"
+        },
+        {
+          "code": "25040",
+          "name": "Anolaima",
+          "province": "Tequendama"
+        },
+        {
+          "code": "25599",
+          "name": "Apulo",
+          "province": "Tequendama"
+        },
+        {
+          "code": "25053",
+          "name": "Arbeláez",
+          "province": "Sumapaz"
+        },
+        {
+          "code": "25086",
+          "name": "Beltrán",
+          "province": "Magdalena Centro"
+        },
+        {
+          "code": "25095",
+          "name": "Bituima",
+          "province": "Magdalena Centro"
+        },
+        {
+          "code": "25099",
+          "name": "Bojacá",
+          "province": "Sabana Occidente"
+        },
+        {
+          "code": "25120",
+          "name": "Cabrera",
+          "province": "Sumapaz"
+        },
+        {
+          "code": "25123",
+          "name": "Cachipay",
+          "province": "Tequendama"
+        },
+        {
+          "code": "25126",
+          "name": "Cajicá",
+          "province": "Sabana Centro"
+        },
+        {
+          "code": "25148",
+          "name": "Caparrapí",
+          "province": "Bajo Magdalena"
+        },
+        {
+          "code": "25151",
+          "name": "Caqueza",
+          "province": "Oriente"
+        },
+        {
+          "code": "25154",
+          "name": "Carmen De Carupa",
+          "province": "Ubate"
+        },
+        {
+          "code": "25168",
+          "name": "Chaguaní",
+          "province": "Magdalena Centro"
+        },
+        {
+          "code": "25175",
+          "name": "Chía",
+          "province": "Sabana Centro"
+        },
+        {
+          "code": "25178",
+          "name": "Chipaque",
+          "province": "Oriente"
+        },
+        {
+          "code": "25181",
+          "name": "Choachí",
+          "province": "Oriente"
+        },
+        {
+          "code": "25183",
+          "name": "Chocontá",
+          "province": "Almeidas"
+        },
+        {
+          "code": "25200",
+          "name": "Cogua",
+          "province": "Sabana Centro"
+        },
+        {
+          "code": "25214",
+          "name": "Cota",
+          "province": "Sabana Occidente"
+        },
+        {
+          "code": "25224",
+          "name": "Cucunubá",
+          "province": "Ubate"
+        },
+        {
+          "code": "25245",
+          "name": "El Colegio",
+          "province": "Tequendama"
+        },
+        {
+          "code": "25258",
+          "name": "El Peñón",
+          "province": "Rio Negro"
+        },
+        {
+          "code": "25260",
+          "name": "El Rosal",
+          "province": "Sabana Occidente"
+        },
+        {
+          "code": "25269",
+          "name": "Facatativá",
+          "province": "Sabana Occidente"
+        },
+        {
+          "code": "25279",
+          "name": "Fomeque",
+          "province": "Oriente"
+        },
+        {
+          "code": "25281",
+          "name": "Fosca",
+          "province": "Oriente"
+        },
+        {
+          "code": "25286",
+          "name": "Funza",
+          "province": "Sabana Occidente"
+        },
+        {
+          "code": "25288",
+          "name": "Fúquene",
+          "province": "Ubate"
+        },
+        {
+          "code": "25290",
+          "name": "Fusagasugá",
+          "province": "Sumapaz"
+        },
+        {
+          "code": "25293",
+          "name": "Gachala",
+          "province": "Guavio"
+        },
+        {
+          "code": "25295",
+          "name": "Gachancipá",
+          "province": "Sabana Centro"
+        },
+        {
+          "code": "25297",
+          "name": "Gacheta",
+          "province": "Guavio"
+        },
+        {
+          "code": "25299",
+          "name": "Gama",
+          "province": "Guavio"
+        },
+        {
+          "code": "25307",
+          "name": "Girardot",
+          "province": "Alto Magdalena"
+        },
+        {
+          "code": "25312",
+          "name": "Granada",
+          "province": "Sumapaz"
+        },
+        {
+          "code": "25317",
+          "name": "Guachetá",
+          "province": "Ubate"
+        },
+        {
+          "code": "25320",
+          "name": "Guaduas",
+          "province": "Bajo Magdalena"
+        },
+        {
+          "code": "25322",
+          "name": "Guasca",
+          "province": "Guavio"
+        },
+        {
+          "code": "25324",
+          "name": "Guataquí",
+          "province": "Alto Magdalena"
+        },
+        {
+          "code": "25326",
+          "name": "Guatavita",
+          "province": "Guavio"
+        },
+        {
+          "code": "25328",
+          "name": "Guayabal De Siquima",
+          "province": "Magdalena Centro"
+        },
+        {
+          "code": "25335",
+          "name": "Guayabetal",
+          "province": "Oriente"
+        },
+        {
+          "code": "25339",
+          "name": "Gutiérrez",
+          "province": "Oriente"
+        },
+        {
+          "code": "25368",
+          "name": "Jerusalén",
+          "province": "Alto Magdalena"
+        },
+        {
+          "code": "25372",
+          "name": "Junín",
+          "province": "Guavio"
+        },
+        {
+          "code": "25377",
+          "name": "La Calera",
+          "province": "Guavio"
+        },
+        {
+          "code": "25386",
+          "name": "La Mesa",
+          "province": "Tequendama"
+        },
+        {
+          "code": "25394",
+          "name": "La Palma",
+          "province": "Rio Negro"
+        },
+        {
+          "code": "25398",
+          "name": "La Peña",
+          "province": "Gualiva"
+        },
+        {
+          "code": "25402",
+          "name": "La Vega",
+          "province": "Gualiva"
+        },
+        {
+          "code": "25407",
+          "name": "Lenguazaque",
+          "province": "Ubate"
+        },
+        {
+          "code": "25426",
+          "name": "Macheta",
+          "province": "Almeidas"
+        },
+        {
+          "code": "25430",
+          "name": "Madrid",
+          "province": "Sabana Occidente"
+        },
+        {
+          "code": "25436",
+          "name": "Manta",
+          "province": "Almeidas"
+        },
+        {
+          "code": "25438",
+          "name": "Medina",
+          "province": "Medina"
+        },
+        {
+          "code": "25473",
+          "name": "Mosquera",
+          "province": "Sabana Occidente"
+        },
+        {
+          "code": "25483",
+          "name": "Nariño",
+          "province": "Alto Magdalena"
+        },
+        {
+          "code": "25486",
+          "name": "Nemocon",
+          "province": "Sabana Centro"
+        },
+        {
+          "code": "25488",
+          "name": "Nilo",
+          "province": "Alto Magdalena"
+        },
+        {
+          "code": "25489",
+          "name": "Nimaima",
+          "province": "Gualiva"
+        },
+        {
+          "code": "25491",
+          "name": "Nocaima",
+          "province": "Gualiva"
+        },
+        {
+          "code": "25513",
+          "name": "Pacho",
+          "province": "Rio Negro"
+        },
+        {
+          "code": "25518",
+          "name": "Paime",
+          "province": "Rio Negro"
+        },
+        {
+          "code": "25524",
+          "name": "Pandi",
+          "province": "Sumapaz"
+        },
+        {
+          "code": "25530",
+          "name": "Paratebueno",
+          "province": "Medina"
+        },
+        {
+          "code": "25535",
+          "name": "Pasca",
+          "province": "Sumapaz"
+        },
+        {
+          "code": "25572",
+          "name": "Puerto Salgar",
+          "province": "Bajo Magdalena"
+        },
+        {
+          "code": "25580",
+          "name": "Puli",
+          "province": "Magdalena Centro"
+        },
+        {
+          "code": "25592",
+          "name": "Quebradanegra",
+          "province": "Gualiva"
+        },
+        {
+          "code": "25594",
+          "name": "Quetame",
+          "province": "Oriente"
+        },
+        {
+          "code": "25596",
+          "name": "Quipile",
+          "province": "Tequendama"
+        },
+        {
+          "code": "25612",
+          "name": "Ricaurte",
+          "province": "Alto Magdalena"
+        },
+        {
+          "code": "25645",
+          "name": "San Antonio De Tequendama",
+          "province": "Tequendama"
+        },
+        {
+          "code": "25649",
+          "name": "San Bernardo",
+          "province": "Sumapaz"
+        },
+        {
+          "code": "25653",
+          "name": "San Cayetano",
+          "province": "Rio Negro"
+        },
+        {
+          "code": "25658",
+          "name": "San Francisco",
+          "province": "Gualiva"
+        },
+        {
+          "code": "25662",
+          "name": "San Juan De Río Seco",
+          "province": "Magdalena Centro"
+        },
+        {
+          "code": "25718",
+          "name": "Sasaima",
+          "province": "Gualiva"
+        },
+        {
+          "code": "25736",
+          "name": "Sesquilé",
+          "province": "Almeidas"
+        },
+        {
+          "code": "25740",
+          "name": "Sibaté",
+          "province": "Soacha"
+        },
+        {
+          "code": "25743",
+          "name": "Silvania",
+          "province": "Sumapaz"
+        },
+        {
+          "code": "25745",
+          "name": "Simijaca",
+          "province": "Ubate"
+        },
+        {
+          "code": "25754",
+          "name": "Soacha",
+          "province": "Soacha"
+        },
+        {
+          "code": "25758",
+          "name": "Sopó",
+          "province": "Sabana Centro"
+        },
+        {
+          "code": "25769",
+          "name": "Subachoque",
+          "province": "Sabana Occidente"
+        },
+        {
+          "code": "25772",
+          "name": "Suesca",
+          "province": "Almeidas"
+        },
+        {
+          "code": "25777",
+          "name": "Supatá",
+          "province": "Gualiva"
+        },
+        {
+          "code": "25779",
+          "name": "Susa",
+          "province": "Ubate"
+        },
+        {
+          "code": "25781",
+          "name": "Sutatausa",
+          "province": "Ubate"
+        },
+        {
+          "code": "25785",
+          "name": "Tabio",
+          "province": "Sabana Centro"
+        },
+        {
+          "code": "25793",
+          "name": "Tausa",
+          "province": "Ubate"
+        },
+        {
+          "code": "25797",
+          "name": "Tena",
+          "province": "Tequendama"
+        },
+        {
+          "code": "25799",
+          "name": "Tenjo",
+          "province": "Sabana Occidente"
+        },
+        {
+          "code": "25805",
+          "name": "Tibacuy",
+          "province": "Sumapaz"
+        },
+        {
+          "code": "25807",
+          "name": "Tibirita",
+          "province": "Almeidas"
+        },
+        {
+          "code": "25815",
+          "name": "Tocaima",
+          "province": "Alto Magdalena"
+        },
+        {
+          "code": "25817",
+          "name": "Tocancipá",
+          "province": "Sabana Centro"
+        },
+        {
+          "code": "25823",
+          "name": "Topaipi",
+          "province": "Rio Negro"
+        },
+        {
+          "code": "25839",
+          "name": "Ubalá",
+          "province": "Guavio"
+        },
+        {
+          "code": "25841",
+          "name": "Ubaque",
+          "province": "Oriente"
+        },
+        {
+          "code": "25843",
+          "name": "Ubate",
+          "province": "Ubate"
+        },
+        {
+          "code": "25845",
+          "name": "Une",
+          "province": "Oriente"
+        },
+        {
+          "code": "25851",
+          "name": "Útica",
+          "province": "Gualiva"
+        },
+        {
+          "code": "25506",
+          "name": "Venecia",
+          "province": "Sumapaz"
+        },
+        {
+          "code": "25862",
+          "name": "Vergara",
+          "province": "Gualiva"
+        },
+        {
+          "code": "25867",
+          "name": "Vianí",
+          "province": "Magdalena Centro"
+        },
+        {
+          "code": "25871",
+          "name": "Villagomez",
+          "province": "Rio Negro"
+        },
+        {
+          "code": "25873",
+          "name": "Villapinzón",
+          "province": "Almeidas"
+        },
+        {
+          "code": "25875",
+          "name": "Villeta",
+          "province": "Gualiva"
+        },
+        {
+          "code": "25878",
+          "name": "Viotá",
+          "province": "Tequendama"
+        },
+        {
+          "code": "25885",
+          "name": "Yacopí",
+          "province": "Rio Negro"
+        },
+        {
+          "code": "25898",
+          "name": "Zipacon",
+          "province": "Sabana Occidente"
+        },
+        {
+          "code": "25899",
+          "name": "Zipaquirá",
+          "province": "Sabana Centro"
+        }
+      ]
+    },
+    {
+      "code": "94",
+      "name": "Guainía",
+      "capital": "Inírida",
+      "municipalities": [
+        {
+          "code": "94343",
+          "name": "Barranco Mina",
+          "province": "Guainía"
+        },
+        {
+          "code": "94886",
+          "name": "Cacahual",
+          "province": "Guainía"
+        },
+        {
+          "code": "94001",
+          "name": "Inírida",
+          "province": "Guainía"
+        },
+        {
+          "code": "94885",
+          "name": "La Guadalupe",
+          "province": "Guainía"
+        },
+        {
+          "code": "94663",
+          "name": "Mapiripan",
+          "province": "Guainía"
+        },
+        {
+          "code": "94888",
+          "name": "Morichal",
+          "province": "Guainía"
+        },
+        {
+          "code": "94887",
+          "name": "Pana Pana",
+          "province": "Guainía"
+        },
+        {
+          "code": "94884",
+          "name": "Puerto Colombia",
+          "province": "Guainía"
+        },
+        {
+          "code": "94883",
+          "name": "San Felipe",
+          "province": "Guainía"
+        }
+      ]
+    },
+    {
+      "code": "95",
+      "name": "Guaviare",
+      "capital": "San José del Guaviare",
+      "municipalities": [
+        {
+          "code": "95015",
+          "name": "Calamar",
+          "province": "Guaviare"
+        },
+        {
+          "code": "95025",
+          "name": "El Retorno",
+          "province": "Guaviare"
+        },
+        {
+          "code": "95200",
+          "name": "Miraflores",
+          "province": "Guaviare"
+        },
+        {
+          "code": "95001",
+          "name": "San José Del Guaviare",
+          "province": "Guaviare"
+        }
+      ]
+    },
+    {
+      "code": "41",
+      "name": "Huila",
+      "capital": "Neiva",
+      "municipalities": [
+        {
+          "code": "41006",
+          "name": "Acevedo",
+          "province": "Sur"
+        },
+        {
+          "code": "41013",
+          "name": "Agrado",
+          "province": "Centro"
+        },
+        {
+          "code": "41016",
+          "name": "Aipe",
+          "province": "Norte"
+        },
+        {
+          "code": "41020",
+          "name": "Algeciras",
+          "province": "Norte"
+        },
+        {
+          "code": "41026",
+          "name": "Altamira",
+          "province": "Centro"
+        },
+        {
+          "code": "41078",
+          "name": "Baraya",
+          "province": "Norte"
+        },
+        {
+          "code": "41132",
+          "name": "Campoalegre",
+          "province": "Norte"
+        },
+        {
+          "code": "41206",
+          "name": "Colombia",
+          "province": "Norte"
+        },
+        {
+          "code": "41244",
+          "name": "Elías",
+          "province": "Sur"
+        },
+        {
+          "code": "41298",
+          "name": "Garzón",
+          "province": "Centro"
+        },
+        {
+          "code": "41306",
+          "name": "Gigante",
+          "province": "Centro"
+        },
+        {
+          "code": "41319",
+          "name": "Guadalupe",
+          "province": "Centro"
+        },
+        {
+          "code": "41349",
+          "name": "Hobo",
+          "province": "Norte"
+        },
+        {
+          "code": "41357",
+          "name": "Iquira",
+          "province": "Norte"
+        },
+        {
+          "code": "41359",
+          "name": "Isnos",
+          "province": "Sur"
+        },
+        {
+          "code": "41378",
+          "name": "La Argentina",
+          "province": "Occidente"
+        },
+        {
+          "code": "41396",
+          "name": "La Plata",
+          "province": "Occidente"
+        },
+        {
+          "code": "41483",
+          "name": "Nátaga",
+          "province": "Occidente"
+        },
+        {
+          "code": "41001",
+          "name": "Neiva",
+          "province": "Norte"
+        },
+        {
+          "code": "41503",
+          "name": "Oporapa",
+          "province": "Sur"
+        },
+        {
+          "code": "41518",
+          "name": "Paicol",
+          "province": "Occidente"
+        },
+        {
+          "code": "41524",
+          "name": "Palermo",
+          "province": "Norte"
+        },
+        {
+          "code": "41530",
+          "name": "Palestina",
+          "province": "Sur"
+        },
+        {
+          "code": "41548",
+          "name": "Pital",
+          "province": "Centro"
+        },
+        {
+          "code": "41551",
+          "name": "Pitalito",
+          "province": "Sur"
+        },
+        {
+          "code": "41615",
+          "name": "Rivera",
+          "province": "Norte"
+        },
+        {
+          "code": "41660",
+          "name": "Saladoblanco",
+          "province": "Sur"
+        },
+        {
+          "code": "41668",
+          "name": "San Agustín",
+          "province": "Sur"
+        },
+        {
+          "code": "41676",
+          "name": "Santa María",
+          "province": "Norte"
+        },
+        {
+          "code": "41770",
+          "name": "Suaza",
+          "province": "Centro"
+        },
+        {
+          "code": "41791",
+          "name": "Tarqui",
+          "province": "Centro"
+        },
+        {
+          "code": "41799",
+          "name": "Tello",
+          "province": "Norte"
+        },
+        {
+          "code": "41801",
+          "name": "Teruel",
+          "province": "Norte"
+        },
+        {
+          "code": "41797",
+          "name": "Tesalia",
+          "province": "Occidente"
+        },
+        {
+          "code": "41807",
+          "name": "Timaná",
+          "province": "Sur"
+        },
+        {
+          "code": "41872",
+          "name": "Villavieja",
+          "province": "Norte"
+        },
+        {
+          "code": "41885",
+          "name": "Yaguará",
+          "province": "Norte"
+        }
+      ]
+    },
+    {
+      "code": "44",
+      "name": "La Guajira",
+      "capital": "Riohacha",
+      "municipalities": [
+        {
+          "code": "44035",
+          "name": "Albania",
+          "province": "Norte"
+        },
+        {
+          "code": "44078",
+          "name": "Barrancas",
+          "province": "Sur"
+        },
+        {
+          "code": "44090",
+          "name": "Dibulla",
+          "province": "Norte"
+        },
+        {
+          "code": "44098",
+          "name": "Distraccion",
+          "province": "Sur"
+        },
+        {
+          "code": "44110",
+          "name": "El Molino",
+          "province": "Sur"
+        },
+        {
+          "code": "44279",
+          "name": "Fonseca",
+          "province": "Sur"
+        },
+        {
+          "code": "44378",
+          "name": "Hatonuevo",
+          "province": "Sur"
+        },
+        {
+          "code": "44420",
+          "name": "La Jagua Del Pilar",
+          "province": "Sur"
+        },
+        {
+          "code": "44430",
+          "name": "Maicao",
+          "province": "Norte"
+        },
+        {
+          "code": "44560",
+          "name": "Manaure",
+          "province": "Norte"
+        },
+        {
+          "code": "44001",
+          "name": "Riohacha",
+          "province": "Norte"
+        },
+        {
+          "code": "44650",
+          "name": "San Juan Del Cesar",
+          "province": "Sur"
+        },
+        {
+          "code": "44847",
+          "name": "Uribia",
+          "province": "Norte"
+        },
+        {
+          "code": "44855",
+          "name": "Urumita",
+          "province": "Sur"
+        },
+        {
+          "code": "44874",
+          "name": "Villanueva",
+          "province": "Sur"
+        }
+      ]
+    },
+    {
+      "code": "47",
+      "name": "Magdalena",
+      "capital": "Santa Marta",
+      "municipalities": [
+        {
+          "code": "47030",
+          "name": "Algarrobo",
+          "province": "Norte"
+        },
+        {
+          "code": "47053",
+          "name": "Aracataca",
+          "province": "Norte"
+        },
+        {
+          "code": "47058",
+          "name": "Ariguaní",
+          "province": "Centro"
+        },
+        {
+          "code": "47161",
+          "name": "Cerro San Antonio",
+          "province": "Rio"
+        },
+        {
+          "code": "47170",
+          "name": "Chibolo",
+          "province": "Centro"
+        },
+        {
+          "code": "47189",
+          "name": "Ciénaga",
+          "province": "Norte"
+        },
+        {
+          "code": "47205",
+          "name": "Concordia",
+          "province": "Rio"
+        },
+        {
+          "code": "47245",
+          "name": "El Banco",
+          "province": "Sur"
+        },
+        {
+          "code": "47258",
+          "name": "El Piñon",
+          "province": "Rio"
+        },
+        {
+          "code": "47268",
+          "name": "El Reten",
+          "province": "Norte"
+        },
+        {
+          "code": "47288",
+          "name": "Fundacion",
+          "province": "Norte"
+        },
+        {
+          "code": "47318",
+          "name": "Guamal",
+          "province": "Sur"
+        },
+        {
+          "code": "47460",
+          "name": "Nueva Granada",
+          "province": "Centro"
+        },
+        {
+          "code": "47541",
+          "name": "Pedraza",
+          "province": "Rio"
+        },
+        {
+          "code": "47545",
+          "name": "Pijiño Del Carmen",
+          "province": "Sur"
+        },
+        {
+          "code": "47551",
+          "name": "Pivijay",
+          "province": "Rio"
+        },
+        {
+          "code": "47555",
+          "name": "Plato",
+          "province": "Centro"
+        },
+        {
+          "code": "47570",
+          "name": "Pueblo Viejo",
+          "province": "Norte"
+        },
+        {
+          "code": "47605",
+          "name": "Remolino",
+          "province": "Rio"
+        },
+        {
+          "code": "47660",
+          "name": "Sabanas De San Angel",
+          "province": "Centro"
+        },
+        {
+          "code": "47675",
+          "name": "Salamina",
+          "province": "Rio"
+        },
+        {
+          "code": "47692",
+          "name": "San Sebastian De Buenavista",
+          "province": "Sur"
+        },
+        {
+          "code": "47703",
+          "name": "San Zenon",
+          "province": "Sur"
+        },
+        {
+          "code": "47707",
+          "name": "Santa Ana",
+          "province": "Sur"
+        },
+        {
+          "code": "47720",
+          "name": "Santa Barbara De Pinto",
+          "province": "Sur"
+        },
+        {
+          "code": "47001",
+          "name": "Santa Marta",
+          "province": "Santa Marta"
+        },
+        {
+          "code": "47745",
+          "name": "Sitionuevo",
+          "province": "Rio"
+        },
+        {
+          "code": "47798",
+          "name": "Tenerife",
+          "province": "Centro"
+        },
+        {
+          "code": "47960",
+          "name": "Zapayan",
+          "province": "Rio"
+        },
+        {
+          "code": "47980",
+          "name": "Zona Bananera",
+          "province": "Norte"
+        }
+      ]
+    },
+    {
+      "code": "50",
+      "name": "Meta",
+      "capital": "Villavicencio",
+      "municipalities": [
+        {
+          "code": "50006",
+          "name": "Acacias",
+          "province": "Piedemonte"
+        },
+        {
+          "code": "50110",
+          "name": "Barranca De Upia",
+          "province": "Piedemonte"
+        },
+        {
+          "code": "50124",
+          "name": "Cabuyaro",
+          "province": "Rio Meta"
+        },
+        {
+          "code": "50150",
+          "name": "Castilla La Nueva",
+          "province": "Piedemonte"
+        },
+        {
+          "code": "50226",
+          "name": "Cumaral",
+          "province": "Piedemonte"
+        },
+        {
+          "code": "50245",
+          "name": "El Calvario",
+          "province": "Piedemonte"
+        },
+        {
+          "code": "50251",
+          "name": "El Castillo",
+          "province": "Ariari"
+        },
+        {
+          "code": "50270",
+          "name": "El Dorado",
+          "province": "Ariari"
+        },
+        {
+          "code": "50287",
+          "name": "Fuente De Oro",
+          "province": "Ariari"
+        },
+        {
+          "code": "50313",
+          "name": "Granada",
+          "province": "Ariari"
+        },
+        {
+          "code": "50318",
+          "name": "Guamal",
+          "province": "Piedemonte"
+        },
+        {
+          "code": "50350",
+          "name": "La Macarena",
+          "province": "Ariari"
+        },
+        {
+          "code": "50370",
+          "name": "La Uribe",
+          "province": "Ariari"
+        },
+        {
+          "code": "50400",
+          "name": "Lejanías",
+          "province": "Ariari"
+        },
+        {
+          "code": "50325",
+          "name": "Mapiripan",
+          "province": "Ariari"
+        },
+        {
+          "code": "50330",
+          "name": "Mesetas",
+          "province": "Ariari"
+        },
+        {
+          "code": "50450",
+          "name": "Puerto Concordia",
+          "province": "Ariari"
+        },
+        {
+          "code": "50568",
+          "name": "Puerto Gaitán",
+          "province": "Rio Meta"
+        },
+        {
+          "code": "50577",
+          "name": "Puerto Lleras",
+          "province": "Ariari"
+        },
+        {
+          "code": "50573",
+          "name": "Puerto Lopez",
+          "province": "Rio Meta"
+        },
+        {
+          "code": "50590",
+          "name": "Puerto Rico",
+          "province": "Ariari"
+        },
+        {
+          "code": "50606",
+          "name": "Restrepo",
+          "province": "Piedemonte"
+        },
+        {
+          "code": "50680",
+          "name": "San Carlos Guaroa",
+          "province": "Piedemonte"
+        },
+        {
+          "code": "50683",
+          "name": "San Juan De Arama",
+          "province": "Ariari"
+        },
+        {
+          "code": "50686",
+          "name": "San Juanito",
+          "province": "Piedemonte"
+        },
+        {
+          "code": "50223",
+          "name": "San Luis De Cubarral",
+          "province": "Piedemonte"
+        },
+        {
+          "code": "50689",
+          "name": "San Martín",
+          "province": "Piedemonte"
+        },
+        {
+          "code": "50001",
+          "name": "Villavicencio",
+          "province": "Capital"
+        },
+        {
+          "code": "50711",
+          "name": "Vista Hermosa",
+          "province": "Ariari"
+        }
+      ]
+    },
+    {
+      "code": "52",
+      "name": "Nariño",
+      "capital": "Pasto",
+      "municipalities": [
+        {
+          "code": "52019",
+          "name": "Alban",
+          "province": "Norte"
+        },
+        {
+          "code": "52022",
+          "name": "Aldana",
+          "province": "Sur"
+        },
+        {
+          "code": "52036",
+          "name": "Ancuya",
+          "province": "Centro Occidente"
+        },
+        {
+          "code": "52051",
+          "name": "Arboleda",
+          "province": "Norte"
+        },
+        {
+          "code": "52079",
+          "name": "Barbacoas",
+          "province": "Costa"
+        },
+        {
+          "code": "52083",
+          "name": "Belen",
+          "province": "Norte"
+        },
+        {
+          "code": "52110",
+          "name": "Buesaco",
+          "province": "Norte"
+        },
+        {
+          "code": "52240",
+          "name": "Chachagui",
+          "province": "Centro"
+        },
+        {
+          "code": "52203",
+          "name": "Colon",
+          "province": "Norte"
+        },
+        {
+          "code": "52207",
+          "name": "Consaca",
+          "province": "Centro"
+        },
+        {
+          "code": "52210",
+          "name": "Contadero",
+          "province": "Sur"
+        },
+        {
+          "code": "52215",
+          "name": "Córdoba",
+          "province": "Sur"
+        },
+        {
+          "code": "52224",
+          "name": "Cuaspud",
+          "province": "Sur"
+        },
+        {
+          "code": "52227",
+          "name": "Cumbal",
+          "province": "Sur"
+        },
+        {
+          "code": "52233",
+          "name": "Cumbitara",
+          "province": "Norte"
+        },
+        {
+          "code": "52250",
+          "name": "El Charco",
+          "province": "Costa"
+        },
+        {
+          "code": "52254",
+          "name": "El Peñol",
+          "province": "Centro"
+        },
+        {
+          "code": "52256",
+          "name": "El Rosario",
+          "province": "Norte"
+        },
+        {
+          "code": "52258",
+          "name": "El Tablon De Gomez",
+          "province": "Norte"
+        },
+        {
+          "code": "52260",
+          "name": "El Tambo",
+          "province": "Centro"
+        },
+        {
+          "code": "52520",
+          "name": "Francisco Pizarro",
+          "province": "Costa"
+        },
+        {
+          "code": "52287",
+          "name": "Funes",
+          "province": "Sur"
+        },
+        {
+          "code": "52317",
+          "name": "Guachucal",
+          "province": "Sur"
+        },
+        {
+          "code": "52320",
+          "name": "Guaitarilla",
+          "province": "Centro Occidente"
+        },
+        {
+          "code": "52323",
+          "name": "Gualmatan",
+          "province": "Sur"
+        },
+        {
+          "code": "52352",
+          "name": "Iles",
+          "province": "Sur"
+        },
+        {
+          "code": "52354",
+          "name": "Imues",
+          "province": "Sur"
+        },
+        {
+          "code": "52356",
+          "name": "Ipiales",
+          "province": "Sur"
+        },
+        {
+          "code": "52378",
+          "name": "La Cruz",
+          "province": "Norte"
+        },
+        {
+          "code": "52381",
+          "name": "La Florida",
+          "province": "Centro"
+        },
+        {
+          "code": "52385",
+          "name": "La Llanada",
+          "province": "Centro Occidente"
+        },
+        {
+          "code": "52390",
+          "name": "La Tola",
+          "province": "Costa"
+        },
+        {
+          "code": "52399",
+          "name": "La Union",
+          "province": "Norte"
+        },
+        {
+          "code": "52405",
+          "name": "Leiva",
+          "province": "Norte"
+        },
+        {
+          "code": "52411",
+          "name": "Linares",
+          "province": "Centro Occidente"
+        },
+        {
+          "code": "52418",
+          "name": "Los Andes",
+          "province": "Centro Occidente"
+        },
+        {
+          "code": "52427",
+          "name": "Magui",
+          "province": "Costa"
+        },
+        {
+          "code": "52435",
+          "name": "Mallama",
+          "province": "Centro Occidente"
+        },
+        {
+          "code": "52473",
+          "name": "Mosquera",
+          "province": "Costa"
+        },
+        {
+          "code": "52480",
+          "name": "Nariño",
+          "province": "Centro"
+        },
+        {
+          "code": "52490",
+          "name": "Olaya Herrera",
+          "province": "Costa"
+        },
+        {
+          "code": "52506",
+          "name": "Ospina",
+          "province": "Centro Occidente"
+        },
+        {
+          "code": "52001",
+          "name": "Pasto",
+          "province": "Centro"
+        },
+        {
+          "code": "52540",
+          "name": "Policarpa",
+          "province": "Norte"
+        },
+        {
+          "code": "52560",
+          "name": "Potosí",
+          "province": "Sur"
+        },
+        {
+          "code": "52565",
+          "name": "Providencia",
+          "province": "Centro Occidente"
+        },
+        {
+          "code": "52573",
+          "name": "Puerres",
+          "province": "Sur"
+        },
+        {
+          "code": "52585",
+          "name": "Pupiales",
+          "province": "Sur"
+        },
+        {
+          "code": "52612",
+          "name": "Ricaurte",
+          "province": "Centro Occidente"
+        },
+        {
+          "code": "52621",
+          "name": "Roberto Payan",
+          "province": "Costa"
+        },
+        {
+          "code": "52678",
+          "name": "Samaniego",
+          "province": "Centro Occidente"
+        },
+        {
+          "code": "52685",
+          "name": "San Bernardo",
+          "province": "Norte"
+        },
+        {
+          "code": "52687",
+          "name": "San Lorenzo",
+          "province": "Norte"
+        },
+        {
+          "code": "52693",
+          "name": "San Pablo",
+          "province": "Norte"
+        },
+        {
+          "code": "52694",
+          "name": "San Pedro De Cartago",
+          "province": "Norte"
+        },
+        {
+          "code": "52683",
+          "name": "Sandoná",
+          "province": "Centro"
+        },
+        {
+          "code": "52696",
+          "name": "Santa Barbara",
+          "province": "Costa"
+        },
+        {
+          "code": "52699",
+          "name": "Santa Cruz",
+          "province": "Centro Occidente"
+        },
+        {
+          "code": "52720",
+          "name": "Sapuyes",
+          "province": "Centro Occidente"
+        },
+        {
+          "code": "52786",
+          "name": "Taminango",
+          "province": "Norte"
+        },
+        {
+          "code": "52788",
+          "name": "Tangua",
+          "province": "Centro"
+        },
+        {
+          "code": "52835",
+          "name": "Tumaco",
+          "province": "Costa"
+        },
+        {
+          "code": "52838",
+          "name": "Tuquerres",
+          "province": "Centro Occidente"
+        },
+        {
+          "code": "52885",
+          "name": "Yacuanquer",
+          "province": "Centro"
+        }
+      ]
+    },
+    {
+      "code": "54",
+      "name": "Norte de Santander",
+      "capital": "Cúcuta",
+      "municipalities": [
+        {
+          "code": "54003",
+          "name": "Abrego",
+          "province": "Occidente"
+        },
+        {
+          "code": "54051",
+          "name": "Arboledas",
+          "province": "Centro"
+        },
+        {
+          "code": "54099",
+          "name": "Bochalema",
+          "province": "Sur Oriente"
+        },
+        {
+          "code": "54109",
+          "name": "Bucarasica",
+          "province": "Norte"
+        },
+        {
+          "code": "54128",
+          "name": "Cachirá",
+          "province": "Occidente"
+        },
+        {
+          "code": "54125",
+          "name": "Cácota",
+          "province": "Sur Occidente"
+        },
+        {
+          "code": "54172",
+          "name": "Chinácota",
+          "province": "Sur Oriente"
+        },
+        {
+          "code": "54174",
+          "name": "Chitagá",
+          "province": "Sur Occidente"
+        },
+        {
+          "code": "54206",
+          "name": "Convención",
+          "province": "Occidente"
+        },
+        {
+          "code": "54001",
+          "name": "Cúcuta",
+          "province": "Oriental"
+        },
+        {
+          "code": "54223",
+          "name": "Cucutilla",
+          "province": "Centro"
+        },
+        {
+          "code": "54239",
+          "name": "Durania",
+          "province": "Sur Oriente"
+        },
+        {
+          "code": "54245",
+          "name": "El Carmen",
+          "province": "Occidente"
+        },
+        {
+          "code": "54250",
+          "name": "El Tarra",
+          "province": "Norte"
+        },
+        {
+          "code": "54261",
+          "name": "El Zulia",
+          "province": "Oriental"
+        },
+        {
+          "code": "54313",
+          "name": "Gramalote",
+          "province": "Centro"
+        },
+        {
+          "code": "54344",
+          "name": "Hacarí",
+          "province": "Occidente"
+        },
+        {
+          "code": "54347",
+          "name": "Herrán",
+          "province": "Sur Oriente"
+        },
+        {
+          "code": "54385",
+          "name": "La Esperanza",
+          "province": "Occidente"
+        },
+        {
+          "code": "54398",
+          "name": "La Playa",
+          "province": "Occidente"
+        },
+        {
+          "code": "54377",
+          "name": "Labateca",
+          "province": "Sur Oriente"
+        },
+        {
+          "code": "54405",
+          "name": "Los Patios",
+          "province": "Oriental"
+        },
+        {
+          "code": "54418",
+          "name": "Lourdes",
+          "province": "Centro"
+        },
+        {
+          "code": "54480",
+          "name": "Mutiscua",
+          "province": "Sur Occidente"
+        },
+        {
+          "code": "54498",
+          "name": "Ocaña",
+          "province": "Occidente"
+        },
+        {
+          "code": "54518",
+          "name": "Pamplona",
+          "province": "Sur Occidente"
+        },
+        {
+          "code": "54520",
+          "name": "Pamplonita",
+          "province": "Sur Occidente"
+        },
+        {
+          "code": "54553",
+          "name": "Puerto Santander",
+          "province": "Oriental"
+        },
+        {
+          "code": "54599",
+          "name": "Ragonvalia",
+          "province": "Sur Oriente"
+        },
+        {
+          "code": "54660",
+          "name": "Salazar",
+          "province": "Centro"
+        },
+        {
+          "code": "54670",
+          "name": "San Calixto",
+          "province": "Occidente"
+        },
+        {
+          "code": "54673",
+          "name": "San Cayetano",
+          "province": "Oriental"
+        },
+        {
+          "code": "54680",
+          "name": "Santiago",
+          "province": "Centro"
+        },
+        {
+          "code": "54720",
+          "name": "Sardinata",
+          "province": "Norte"
+        },
+        {
+          "code": "54743",
+          "name": "Silos",
+          "province": "Sur Occidente"
+        },
+        {
+          "code": "54800",
+          "name": "Teorama",
+          "province": "Occidente"
+        },
+        {
+          "code": "54810",
+          "name": "Tibú",
+          "province": "Norte"
+        },
+        {
+          "code": "54820",
+          "name": "Toledo",
+          "province": "Sur Oriente"
+        },
+        {
+          "code": "54871",
+          "name": "Villa Caro",
+          "province": "Centro"
+        },
+        {
+          "code": "54874",
+          "name": "Villa Del Rosario",
+          "province": "Oriental"
+        }
+      ]
+    },
+    {
+      "code": "86",
+      "name": "Putumayo",
+      "capital": "Mocoa",
+      "municipalities": [
+        {
+          "code": "86219",
+          "name": "Colón",
+          "province": "Putumayo"
+        },
+        {
+          "code": "86001",
+          "name": "Mocoa",
+          "province": "Putumayo"
+        },
+        {
+          "code": "86320",
+          "name": "Orito",
+          "province": "Putumayo"
+        },
+        {
+          "code": "86568",
+          "name": "Puerto Asis",
+          "province": "Putumayo"
+        },
+        {
+          "code": "86569",
+          "name": "Puerto Caicedo",
+          "province": "Putumayo"
+        },
+        {
+          "code": "86571",
+          "name": "Puerto Guzman",
+          "province": "Putumayo"
+        },
+        {
+          "code": "86573",
+          "name": "Puerto Leguizamo",
+          "province": "Putumayo"
+        },
+        {
+          "code": "86755",
+          "name": "San Francisco",
+          "province": "Putumayo"
+        },
+        {
+          "code": "86757",
+          "name": "San Miguel",
+          "province": "Putumayo"
+        },
+        {
+          "code": "86760",
+          "name": "Santiago",
+          "province": "Putumayo"
+        },
+        {
+          "code": "86749",
+          "name": "Sibundoy",
+          "province": "Putumayo"
+        },
+        {
+          "code": "86865",
+          "name": "Valle Del Guamuez",
+          "province": "Putumayo"
+        },
+        {
+          "code": "86885",
+          "name": "Villa Garzon",
+          "province": "Putumayo"
+        }
+      ]
+    },
+    {
+      "code": "63",
+      "name": "Quindío",
+      "capital": "Armenia",
+      "municipalities": [
+        {
+          "code": "63001",
+          "name": "Armenia",
+          "province": "Capital"
+        },
+        {
+          "code": "63111",
+          "name": "Buenavista",
+          "province": "Capital"
+        },
+        {
+          "code": "63130",
+          "name": "Calarca",
+          "province": "Capital"
+        },
+        {
+          "code": "63190",
+          "name": "Circasia",
+          "province": "Norte"
+        },
+        {
+          "code": "63212",
+          "name": "Córdoba",
+          "province": "Cordilleranos"
+        },
+        {
+          "code": "63272",
+          "name": "Filandia",
+          "province": "Fria"
+        },
+        {
+          "code": "63302",
+          "name": "Genova",
+          "province": "Cordilleranos"
+        },
+        {
+          "code": "63401",
+          "name": "La Tebaida",
+          "province": "Valle"
+        },
+        {
+          "code": "63470",
+          "name": "Montengro",
+          "province": "Valle"
+        },
+        {
+          "code": "63548",
+          "name": "Pijao",
+          "province": "Cordilleranos"
+        },
+        {
+          "code": "63594",
+          "name": "Quimbaya",
+          "province": "Valle"
+        },
+        {
+          "code": "63690",
+          "name": "Salento",
+          "province": "Fria"
+        }
+      ]
+    },
+    {
+      "code": "66",
+      "name": "Risaralda",
+      "capital": "Pereira",
+      "municipalities": [
+        {
+          "code": "66045",
+          "name": "Apía",
+          "province": "Dos - Vertiente Occidental"
+        },
+        {
+          "code": "66075",
+          "name": "Balboa",
+          "province": "Dos - Vertiente Occidental"
+        },
+        {
+          "code": "66088",
+          "name": "Belén De Umbría",
+          "province": "Dos - Vertiente Occidental"
+        },
+        {
+          "code": "66170",
+          "name": "Dosquebradas",
+          "province": "Uno - Vertiente Oriental"
+        },
+        {
+          "code": "66318",
+          "name": "Guática",
+          "province": "Dos - Vertiente Occidental"
+        },
+        {
+          "code": "66383",
+          "name": "La Celia",
+          "province": "Dos - Vertiente Occidental"
+        },
+        {
+          "code": "66400",
+          "name": "La Virginia",
+          "province": "Uno - Vertiente Oriental"
+        },
+        {
+          "code": "66440",
+          "name": "Marsella",
+          "province": "Uno - Vertiente Oriental"
+        },
+        {
+          "code": "66456",
+          "name": "Mistrató",
+          "province": "Tres - Vertiente Del Pacifico"
+        },
+        {
+          "code": "66001",
+          "name": "Pereira",
+          "province": "Uno - Vertiente Oriental"
+        },
+        {
+          "code": "66572",
+          "name": "Pueblo Rico",
+          "province": "Tres - Vertiente Del Pacifico"
+        },
+        {
+          "code": "66594",
+          "name": "Quinchia",
+          "province": "Dos - Vertiente Occidental"
+        },
+        {
+          "code": "66682",
+          "name": "Santa Rosa De Cabal",
+          "province": "Uno - Vertiente Oriental"
+        },
+        {
+          "code": "66687",
+          "name": "Santuario",
+          "province": "Dos - Vertiente Occidental"
+        }
+      ]
+    },
+    {
+      "code": "68",
+      "name": "Santander",
+      "capital": "Bucaramanga",
+      "municipalities": [
+        {
+          "code": "68013",
+          "name": "Aguada",
+          "province": "Velez"
+        },
+        {
+          "code": "68020",
+          "name": "Albania",
+          "province": "Velez"
+        },
+        {
+          "code": "68051",
+          "name": "Aratoca",
+          "province": "Guanenta"
+        },
+        {
+          "code": "68077",
+          "name": "Barbosa",
+          "province": "Velez"
+        },
+        {
+          "code": "68079",
+          "name": "Barichara",
+          "province": "Guanenta"
+        },
+        {
+          "code": "68081",
+          "name": "Barrancabermeja",
+          "province": "Mares"
+        },
+        {
+          "code": "68092",
+          "name": "Betulia",
+          "province": "Mares"
+        },
+        {
+          "code": "68101",
+          "name": "Bolívar",
+          "province": "Velez"
+        },
+        {
+          "code": "68001",
+          "name": "Bucaramanga",
+          "province": "Soto"
+        },
+        {
+          "code": "68121",
+          "name": "Cabrera",
+          "province": "Guanenta"
+        },
+        {
+          "code": "68132",
+          "name": "California",
+          "province": "Soto"
+        },
+        {
+          "code": "68147",
+          "name": "Capitanejo",
+          "province": "Garcia Rovira"
+        },
+        {
+          "code": "68152",
+          "name": "Carcasí",
+          "province": "Garcia Rovira"
+        },
+        {
+          "code": "68160",
+          "name": "Cepitá",
+          "province": "Garcia Rovira"
+        },
+        {
+          "code": "68162",
+          "name": "Cerrito",
+          "province": "Garcia Rovira"
+        },
+        {
+          "code": "68167",
+          "name": "Charalá",
+          "province": "Guanenta"
+        },
+        {
+          "code": "68169",
+          "name": "Charta",
+          "province": "Soto"
+        },
+        {
+          "code": "68176",
+          "name": "Chima",
+          "province": "Comunera"
+        },
+        {
+          "code": "68179",
+          "name": "Chipatá",
+          "province": "Velez"
+        },
+        {
+          "code": "68190",
+          "name": "Cimitarra",
+          "province": "Velez"
+        },
+        {
+          "code": "68207",
+          "name": "Concepción",
+          "province": "Garcia Rovira"
+        },
+        {
+          "code": "68209",
+          "name": "Confines",
+          "province": "Comunera"
+        },
+        {
+          "code": "68211",
+          "name": "Contratación",
+          "province": "Comunera"
+        },
+        {
+          "code": "68217",
+          "name": "Coromoro",
+          "province": "Guanenta"
+        },
+        {
+          "code": "68229",
+          "name": "Curití",
+          "province": "Guanenta"
+        },
+        {
+          "code": "68235",
+          "name": "El Carmen De Chucurí",
+          "province": "Mares"
+        },
+        {
+          "code": "68245",
+          "name": "El Guacamayo",
+          "province": "Comunera"
+        },
+        {
+          "code": "68250",
+          "name": "El Peñón",
+          "province": "Velez"
+        },
+        {
+          "code": "68255",
+          "name": "El Playón",
+          "province": "Soto"
+        },
+        {
+          "code": "68264",
+          "name": "Encino",
+          "province": "Guanenta"
+        },
+        {
+          "code": "68266",
+          "name": "Enciso",
+          "province": "Garcia Rovira"
+        },
+        {
+          "code": "68271",
+          "name": "Florián",
+          "province": "Velez"
+        },
+        {
+          "code": "68276",
+          "name": "Floridablanca",
+          "province": "Soto"
+        },
+        {
+          "code": "68296",
+          "name": "Galán",
+          "province": "Comunera"
+        },
+        {
+          "code": "68298",
+          "name": "Gambita",
+          "province": "Comunera"
+        },
+        {
+          "code": "68307",
+          "name": "Girón",
+          "province": "Soto"
+        },
+        {
+          "code": "68318",
+          "name": "Guaca",
+          "province": "Garcia Rovira"
+        },
+        {
+          "code": "68320",
+          "name": "Guadalupe",
+          "province": "Comunera"
+        },
+        {
+          "code": "68322",
+          "name": "Guapotá",
+          "province": "Comunera"
+        },
+        {
+          "code": "68324",
+          "name": "Guavatá",
+          "province": "Velez"
+        },
+        {
+          "code": "68327",
+          "name": "Guepsa",
+          "province": "Velez"
+        },
+        {
+          "code": "68344",
+          "name": "Hato",
+          "province": "Comunera"
+        },
+        {
+          "code": "68368",
+          "name": "Jesús María",
+          "province": "Velez"
+        },
+        {
+          "code": "68370",
+          "name": "Jordán",
+          "province": "Guanenta"
+        },
+        {
+          "code": "68377",
+          "name": "La Belleza",
+          "province": "Velez"
+        },
+        {
+          "code": "68397",
+          "name": "La Paz",
+          "province": "Velez"
+        },
+        {
+          "code": "68385",
+          "name": "Landázuri",
+          "province": "Velez"
+        },
+        {
+          "code": "68406",
+          "name": "Lebríja",
+          "province": "Soto"
+        },
+        {
+          "code": "68418",
+          "name": "Los Santos",
+          "province": "Soto"
+        },
+        {
+          "code": "68425",
+          "name": "Macaravita",
+          "province": "Garcia Rovira"
+        },
+        {
+          "code": "68432",
+          "name": "Málaga",
+          "province": "Garcia Rovira"
+        },
+        {
+          "code": "68444",
+          "name": "Matanza",
+          "province": "Soto"
+        },
+        {
+          "code": "68464",
+          "name": "Mogotes",
+          "province": "Guanenta"
+        },
+        {
+          "code": "68468",
+          "name": "Molagavita",
+          "province": "Garcia Rovira"
+        },
+        {
+          "code": "68498",
+          "name": "Ocamonte",
+          "province": "Guanenta"
+        },
+        {
+          "code": "68500",
+          "name": "Oiba",
+          "province": "Comunera"
+        },
+        {
+          "code": "68502",
+          "name": "Onzaga",
+          "province": "Guanenta"
+        },
+        {
+          "code": "68522",
+          "name": "Palmar",
+          "province": "Comunera"
+        },
+        {
+          "code": "68524",
+          "name": "Palmas Del Socorro",
+          "province": "Comunera"
+        },
+        {
+          "code": "68533",
+          "name": "Páramo",
+          "province": "Guanenta"
+        },
+        {
+          "code": "68547",
+          "name": "Piedecuesta",
+          "province": "Soto"
+        },
+        {
+          "code": "68549",
+          "name": "Pinchote",
+          "province": "Guanenta"
+        },
+        {
+          "code": "68572",
+          "name": "Puente Nacional",
+          "province": "Velez"
+        },
+        {
+          "code": "68573",
+          "name": "Puerto Parra",
+          "province": "Velez"
+        },
+        {
+          "code": "68575",
+          "name": "Puerto Wilches",
+          "province": "Mares"
+        },
+        {
+          "code": "68615",
+          "name": "Rionegro",
+          "province": "Soto"
+        },
+        {
+          "code": "68655",
+          "name": "Sabana De Torres",
+          "province": "Mares"
+        },
+        {
+          "code": "68669",
+          "name": "San Andrés",
+          "province": "Garcia Rovira"
+        },
+        {
+          "code": "68673",
+          "name": "San Benito",
+          "province": "Velez"
+        },
+        {
+          "code": "68679",
+          "name": "San Gil",
+          "province": "Guanenta"
+        },
+        {
+          "code": "68682",
+          "name": "San Joaquín",
+          "province": "Guanenta"
+        },
+        {
+          "code": "68684",
+          "name": "San José De Miranda",
+          "province": "Garcia Rovira"
+        },
+        {
+          "code": "68686",
+          "name": "San Miguel",
+          "province": "Garcia Rovira"
+        },
+        {
+          "code": "68689",
+          "name": "San Vicente De Chucurí",
+          "province": "Mares"
+        },
+        {
+          "code": "68705",
+          "name": "Santa Bárbara",
+          "province": "Soto"
+        },
+        {
+          "code": "68720",
+          "name": "Santa Helena Del Opón",
+          "province": "Comunera"
+        },
+        {
+          "code": "68745",
+          "name": "Simacota",
+          "province": "Comunera"
+        },
+        {
+          "code": "68755",
+          "name": "Socorro",
+          "province": "Comunera"
+        },
+        {
+          "code": "68770",
+          "name": "Suaita",
+          "province": "Comunera"
+        },
+        {
+          "code": "68773",
+          "name": "Sucre",
+          "province": "Velez"
+        },
+        {
+          "code": "68780",
+          "name": "Surata",
+          "province": "Soto"
+        },
+        {
+          "code": "68820",
+          "name": "Tona",
+          "province": "Soto"
+        },
+        {
+          "code": "68855",
+          "name": "Valle De San José",
+          "province": "Guanenta"
+        },
+        {
+          "code": "68861",
+          "name": "Vélez",
+          "province": "Velez"
+        },
+        {
+          "code": "68867",
+          "name": "Vetas",
+          "province": "Soto"
+        },
+        {
+          "code": "68872",
+          "name": "Villanueva",
+          "province": "Guanenta"
+        },
+        {
+          "code": "68895",
+          "name": "Zapatoca",
+          "province": "Mares"
+        }
+      ]
+    },
+    {
+      "code": "70",
+      "name": "Sucre",
+      "capital": "Sincelejo",
+      "municipalities": [
+        {
+          "code": "70110",
+          "name": "Buenavista",
+          "province": "Sabanas"
+        },
+        {
+          "code": "70124",
+          "name": "Caimito",
+          "province": "San Jorge"
+        },
+        {
+          "code": "70230",
+          "name": "Chalán",
+          "province": "Montes De Maria"
+        },
+        {
+          "code": "70204",
+          "name": "Coloso",
+          "province": "Montes De Maria"
+        },
+        {
+          "code": "70215",
+          "name": "Corozal",
+          "province": "Sabanas"
+        },
+        {
+          "code": "70221",
+          "name": "Coveñas",
+          "province": "Morrosquillo"
+        },
+        {
+          "code": "70233",
+          "name": "El Roble",
+          "province": "Sabanas"
+        },
+        {
+          "code": "70235",
+          "name": "Galeras",
+          "province": "Sabanas"
+        },
+        {
+          "code": "70265",
+          "name": "Guaranda",
+          "province": "Mojana"
+        },
+        {
+          "code": "70400",
+          "name": "La Unión",
+          "province": "San Jorge"
+        },
+        {
+          "code": "70418",
+          "name": "Los Palmitos",
+          "province": "Sabanas"
+        },
+        {
+          "code": "70429",
+          "name": "Majagual",
+          "province": "Mojana"
+        },
+        {
+          "code": "70473",
+          "name": "Morroa",
+          "province": "Montes De Maria"
+        },
+        {
+          "code": "70508",
+          "name": "Ovejas",
+          "province": "Montes De Maria"
+        },
+        {
+          "code": "70523",
+          "name": "Palmito",
+          "province": "Morrosquillo"
+        },
+        {
+          "code": "70670",
+          "name": "Sampués",
+          "province": "Sabanas"
+        },
+        {
+          "code": "70678",
+          "name": "San Benito Abad",
+          "province": "San Jorge"
+        },
+        {
+          "code": "70702",
+          "name": "San Juan Betulia",
+          "province": "Sabanas"
+        },
+        {
+          "code": "70708",
+          "name": "San Marcos",
+          "province": "San Jorge"
+        },
+        {
+          "code": "70713",
+          "name": "San Onofre",
+          "province": "Morrosquillo"
+        },
+        {
+          "code": "70717",
+          "name": "San Pedro",
+          "province": "Sabanas"
+        },
+        {
+          "code": "70820",
+          "name": "Santiago De Tolú",
+          "province": "Morrosquillo"
+        },
+        {
+          "code": "70742",
+          "name": "Sincé",
+          "province": "Sabanas"
+        },
+        {
+          "code": "70001",
+          "name": "Sincelejo",
+          "province": "Montes De Maria"
+        },
+        {
+          "code": "70771",
+          "name": "Sucre",
+          "province": "Mojana"
+        },
+        {
+          "code": "70823",
+          "name": "Tolú Viejo",
+          "province": "Morrosquillo"
+        }
+      ]
+    },
+    {
+      "code": "73",
+      "name": "Tolima",
+      "capital": "Ibagué",
+      "municipalities": [
+        {
+          "code": "73024",
+          "name": "Alpujarra",
+          "province": "Suroriente"
+        },
+        {
+          "code": "73026",
+          "name": "Alvarado",
+          "province": "Ibague"
+        },
+        {
+          "code": "73030",
+          "name": "Ambalema",
+          "province": "Norte"
+        },
+        {
+          "code": "73043",
+          "name": "Anzoátegui",
+          "province": "Ibague"
+        },
+        {
+          "code": "73055",
+          "name": "Armero",
+          "province": "Norte"
+        },
+        {
+          "code": "73067",
+          "name": "Ataco",
+          "province": "Sur"
+        },
+        {
+          "code": "73124",
+          "name": "Cajamarca",
+          "province": "Ibague"
+        },
+        {
+          "code": "73148",
+          "name": "Carmen De Apicalá",
+          "province": "Oriente"
+        },
+        {
+          "code": "73152",
+          "name": "Casabianca",
+          "province": "Nevados"
+        },
+        {
+          "code": "73168",
+          "name": "Chaparral",
+          "province": "Sur"
+        },
+        {
+          "code": "73200",
+          "name": "Coello",
+          "province": "Ibague"
+        },
+        {
+          "code": "73217",
+          "name": "Coyaima",
+          "province": "Sur"
+        },
+        {
+          "code": "73226",
+          "name": "Cunday",
+          "province": "Oriente"
+        },
+        {
+          "code": "73236",
+          "name": "Dolores",
+          "province": "Suroriente"
+        },
+        {
+          "code": "73268",
+          "name": "Espinal",
+          "province": "Ibague"
+        },
+        {
+          "code": "73270",
+          "name": "Falan",
+          "province": "Norte"
+        },
+        {
+          "code": "73275",
+          "name": "Flandes",
+          "province": "Ibague"
+        },
+        {
+          "code": "73283",
+          "name": "Fresno",
+          "province": "Norte"
+        },
+        {
+          "code": "73319",
+          "name": "Guamo",
+          "province": "Suroriente"
+        },
+        {
+          "code": "73347",
+          "name": "Herveo",
+          "province": "Nevados"
+        },
+        {
+          "code": "73349",
+          "name": "Honda",
+          "province": "Norte"
+        },
+        {
+          "code": "73001",
+          "name": "Ibague",
+          "province": "Ibague"
+        },
+        {
+          "code": "73352",
+          "name": "Icononzo",
+          "province": "Oriente"
+        },
+        {
+          "code": "73408",
+          "name": "Lerida",
+          "province": "Nevados"
+        },
+        {
+          "code": "73411",
+          "name": "Libano",
+          "province": "Nevados"
+        },
+        {
+          "code": "73443",
+          "name": "Mariquita",
+          "province": "Norte"
+        },
+        {
+          "code": "73449",
+          "name": "Melgar",
+          "province": "Oriente"
+        },
+        {
+          "code": "73461",
+          "name": "Murillo",
+          "province": "Nevados"
+        },
+        {
+          "code": "73483",
+          "name": "Natagaima",
+          "province": "Sur"
+        },
+        {
+          "code": "73504",
+          "name": "Ortega",
+          "province": "Sur"
+        },
+        {
+          "code": "73520",
+          "name": "Palocabildo",
+          "province": "Norte"
+        },
+        {
+          "code": "73547",
+          "name": "Piedras",
+          "province": "Ibague"
+        },
+        {
+          "code": "73555",
+          "name": "Planadas",
+          "province": "Sur"
+        },
+        {
+          "code": "73563",
+          "name": "Prado",
+          "province": "Suroriente"
+        },
+        {
+          "code": "73585",
+          "name": "Purificación",
+          "province": "Suroriente"
+        },
+        {
+          "code": "73616",
+          "name": "Rioblanco",
+          "province": "Sur"
+        },
+        {
+          "code": "73622",
+          "name": "Roncesvalles",
+          "province": "Sur"
+        },
+        {
+          "code": "73624",
+          "name": "Rovira",
+          "province": "Ibague"
+        },
+        {
+          "code": "73671",
+          "name": "Saldaña",
+          "province": "Suroriente"
+        },
+        {
+          "code": "73675",
+          "name": "San Antonio",
+          "province": "Sur"
+        },
+        {
+          "code": "73678",
+          "name": "San Luis",
+          "province": "Ibague"
+        },
+        {
+          "code": "73686",
+          "name": "Santa Isabel",
+          "province": "Nevados"
+        },
+        {
+          "code": "73770",
+          "name": "Suárez",
+          "province": "Suroriente"
+        },
+        {
+          "code": "73854",
+          "name": "Valle De San Juan",
+          "province": "Ibague"
+        },
+        {
+          "code": "73861",
+          "name": "Venadillo",
+          "province": "Nevados"
+        },
+        {
+          "code": "73870",
+          "name": "Villahermosa",
+          "province": "Nevados"
+        },
+        {
+          "code": "73873",
+          "name": "Villarrica",
+          "province": "Oriente"
+        }
+      ]
+    },
+    {
+      "code": "76",
+      "name": "Valle del Cauca",
+      "capital": "Cali",
+      "municipalities": [
+        {
+          "code": "76020",
+          "name": "Alcala",
+          "province": "Norte"
+        },
+        {
+          "code": "76036",
+          "name": "Andalucía",
+          "province": "Centro"
+        },
+        {
+          "code": "76041",
+          "name": "Ansermanuevo",
+          "province": "Norte"
+        },
+        {
+          "code": "76054",
+          "name": "Argelia",
+          "province": "Norte"
+        },
+        {
+          "code": "76100",
+          "name": "Bolívar",
+          "province": "Norte"
+        },
+        {
+          "code": "76109",
+          "name": "Buenaventura",
+          "province": "Occidente"
+        },
+        {
+          "code": "76111",
+          "name": "Buga",
+          "province": "Centro"
+        },
+        {
+          "code": "76113",
+          "name": "Bugalagrande",
+          "province": "Centro"
+        },
+        {
+          "code": "76122",
+          "name": "Caicedonia",
+          "province": "Oriente"
+        },
+        {
+          "code": "76001",
+          "name": "Cali",
+          "province": "Sur"
+        },
+        {
+          "code": "76126",
+          "name": "Calima",
+          "province": "Centro"
+        },
+        {
+          "code": "76130",
+          "name": "Candelaria",
+          "province": "Sur"
+        },
+        {
+          "code": "76147",
+          "name": "Cartago",
+          "province": "Norte"
+        },
+        {
+          "code": "76233",
+          "name": "Dagua",
+          "province": "Sur"
+        },
+        {
+          "code": "76243",
+          "name": "El Águila",
+          "province": "Norte"
+        },
+        {
+          "code": "76246",
+          "name": "El Cairo",
+          "province": "Norte"
+        },
+        {
+          "code": "76248",
+          "name": "El Cerrito",
+          "province": "Centro"
+        },
+        {
+          "code": "76250",
+          "name": "El Dovio",
+          "province": "Norte"
+        },
+        {
+          "code": "76275",
+          "name": "Florida",
+          "province": "Sur"
+        },
+        {
+          "code": "76306",
+          "name": "Ginebra",
+          "province": "Centro"
+        },
+        {
+          "code": "76318",
+          "name": "Guacarí",
+          "province": "Centro"
+        },
+        {
+          "code": "76364",
+          "name": "Jamundí",
+          "province": "Sur"
+        },
+        {
+          "code": "76377",
+          "name": "La Cumbre",
+          "province": "Sur"
+        },
+        {
+          "code": "76400",
+          "name": "La Unión",
+          "province": "Norte"
+        },
+        {
+          "code": "76403",
+          "name": "La Victoria",
+          "province": "Norte"
+        },
+        {
+          "code": "76497",
+          "name": "Obando",
+          "province": "Norte"
+        },
+        {
+          "code": "76520",
+          "name": "Palmira",
+          "province": "Sur"
+        },
+        {
+          "code": "76563",
+          "name": "Pradera",
+          "province": "Sur"
+        },
+        {
+          "code": "76606",
+          "name": "Restrepo",
+          "province": "Centro"
+        },
+        {
+          "code": "76616",
+          "name": "Riofrio",
+          "province": "Centro"
+        },
+        {
+          "code": "76622",
+          "name": "Roldanillo",
+          "province": "Norte"
+        },
+        {
+          "code": "76670",
+          "name": "San Pedro",
+          "province": "Centro"
+        },
+        {
+          "code": "76736",
+          "name": "Sevilla",
+          "province": "Oriente"
+        },
+        {
+          "code": "76823",
+          "name": "Toro",
+          "province": "Norte"
+        },
+        {
+          "code": "76828",
+          "name": "Trujillo",
+          "province": "Centro"
+        },
+        {
+          "code": "76834",
+          "name": "Tuluá",
+          "province": "Centro"
+        },
+        {
+          "code": "76845",
+          "name": "Ulloa",
+          "province": "Norte"
+        },
+        {
+          "code": "76863",
+          "name": "Versalles",
+          "province": "Norte"
+        },
+        {
+          "code": "76869",
+          "name": "Vijes",
+          "province": "Sur"
+        },
+        {
+          "code": "76890",
+          "name": "Yotoco",
+          "province": "Centro"
+        },
+        {
+          "code": "76892",
+          "name": "Yumbo",
+          "province": "Sur"
+        },
+        {
+          "code": "76895",
+          "name": "Zarzal",
+          "province": "Norte"
+        }
+      ]
+    },
+    {
+      "code": "97",
+      "name": "Vaupés",
+      "capital": "Mitú",
+      "municipalities": [
+        {
+          "code": "97161",
+          "name": "Caruru",
+          "province": "Vaupés"
+        },
+        {
+          "code": "97001",
+          "name": "Mitú",
+          "province": "Vaupés"
+        },
+        {
+          "code": "97511",
+          "name": "Pacoa",
+          "province": "Vaupés"
+        },
+        {
+          "code": "97777",
+          "name": "Papunahua",
+          "province": "Vaupés"
+        },
+        {
+          "code": "97666",
+          "name": "Taraira",
+          "province": "Vaupés"
+        },
+        {
+          "code": "97889",
+          "name": "Yavaraté",
+          "province": "Vaupés"
+        }
+      ]
+    },
+    {
+      "code": "99",
+      "name": "Vichada",
+      "capital": "Puerto Carreño",
+      "municipalities": [
+        {
+          "code": "99773",
+          "name": "Cumaribo",
+          "province": "Vichada"
+        },
+        {
+          "code": "99524",
+          "name": "La Primavera",
+          "province": "Vichada"
+        },
+        {
+          "code": "99001",
+          "name": "Puerto Carreño",
+          "province": "Vichada"
+        },
+        {
+          "code": "99624",
+          "name": "Santa Rosalía",
+          "province": "Vichada"
+        }
+      ]
+    }
+  ]
+}

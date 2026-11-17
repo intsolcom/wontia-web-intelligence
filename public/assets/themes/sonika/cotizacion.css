@@ -1,0 +1,180 @@
+@font-face{font-family:Sora;font-style:normal;font-weight:400;font-display:swap;src:url("/assets/fonts/sonika/sora-400.woff2") format("woff2")}
+@font-face{font-family:Sora;font-style:normal;font-weight:600;font-display:swap;src:url("/assets/fonts/sonika/sora-600.woff2") format("woff2")}
+@font-face{font-family:Sora;font-style:normal;font-weight:700;font-display:swap;src:url("/assets/fonts/sonika/sora-700.woff2") format("woff2")}
+@font-face{font-family:Sora;font-style:normal;font-weight:800;font-display:swap;src:url("/assets/fonts/sonika/sora-800.woff2") format("woff2")}
+@font-face{font-family:Inter;font-style:normal;font-weight:400;font-display:swap;src:url("/assets/fonts/sonika/inter-400.woff2") format("woff2")}
+@font-face{font-family:Inter;font-style:normal;font-weight:500;font-display:swap;src:url("/assets/fonts/sonika/inter-500.woff2") format("woff2")}
+@font-face{font-family:Inter;font-style:normal;font-weight:600;font-display:swap;src:url("/assets/fonts/sonika/inter-600.woff2") format("woff2")}
+@font-face{font-family:Inter;font-style:normal;font-weight:700;font-display:swap;src:url("/assets/fonts/sonika/inter-700.woff2") format("woff2")}
+
+.qdoc-page{max-width:1120px;margin:0 auto;padding:22px 22px 48px;font-family:Inter,system-ui,sans-serif;color:#111;background:#f3f5f4}
+.qdoc-page__paper{background:#eef1ef;padding:24px 0}
+.qdoc-toolbar{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;max-width:1120px;margin:0 auto 14px;padding:0 2px;color:#4b5563;font-size:12px}
+.qdoc-toolbar__eyebrow{display:block;color:#0b8457;font-size:9px;font-weight:800;letter-spacing:.12em;margin-bottom:2px}
+.qdoc-toolbar b{color:#111;font-family:Sora,sans-serif;font-size:15px}
+.qdoc-toolbar__actions{display:flex;gap:7px;flex-wrap:wrap}
+.qdoc-quote-actions{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;max-width:1120px;margin:0 auto 14px;padding:10px 12px;border:1px solid #dfe8cc;border-radius:10px;background:#f7faf1}
+.qdoc-quote-actions__label{font-size:11px;font-weight:800;color:#556B2F;letter-spacing:.03em}
+.qdoc-quote-actions__buttons{display:flex;gap:7px;flex-wrap:wrap}
+.qdoc-quote-actions .qdoc-btn{margin:0}
+.qdoc-btn{display:inline-flex;align-items:center;justify-content:center;min-height:38px;padding:9px 13px;border:1px solid #d1d5db;border-radius:8px;background:#fff;color:#374151;font:inherit;font-size:11.5px;font-weight:700;text-decoration:none;cursor:pointer}
+.qdoc-btn:hover{background:#f9fafb;border-color:#9ca3af}
+.qdoc-btn--primary{background:#F20D16;border-color:#F20D16;color:#fff}
+.qdoc-btn--primary:hover{background:#c70a12;border-color:#c70a12;color:#fff}
+.qdoc-btn--whatsapp{background:#0b8457;border-color:#0b8457;color:#fff}
+.qdoc-btn--whatsapp:hover{background:#096b47;border-color:#096b47;color:#fff}
+.qdoc-btn--continue{background:#111;border-color:#111;color:#fff}
+.qdoc-btn--continue:hover{background:#333;border-color:#333;color:#fff}
+.qdoc-btn:disabled{background:#d1d5db;border-color:#d1d5db;color:#6b7280;cursor:not-allowed}
+.qdoc-btn:focus-visible,.qdoc-gate button:focus-visible,.qdoc-gate__link:focus-visible{outline:2px solid #0b8457;outline-offset:2px}
+.qdoc-page__footnote{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;max-width:1120px;margin:13px auto 0;color:#6b7280;font-size:10px}
+.qdoc-toast{position:fixed;left:50%;bottom:24px;z-index:100;transform:translateX(-50%);padding:10px 15px;border-radius:8px;background:#111;color:#fff;font:600 12px Inter,sans-serif;box-shadow:0 10px 28px rgba(0,0,0,.18)}
+
+.qdoc__paper{width:100%;max-width:1040px;margin:0 auto;background:#fff;border:1px solid #e0e5e2;border-radius:14px;overflow:hidden;box-shadow:0 18px 45px rgba(16,24,40,.08);font-family:Inter,system-ui,sans-serif;color:#111;font-size:11px;line-height:1.5}
+.qdoc__head{display:flex;align-items:flex-start;justify-content:space-between;gap:26px;padding:27px 30px 21px;border-top:4px solid #F20D16}
+.qdoc__brand{display:flex;flex-direction:column;align-items:flex-start;min-width:220px}
+.qdoc__logo{height:46px;display:flex;align-items:center}
+.qdoc__logo .sonika-logo{height:46px!important}
+.qdoc__logo img{max-height:46px;width:auto;display:block}
+.qdoc__legal{margin:8px 0 0;font-family:Sora,sans-serif;font-size:12px;font-weight:700;color:#111}
+.qdoc__tagline{margin:1px 0 0;color:#6b7280;font-size:10px}
+.qdoc__identity{display:grid;justify-items:end;align-content:start;min-width:280px}
+.qdoc__eyebrow{color:#F20D16;font-size:10px;font-weight:800;letter-spacing:.16em}
+.qdoc__code{font-family:Sora,sans-serif;font-size:19px;line-height:1.2;letter-spacing:-.02em;margin-top:2px}
+.qdoc__status{display:inline-flex;align-items:center;margin-top:5px;border-radius:999px;padding:3px 8px;background:#ecfdf5;color:#047857;font-size:9px;font-weight:800;letter-spacing:.02em}
+.qdoc__status.is-expired{background:#fef2f2;color:#b42318}.qdoc__status.is-converted{background:#eff6ff;color:#1d4ed8}
+.qdoc__meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:15px 0 0;width:100%;text-align:right}
+.qdoc__meta dt{color:#9ca3af;font-size:8.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase}
+.qdoc__meta dd{margin:2px 0 0;color:#111;font-size:11px;font-weight:700;white-space:nowrap}
+.qdoc__client{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(190px,.75fr);gap:26px;padding:20px 30px;border-top:1px solid #eef1ef;background:#fbfcfb}
+.qdoc__label{display:block;color:#9ca3af;font-size:8.5px;font-weight:800;letter-spacing:.11em;margin-bottom:5px}
+.qdoc__client h1{font-family:Sora,sans-serif;font-size:18px;line-height:1.25;letter-spacing:-.02em;margin:0 0 3px}
+.qdoc__client p{margin:2px 0 0;color:#4b5563;font-size:10.5px}
+.qdoc__client .qdoc__muted,.qdoc__muted{color:#6b7280;font-size:9.5px}
+.qdoc__payment-box{border-left:1px solid #e5e7eb;padding-left:18px}
+.qdoc__payment-box b{display:block;font-size:12px;margin-bottom:2px}
+.qdoc__payment-box span:last-child{display:block;color:#6b7280;font-size:9px;margin-top:3px}
+.qdoc__products{padding:22px 30px 0}
+.qdoc__section-head{display:flex;justify-content:space-between;align-items:center;gap:12px;border-bottom:1px solid #e5e7eb;padding-bottom:7px;color:#111;font-family:Sora,sans-serif;font-size:10px;font-weight:800;letter-spacing:.08em}
+.qdoc__section-head span:last-child{color:#9ca3af;font-family:Inter,sans-serif;font-size:9px;font-weight:600;letter-spacing:0}
+.qdoc__table{width:100%;border-collapse:collapse;margin-top:2px}
+.qdoc__table th{color:#9ca3af;font-size:8.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;text-align:left;padding:9px 7px;border-bottom:1px solid #e5e7eb}
+.qdoc__table td{padding:10px 7px;border-bottom:1px solid #f1f3f2;vertical-align:middle}
+.qdoc__table tr:last-child td{border-bottom:0}
+.qdoc__num{width:28px;color:#9ca3af;font-size:9px;font-variant-numeric:tabular-nums}
+.qdoc__qty-col{width:48px;text-align:center!important;white-space:nowrap}
+.qdoc__money-col{width:112px;text-align:right!important;white-space:nowrap;font-variant-numeric:tabular-nums}
+.qdoc__product{display:flex;align-items:center;gap:10px;min-width:0}
+.qdoc__product img,.qdoc__ph{width:44px;height:44px;border-radius:7px;object-fit:cover;background:#f3f4f6;flex:0 0 auto}
+.qdoc__ph{display:flex;align-items:center;justify-content:center;color:#9ca3af;font:700 14px Sora,sans-serif}
+.qdoc__product div{min-width:0}
+.qdoc__product a{display:block;color:#111;font-size:11px;font-weight:750;line-height:1.35;text-decoration:none;overflow-wrap:anywhere}
+.qdoc__product a:hover{color:#F20D16;text-decoration:underline}
+.qdoc__product small{display:block;color:#9ca3af;font-size:8.5px;margin-top:1px}
+.qdoc__product em{display:inline-block;color:#b42318;font-size:8px;font-style:normal;font-weight:700;margin-top:2px}
+.qdoc__line-total{font-size:11px;font-weight:800}
+.qdoc__line-total small{display:block;color:#b91c1c;text-decoration:line-through;font-size:8.5px;font-weight:500}
+.qdoc__empty{padding:30px;text-align:center;border:1px dashed #d1d5db;border-radius:9px;color:#6b7280}
+.qdoc__bottom{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(250px,.65fr);gap:28px;padding:24px 30px 27px}
+.qdoc__conditions p{margin:0 0 7px;color:#6b7280;font-size:9.5px;line-height:1.55;max-width:60ch}
+.qdoc__totals{background:#fbfcfb;border:1px solid #e5e7eb;border-radius:10px;padding:12px 14px;align-self:start}
+.qdoc__totals>div{display:flex;justify-content:space-between;gap:14px;padding:3px 0;color:#4b5563;font-size:10px}
+.qdoc__totals b{color:#111;font-weight:750;font-variant-numeric:tabular-nums;white-space:nowrap}
+.qdoc__totals .qdoc__discount{color:#047857}.qdoc__totals .qdoc__discount b{color:#047857}
+.qdoc__totals .qdoc__total{margin-top:7px;padding-top:8px;border-top:1px solid #e5e7eb;color:#111;font-family:Sora,sans-serif;font-size:12px;font-weight:800;align-items:baseline}
+.qdoc__totals .qdoc__total b{font-size:18px;letter-spacing:-.02em}
+.qdoc__totals>small{display:block;color:#9ca3af;font-size:8px;margin-top:3px;text-align:right}
+.qdoc__footer{background:#111;color:#d6d9dd;border-top:3px solid #F20D16;padding:15px 24px 9px;font-size:8.25px;line-height:1.5;letter-spacing:.005em}
+.qdoc__footer-top{display:grid;grid-template-columns:1.35fr .95fr 1.15fr .9fr;gap:18px;align-items:start;padding-bottom:11px;border-bottom:1px solid rgba(255,255,255,.14)}
+.qdoc__footer-brand{min-width:0}
+.qdoc__footer-wordmark{font-family:Sora,sans-serif;color:#fff;font-size:15px;font-weight:900;letter-spacing:.12em;line-height:1}
+.qdoc__footer-wordmark span{color:#F20D16;margin-left:2px}
+.qdoc__footer-tagline{display:block;color:#fff!important;font-size:8px;font-weight:700;letter-spacing:.04em;margin-top:3px}
+.qdoc__footer-brand small{display:block;color:#8f969e!important;font-size:7.25px;line-height:1.45;margin-top:7px;max-width:205px}
+.qdoc__footer-col{display:flex;flex-direction:column;gap:2px;min-width:0}
+.qdoc__footer-label{display:flex!important;align-items:center;gap:5px;color:#fff!important;font-size:7.5px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;margin-bottom:3px;white-space:nowrap}
+.qdoc__footer-label svg{width:10px;height:10px;flex:0 0 10px;fill:none;stroke:#8f969e;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.qdoc__footer-col span,.qdoc__footer-col a,.qdoc__footer-col address,.qdoc__footer-brand span,.qdoc__footer-brand small{display:block;color:#c4c9ce}
+.qdoc__footer-col a{color:#d6d9dd;text-decoration:none;overflow-wrap:anywhere}
+.qdoc__footer-col a:hover{color:#fff;text-decoration:underline}
+.qdoc__footer-col address{font-style:normal;margin:0}
+.qdoc__footer-bottom{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px;padding-top:8px;color:#9ca3af;font-size:7.5px}
+.qdoc__footer-bottom b{color:#fff;font-size:7.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;margin-right:4px}
+.qdoc__footer-bottom>span:last-child{text-align:right}
+.qdoc__footer-bottom a{color:#c4c9ce;text-decoration:none}
+.qdoc__footer-bottom a:hover{color:#fff;text-decoration:underline}
+.qdoc__footer-thanks{color:#F20D16!important;font-size:7.5px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap}
+.qdoc-toast{z-index:100000}
+
+.qdoc-gate{max-width:620px;margin:0 auto;padding:58px 22px 80px;font-family:Inter,system-ui,sans-serif;color:#111}
+.qdoc-gate__card{background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:30px;box-shadow:0 20px 50px rgba(16,24,40,.08);text-align:center}
+.qdoc-gate__brand{display:flex;justify-content:center;margin-bottom:20px}.qdoc-gate__brand .sonika-logo{height:42px!important}
+.qdoc-gate__brand img{max-height:42px;width:auto}
+.qdoc-gate__mark{font:800 16px Sora,sans-serif;letter-spacing:.12em;margin-bottom:18px}
+.qdoc-gate__eyebrow{color:#F20D16;font-size:9px;font-weight:800;letter-spacing:.15em}
+.qdoc-gate h1{font-family:Sora,sans-serif;font-size:24px;line-height:1.15;letter-spacing:-.02em;margin:7px 0 7px}
+.qdoc-gate p{color:#6b7280;font-size:12px;line-height:1.6;margin:0 auto 20px;max-width:430px}
+.qdoc-gate form{display:grid;gap:8px;text-align:left;max-width:400px;margin:0 auto}
+.qdoc-gate label{font-size:10px;font-weight:750;color:#374151}
+.qdoc-gate input{width:100%;min-height:44px;border:1px solid #d1d5db;border-radius:8px;padding:10px 11px;font:inherit;font-size:14px;outline:none}
+.qdoc-gate input:focus{border-color:#0b8457;box-shadow:0 0 0 3px rgba(11,132,87,.13)}
+.qdoc-gate button{min-height:44px;border:0;border-radius:8px;background:#F20D16;color:#fff;font:750 12px Inter,sans-serif;cursor:pointer;margin-top:4px}
+.qdoc-gate button:hover{background:#c70a12}
+.qdoc-gate__error{margin:0 0 13px;padding:8px 10px;border:1px solid #fecaca;border-radius:7px;background:#fef2f2;color:#b42318;font-size:10.5px;line-height:1.4;text-align:left}
+.qdoc-gate small{display:block;color:#9ca3af;font-size:9px;line-height:1.5;margin-top:16px}
+.qdoc-gate__link{display:inline-block;margin-top:18px;color:#0b8457;font-size:11px;font-weight:750;text-decoration:none}
+.qdoc-gate__link:hover{text-decoration:underline}
+
+@media(max-width:800px){
+  .qdoc-page{padding:14px 10px 36px}.qdoc-page__paper{padding:12px 0}
+  .qdoc-toolbar{align-items:flex-start;margin-bottom:10px}.qdoc-toolbar__actions{width:100%}.qdoc-btn{flex:1;min-width:120px}
+  .qdoc-quote-actions{align-items:stretch}.qdoc-quote-actions__buttons{width:100%}.qdoc-quote-actions .qdoc-btn{flex:1}
+  .qdoc__paper{border-radius:11px}.qdoc__head{display:block;padding:20px 18px 16px}.qdoc__brand{min-width:0}.qdoc__identity{display:flex;flex-wrap:wrap;align-items:center;gap:7px 12px;justify-items:start;margin-top:18px;min-width:0}.qdoc__meta{order:3;width:100%;margin:9px 0 0;text-align:left;gap:10px}.qdoc__meta dt{font-size:8px}.qdoc__meta dd{font-size:10px}.qdoc__code{font-size:17px}.qdoc__status{margin:0}
+  .qdoc__client{grid-template-columns:1fr;gap:15px;padding:17px 18px}.qdoc__payment-box{border-left:0;border-top:1px solid #e5e7eb;padding:13px 0 0}.qdoc__client h1{font-size:17px}
+  .qdoc__products{padding:18px 18px 0}.qdoc__table{min-width:620px}.qdoc__products{overflow-x:auto}.qdoc__table th,.qdoc__table td{padding-left:6px;padding-right:6px}
+  .qdoc__bottom{grid-template-columns:1fr;gap:18px;padding:19px 18px 22px}.qdoc__conditions p{max-width:none}
+  .qdoc__footer{padding:14px 16px 9px}.qdoc__footer-top{grid-template-columns:1fr 1fr;gap:12px}.qdoc__footer-brand{grid-column:1/-1}.qdoc__footer-brand small{max-width:none}.qdoc__footer-bottom{grid-template-columns:1fr;gap:4px}.qdoc__footer-bottom>span:last-child{text-align:left}
+  .qdoc-page__footnote{font-size:9px}.qdoc-gate{padding:34px 16px 60px}.qdoc-gate__card{padding:24px 18px}
+}
+@media(max-width:480px){.qdoc__footer{grid-template-columns:1fr}.qdoc__footer-line{display:grid;gap:3px}.qdoc__logo,.qdoc__logo .sonika-logo{height:38px!important}.qdoc__logo img{max-height:38px}}
+
+@media print{
+  @page{size:A4;margin:0}
+  html,body{background:#fff!important}
+  body{font-size:10px}
+  .site,.topbar,.crumb,.qdoc-toolbar,.qdoc-page__footnote,.qdoc-page>div:first-child,.qdoc-toast,.qdoc-gate{display:none!important}
+  .qdoc-page{max-width:none!important;padding:0!important;background:#fff!important}
+  .qdoc-page__paper{padding:0!important;background:#fff!important}
+  .qdoc__paper{width:210mm!important;max-width:none!important;min-height:0!important;margin:0!important;border:0!important;border-radius:0!important;box-shadow:none!important;overflow:visible!important}
+  .qdoc__paper--print{padding:13mm 13mm 0!important}
+  .qdoc__head{padding:0 0 9px!important}
+  .qdoc__client{padding:9px 0!important;background:#fff!important}
+  .qdoc__products{padding:10px 0 0!important;overflow:visible!important}
+  .qdoc__table{min-width:0!important}
+  .qdoc__table th{padding:5px 6px!important;font-size:8px!important}
+  .qdoc__table td{padding:4px 6px!important}
+  .qdoc__product{gap:7px!important}
+  .qdoc__product img,.qdoc__ph{width:32px!important;height:32px!important}
+  .qdoc__product a{font-size:9.8px!important;line-height:1.25!important}
+  .qdoc__product small{font-size:7.8px!important}
+  .qdoc__bottom{padding:10px 0 0!important}
+  .qdoc__conditions p{font-size:8.5px!important;line-height:1.35!important;margin-bottom:4px!important}
+  .qdoc__totals{padding:8px 10px!important}
+  .qdoc__footer{padding:8px 12px 5px!important;font-size:7.1px!important}
+  .qdoc__footer-top{grid-template-columns:1.35fr .95fr 1.15fr .9fr!important;gap:10px!important;padding-bottom:6px!important}
+  .qdoc__footer-wordmark{font-size:13px!important}
+  .qdoc__footer-brand small{font-size:6.7px!important;max-width:190px!important}
+  .qdoc__footer-label{font-size:6.7px!important;margin-bottom:2px!important}
+  .qdoc__footer-col span,.qdoc__footer-col a,.qdoc__footer-col address,.qdoc__footer-brand span,.qdoc__footer-brand small{font-size:6.8px!important;line-height:1.35!important}
+  .qdoc__footer-bottom{padding-top:5px!important;gap:6px!important;font-size:6.6px!important}
+  .qdoc__footer-bottom b,.qdoc__footer-thanks{font-size:6.6px!important}
+  .qdoc__table thead{display:table-header-group}
+  .qdoc__table tr{break-inside:avoid;page-break-inside:avoid}
+  .qdoc__bottom{padding:10px 0 0!important;break-inside:avoid;page-break-inside:avoid}
+  .qdoc__footer{break-inside:avoid;page-break-inside:avoid;background:#111!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .qdoc__footer-brand small{max-width:200px}
+  .qdoc__client{grid-template-columns:minmax(0,1.65fr) minmax(190px,.75fr)!important}
+  .qdoc__bottom{grid-template-columns:minmax(0,1.35fr) minmax(250px,.65fr)!important}
+  .qdoc__table a{color:#111!important;text-decoration:none}
+  .qdoc__paper,.qdoc__table,.qdoc__bottom,.qdoc__footer{page-break-after:auto}
+}

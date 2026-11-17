@@ -3,6 +3,9 @@ namespace App\Core;
 
 class Session
 {
+    /** Duración de la sesión: 8 horas, renovables mientras el Partner usa el panel. */
+    public const LIFETIME_SECONDS = 28800;
+
     private static bool $started = false;
 
     public static function start(): void
@@ -10,9 +13,9 @@ class Session
         if (self::$started) return;
         if (session_status() === PHP_SESSION_NONE) {
             $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
-            ini_set('session.gc_maxlifetime', '3600');
+            ini_set('session.gc_maxlifetime', (string)self::LIFETIME_SECONDS);
             session_set_cookie_params([
-                'lifetime' => 3600,
+                'lifetime' => self::LIFETIME_SECONDS,
                 'path' => '/',
                 'secure' => $secure,
                 'httponly' => true,
@@ -46,6 +49,22 @@ class Session
     {
         self::start();
         unset($_SESSION[$key]);
+    }
+
+    /** Renueva la cookie de sesión sin cambiar el ID (sesión deslizante). */
+    public static function touch(): void
+    {
+        self::start();
+        if (session_status() !== PHP_SESSION_ACTIVE || headers_sent()) return;
+        $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+        setcookie(session_name(), session_id(), [
+            'expires' => time() + self::LIFETIME_SECONDS,
+            'path' => '/',
+            'secure' => $secure,
+            'httponly' => true,
+            'samesite' => 'Lax',
+        ]);
+        $_SESSION['_last_seen'] = time();
     }
 
     public static function destroy(): void

@@ -109,30 +109,34 @@ class MegaMenuWidget extends Widget
         $tree = (new MegaMenuService())->tree($megaCats, $products, 90, $sort);
         $nodes = $tree['categories'] ?? [];
         $nodes = $this->applyOverrides($nodes, (array)($cfg['category_overrides'] ?? []));
-        if (!empty($cfg['guitar_subs']) && is_array($cfg['guitar_subs'])) {
-            $subs = [];
-            $tot = 0;
-            foreach ($cfg['guitar_subs'] as $sx) {
-                $cnt = (int)($sx['count'] ?? 0);
-                if ($cnt <= 0) continue;
-                $tot += $cnt;
-                $subs[] = ['name' => (string)($sx['name'] ?? ''), 'count' => $cnt, 'thumb' => (string)($sx['thumb'] ?? ''), 'url' => '/guitarras?sub=' . rawurlencode((string)($sx['slug'] ?? ''))];
-            }
-            if ($subs) {
-                $hasG = false;
-                foreach ($nodes as &$nn) {
-                    if (($nn['slug'] ?? '') === 'guitarras') { $nn['types'] = $subs; $nn['count'] = $tot; $nn['url'] = '/guitarras'; $hasG = true; }
+        // La navegación L2 son las familias reales de la taxonomía, no los
+        // product_type crudos de Miche. Cada familia enlaza a su URL jerárquica.
+        $childMap = [];
+        foreach ($megaCats as $mc) {
+            if (empty($mc['children']) || !is_array($mc['children'])) continue;
+            $childMap[(string)($mc['slug'] ?? '')] = (array)$mc['children'];
+        }
+        if ($childMap) {
+            foreach ($nodes as &$nn) {
+                $slug = (string)($nn['slug'] ?? '');
+                if (!isset($childMap[$slug])) continue;
+                $subs = [];
+                foreach ($childMap[$slug] as $child) {
+                    $childKey = (string)($child['key'] ?? $child['slug'] ?? '');
+                    $thumb = class_exists('\\App\\Services\\CatalogTaxonomyService') ? \App\Services\CatalogTaxonomyService::categoryImage($childKey) : '';
+                    $subs[] = [
+                        'name' => (string)($child['name'] ?? ''),
+                        'url' => (string)($child['url'] ?? ''),
+                        'thumb' => $thumb,
+                        'count' => (function_exists('sonika_category_count') ? (int)sonika_category_count($childKey) : 0),
+                    ];
                 }
-                unset($nn);
-                if (!$hasG) {
-                    array_unshift($nodes, [
-                        'slug' => 'guitarras', 'name' => 'Cuerdas', 'kind' => 'Categoría', 'icon' => '🎸', 'subtitle' => 'Guitarras · Bajos',
-                        'url' => '/guitarras', 'count' => $tot, 'badge_new' => false, 'badge_offer' => false,
-                        'types' => $subs, 'brands' => [], 'models' => [], 'level5' => [],
-                        'kinds' => [2 => 'Tipo', 3 => 'Marca', 4 => 'Modelo'], 'hero' => '', 'samples' => [], 'prices' => [],
-                    ]);
+                if ($subs) {
+                    $nn['types'] = array_slice($subs, 0, 24);
+                    $nn['url'] = '/' . $slug;
                 }
             }
+            unset($nn);
         }
         if (!empty($cfg['show_info'])) {
             $info = $this->infoNode((string)($cfg['info_label'] ?? 'Información'), (string)($cfg['info_icon'] ?? '📄'));
@@ -326,11 +330,26 @@ class MegaMenuWidget extends Widget
             if (!is_array($r)) continue;
             $img = trim((string)($r['image'] ?? ''));
             if ($img === '') continue;
-            $key = strtolower(trim((string)($r['category'] ?? '')));
+            $key = $this->aliasSlug(strtolower(trim((string)($r['category'] ?? ''))));
             if ($key === '') continue;
             $map[$key] = ['image' => $img, 'alt' => (string)($r['alt'] ?? ''), 'href' => (string)($r['href'] ?? ''), 'eyebrow' => (string)($r['eyebrow'] ?? ''), 'title' => (string)($r['title'] ?? ''), 'text' => (string)($r['text'] ?? ''), 'button' => (string)($r['button'] ?? '')];
         }
         return $map;
+    }
+
+    /** Normaliza slugs legacy de categoría a la clave canónica. */
+    private function aliasSlug(string $slug): string
+    {
+        static $aliases = [
+            'guitarras' => 'cuerdas',
+            'acordeon' => 'vientos',
+            'pianos' => 'teclados',
+            'amplificadores' => 'audio',
+            'microfono-miche' => 'microfonos',
+            'cabeza-movil' => 'iluminacion',
+            'cuerdas-guitarras' => 'accesorios',
+        ];
+        return $aliases[$slug] ?? $slug;
     }
 
     private function heroConfig(array $node, array $promoMap, array $cfg, bool $showImages): array
@@ -370,13 +389,13 @@ class MegaMenuWidget extends Widget
         $map = [];
         foreach ($rows as $r) {
             if (!is_array($r)) continue;
-            $k = strtolower(trim((string)($r['match'] ?? '')));
+            $k = $this->aliasSlug(strtolower(trim((string)($r['match'] ?? ''))));
             if ($k === '') continue;
             $map[$k] = ['label' => trim((string)($r['label'] ?? '')), 'icon' => trim((string)($r['icon'] ?? ''))];
         }
         if (!$map) return $nodes;
         foreach ($nodes as &$n) {
-            foreach ([strtolower((string)($n['slug'] ?? '')), strtolower((string)($n['name'] ?? ''))] as $k) {
+            foreach ([$this->aliasSlug(strtolower((string)($n['slug'] ?? ''))), strtolower((string)($n['name'] ?? ''))] as $k) {
                 if ($k !== '' && isset($map[$k])) {
                     if ($map[$k]['label'] !== '') $n['name'] = $map[$k]['label'];
                     if ($map[$k]['icon'] !== '') $n['icon'] = $map[$k]['icon'];

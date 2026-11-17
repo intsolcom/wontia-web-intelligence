@@ -1,6 +1,6 @@
 FROM php:8.3-fpm-alpine
 
-RUN apk add --no-cache nginx curl libpng-dev libjpeg-turbo-dev libwebp-dev freetype-dev \
+RUN apk add --no-cache nginx curl chromium libpng-dev libjpeg-turbo-dev libwebp-dev freetype-dev yt-dlp ffmpeg \
     && docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
     && docker-php-ext-install -j$(nproc) pdo pdo_mysql gd
 

@@ -1,4 +1,4 @@
-# SONIKA Artist Partners — Guion de demo para inversionista
+# SONIKA Partners — Guion de demo para inversionista
 > Recorrido paso a paso + puntos de conversación + preguntas esperadas.
 > Estado: DEMO (comisiones y pedidos son simulados; sin pagos reales).
 

@@ -1,0 +1,146 @@
+-- Directorio Sonika: perfiles y reseñas verificadas. Multi-tenant e idempotente.
+CREATE TABLE IF NOT EXISTS directory_profiles (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    site_id INT NOT NULL DEFAULT 1,
+    slug VARCHAR(190) NOT NULL,
+    display_name VARCHAR(190) NOT NULL,
+    profile_type VARCHAR(30) NOT NULL DEFAULT 'artist',
+    category VARCHAR(100) NULL,
+    subcategory VARCHAR(100) NULL,
+    instrument VARCHAR(100) NULL,
+    city VARCHAR(120) NULL,
+    region VARCHAR(120) NULL,
+    bio TEXT NULL,
+    photo VARCHAR(500) NULL,
+    website VARCHAR(500) NULL,
+    whatsapp VARCHAR(40) NULL,
+    email VARCHAR(190) NULL,
+    owner_email VARCHAR(190) NULL,
+    owner_phone VARCHAR(40) NULL,
+    user_id INT NULL,
+    affiliate_id INT NULL,
+    is_sonika_artist TINYINT NOT NULL DEFAULT 0,
+    founder TINYINT NOT NULL DEFAULT 0,
+    verified TINYINT NOT NULL DEFAULT 0,
+    points INT NOT NULL DEFAULT 0,
+    rank_key VARCHAR(30) NOT NULL DEFAULT 'semilla',
+    consent TINYINT NOT NULL DEFAULT 0,
+    source VARCHAR(30) NOT NULL DEFAULT 'sonika',
+    approved_at DATETIME NULL,
+    status ENUM('pending','draft','active','paused','blocked','rejected') NOT NULL DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_directory_slug (site_id, slug),
+    KEY idx_directory_status (site_id, status),
+    KEY idx_directory_category (site_id, category, city),
+    KEY idx_directory_founder (site_id, founder)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS directory_point_events (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    site_id INT NOT NULL DEFAULT 1,
+    profile_id INT NOT NULL,
+    action VARCHAR(50) NOT NULL,
+    points INT NOT NULL,
+    source_key VARCHAR(190) NOT NULL DEFAULT '',
+    note VARCHAR(255) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_directory_points_source (site_id, profile_id, action, source_key),
+    KEY idx_directory_points_profile (site_id, profile_id, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS directory_reviews (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    site_id INT NOT NULL DEFAULT 1,
+    profile_ref VARCHAR(190) NOT NULL,
+    reviewer_name VARCHAR(160) NOT NULL,
+    reviewer_email VARCHAR(190) NOT NULL,
+    reviewer_phone VARCHAR(40) NULL,
+    rating TINYINT NOT NULL,
+    punctuality TINYINT NULL,
+    quality TINYINT NULL,
+    professionalism TINYINT NULL,
+    communication TINYINT NULL,
+    reliability TINYINT NULL,
+    title VARCHAR(160) NULL,
+    body TEXT NOT NULL,
+    service_date DATE NULL,
+    consent TINYINT NOT NULL DEFAULT 0,
+    verified TINYINT NOT NULL DEFAULT 0,
+    status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'pending',
+    moderation_note VARCHAR(255) NULL,
+    moderated_by VARCHAR(150) NULL,
+    moderated_at DATETIME NULL,
+    ip_hash CHAR(64) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_directory_review_email (site_id, profile_ref, reviewer_email),
+    KEY idx_directory_review_profile (site_id, profile_ref, status, created_at),
+    KEY idx_directory_review_status (site_id, status, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS directory_toques (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    site_id INT NOT NULL DEFAULT 1,
+    title VARCHAR(190) NOT NULL,
+    description TEXT NULL,
+    toque_type ENUM('open','curated') NOT NULL DEFAULT 'open',
+    city VARCHAR(120) NULL,
+    event_date DATE NULL,
+    instrument VARCHAR(100) NULL,
+    genre VARCHAR(100) NULL,
+    budget VARCHAR(80) NULL,
+    organizer_name VARCHAR(190) NULL,
+    organizer_email VARCHAR(190) NULL,
+    organizer_phone VARCHAR(40) NULL,
+    status ENUM('pending','open','closed','cancelled') NOT NULL DEFAULT 'pending',
+    created_by VARCHAR(150) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    KEY idx_directory_toques (site_id, status, event_date),
+    KEY idx_directory_toques_city (site_id, city, status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS directory_toque_applications (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    site_id INT NOT NULL DEFAULT 1,
+    toque_id BIGINT UNSIGNED NOT NULL,
+    profile_id INT NOT NULL,
+    status ENUM('invited','applied','accepted','declined','rejected') NOT NULL DEFAULT 'invited',
+    message VARCHAR(500) NULL,
+    created_by VARCHAR(150) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_directory_toque_profile (site_id, toque_id, profile_id),
+    KEY idx_directory_toque_apps (site_id, toque_id, status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS directory_monyas (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    site_id INT NOT NULL DEFAULT 1,
+    name VARCHAR(190) NOT NULL,
+    slug VARCHAR(190) NOT NULL,
+    description TEXT NULL,
+    city VARCHAR(120) NULL,
+    genre VARCHAR(100) NULL,
+    leader_profile_id INT NULL,
+    status ENUM('pending','active','paused','blocked') NOT NULL DEFAULT 'pending',
+    created_by VARCHAR(150) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_directory_monya_slug (site_id, slug),
+    KEY idx_directory_monyas (site_id, status, city)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS directory_monya_members (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    site_id INT NOT NULL DEFAULT 1,
+    monya_id BIGINT UNSIGNED NOT NULL,
+    profile_id INT NOT NULL,
+    role VARCHAR(80) NULL,
+    status ENUM('invited','active','declined','removed') NOT NULL DEFAULT 'invited',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_directory_monya_profile (site_id, monya_id, profile_id),
+    KEY idx_directory_monya_members (site_id, monya_id, status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

@@ -1,4 +1,4 @@
-<?php $__payCfg = sonika_payments_config(); $__freeNet = (int)($__payCfg['breb']['free_shipping_net_cents'] ?? 30000000); $__freeLabel = '$' . number_format($__freeNet / 100, 0, ',', '.'); ?>
+<?php $__payCfg = sonika_payments_config(); $__freeNet = (int)($__payCfg['breb']['free_shipping_net_cents'] ?? 30000000); $__taxRate = (float)($__payCfg['breb']['tax_rate'] ?? 19); $__freeGross = (int)round($__freeNet * (1 + $__taxRate / 100)); $__freeLabel = '$' . number_format($__freeNet / 100, 0, ',', '.'); $__freeGrossLabel = '$' . number_format($__freeGross / 100, 0, ',', '.'); ?>
 <section class="wrap skpay" id="cartPage">
   <div class="skpay__head">
     <div>
@@ -34,10 +34,11 @@
         </div>
         <p class="skpay__tiny" id="skpayCouponMsg" role="status" aria-live="polite" style="margin-top:7px"></p>
       </div>
+      <?php sonika_gift_card_checkout_section(); ?>
     </div>
     <aside class="skpay__summary" id="skpaySummary" aria-live="polite" aria-busy="true"></aside>
   </div>
-  <p class="skpay__page-note">Los precios incluyen IVA. El envío gratis aplica desde <?= sonika_esc($__freeLabel) ?> antes de IVA. Tu pedido queda sujeto a confirmación del pago y disponibilidad de los productos.</p>
+  <p class="skpay__page-note">Los precios incluyen IVA. El envío gratis aplica desde <?= sonika_esc($__freeLabel) ?> antes de IVA (<?= sonika_esc($__freeGrossLabel) ?> con IVA). Tu pedido queda sujeto a confirmación del pago y disponibilidad de los productos.</p>
   <?php sonika_payments_assets(); ?>
   <?php sonika_share_assets(); ?>
   <?php sonika_recommendations_assets(); ?>

@@ -1,4 +1,4 @@
--- SONIKA Artist Partners — Fase 8: premios/logros. Idempotente.
+-- SONIKA Partners — Fase 8: premios/logros. Idempotente.
 CREATE TABLE IF NOT EXISTS affiliate_awards (
   id INT AUTO_INCREMENT PRIMARY KEY,
   site_id INT NOT NULL,

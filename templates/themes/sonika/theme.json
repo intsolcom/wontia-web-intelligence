@@ -1,19 +1,22 @@
-{
+﻿{
     "name": "SONIKA",
     "slug": "sonika",
-    "version": "1.0.0",
+    "version": "1.16.3"
     "author": "Wontia",
-    "description": "Theme ecommerce premium para SONIKA.COM.CO: instrumentos musicales, acordeones y audio. Identidad rojo/negro/blanco con catálogo, ficha de producto, carrito y checkout integrados nativamente con WWI (StoreService + Bricks + Live Editor).",
+    "description": "Theme ecommerce premium para SONIKA.COM.CO: instrumentos musicales, acordeones y audio. Identidad rojo/negro/blanco con catÃ¡logo, ficha de producto, carrito y checkout integrados nativamente con WWI (StoreService + Bricks + Live Editor).",
     "tier": "premium",
     "category": "ecommerce",
     "cms_nav": true,
     "license": "Proprietary",
-    "requires": { "wwi": ">=3.4.0", "php": ">=8.1" },
+    "requires": {
+        "wwi": ">=3.4.0",
+        "php": ">=8.1"
+    },
     "features": [
-        "Encabezado con buscador, categorías, cuenta y carrito con contador",
+        "Encabezado con buscador, categorÃƒÆ’Ã‚Â­as, cuenta y carrito con contador",
         "Hero editable desde WWI (Builder/Bricks)",
-        "Catálogo, ficha de producto, carrito y checkout vía widgets nativos",
-        "Tokens de diseño SONIKA (rojo #F20D16 / negro / blanco / grises)",
+        "CatÃƒÆ’Ã‚Â¡logo, ficha de producto, carrito y checkout vÃƒÆ’Ã‚Â­a widgets nativos",
+        "Tokens de diseÃƒÆ’Ã‚Â±o SONIKA (rojo #F20D16 / negro / blanco / grises)",
         "Responsive, accesible y respetuoso de reduced-motion",
         "Compatible con Live Editor y Builder"
     ],
@@ -29,59 +32,291 @@
         "font": "Inter"
     },
     "config": [
-        { "key": "_h_hero", "label": "Hero", "type": "heading" },
-        { "key": "hero_eyebrow", "label": "Texto superior (eyebrow)", "type": "text", "default": "Instrumentos | Audio | Tu pasión" },
-        { "key": "hero_title", "label": "Título (usa *palabra* para resaltar en rojo)", "type": "text", "default": "EL SONIDO QUE TE *MUEVE*." },
-        { "key": "hero_subtitle", "label": "Descripción", "type": "textarea", "default": "Instrumentos y equipos de audio para llevar tu música más lejos." },
-        { "key": "hero_cta_label", "label": "Botón principal", "type": "text", "default": "Explorar productos" },
-        { "key": "hero_cta_url", "label": "Enlace del botón", "type": "text", "default": "/tienda" },
-        { "key": "hero_cta2_label", "label": "Botón secundario (opcional)", "type": "text", "default": "Ver ofertas" },
-        { "key": "hero_cta2_url", "label": "Enlace secundario", "type": "text", "default": "/ofertas" },
-        { "key": "hero_bg_video", "label": "Video de fondo del hero (URL .mp4/.webm)", "type": "url", "default": "" },
-        { "key": "hero_bg_poster", "label": "Poster del video (imagen de respaldo)", "type": "url", "default": "" },
-        { "key": "_h_benefits", "label": "Beneficios", "type": "heading" },
-        { "key": "benefits", "label": "Franja de beneficios", "type": "repeater", "fields": [
-            { "key": "icon", "label": "Icono (emoji)", "type": "text" },
-            { "key": "text", "label": "Texto", "type": "text" }
-        ], "default": [
-            { "icon": "🚚", "text": "Envíos a toda Colombia" },
-            { "icon": "🛡️", "text": "Compra segura y garantizada" },
-            { "icon": "🎧", "text": "Asesoría especializada" }
-        ] },
-        { "key": "_h_cards", "label": "Tarjetas de producto", "type": "heading" },
-        { "key": "card_add_label", "label": "Texto del botón 'Agregar' en tarjetas", "type": "text", "default": "Agregar" },
-        { "key": "_h_footer", "label": "Footer / contacto", "type": "heading" },
-        { "key": "footer_about", "label": "Texto del footer", "type": "textarea", "default": "Instrumentos musicales, audio e iluminación profesional. Sonido de alto nivel para músicos, estudios y eventos." },
-        { "key": "contact_phone", "label": "Teléfono", "type": "text", "default": "" },
-        { "key": "contact_email", "label": "Correo", "type": "text", "default": "" },
-        { "key": "social_instagram", "label": "Instagram (URL)", "type": "text", "default": "" },
-        { "key": "social_facebook", "label": "Facebook (URL)", "type": "text", "default": "" },
-        { "key": "_h_account", "label": "Mi cuenta (pantalla de acceso)", "type": "heading" },
-        { "key": "account_visual_image", "label": "Imagen del panel de Mi cuenta", "type": "image", "default": "" },
-        { "key": "account_visual_alt", "label": "Texto alternativo de la imagen", "type": "text", "default": "" },
-        { "key": "account_layout", "label": "Modo de la pantalla de acceso", "type": "select", "options": { "split": "Completa (formulario + texto + imagen)", "minimal": "Minimalista (solo formulario, centrado)" }, "default": "split" },
-        { "key": "account_visual_side", "label": "Lado del panel visual", "type": "select", "options": { "right": "Derecha", "left": "Izquierda" }, "default": "right" },
-        { "key": "account_visual_image_position", "label": "Foco de la imagen de fondo", "type": "select", "options": { "center": "Centro", "top": "Arriba", "bottom": "Abajo", "left": "Izquierda", "right": "Derecha" }, "default": "center" },
-        { "key": "account_visual_overlay", "label": "Intensidad del velo blanco sobre la imagen (0-100)", "type": "number", "default": "88" },
-        { "key": "account_visual_video", "label": "Video de fondo (mp4/webm, opcional)", "type": "url", "default": "" },
-        { "key": "account_form_width", "label": "Ancho de la tarjeta del formulario (px)", "type": "number", "default": "560" },
-        { "key": "account_social_proof", "label": "Mostrar prueba social en el panel", "type": "toggle", "default": true },
-        { "key": "account_social_text", "label": "Texto de prueba social", "type": "text", "default": "4.9/5 · +1.200 clientes nos eligen" },
-        { "key": "account_visual_eyebrow", "label": "Etiqueta del panel", "type": "text", "default": "SONIKA" },
-        { "key": "account_visual_title", "label": "Titulo del panel (usa *palabra* para resaltar en rojo)", "type": "text", "default": "Todo tu *mundo musical* en un solo lugar." },
-        { "key": "account_visual_text", "label": "Descripcion del panel", "type": "textarea", "default": "Accede a tus pedidos, guarda tus favoritos y descubre nuevos instrumentos y equipos para llevar tu pasion mas lejos." },
-        { "key": "account_benefits", "label": "Beneficios del panel", "type": "repeater", "fields": [
-            { "key": "icon", "label": "Icono (emoji)", "type": "text" },
-            { "key": "title", "label": "Titulo", "type": "text" },
-            { "key": "text", "label": "Descripcion", "type": "text" }
-        ], "default": [
-            { "icon": "♥", "title": "Tus favoritos siempre a mano", "text": "Guarda los productos que mas te gustan." },
-            { "icon": "📦", "title": "Consulta tus pedidos", "text": "Revisa el estado de tus compras." },
-            { "icon": "👤", "title": "Gestiona tus datos", "text": "Actualiza tu informacion y tus direcciones de entrega." }
-        ] }
+        {
+            "key": "_h_hero",
+            "label": "Hero",
+            "type": "heading"
+        },
+        {
+            "key": "hero_eyebrow",
+            "label": "Texto superior (eyebrow)",
+            "type": "text",
+            "default": "Instrumentos | Audio | Tu pasiÃƒÆ’Ã‚Â³n"
+        },
+        {
+            "key": "hero_title",
+            "label": "TÃƒÆ’Ã‚Â­tulo (usa *palabra* para resaltar en rojo)",
+            "type": "text",
+            "default": "EL SONIDO QUE TE *MUEVE*."
+        },
+        {
+            "key": "hero_subtitle",
+            "label": "DescripciÃƒÆ’Ã‚Â³n",
+            "type": "textarea",
+            "default": "Instrumentos y equipos de audio para llevar tu mÃƒÆ’Ã‚Âºsica mÃƒÆ’Ã‚Â¡s lejos."
+        },
+        {
+            "key": "hero_cta_label",
+            "label": "BotÃƒÆ’Ã‚Â³n principal",
+            "type": "text",
+            "default": "Explorar productos"
+        },
+        {
+            "key": "hero_cta_url",
+            "label": "Enlace del botÃƒÆ’Ã‚Â³n",
+            "type": "text",
+            "default": "/tienda"
+        },
+        {
+            "key": "hero_cta2_label",
+            "label": "BotÃƒÆ’Ã‚Â³n secundario (opcional)",
+            "type": "text",
+            "default": "Ver ofertas"
+        },
+        {
+            "key": "hero_cta2_url",
+            "label": "Enlace secundario",
+            "type": "text",
+            "default": "/ofertas"
+        },
+        {
+            "key": "hero_bg_video",
+            "label": "Video de fondo del hero (URL .mp4/.webm)",
+            "type": "url",
+            "default": ""
+        },
+        {
+            "key": "hero_bg_poster",
+            "label": "Poster del video (imagen de respaldo)",
+            "type": "url",
+            "default": ""
+        },
+        {
+            "key": "_h_benefits",
+            "label": "Beneficios",
+            "type": "heading"
+        },
+        {
+            "key": "benefits",
+            "label": "Franja de beneficios",
+            "type": "repeater",
+            "fields": [
+                {
+                    "key": "icon",
+                    "label": "Icono (emoji)",
+                    "type": "text"
+                },
+                {
+                    "key": "text",
+                    "label": "Texto",
+                    "type": "text"
+                }
+            ],
+            "default": [
+                {
+                    "icon": "ÃƒÂ°Ã…Â¸Ã…Â¡Ã…Â¡",
+                    "text": "EnvÃƒÆ’Ã‚Â­os a toda Colombia"
+                },
+                {
+                    "icon": "ÃƒÂ°Ã…Â¸Ã¢â‚¬ÂºÃ‚Â¡ÃƒÂ¯Ã‚Â¸Ã‚Â",
+                    "text": "Compra segura y garantizada"
+                },
+                {
+                    "icon": "ÃƒÂ°Ã…Â¸Ã…Â½Ã‚Â§",
+                    "text": "AsesorÃƒÆ’Ã‚Â­a especializada"
+                }
+            ]
+        },
+        {
+            "key": "_h_cards",
+            "label": "Tarjetas de producto",
+            "type": "heading"
+        },
+        {
+            "key": "card_add_label",
+            "label": "Texto del botÃƒÆ’Ã‚Â³n 'Agregar' en tarjetas",
+            "type": "text",
+            "default": "Agregar"
+        },
+        {
+            "key": "_h_footer",
+            "label": "Footer / contacto",
+            "type": "heading"
+        },
+        {
+            "key": "footer_about",
+            "label": "Texto del footer",
+            "type": "textarea",
+            "default": "Instrumentos musicales, audio e iluminaciÃƒÆ’Ã‚Â³n profesional. Sonido de alto nivel para mÃƒÆ’Ã‚Âºsicos, estudios y eventos."
+        },
+        {
+            "key": "contact_phone",
+            "label": "TelÃƒÆ’Ã‚Â©fono",
+            "type": "text",
+            "default": ""
+        },
+        {
+            "key": "contact_email",
+            "label": "Correo",
+            "type": "text",
+            "default": ""
+        },
+        {
+            "key": "social_instagram",
+            "label": "Instagram (URL)",
+            "type": "text",
+            "default": ""
+        },
+        {
+            "key": "social_facebook",
+            "label": "Facebook (URL)",
+            "type": "text",
+            "default": ""
+        },
+        {
+            "key": "_h_account",
+            "label": "Mi cuenta (pantalla de acceso)",
+            "type": "heading"
+        },
+        {
+            "key": "account_visual_image",
+            "label": "Imagen del panel de Mi cuenta",
+            "type": "image",
+            "default": ""
+        },
+        {
+            "key": "account_visual_alt",
+            "label": "Texto alternativo de la imagen",
+            "type": "text",
+            "default": ""
+        },
+        {
+            "key": "account_layout",
+            "label": "Modo de la pantalla de acceso",
+            "type": "select",
+            "options": {
+                "split": "Completa (formulario + texto + imagen)",
+                "minimal": "Minimalista (solo formulario, centrado)"
+            },
+            "default": "split"
+        },
+        {
+            "key": "account_visual_side",
+            "label": "Lado del panel visual",
+            "type": "select",
+            "options": {
+                "right": "Derecha",
+                "left": "Izquierda"
+            },
+            "default": "right"
+        },
+        {
+            "key": "account_visual_image_position",
+            "label": "Foco de la imagen de fondo",
+            "type": "select",
+            "options": {
+                "center": "Centro",
+                "top": "Arriba",
+                "bottom": "Abajo",
+                "left": "Izquierda",
+                "right": "Derecha"
+            },
+            "default": "center"
+        },
+        {
+            "key": "account_visual_overlay",
+            "label": "Intensidad del velo blanco sobre la imagen (0-100)",
+            "type": "number",
+            "default": "88"
+        },
+        {
+            "key": "account_visual_video",
+            "label": "Video de fondo (mp4/webm, opcional)",
+            "type": "url",
+            "default": ""
+        },
+        {
+            "key": "account_form_width",
+            "label": "Ancho de la tarjeta del formulario (px)",
+            "type": "number",
+            "default": "560"
+        },
+        {
+            "key": "account_social_proof",
+            "label": "Mostrar prueba social en el panel",
+            "type": "toggle",
+            "default": true
+        },
+        {
+            "key": "account_social_text",
+            "label": "Texto de prueba social",
+            "type": "text",
+            "default": "4.9/5 Ãƒâ€šÃ‚Â· +1.200 clientes nos eligen"
+        },
+        {
+            "key": "account_visual_eyebrow",
+            "label": "Etiqueta del panel",
+            "type": "text",
+            "default": "SONIKA"
+        },
+        {
+            "key": "account_visual_title",
+            "label": "Titulo del panel (usa *palabra* para resaltar en rojo)",
+            "type": "text",
+            "default": "Todo tu *mundo musical* en un solo lugar."
+        },
+        {
+            "key": "account_visual_text",
+            "label": "Descripcion del panel",
+            "type": "textarea",
+            "default": "Accede a tus pedidos, guarda tus favoritos y descubre nuevos instrumentos y equipos para llevar tu pasion mas lejos."
+        },
+        {
+            "key": "account_benefits",
+            "label": "Beneficios del panel",
+            "type": "repeater",
+            "fields": [
+                {
+                    "key": "icon",
+                    "label": "Icono (emoji)",
+                    "type": "text"
+                },
+                {
+                    "key": "title",
+                    "label": "Titulo",
+                    "type": "text"
+                },
+                {
+                    "key": "text",
+                    "label": "Descripcion",
+                    "type": "text"
+                }
+            ],
+            "default": [
+                {
+                    "icon": "ÃƒÂ¢Ã¢â€žÂ¢Ã‚Â¥",
+                    "title": "Tus favoritos siempre a mano",
+                    "text": "Guarda los productos que mas te gustan."
+                },
+                {
+                    "icon": "ÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã‚Â¦",
+                    "title": "Consulta tus pedidos",
+                    "text": "Revisa el estado de tus compras."
+                },
+                {
+                    "icon": "ÃƒÂ°Ã…Â¸Ã¢â‚¬ËœÃ‚Â¤",
+                    "title": "Gestiona tus datos",
+                    "text": "Actualiza tu informacion y tus direcciones de entrega."
+                }
+            ]
+        }
     ],
     "assets": {
         "logo": "/assets/themes/sonika/logo-transparent.png",
         "isotipo": "/assets/themes/sonika/isotipo.png"
     }
 }
+
+
+
+

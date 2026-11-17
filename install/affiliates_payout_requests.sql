@@ -1,4 +1,4 @@
--- SONIKA Artist Partners — solicitudes de retiro con OTP (operación de dinero). Idempotente.
+-- SONIKA Partners — solicitudes de retiro con OTP (operación de dinero). Idempotente.
 CREATE TABLE IF NOT EXISTS affiliate_payout_requests (
   id INT AUTO_INCREMENT PRIMARY KEY,
   site_id INT NOT NULL,

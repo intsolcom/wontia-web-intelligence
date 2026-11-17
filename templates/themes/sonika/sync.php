@@ -12,6 +12,13 @@
  * es rate-limitado por Shopify). Luego copiar el resultado al contenedor.
  */
 
+function sonika_strip_miche_refs(string $text): string {
+    $text = preg_replace('~<a\b[^>]*href\s*=\s*("[^"]*miche\.com\.co[^"]*"|\'[^\']*miche\.com\.co[^\']*\')[^>]*>(.*?)</a>~is', '$2', $text) ?? $text;
+    $text = preg_replace('~(?:https?://)?(?:www\.)?miche\.com\.co/?~i', '', $text) ?? $text;
+    $text = preg_replace('~<(p|span|div)>\s*</\1>~i', '', $text) ?? $text;
+    return trim($text);
+}
+
 $out = $argv[1] ?? (__DIR__ . '/catalog.json');
 $base = 'https://www.miche.com.co/collections/all/products.json?limit=250&page=';
 $ua = 'SonikaCatalogSync/1.0 (+https://sonika.com.co; admin@sonika.com.co)';
@@ -72,9 +79,16 @@ if ($pages === 0) {
     exit(1);
 }
 
+foreach ($all as &$__product) {
+    if (!is_array($__product)) continue;
+    foreach (['body_html', 'description'] as $__field) {
+        if (isset($__product[$__field]) && is_string($__product[$__field])) $__product[$__field] = sonika_strip_miche_refs($__product[$__field]);
+    }
+}
+unset($__product);
 $result = [
     'synced_at' => gmdate('c'),
-    'source' => 'https://www.miche.com.co/collections/all/products.json',
+    'source' => 'sonika_catalog',
     'pages' => $pages,
     'count' => count($all),
     'products' => $all,

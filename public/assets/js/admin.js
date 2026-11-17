@@ -54,7 +54,7 @@ W.router=function(){
     document.querySelectorAll('.w-nav-item[data-store-tab]').forEach(function(a){a.classList.toggle('active',panel==='store'&&id===a.getAttribute('data-store-tab'))});
     if(panel==='hero'){var _heroNav=document.querySelector('.w-nav-item[data-panel="bricks"]');if(_heroNav)_heroNav.classList.add('active');}
     var title=document.getElementById('panel-title');
-    var titles={dashboard:'Dashboard',wwi:'WWI — Sistema',store:'Tienda',sistecredito:'Sistecrédito','order-center':'Central de pedidos','mega-menu':'Mega Menú',hero:'SONIKA Hero Builder',directory:'Directorio Sonika',toques:'Toques',monas:'Moñas',pages:'Pages',sections:'Sections',bricks:'Bricks',brickhub:'BrickHub',brick:'AI BRICK',factory:'Factory',portal:'Mi Portal',blog:'Blog',media:'Media',banners:'Banners',seo:'SEO','seo-global-launch':'SEO Global Launch','tia-command-center':'TIA Command Center',analytics:'Analytics','tracking-conversion':'Tracking & Conversion',settings:'Settings',users:'Users'};
+    var titles={dashboard:'Dashboard',wwi:'WWI — Sistema',store:'Tienda',sistecredito:'Sistecrédito','order-center':'Central de pedidos','mega-menu':'Mega Menú',hero:'SONIKA Hero Builder',directory:'Directorio Sonika',toques:'Toques',monas:'Moñas',pages:'Pages',sections:'Sections',bricks:'Bricks',brickhub:'BrickHub',brick:'AI BRICK',factory:'Factory',portal:'Mi Portal',blog:'Blog',media:'Media',banners:'Banners',seo:'SEO','seo-global-launch':'SEO Global Intelligence','tia-command-center':'TIA Command Center',analytics:'Analytics','tracking-conversion':'Tracking & Conversion',settings:'Settings',users:'Users'};
     if(title)title.textContent=(panel==='store'&&id==='compartir')?'Compartir producto':(titles[panel]||panel);
     var app=document.getElementById('wontia-app');
     if(!app)return;
@@ -80,21 +80,56 @@ W.notify=function(msg,type){
     c.appendChild(el);
     setTimeout(function(){el.remove()},4000);
 };
+W.notifyUndo=function(msg,callback){
+    var c=document.getElementById('w-toast-container');
+    if(!c)return;
+    var el=document.createElement('div');
+    el.className='w-toast w-toast-success';
+    el.style.display='flex';el.style.alignItems='center';el.style.gap='10px';
+    var span=document.createElement('span');span.textContent=msg;el.appendChild(span);
+    var b=document.createElement('button');b.type='button';b.className='w-btn w-btn-secondary w-btn-sm';b.textContent='Deshacer';
+    b.onclick=function(){el.remove();if(callback)callback()};
+    el.appendChild(b);c.appendChild(el);
+    setTimeout(function(){el.remove()},12000);
+};
 
-W.modal=function(title,body,actions){
+W.modal=function(title,body,actions,opts){
     var ov=document.getElementById('w-modal');
     var ct=document.getElementById('w-modal-content');
     if(!ct)return;
-    ct.classList.remove('w-modal--media');
-    var html='<h3>'+title+'</h3><div>'+body+'</div>';
+    ct.classList.remove('w-modal--media','w-order-panel','w-order-panel--full');
+    ct.style.cssText='';
+    ct.style.maxWidth=(opts&&opts.wide)?'1040px':'';
+    ct.style.width=(opts&&opts.wide)?'96vw':'';
+    W._modalDirty=null;
+    var html='<div class="w-modal-head" style="display:flex;flex-direction:row;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:18px;flex:0 0 auto"><h3 style="margin:0;flex:1">'+title+'</h3><button type="button" aria-label="Cerrar" title="Cerrar" onclick="wontia.closeModal()" style="flex:none;width:34px;height:34px;border-radius:10px;border:1px solid var(--w-border);background:var(--w-bg2);color:var(--w-text);font-size:22px;line-height:1;cursor:pointer">&times;</button></div><div>'+body+'</div>';
     if(actions)html+='<div class="w-modal-actions">'+actions+'</div>';
     ct.innerHTML=html;
     ov.style.display='flex';
 };
 
-W.closeModal=function(){
-    document.getElementById('w-modal').style.display='none';
+W.closeModal=function(force){
+    if(!force&&typeof W._modalDirty==='function'&&W._modalDirty()){
+        var ok=false;
+        try{ok=window.confirm('Tienes cambios sin guardar. ¿Cerrar de todos modos? Si es un producto nuevo, conservaremos un borrador para que no pierdas el trabajo.')}catch(e){ok=false}
+        if(!ok)return;
+    }
+    try{
+        if(!force && typeof W.storeProductDraftSave==='function' && document.getElementById('sp-name') && !W._spEditId){
+            clearTimeout(W._spDraftTimer);
+            W.storeProductDraftSave();
+        }
+    }catch(e){}
+    W._modalDirty=null;
+    var ov=document.getElementById('w-modal');
+    if(ov)ov.style.display='none';
 };
+
+/* El modal solo se cierra con la X o con un botón explícito. */
+(function(){
+    var ov=document.getElementById('w-modal');
+    if(ov){ov.onclick=null;ov.removeAttribute('onclick');}
+})();
 
 W.confirm=function(msg,cb){
     W.modal('Confirm',msg,'<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cancel</button><button class="w-btn w-btn-danger" id="w-confirm-yes">Confirm</button>');
@@ -1093,6 +1128,12 @@ W.repCollect=function(key){
     W._rep=W._rep||{};W._rep[key]=W._rep[key]||[];
     el.querySelectorAll('.rep-in').forEach(function(inp){
         var i=parseInt(inp.getAttribute('data-i'),10),k=inp.getAttribute('data-k');
+        if(isNaN(i)){
+            var card=inp.closest?inp.closest('.w-rep-card'):null;
+            var parent=card&&card.parentNode?card.parentNode:null;
+            i=parent?Array.prototype.indexOf.call(parent.children,card):0;
+        }
+        if(!isFinite(i)||i<0)return;
         if(!W._rep[key][i])W._rep[key][i]={};
         W._rep[key][i][k]=(inp.getAttribute('contenteditable')==='true')?W.sanitizeRich(inp.innerHTML||''):(inp.type==='checkbox'?(inp.checked?1:0):inp.value);
     });
@@ -1796,7 +1837,7 @@ W.renderHero=async function(id){
     if(id)return W.heroEdit(parseInt(id,10));
     app.innerHTML='<div style="padding:30px;text-align:center;color:var(--w-muted)">Cargando…</div>';
     var r=await W.api('/api/v1/admin/hero'); var d=(r&&r.data)||{}; W._heroTypes=d.types||{}; W._heroSlides=d.slides||[]; W._heroTheme=d.theme||{active:'classic',themes:{},config:{}};
-    var h='<div class="w-flex-between" style="flex-wrap:wrap;gap:8px;margin-bottom:12px"><div><div style="font-size:11px;color:var(--w-muted)">Bricks › SONIKA Hero Builder</div><h3 style="margin:0">🚀 SONIKA Hero Builder</h3></div><div class="w-flex w-gap-sm"><button class="w-btn w-btn-secondary" onclick="location.hash=\'#bricks\'">← Bricks</button><button class="w-btn w-btn-primary" onclick="wontia.heroNew()">＋ Nuevo slide</button></div></div>';
+    var h='<div class="w-flex-between" style="flex-wrap:wrap;gap:8px;margin-bottom:12px"><div><div style="font-size:11px;color:var(--w-muted)">Bricks › SONIKA Hero Builder</div><h3 style="margin:0">🚀 SONIKA Hero Builder</h3></div><div class="w-flex w-gap-sm"><button class="w-btn w-btn-secondary" onclick="location.hash=\'#bricks\'">← Bricks</button><button class="w-btn w-btn-secondary" onclick="wontia.heroHardReload()">⟳ Recargar panel</button><button class="w-btn w-btn-secondary" onclick="wontia.heroPurgeCache()">🧹 Purgar caché</button><button class="w-btn w-btn-primary" onclick="wontia.heroNew()">＋ Nuevo slide</button></div></div>';
     var __ht=W._heroTheme||{}, __hid=__ht.active||'classic', __hl=__ht.themes||{};
     var __hopts=Object.keys(__hl).map(function(k){return '<option value="'+W.esc(k)+'"'+(k===__hid?' selected':'')+'>'+W.esc((__hl[k]&&__hl[k].name)||k)+'</option>';}).join('');
     var __hname=(__hl[__hid]&&__hl[__hid].name)||__hid;
@@ -1863,9 +1904,18 @@ W.heroCompositionEditor=function(id,comp,item,key,idx){
         +'<summary>Composición avanzada: fondo y posición de elementos</summary>'
         +'<div class="hero-comp__body">'
         +'<div class="hero-comp__row"><label class="hero-comp__label">Dispositivo</label><select id="'+W.esc(id)+'-device"><option value="desktop">PC</option><option value="mobile">Móvil</option></select><button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.heroCompCopy(\''+W.esc(id)+'\')">Copiar PC → Móvil</button></div>'
-        +'<div class="hero-comp__preview"><img id="'+W.esc(id)+'-preview-img" src="'+W.esc((item&&item.desktop)||'')+'" alt=""/></div>'
+        +'<div class="hero-comp__preview"><span class="hero-comp__preview-badge" id="'+W.esc(id)+'-preview-badge">PC · 16:9</span><img id="'+W.esc(id)+'-preview-img" src="'+W.esc((item&&item.desktop)||'')+'" alt=""/></div>'
         +'<div class="hero-comp__section"><div class="hero-comp__label">Fondo</div>'
-        +'<div class="hero-comp__row"><label>Zoom</label><input type="range" id="'+W.esc(id)+'-bg-zoom" min="100" max="250" step="1" value="100"/><span id="'+W.esc(id)+'-bg-zoom-out">100%</span></div>'
+        +'<div class="hero-comp__row"><label>Zoom</label><input type="range" id="'+W.esc(id)+'-bg-zoom" min="50" max="250" step="1" value="100"/><span id="'+W.esc(id)+'-bg-zoom-out">100%</span></div>'
+        +'<div class="hero-comp__row hero-comp__presets"><label>Atajos</label>'
+        +'<button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.heroCompZoom(\''+W.esc(id)+'\',50)">50%</button>'
+        +'<button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.heroCompZoom(\''+W.esc(id)+'\',75)">75%</button>'
+        +'<button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.heroCompZoom(\''+W.esc(id)+'\',100)">100%</button>'
+        +'<button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.heroCompZoom(\''+W.esc(id)+'\',125)">125%</button>'
+        +'<button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.heroCompFit(\''+W.esc(id)+'\',\'cover\')">Llenar</button>'
+        +'<button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.heroCompFit(\''+W.esc(id)+'\',\'contain\')">Ver completa</button>'
+        +'</div>'
+        +'<div class="hero-comp__hint">En móvil, 100% llena el Hero; menos de 100% reduce la imagen y muestra el fondo desenfocado. “Ver completa” usa Contener para mostrar toda la foto.</div>'
         +'<div class="hero-comp__row"><label>Mover X</label><input type="range" id="'+W.esc(id)+'-bg-x" min="-100" max="100" step="1" value="0"/><span id="'+W.esc(id)+'-bg-x-out">0%</span></div>'
         +'<div class="hero-comp__row"><label>Mover Y</label><input type="range" id="'+W.esc(id)+'-bg-y" min="-100" max="100" step="1" value="0"/><span id="'+W.esc(id)+'-bg-y-out">0%</span></div>'
         +'<div class="hero-comp__row"><label>Focal X</label><input type="range" id="'+W.esc(id)+'-bg-fx" min="0" max="100" step="1" value="50"/><span id="'+W.esc(id)+'-bg-fx-out">50%</span></div>'
@@ -1878,14 +1928,14 @@ W.heroCompositionEditor=function(id,comp,item,key,idx){
         +'<div class="hero-comp__row"><label>X</label><input type="number" id="'+W.esc(id)+'-el-x" step="1" value="0"/><select id="'+W.esc(id)+'-el-xu"><option value="px">px</option><option value="%">%</option></select><label>Y</label><input type="number" id="'+W.esc(id)+'-el-y" step="1" value="0"/><select id="'+W.esc(id)+'-el-yu"><option value="px">px</option><option value="%">%</option></select></div>'
         +'<div class="hero-comp__row"><button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.heroCompResetEl(\''+W.esc(id)+'\')">Restablecer elemento</button><span class="hero-comp__hint" id="'+W.esc(id)+'-summary"></span></div>'
         +'</div>'
-        +'<textarea class="rep-in" data-i="'+W.esc(idx)+'" data-k="composition" id="'+W.esc(id)+'-json" style="display:none">'+W.esc(JSON.stringify(comp))+'</textarea>'
+        +'<textarea class="rep-in" data-i="'+W.esc(String(idx))+'" data-k="composition" id="'+W.esc(id)+'-json" style="display:none">'+W.esc(JSON.stringify(comp))+'</textarea>'
         +'</div></details>';
     return h;
 };
 W.heroCompOutputs=function(id){
     var g=function(k){var e=document.getElementById(id+'-'+k);return e?e.value:''};
     var s=function(k,v){var e=document.getElementById(id+'-'+k+'-out');if(e)e.textContent=v};
-    s('bg-zoom',(g('bg-zoom')||100)+'%');
+    var z=parseFloat(g('bg-zoom'));s('bg-zoom',(isNaN(z)?100:z)+'%');
     s('bg-x',(g('bg-x')||0)+'%');
     s('bg-y',(g('bg-y')||0)+'%');
     s('bg-fx',(g('bg-fx')||50)+'%');
@@ -1896,9 +1946,11 @@ W.heroCompPreview=function(id){
     var bg=st.comp.background[st.device]||{};
     var src=st.device==='mobile'?(st.item.mobile||st.item.desktop):st.item.desktop;
     if(src)img.src=src;
+    var prev=img.parentElement;if(prev)prev.setAttribute('data-device',st.device);
+    var badge=document.getElementById(id+'-preview-badge');if(badge)badge.textContent=st.device==='mobile'?'Móvil · 390×844':'PC · 16:9';
     img.style.objectFit=bg.fit||'cover';
     img.style.objectPosition=(bg.focal_x||50)+'% '+(bg.focal_y||50)+'%';
-    img.style.transform='translate('+(bg.x||0)+'%,'+(bg.y||0)+'%) scale('+((bg.zoom||100)/100)+')';
+    img.style.transform='translate('+(bg.x||0)+'%,'+(bg.y||0)+'%) scale('+((bg.zoom===undefined?100:bg.zoom)/100)+')';
     img.style.transformOrigin=(bg.focal_x||50)+'% '+(bg.focal_y||50)+'%';
 };
 W.heroCompSummary=function(id){
@@ -1910,7 +1962,7 @@ W.heroCompSave=function(id){
     var st=W.heroCompState[id];if(!st)return;
     var g=function(k){var e=document.getElementById(id+'-'+k);return e?e.value:''};
     var bg=st.comp.background[st.device];
-    bg.zoom=parseFloat(g('bg-zoom'))||100;bg.x=parseFloat(g('bg-x'))||0;bg.y=parseFloat(g('bg-y'))||0;
+    var z=parseFloat(g('bg-zoom'));bg.zoom=isNaN(z)?100:z;bg.x=parseFloat(g('bg-x'))||0;bg.y=parseFloat(g('bg-y'))||0;
     bg.focal_x=parseFloat(g('bg-fx'));if(isNaN(bg.focal_x))bg.focal_x=50;
     bg.focal_y=parseFloat(g('bg-fy'));if(isNaN(bg.focal_y))bg.focal_y=50;
     bg.fit=g('bg-fit')==='contain'?'contain':'cover';
@@ -1920,6 +1972,7 @@ W.heroCompSave=function(id){
     el.x_unit=g('el-xu')==='%'?'%':'px';el.y_unit=g('el-yu')==='%'?'%':'px';
     var ta=document.getElementById(id+'-json');if(ta)ta.value=JSON.stringify(st.comp);
     W.heroCompOutputs(id);W.heroCompPreview(id);W.heroCompSummary(id);
+    if(W.heroMobileStudioApply)W.heroMobileStudioApply();
 };
 W.heroCompLoad=function(id){
     var st=W.heroCompState[id];if(!st)return;
@@ -1927,7 +1980,7 @@ W.heroCompLoad=function(id){
     var set=function(k,v){var e=document.getElementById(id+'-'+k);if(e)e.value=v};
     set('device',st.device);set('el',st.element);
     var bg=st.comp.background[st.device]||{};
-    set('bg-zoom',bg.zoom||100);set('bg-x',bg.x||0);set('bg-y',bg.y||0);
+    set('bg-zoom',bg.zoom===undefined?100:bg.zoom);set('bg-x',bg.x||0);set('bg-y',bg.y||0);
     set('bg-fx',bg.focal_x===undefined?50:bg.focal_x);set('bg-fy',bg.focal_y===undefined?50:bg.focal_y);
     set('bg-fit',bg.fit||'cover');
     var el=st.comp.elements[st.device][st.element]||{};
@@ -1956,6 +2009,16 @@ W.heroCompResetEl=function(id){
     st.comp.elements[st.device][st.element]={mode:'auto',anchor:'top-left',x:0,y:0,x_unit:'px',y_unit:'px'};
     var ta=document.getElementById(id+'-json');if(ta)ta.value=JSON.stringify(st.comp);
     W.heroCompLoad(id);
+};
+W.heroCompZoom=function(id,v){
+    var el=document.getElementById(id+'-bg-zoom');if(!el)return;
+    el.value=Math.max(50,Math.min(250,parseFloat(v)||100));
+    W.heroCompSave(id);
+};
+W.heroCompFit=function(id,fit){
+    var z=document.getElementById(id+'-bg-zoom');if(z)z.value=100;
+    var f=document.getElementById(id+'-bg-fit');if(f)f.value=fit==='contain'?'contain':'cover';
+    W.heroCompSave(id);
 };
 W.heroCompositionInit=function(root){
     if(!root)return;
@@ -2058,7 +2121,7 @@ W.heroThemeSchema=function(){
         {key:'instrument_image_ms',label:'Cambio de imagen de cada instrumento (ms)',type:'range',default:5000,min:2000,max:12000,step:500},
         {key:'instrument_label_max',label:'Tamaño máximo del nombre del instrumento (px)',type:'range',default:16,min:10,max:24,step:1},
         {key:'_h_mobile',label:'Experiencia móvil',type:'heading'},
-        {key:'mobile_height',label:'Altura fija del Hero en móvil (px)',type:'range',default:580,min:480,max:720,step:10,hint:'Una sola altura para todos los slides. El contenido se adapta dentro del área segura.'},
+        {key:'mobile_height',label:'Altura fija del Hero en móvil (px)',type:'range',default:580,min:360,max:960,step:1,hint:'Una sola altura para todos los slides. En pantallas más bajas se limita a 100dvh. Usa 844 para iPhone 14/15 o 915 para Pixel 7.'},
         {key:'mobile_description_lines',label:'Máximo de líneas de la descripción en móvil',type:'range',default:2,min:1,max:4,step:1,hint:'La descripción se recorta visualmente después de estas líneas.'},
         {key:'mobile_copy_offset',label:'Bajar bloque de texto',type:'number',default:0,min:-100,max:240,step:1,hint:'Positivo baja; negativo sube. La unidad se elige al lado.'},
         {key:'mobile_copy_offset_unit',label:'Unidad del texto',type:'select',default:'px',options:{px:'px',pt:'pt',cm:'cm'}},
@@ -2144,7 +2207,7 @@ W.renderHeroThemePage=async function(){
         +'<h2 class="hte-title">'+W.esc(activeName)+'</h2>'
         +'<p class="hte-sub">Edita el Hero por secciones. Abre una categoría para ver sus campos; los cambios se guardan en este theme sin alterar el theme clásico.</p>'
         +'<div class="hte-status'+statusClass+'" id="ht-status"><span class="hte-dot"></span><span id="ht-status-text">'+W.esc(status)+'</span></div></div>'
-        +'<div class="hte-actions"><a class="w-btn w-btn-secondary" href="/" target="_blank" rel="noopener">Ver Hero ↗</a><button type="button" class="w-btn w-btn-secondary" onclick="wontia.heroThemeConfigReset()">Restaurar</button><button type="button" class="w-btn w-btn-primary" id="hero-theme-save" onclick="wontia.heroThemeConfigPageSave()">Guardar cambios</button></div></div>'
+        +'<div class="hte-actions"><a class="w-btn w-btn-secondary" href="/" target="_blank" rel="noopener">Ver Hero ↗</a><button type="button" class="w-btn w-btn-secondary" onclick="wontia.heroHardReload()">⟳ Recargar panel</button><button type="button" class="w-btn w-btn-secondary" onclick="wontia.heroPurgeCache()">🧹 Purgar caché</button><button type="button" class="w-btn w-btn-secondary" onclick="wontia.heroThemeConfigReset()">Restaurar</button><button type="button" class="w-btn w-btn-primary" id="hero-theme-save" onclick="wontia.heroThemeConfigPageSave()">Guardar cambios</button></div></div>'
         +'<div class="hte-grid"><div class="hte-main">'+accHtml+'</div>'
         +'<aside class="hte-side">'
         +'<div class="hte-side-card"><div class="hte-eyebrow">Theme activo</div><div class="hte-theme">'+W.esc(activeName)+'</div><div class="hte-note">Los cambios se guardan en este theme. El theme clásico y sus slides se conservan intactos.</div></div>'
@@ -2159,6 +2222,7 @@ W.renderHeroThemePage=async function(){
         +'<div class="hte-stat"><span>Beneficios</span><b id="ht-sum-ben">'+repCount('benefits')+' ítems</b></div>'
         +'<div class="hte-stat"><span>Slides</span><b id="ht-sum-slides">'+repCount('slides')+' slides</b></div>'
         +'</div></div>'
+        +'<div class="hte-side-card"><div class="hte-side-title">Último guardado</div><div id="ht-save-summary" class="hte-note">Aún no has guardado en esta sesión.</div></div>'
         +'<div class="hte-side-card hte-tip"><b>Consejo</b><br>Cada slide puede enfocar un instrumento del carrusel vertical. El autoplay, las flechas y los dots cambian solo el contenido del Hero; la estructura y el panel de instrumentos se mantienen.</div>'
         +'</aside></div></div>';
     app.innerHTML=h;
@@ -2166,8 +2230,8 @@ W.renderHeroThemePage=async function(){
     W.heroThemeSyncSummary();
     var page=document.getElementById('hte-page');
     if(page){
-        page.addEventListener('input',function(e){W.heroThemeMarkDirty();W.heroThemeSyncSummary();if(e.target&&e.target.closest&&e.target.closest('[data-hte-section="mobile"]'))W.heroMobileStudioApply();});
-        page.addEventListener('change',function(e){W.heroThemeMarkDirty();W.heroThemeSyncSummary();if(e.target&&e.target.closest&&e.target.closest('[data-hte-section="mobile"]'))W.heroMobileStudioApply();});
+        page.addEventListener('input',function(e){W.heroThemeMarkDirty();W.heroThemeSyncSummary();W.heroThemeScheduleSave();if(e.target&&e.target.closest&&e.target.closest('[data-hte-section="mobile"]'))W.heroMobileStudioApply();});
+        page.addEventListener('change',function(e){W.heroThemeMarkDirty();W.heroThemeSyncSummary();W.heroThemeScheduleSave();if(e.target&&e.target.closest&&e.target.closest('[data-hte-section="mobile"]'))W.heroMobileStudioApply();});
         page.addEventListener('click',function(e){var t=e.target;if(t&&t.closest&&t.closest('.w-field-reset,.w-rep button,.w-rep .w-btn')){W.heroThemeMarkDirty();setTimeout(W.heroThemeSyncSummary,0);}});
         page.querySelectorAll('details[data-hte-section]').forEach(function(d){d.addEventListener('toggle',function(){if(d.open){W._heroConfigOpenSection=d.getAttribute('data-hte-section');page.querySelectorAll('details[data-hte-section]').forEach(function(o){if(o!==d)o.open=false;});if(d.getAttribute('data-hte-section')==='mobile')setTimeout(W.heroMobileStudioApply,0);}});});
     }
@@ -2191,43 +2255,106 @@ W.heroThemeMarkDirty=function(){
     if(st)st.className='hte-status is-dirty';
     if(txt)txt.textContent='Cambios sin guardar';
 };
-W.heroThemeConfigPageSave=async function(){
+W.heroThemeConfigPageSave=async function(auto){
+    if(W._heroThemeSaving){W._heroThemePending=true;return;}
+    W._heroThemeSaving=true;
     var btn=document.getElementById('hero-theme-save');
     var schema=W._heroThemeSchema||W.heroThemeSchema();
     var old=btn?btn.textContent:'';
-    if(btn){btn.disabled=true;btn.textContent='Guardando…';}
+    if(btn&&auto!==true){btn.disabled=true;btn.textContent='Guardando…';}
     var values=W.collectSchemaFields(schema);
     var r=await W.api('/api/v1/admin/hero/theme',{method:'POST',body:{config:values}});
-    if(btn){btn.disabled=false;btn.textContent=old||'Guardar cambios';}
+    W._heroThemeSaving=false;
+    if(btn&&auto!==true){btn.disabled=false;btn.textContent=old||'Guardar cambios';}
     if(r&&r.ok){
         if(r.data&&r.data.config&&W._heroTheme)W._heroTheme.config=r.data.config;
+        var sm=(r.data&&r.data.save_summary)||[];
+        var sum=document.getElementById('ht-save-summary');
+        if(sum){
+            sum.innerHTML=sm.length?sm.map(function(x){return '<div><b>'+W.esc(x.id||'Slide')+'</b> · PC '+(x.desktop_zoom==null?'—':W.esc(String(x.desktop_zoom))+'%')+' · Móvil '+(x.mobile_zoom==null?'—':W.esc(String(x.mobile_zoom))+'%')+'</div>';}).join(''):'Sin slides guardados.';
+        }
         var st=document.getElementById('ht-status'),txt=document.getElementById('ht-status-text');
         if(st)st.className='hte-status is-saved';
-        if(txt)txt.textContent='Guardado '+new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
-        W.notify('Contenido del theme guardado.','success');
+        var first=sm[0];
+        if(txt)txt.textContent='Guardado '+new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})+(first&&first.mobile_zoom!=null?' · Móvil '+first.mobile_zoom+'%':'')+(auto===true?' · automático':'');
+        W.notify(auto===true?'Guardado automático.':'Contenido del theme guardado.','success');
+        if(auto!==true)W.heroMobileReload();
     }else{
         W.notify((r&&r.message)||'No se pudo guardar la configuración','error');
     }
+    if(W._heroThemePending){W._heroThemePending=false;W.heroThemeScheduleSave();}
+};
+W.heroThemeScheduleSave=function(){
+    if(W._heroThemeSaving){W._heroThemePending=true;return;}
+    if(W._heroThemeSaveTimer)clearTimeout(W._heroThemeSaveTimer);
+    W._heroThemeSaveTimer=setTimeout(function(){W.heroThemeConfigPageSave(true);},1600);
 };
 W.heroMobileStudio=function(){
     return '<div class="hte-mobile-studio" data-mobile-studio>'
-        +'<div class="hte-mobile-bar"><div><b>Estudio móvil</b><span>390 × 430 px · arrastra las asas dentro del teléfono</span></div>'
+        +'<div class="hte-mobile-bar"><div><b>Estudio móvil</b><span id="hte-mobile-device-label">390 × 844 px · vista vertical iPhone 14/15 · arrastra las asas dentro del teléfono</span></div>'
         +'<div class="hte-mobile-presets">'
+        +'<select class="w-select" id="hte-mobile-device" style="max-width:220px" onchange="wontia.heroMobileDevice(this.value)">'
+        +'<option value="390x844">iPhone 14/15 · 390×844</option>'
+        +'<option value="360x800">Android · 360×800</option>'
+        +'<option value="412x915">Pixel 7 · 412×915</option>'
+        +'<option value="430x932">iPhone Pro Max · 430×932</option>'
+        +'</select>'
         +'<button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.heroMobilePreset(\'compact\')">Compacto</button>'
         +'<button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.heroMobilePreset(\'balanced\')">Equilibrado</button>'
         +'<button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.heroMobilePreset(\'editorial\')">Editorial</button>'
+        +'<button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.heroMobileFillHeight()">Alto de pantalla</button>'
+        +'<button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.heroMobileReload()">Recargar preview</button>'
         +'<button type="button" class="w-btn w-btn-primary w-btn-sm" onclick="wontia.heroMobileAutoFit()">Auto-ajustar</button>'
         +'<button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.heroMobilePreset(\'reset\')">Restablecer</button>'
         +'</div></div>'
-        +'<div class="hte-mobile-grid"><div class="hte-phone"><iframe id="hte-mobile-frame" src="/" title="Vista previa móvil del Hero" loading="lazy" onload="wontia.heroMobileStudioReady(this)"></iframe></div>'
+        +'<div class="hte-mobile-grid"><div class="hte-phone" style="width:390px"><iframe id="hte-mobile-frame" src="/?nc='+Date.now()+'" title="Vista previa móvil del Hero" loading="lazy" style="width:390px;height:844px" onload="wontia.heroMobileStudioReady(this)"></iframe></div>'
         +'<div class="hte-mobile-side"><div class="hte-mobile-readout" id="hte-mobile-readout">Cargando vista previa…</div>'
         +'<div class="hte-mobile-legend"><span class="hte-mobile-dot hte-mobile-dot--copy"></span>Texto <span class="hte-mobile-dot hte-mobile-dot--cards"></span>Instrumentos</div>'
-        +'<div class="hte-mobile-note">Las asas y escalas no cambian la altura fija. La altura se controla con <b>Altura fija del Hero en móvil</b>. Si el contenido no cabe, el medidor lo marca en rojo.</div>'
+        +'<div class="hte-mobile-note">Vista vertical realista: 390 × 844 px (iPhone 14/15). Las asas y escalas no cambian la altura fija. La altura se controla con <b>Altura fija del Hero en móvil</b>. Si el contenido no cabe, el medidor lo marca en rojo.</div>'
         +'<a class="w-btn w-btn-secondary w-btn-sm" href="/" target="_blank" rel="noopener" style="margin-top:10px">Abrir Hero ↗</a>'
         +'</div></div></div>';
 };
+W.heroMobileDevice=function(v){
+    var p=String(v||'390x844').split('x');
+    var w=Math.max(320,Math.min(480,parseInt(p[0],10)||390));
+    var h=Math.max(640,Math.min(960,parseInt(p[1],10)||844));
+    var phone=document.querySelector('.hte-phone');
+    var frame=W.heroMobileFrame();
+    var grid=document.querySelector('.hte-mobile-grid');
+    if(phone)phone.style.width=w+'px';
+    if(frame){frame.style.width=w+'px';frame.style.height=h+'px';}
+    if(grid)grid.style.gridTemplateColumns=(w+20)+'px minmax(0,1fr)';
+    var label=document.getElementById('hte-mobile-device-label');
+    if(label)label.textContent=w+' × '+h+' px · vista vertical · arrastra las asas dentro del teléfono';
+    W.heroMobileStudioApply();
+};
+W.heroMobileFillHeight=function(){
+    var sel=document.getElementById('hte-mobile-device');
+    var h=parseInt(String((sel&&sel.value)||'390x844').split('x')[1],10)||844;
+    var input=document.getElementById('secf-mobile_height');
+    if(input)input.value=Math.max(360,Math.min(960,h));
+    W.heroThemeMarkDirty();
+    W.heroMobileStudioApply();
+};
 
 W.heroMobileFrame=function(){return document.getElementById('hte-mobile-frame')};
+W.heroMobileReload=function(){
+    var frame=W.heroMobileFrame(); if(!frame)return;
+    var v=Date.now();
+    try{frame.src='/?hero_v='+v+'&nc='+v;}catch(e){try{frame.contentWindow.location.reload();}catch(err){}}
+};
+W.heroPurgeCache=async function(){
+    var r=await W.api('/api/v1/admin/hero/purge-cache',{method:'POST',body:{}});
+    if(r&&r.ok){
+        W.notify(r.message||'Caché del Hero purgada.','success');
+        W.heroMobileReload();
+    }else{
+        W.notify((r&&r.message)||'No se pudo purgar la caché del Hero.','error');
+    }
+};
+W.heroHardReload=function(){
+    location.href='/admin.php?panel=seo-global-launch&v='+Date.now()+'#hero/config';
+};
 W.heroMobileField=function(k,d){var el=document.getElementById('secf-'+k);return el?el.value:(d===undefined?'':d)};
 W.heroMobilePx=function(value,unit){value=parseFloat(value)||0;if(unit==='pt')return value*96/72;if(unit==='cm')return value*96/2.54;return value};
 W.heroMobileFromPx=function(px,unit){if(unit==='pt')return px*72/96;if(unit==='cm')return px*2.54/96;return px};
@@ -2379,7 +2506,7 @@ W.heroMobileStudioApply=function(){
     if(!hero){W.heroMobileReadout('<div class="hte-mobile-warn">Activa el theme “El Sonido Se Apodera” para usar el estudio móvil.</div>');return;}
     var mh=parseFloat(W.heroMobileField('mobile_height',580))||580;
     var ml=parseInt(W.heroMobileField('mobile_description_lines',2),10)||2;
-    hero.style.setProperty('--sth-m-h',Math.max(480,Math.min(720,mh))+'px');
+    hero.style.setProperty('--sth-m-h',Math.max(360,Math.min(960,mh))+'px');
     hero.style.setProperty('--sth-m-sub-lines',Math.max(1,Math.min(4,ml)));
     var copyPx=W.heroMobileClamp(W.heroMobileReadPx('mobile_copy_offset'));
     var cardsPx=W.heroMobileClamp(W.heroMobileReadPx('mobile_cards_offset'));
@@ -2396,6 +2523,29 @@ W.heroMobileStudioApply=function(){
     var ctaUnit=W.heroMobileField('mobile_cta_width_unit','%');
     var ctaVal=parseFloat(W.heroMobileField('mobile_cta_width_value',100))||100;
     hero.style.setProperty('--sth-m-cta-w',ctaVal+ctaUnit);
+    // Refleja en el teléfono el zoom/fit/focal de composición de cada slide,
+    // incluso antes de guardar, para que el ajuste se vea al instante.
+    var compIds=[], comps=[];
+    document.querySelectorAll('#hte-page .rep-in').forEach(function(inp){
+        var k=inp.getAttribute('data-k'), i=parseInt(inp.getAttribute('data-i'),10);
+        if(isNaN(i))return;
+        if(k==='id')compIds[i]=inp.value;
+        if(k==='composition'){try{comps[i]=JSON.parse(inp.value||'{}');}catch(e){comps[i]=null;}}
+    });
+    var pics=doc.querySelectorAll('.sth__pic');
+    Array.prototype.forEach.call(pics,function(pic){
+        var sid=pic.getAttribute('data-sth-pic');
+        var idx=compIds.indexOf(sid);
+        if(idx<0)idx=Array.prototype.indexOf.call(pics,pic);
+        if(idx<0||!comps[idx]||!comps[idx].background||!comps[idx].background.mobile)return;
+        var bg=comps[idx].background.mobile;
+        var z=parseFloat(bg.zoom);if(isNaN(z))z=100;
+        z=Math.max(50,Math.min(250,z));
+        pic.style.setProperty('--sth-bg-zoom-m',z/100);
+        pic.style.setProperty('--sth-bg-fit-m',bg.fit==='contain'?'contain':'cover');
+        pic.style.setProperty('--sth-bg-focal-m',(parseFloat(bg.focal_x)||50)+'% '+(parseFloat(bg.focal_y)||50)+'%');
+        pic.style.setProperty('--sth-blur-op-m',(z<100||bg.fit==='contain')?1:0);
+    });
     W.heroMobileGrips(doc);
     var stage=doc.querySelector('.sth__stage')||hero;
     var copy=doc.querySelector('.sth__copy');
@@ -3655,7 +3805,7 @@ W.bmLoad=async function(force){
         if(sgl&&b.slug===sgl.slug)return;
         items.push({slug:b.slug,name:b.name,category:b.category||'general',version:b.version||'1.0.0',launched_at:b.created_at||b.installed_at||'',origin:'brickhub',installed:!!b.installed,installed_version:b.installed_version||'',installed_id:b.installed_id||null,source_id:b.source_id||0,source_name:b.source_name||'Repo',desc:b.description||'Brick instalable desde repositorio',uses_ai:false,usage_count:0,update_available:false,lifecycle:b.lifecycle||lcFor(b.slug),readiness:null,admin_panel:b.admin_panel||''});
     });
-    if(sgl)items.push({slug:'seo-global-launch',name:'SEO Global Launch',category:'system',version:sgl.version||'1.0.0',launched_at:'',origin:'incubator',installed:!!sgl.installed,installed_version:sgl.version||'1.0.0',installed_id:null,source_id:0,source_name:'Incubadora',desc:'Motor SEO full-site: scan, IA de metadatos, autofix, JSON-LD, auditoría y tracker de bots.',uses_ai:true,usage_count:0,update_available:false,lifecycle:lcFor('seo-global-launch')||{state:'incubator',brick_type:'incubator',maturity:'beta',countdown:null},readiness:null});
+    if(sgl)items.push({slug:'seo-global-launch',name:'SEO Global Intelligence',category:'system',version:sgl.version||'1.0.0',launched_at:'',origin:'incubator',installed:!!sgl.installed,installed_version:sgl.version||'1.0.0',installed_id:null,source_id:0,source_name:'Incubadora',desc:'Motor SEO full-site: scan, IA de metadatos, autofix, JSON-LD, auditoría y tracker de bots.',uses_ai:true,usage_count:0,update_available:false,lifecycle:lcFor('seo-global-launch')||{state:'incubator',brick_type:'incubator',maturity:'beta',countdown:null},readiness:null});
     var seen={},uniq=[];
     items.forEach(function(it){if(seen[it.slug])return;seen[it.slug]=1;uniq.push(it)});
     W._bm.items=uniq;
@@ -3928,7 +4078,7 @@ W.bmActivate=function(btn){
         try{
             var r=await W.api('/api/v1/admin/seo-global-launch/activate',{method:'POST'});
             if(r.ok){
-                W.notify('SEO Global Launch acoplado ✓','success');
+                W.notify('SEO Global Intelligence acoplado ✓','success');
                 W.confetti();
                 W.state.bmHighlight='seo-global-launch';
                 W._bm.loaded=false;
@@ -5943,7 +6093,7 @@ W.wwiLoadBricks=async function(slotId){
         var r=await W.api('/api/v1/admin/seo-global-launch');
         var b=(r.data&&r.data.brick)||{};
         var html='<div style="background:var(--w-surface);border:1px solid var(--w-border);border-radius:10px;padding:14px">'
-            +'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div><strong style="font-size:13px">🚀 SEO Global Launch</strong> <span style="font-size:10px;color:var(--w-muted);background:var(--w-bg);padding:2px 8px;border-radius:10px">v'+W.esc(b.version||'1.0.0')+'</span></div>'
+            +'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div><strong style="font-size:13px">🚀 SEO Global Intelligence</strong> <span style="font-size:10px;color:var(--w-muted);background:var(--w-bg);padding:2px 8px;border-radius:10px">v'+W.esc(b.version||'1.0.0')+'</span></div>'
             +'<span style="font-size:10px;padding:2px 8px;border-radius:10px;background:'+(b.installed?'rgba(52,211,153,.12)':'rgba(245,158,11,.12)')+';color:'+(b.installed?'#34d399':'#fbbf24')+'">'+(b.installed?'ACTIVO':'NO INSTALADO')+'</span></div>'
             +'<div style="font-size:11px;color:var(--w-muted);margin-top:6px;line-height:1.6">Motor SEO full-site: scan, generación IA de metadatos, autofix, deepfix, JSON-LD, auditoría y tracker de bots. Multi-tenant.</div>'
             +'<div style="display:flex;gap:8px;margin-top:10px">'
@@ -5976,13 +6126,13 @@ W.renderSeoGlobalLaunch=async function(tab){
     tab=(tab||'resumen');
     W.sglLiveStop();
     var app=document.getElementById('wontia-app');
-    app.innerHTML='<div style="text-align:center;padding:50px;color:var(--w-muted)">Cargando SEO Global Launch...</div>';
+    app.innerHTML='<div style="text-align:center;padding:50px;color:var(--w-muted)">Cargando SEO Global Intelligence...</div>';
     var ov=(await W.api('/api/v1/admin/seo-global-launch')).data||{};
     var b=ov.brick||{}; var st=ov.stats||{};
     var tabs=[['resumen','Resumen'],['monitoreo','Monitoreo en vivo'],['analitica','Analítica'],['mi-trafico','Mi tráfico'],['meta-ads','Pauta Meta'],['keywords','Keywords'],['tecnico','Técnico'],['integraciones','Integraciones'],['seguridad','Seguridad IP'],['redirecciones','Redirecciones'],['404s','404s'],['enlaces-rotos','Enlaces rotos']];
     var tabsHtml='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">'+tabs.map(function(x){return '<button class="w-btn '+(tab===x[0]?'w-btn-primary':'w-btn-secondary')+'" onclick="location.hash=\'#seo-global-launch/'+x[0]+'\'">'+x[1]+'</button>'}).join('')+'</div>';
     if(tab==='monitoreo'){
-        app.innerHTML='<div style="margin-bottom:18px"><div style="font-size:20px;font-weight:800;letter-spacing:-.01em">SEO Global Launch</div><div style="font-size:12px;color:var(--w-muted);margin-top:4px">Monitoreo en vivo · peticiones, respuestas y comportamiento del sitio</div></div>'+tabsHtml
+        app.innerHTML='<div style="margin-bottom:18px"><div style="font-size:20px;font-weight:800;letter-spacing:-.01em">SEO Global Intelligence</div><div style="font-size:12px;color:var(--w-muted);margin-top:4px">Monitoreo en vivo · peticiones, respuestas y comportamiento del sitio</div></div>'+tabsHtml
             +'<div id="sgl-live"><div class="sgl-live"><div class="sgl-live__top"><div class="sgl-live__brand"><span class="sgl-live__dot"></span><b>LIVE</b><span id="sgl-live-clock" class="sgl-live__clock">--:--:--</span></div><div class="sgl-live__controls"><button class="w-btn w-btn-secondary w-btn-sm" onclick="W.sglLiveFetch()">Actualizar</button><button class="w-btn w-btn-secondary w-btn-sm" id="sgl-live-pause" onclick="W.sglLiveToggle()">Pausar</button><button class="w-btn w-btn-secondary w-btn-sm" onclick="W.sglLiveClear()">Limpiar</button></div></div>'
             +'<div class="sgl-live__stats" id="sgl-live-stats"><div class="sgl-live__stat"><b>—</b><span>Conectando</span></div></div>'
             +'<div class="sgl-live__toolbar"><input id="sgl-live-filter" class="w-input" placeholder="Filtrar por ruta, IP, ciudad o dispositivo" oninput="W.sglLiveFilterRows()"/><select id="sgl-live-audience" class="w-select" onchange="W.sglLiveAudience()"><option value="client">Clientes</option><option value="internal">Yo</option><option value="bot">Bots</option><option value="all">Todos</option></select><select id="sgl-live-method" class="w-select" onchange="W.sglLiveFilterRows()"><option value="">Todos los métodos</option><option>GET</option><option>POST</option><option>PUT</option><option>PATCH</option><option>DELETE</option></select><select id="sgl-live-status" class="w-select" onchange="W.sglLiveFilterRows()"><option value="">Todos los estados</option><option value="2">2xx</option><option value="3">3xx</option><option value="4">4xx</option><option value="5">5xx</option></select><label class="sgl-live__auto"><input type="checkbox" id="sgl-live-autoscroll" checked/> Auto-scroll</label></div>'
@@ -5992,17 +6142,17 @@ W.renderSeoGlobalLaunch=async function(tab){
         return;
     }
     if(tab==='seguridad'){
-        app.innerHTML='<div style="margin-bottom:18px"><div style="font-size:20px;font-weight:800;letter-spacing:-.01em">SEO Global Launch</div><div style="font-size:12px;color:var(--w-muted);margin-top:4px">Inteligencia de IPs, bots y detección de ataques</div></div>'+tabsHtml+'<div id="sgl-security"><div class="w-card" style="text-align:center;padding:30px;color:var(--w-muted)">Analizando peticiones...</div></div>';
+        app.innerHTML='<div style="margin-bottom:18px"><div style="font-size:20px;font-weight:800;letter-spacing:-.01em">SEO Global Intelligence</div><div style="font-size:12px;color:var(--w-muted);margin-top:4px">Inteligencia de IPs, bots y detección de ataques</div></div>'+tabsHtml+'<div id="sgl-security"><div class="w-card" style="text-align:center;padding:30px;color:var(--w-muted)">Analizando peticiones...</div></div>';
         W.sglSecurityLoad();
         return;
     }
     if(tab==='integraciones'){
-        app.innerHTML='<div style="margin-bottom:18px"><div style="font-size:20px;font-weight:800;letter-spacing:-.01em">SEO Global Launch</div><div style="font-size:12px;color:var(--w-muted);margin-top:4px">Integraciones con buscadores y medición externa</div></div>'+tabsHtml+'<div id="sgl-integrations"><div class="w-card" style="text-align:center;padding:30px;color:var(--w-muted)">Cargando integraciones...</div></div>';
+        app.innerHTML='<div style="margin-bottom:18px"><div style="font-size:20px;font-weight:800;letter-spacing:-.01em">SEO Global Intelligence</div><div style="font-size:12px;color:var(--w-muted);margin-top:4px">Integraciones con buscadores y medición externa</div></div>'+tabsHtml+'<div id="sgl-integrations"><div class="w-card" style="text-align:center;padding:30px;color:var(--w-muted)">Cargando integraciones...</div></div>';
         W.sglIntegrationsLoad();
         return;
     }
     if(tab==='analitica'){
-        app.innerHTML='<div style="margin-bottom:18px"><div style="font-size:20px;font-weight:800;letter-spacing:-.01em">SEO Global Launch</div><div style="font-size:12px;color:var(--w-muted);margin-top:4px">Analítica, embudo y oportunidades · excluye tráfico propio y bots</div></div>'+tabsHtml+'<div id="sgl-analytics"><div class="w-card" style="text-align:center;padding:30px;color:var(--w-muted)">Cargando analítica...</div></div>';
+        app.innerHTML='<div style="margin-bottom:18px"><div style="font-size:20px;font-weight:800;letter-spacing:-.01em">SEO Global Intelligence</div><div style="font-size:12px;color:var(--w-muted);margin-top:4px">Analítica, embudo y oportunidades · excluye tráfico propio y bots</div></div>'+tabsHtml+'<div id="sgl-analytics"><div class="w-card" style="text-align:center;padding:30px;color:var(--w-muted)">Cargando analítica...</div></div>';
         W.sglAnalyticsLoad();
         return;
     }
@@ -6017,27 +6167,28 @@ W.renderSeoGlobalLaunch=async function(tab){
         return;
     }
     if(tab==='redirecciones'||tab==='404s'||tab==='enlaces-rotos'){
-        app.innerHTML='<div style="margin-bottom:18px"><div style="font-size:20px;font-weight:800;letter-spacing:-.01em">SEO Global Launch</div><div style="font-size:12px;color:var(--w-muted);margin-top:4px">Redirecciones, 404 y enlaces rotos</div></div>'+tabsHtml+'<div id="sgl-phase2"><div class="w-card" style="text-align:center;padding:30px;color:var(--w-muted)">Cargando...</div></div>';
+        app.innerHTML='<div style="margin-bottom:18px"><div style="font-size:20px;font-weight:800;letter-spacing:-.01em">SEO Global Intelligence</div><div style="font-size:12px;color:var(--w-muted);margin-top:4px">Redirecciones, 404 y enlaces rotos</div></div>'+tabsHtml+'<div id="sgl-phase2"><div class="w-card" style="text-align:center;padding:30px;color:var(--w-muted)">Cargando...</div></div>';
         W.sglPhase2Load(tab);
         return;
     }
     if(tab==='keywords'){
-        app.innerHTML='<div style="margin-bottom:18px"><div style="font-size:20px;font-weight:800;letter-spacing:-.01em">SEO Global Launch</div><div style="font-size:12px;color:var(--w-muted);margin-top:4px">Keywords por producto y página · borradores, aprobación y control de saturación</div></div>'+tabsHtml+'<div id="sgl-keywords"><div class="w-card" style="text-align:center;padding:30px;color:var(--w-muted)">Cargando keywords...</div></div>';
+        app.innerHTML='<div style="margin-bottom:18px"><div style="font-size:20px;font-weight:800;letter-spacing:-.01em">SEO Global Intelligence</div><div style="font-size:12px;color:var(--w-muted);margin-top:4px">Keywords por producto y página · borradores, aprobación y control de saturación</div></div>'+tabsHtml+'<div id="sgl-keywords"><div class="w-card" style="text-align:center;padding:30px;color:var(--w-muted)">Cargando keywords...</div></div>';
         W.sglKeywordsLoad();
         return;
     }
     if(tab==='tecnico'){
-        app.innerHTML='<div style="margin-bottom:18px"><div style="font-size:20px;font-weight:800;letter-spacing:-.01em">SEO Global Launch</div><div style="font-size:12px;color:var(--w-muted);margin-top:4px">Brick v'+W.esc(b.version||'2.0.0')+' · Técnico y rastreo</div></div>'+tabsHtml+'<div id="sgl-tech"><div class="w-card" style="text-align:center;padding:30px;color:var(--w-muted)">Cargando configuración técnica...</div></div>';
+        app.innerHTML='<div style="margin-bottom:18px"><div style="font-size:20px;font-weight:800;letter-spacing:-.01em">SEO Global Intelligence</div><div style="font-size:12px;color:var(--w-muted);margin-top:4px">Brick v'+W.esc(b.version||'2.0.0')+' · Técnico y rastreo</div></div>'+tabsHtml+'<div id="sgl-tech"><div class="w-card" style="text-align:center;padding:30px;color:var(--w-muted)">Cargando configuración técnica...</div></div>';
         W.sglTechLoad();
         return;
     }
-    var html='<div style="margin-bottom:18px"><div style="font-size:20px;font-weight:800;letter-spacing:-.01em">🚀 SEO Global Launch</div>'
+    var html='<div style="margin-bottom:18px"><div style="font-size:20px;font-weight:800;letter-spacing:-.01em">🚀 SEO Global Intelligence</div>'
         +'<div style="font-size:12px;color:var(--w-muted);margin-top:4px">Motor SEO full-site de un clic: meta tags, JSON-LD, Open Graph, auditoría y auto-fix con IA. Brick v'+W.esc(b.version||'1.0.0')+' · <strong style="color:var(--w-text)">'+W.esc(st.site_url||'')+'</strong></div></div>';
+    var _sglHi=(st.issues_high||0)>0;
     html+='<div class="w-stats">'
-        +'<div class="w-stat-card"><div class="w-stat-value" style="color:'+(st.last_score>=80?'#34d399':(st.last_score>=50?'#fbbf24':'#f87171'))+'">'+(st.last_score||'—')+'</div><div class="w-stat-label">Último score</div></div>'
-        +'<div class="w-stat-card"><div class="w-stat-value">'+W.num(st.seo_pages||0)+'</div><div class="w-stat-label">Páginas optimizadas</div></div>'
-        +'<div class="w-stat-card"><div class="w-stat-value">'+W.num(st.posts_total||0)+'</div><div class="w-stat-label">Posts publicados</div></div>'
-        +'<div class="w-stat-card"><div class="w-stat-value" style="color:'+((st.posts_without_meta||0)>0?'#fbbf24':'#34d399')+'">'+W.num(st.posts_without_meta||0)+'</div><div class="w-stat-label">Posts sin metadata</div></div>'
+        +'<div class="w-stat-card"><div class="w-stat-value" style="color:'+(st.last_score>=80?'#34d399':(st.last_score>=50?'#fbbf24':'#f87171'))+'">'+(st.last_score||'—')+'</div><div class="w-stat-label">Último score real</div></div>'
+        +'<div class="w-stat-card"><div class="w-stat-value">'+W.num(st.indexable_urls||st.seo_pages||0)+'</div><div class="w-stat-label">URLs indexables</div></div>'
+        +'<div class="w-stat-card"><div class="w-stat-value">'+W.num(st.products||0)+'</div><div class="w-stat-label">Productos públicos</div></div>'
+        +'<div class="w-stat-card"><div class="w-stat-value" style="color:'+(_sglHi?'#f87171':'#34d399')+'">'+W.num(st.issues_high||0)+'</div><div class="w-stat-label">Hallazgos altos</div></div>'
         +'</div>';
     if(!b.installed){
         html+='<div class="w-card" style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap"><div><strong style="font-size:13px">Brick no instalado en este sitio</strong><div style="font-size:11px;color:var(--w-muted);margin-top:4px">Actívalo para crear las tablas y comenzar a optimizar este sitio.</div></div><button class="w-btn w-btn-primary" onclick="wontia.sglActivate()">Activar Brick</button></div>';
@@ -6073,7 +6224,7 @@ W.sglAction=async function(what,btn){
     var r=await W.api('/api/v1/admin/seo-global-launch/'+what,{method:'POST'});
     if(btn){btn.disabled=false;btn.style.opacity=1}
     var msg='';
-    if(what==='scan'&&r.ok)msg='Score total: <strong>'+r.total_score+'</strong> · '+r.pages_count+' páginas · '+r.issues_count+' issues · posts: '+r.posts_count;
+    if(what==='scan'&&r.ok)msg='Score total: <strong>'+r.total_score+'</strong> · '+r.pages_count+' URLs auditadas · '+r.issues_count+' hallazgos ('+(r.issues_by_severity&&r.issues_by_severity.high||0)+' altos) · sitemap: '+((r.details&&r.details.sitemap_urls)||0)+' URLs';
     else if(what==='generate'&&r.ok)msg='Páginas optimizadas: <strong>'+r.pages_optimized+'</strong> · tokens: '+(r.tokens_used||0)+(r.ai_model?' · modelo: '+W.esc(r.ai_model)+' via '+W.esc(r.ai_provider||''):'');
     else if(what==='autofix'&&r.ok)msg='Posts corregidos: <strong>'+r.fixed+'</strong> de '+r.total+(r.ai_model?' · modelo: '+W.esc(r.ai_model):'');
     else if(what==='deepfix'&&r.ok)msg='Correcciones aplicadas: <strong>'+r.fixed+'</strong> · tokens: '+(r.tokens||0);
@@ -6247,8 +6398,8 @@ W.sglAnalyticsLoad=async function(){
     W._sglAnalytics=a; W._sglOpp=(o&&o.items)||[];
     var t=a.traffic||{},ord=a.orders||{},cart=a.cart||{},seo=a.seo||{},fn=a.funnel||{};
     var kpi=function(v,l,color){return '<div class="w-card" style="flex:1;min-width:130px;text-align:center;margin:0"><div style="font-size:22px;font-weight:800;'+(color?'color:'+color:'')+'">'+W.esc(v)+'</div><div style="font-size:10px;color:var(--w-muted);margin-top:4px">'+W.esc(l)+'</div></div>'};
-    var h='<div class="w-card" style="margin-bottom:14px"><div class="w-flex-between" style="gap:10px;flex-wrap:wrap"><div><h3 style="margin:0">Analítica del sitio</h3><p style="font-size:12px;color:var(--w-muted);margin:5px 0 0">Datos de los últimos '+days+' días. Excluye tráfico propio y bots. Visitantes únicos y páginas se calculan con el monitor de peticiones (90 días); los eventos y carritos de invitados solo se registran con consentimiento.</p></div><div style="display:flex;gap:6px;flex-wrap:wrap">'+(W._sglOpp.length?'<span class="w-badge" style="background:#fff7ed;color:#b45309">'+W._sglOpp.length+' oportunidades</span>':'')+'<select class="w-input" style="width:100px" onchange="W.sglAnalyticsDays=parseInt(this.value)||30;W.sglAnalyticsLoad()"><option value="7"'+(days===7?' selected':'')+'>7 días</option><option value="30"'+(days===30?' selected':'')+'>30 días</option><option value="90"'+(days===90?' selected':'')+'>90 días</option></select><button class="w-btn w-btn-secondary w-btn-sm" onclick="W.sglAnalyticsLoad()">Actualizar</button></div></div>'
-        +'<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px">'+kpi(W.num(t.sessions||0),'Sesiones')+kpi(W.num(t.views||0),'Visitas')+kpi(W.num(t.pages_per_session||0),'Páginas/sesión')+kpi(W.num(ord.paid||0),'Pedidos pagados','#0d7a58')+kpi(W.ocMoney(ord.revenue_cents||0,'COP'),'Ingresos')+kpi((cart.abandonment_rate||0)+'%','Abandono de pedidos','#b45309')+'</div>'
+    var h='<div class="w-card" style="margin-bottom:14px"><div class="w-flex-between" style="gap:10px;flex-wrap:wrap"><div><h3 style="margin:0">Analítica del sitio</h3><p style="font-size:12px;color:var(--w-muted);margin:5px 0 0">Datos de los últimos '+days+' días. Excluye tráfico propio y bots. Vistas y visitantes se calculan con el monitor de peticiones; sesiones, páginas/sesión y embudo usan eventos con consentimiento.</p></div><div style="display:flex;gap:6px;flex-wrap:wrap">'+(W._sglOpp.length?'<span class="w-badge" style="background:#fff7ed;color:#b45309">'+W._sglOpp.length+' oportunidades</span>':'')+'<select class="w-input" style="width:100px" onchange="W.sglAnalyticsDays=parseInt(this.value)||30;W.sglAnalyticsLoad()"><option value="7"'+(days===7?' selected':'')+'>7 días</option><option value="30"'+(days===30?' selected':'')+'>30 días</option><option value="90"'+(days===90?' selected':'')+'>90 días</option></select><button class="w-btn w-btn-secondary w-btn-sm" onclick="W.sglAnalyticsLoad()">Actualizar</button></div></div>'
+        +'<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px">'+kpi(W.num(t.sessions||0),'Sesiones consent.')+kpi(W.num(t.views||0),'Vistas servidor')+kpi(W.num(t.pages_per_session||0),'Págs./sesión consent.')+kpi(W.num(ord.paid||0),'Pedidos pagados','#0d7a58')+kpi(W.ocMoney(ord.revenue_cents||0,'COP'),'Ingresos')+kpi((cart.abandonment_rate||0)+'%','Abandono de pedidos','#b45309')+'</div>'
         +'<div style="display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px solid var(--w-border)"><div style="font-size:11px;color:var(--w-muted)"><b style="color:var(--w-text)">Tráfico propio excluido:</b> '+W.num(t.internal_page_requests||0)+' vistas de servidor y '+W.num(t.internal_sessions||0)+' sesiones de evento marcadas como “yo”. No se suman a clientes ni a la pauta.</div><button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="location.hash=\'#seo-global-launch/mi-trafico\'">Abrir Mi tráfico</button></div></div>';
     var table=function(title,rows,cols){
         var x='<div class="w-card"><h3 style="margin:0 0 8px">'+title+'</h3>';
@@ -6425,6 +6576,8 @@ W.sglMetaBackfill=async function(){
 W.sglOppGo=function(action){
     if(action==='redirecciones'||action==='404s'||action==='enlaces-rotos'){location.hash='#seo-global-launch/'+action;return}
     if(action==='generate'){W.sglAction('generate',null);return}
+    if(action==='scan'){W.sglAction('scan',null);return}
+    if(action==='catalogo'){location.hash='#store/contenido';return}
     if(action==='pedidos'){location.hash='#order-center/pedidos';return}
     if(action==='carrito'){W.notify('Abre la recuperación de carritos configurada en Tienda.','info');return}
     W.notify('Instrumenta los eventos del funnel para resolver esta oportunidad.','info');
@@ -6624,10 +6777,11 @@ W.sglIntegrationsLoad=async function(){
     var d=r.data||{}; W._sglInt=d;
     var badge=function(on){return '<span class="w-badge" style="background:'+(on?'rgba(52,211,153,.12)':'rgba(148,163,184,.12)')+';color:'+(on?'#34d399':'#94a3b8')+'">'+(on?'CONFIGURADA':'SIN CONFIGURAR')+'</span>'};
     var h='<div class="w-card" style="margin-bottom:14px"><div class="w-flex-between" style="gap:10px;flex-wrap:wrap"><div><h3 style="margin:0">Integraciones</h3><p style="font-size:12px;color:var(--w-muted);margin:5px 0 0">Conecta el sitio con buscadores y medición externa. Los secretos se guardan cifrados y no se vuelven a mostrar.</p></div><span style="font-size:10px;color:var(--w-muted)">Sitio: '+W.esc(d.site_url||'')+'</span></div>'
+        +'<div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-top:12px"><div style="flex:1;min-width:240px"><label class="w-label">URL canónica del sitio</label><input class="w-input" id="sgl-int-site-url" value="'+W.esc(d.site_url||'')+'" placeholder="https://sonika.com.co" style="width:100%"/></div><span style="font-size:11px;color:var(--w-muted);padding-bottom:8px">Se usa en sitemap, canonical, IndexNow y tareas programadas.</span></div>'
         +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-top:14px">'
         +'<div class="w-card" style="margin:0;padding:13px"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b>IndexNow</b>'+badge(d.indexnow&&d.indexnow.configured)+'</div><p style="font-size:11px;color:var(--w-muted);line-height:1.5;margin:6px 0 8px">Avisa a Bing, Yandex y otros motores compatibles cuando publiques URLs.</p><label class="w-label">Clave</label><div style="display:flex;gap:6px"><input class="w-input" id="sgl-int-indexnow" value="'+W.esc((d.indexnow&&d.indexnow.key)||'')+'" placeholder="Se genera al guardar" style="flex:1;min-width:0"/><button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="W.sglIntGenerate()">Generar</button></div><button class="w-btn w-btn-secondary w-btn-sm" style="margin-top:8px" type="button" onclick="W.sglIntRun(\'indexnow\',this)">Enviar sitemap</button></div>'
         +'<div class="w-card" style="margin:0;padding:13px"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b>PageSpeed Insights</b>'+badge(d.pagespeed&&d.pagespeed.configured)+'</div><p style="font-size:11px;color:var(--w-muted);line-height:1.5;margin:6px 0 8px">Mide rendimiento, SEO, accesibilidad y buenas prácticas del sitio.</p><label class="w-label">API key de Google</label><input class="w-input" id="sgl-int-pagespeed" type="password" autocomplete="new-password" placeholder="'+(d.pagespeed&&d.pagespeed.configured?W.esc(d.pagespeed.masked) : 'Pega la API key')+'" style="width:100%"/><div style="display:flex;gap:6px;margin-top:8px"><button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="W.sglIntRun(\'pagespeed\',this,\'mobile\')">Probar móvil</button><button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="W.sglIntRun(\'pagespeed\',this,\'desktop\')">Probar escritorio</button></div></div>'
-        +'<div class="w-card" style="margin:0;padding:13px"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b>Google Search Console</b>'+badge(d.gsc&&d.gsc.configured)+'</div><p style="font-size:11px;color:var(--w-muted);line-height:1.5;margin:6px 0 8px">Cuenta de servicio con acceso a la propiedad. Debe añadirse como usuario en Search Console.</p><label class="w-label">Propiedad</label><input class="w-input" id="sgl-int-gsc-property" value="'+W.esc((d.gsc&&d.gsc.property)||'')+'" placeholder="https://sonika.com.co/" style="width:100%"/><label class="w-label" style="margin-top:8px;display:block">JSON de cuenta de servicio</label><textarea class="w-input" id="sgl-int-gsc-json" rows="3" placeholder="'+(d.gsc&&d.gsc.configured?'Configurada · pega un JSON nuevo para reemplazar':'Pega el JSON de la cuenta de servicio')+'" style="width:100%;font-family:var(--w-font-mono);font-size:10px"></textarea><div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap"><button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="W.sglIntRun(\'gsc_test\',this)">Probar</button><button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="W.sglIntRun(\'gsc_sitemap\',this)">Enviar sitemap</button></div></div>'
+        +'<div class="w-card" style="margin:0;padding:13px"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b>Google Search Console</b>'+badge(d.gsc&&d.gsc.configured)+'</div><p style="font-size:11px;color:var(--w-muted);line-height:1.5;margin:6px 0 8px">Cuenta de servicio con acceso a la propiedad. Debe añadirse como usuario en Search Console.</p><label class="w-label">Propiedad</label><input class="w-input" id="sgl-int-gsc-property" value="'+W.esc((d.gsc&&d.gsc.property)||'')+'" placeholder="https://sonika.com.co/" style="width:100%"/>'+(d.gsc&&d.gsc.email?'<p style="font-size:10px;color:var(--w-muted);margin:6px 0 0;font-family:var(--w-font-mono);word-break:break-all">Cuenta de servicio: '+W.esc(d.gsc.email)+'</p>':'')+'<label class="w-label" style="margin-top:8px;display:block">JSON de cuenta de servicio</label><textarea class="w-input" id="sgl-int-gsc-json" rows="3" placeholder="'+(d.gsc&&d.gsc.configured?'Configurada · pega un JSON nuevo para reemplazar':'Pega el JSON de la cuenta de servicio')+'" style="width:100%;font-family:var(--w-font-mono);font-size:10px"></textarea><div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap"><button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="W.sglIntRun(\'gsc_test\',this)">Probar</button><button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="W.sglIntRun(\'gsc_sitemap\',this)">Enviar sitemap</button></div></div>'
         +'<div class="w-card" style="margin:0;padding:13px"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b>Bing Webmaster</b>'+badge(d.bing&&d.bing.configured)+'</div><p style="font-size:11px;color:var(--w-muted);line-height:1.5;margin:6px 0 8px">Envía el sitemap y consulta las propiedades verificadas en Bing.</p><label class="w-label">API key</label><input class="w-input" id="sgl-int-bing" type="password" autocomplete="new-password" placeholder="'+(d.bing&&d.bing.configured?W.esc(d.bing.masked) : 'Pega la API key de Bing')+'" style="width:100%"/><div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap"><button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="W.sglIntRun(\'bing_test\',this)">Probar</button><button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="W.sglIntRun(\'bing_sitemap\',this)">Enviar sitemap</button></div></div>'
         +'</div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px"><button class="w-btn w-btn-primary" type="button" onclick="W.sglIntSave()">Guardar integraciones</button><span id="sgl-int-msg" role="status" aria-live="polite" style="font-size:11px;color:var(--w-muted)">'+(d.last_saved_at?'Guardado: '+W.esc(d.last_saved_at):'')+'</span></div><div id="sgl-int-result" style="margin-top:10px"></div></div>';
     box.innerHTML=h;
@@ -6639,7 +6793,7 @@ W.sglIntSave=async function(){
     var v=function(id){var e=document.getElementById(id);return e?e.value:''};
     var msg=document.getElementById('sgl-int-msg');
     if(msg){msg.textContent='Guardando…';msg.style.color='var(--w-muted)'}
-    var r=await W.api('/api/v1/admin/seo-global-launch/integrations',{method:'POST',body:{indexnow_key:v('sgl-int-indexnow'),pagespeed_key:v('sgl-int-pagespeed'),gsc_property:v('sgl-int-gsc-property'),gsc_service_json:v('sgl-int-gsc-json'),bing_key:v('sgl-int-bing')}});
+    var r=await W.api('/api/v1/admin/seo-global-launch/integrations',{method:'POST',body:{site_url:v('sgl-int-site-url'),indexnow_key:v('sgl-int-indexnow'),pagespeed_key:v('sgl-int-pagespeed'),gsc_property:v('sgl-int-gsc-property'),gsc_service_json:v('sgl-int-gsc-json'),bing_key:v('sgl-int-bing')}});
     if(r&&r.ok){if(msg){msg.textContent='Guardado';msg.style.color='#0d7a58'}W.notify('Integraciones guardadas','success');W.sglIntegrationsLoad()}else if(msg){msg.textContent=(r&&r.message)||'No se pudo guardar';msg.style.color='#b42318'}
 };
 W.sglIntRun=async function(provider,btn,strategy){
@@ -6755,6 +6909,8 @@ W.mountTopbar=function(){
         v.title='Build del admin cargado. Si no ves las mejoras, recarga la página (el SPA no recarga el JS).';
         v.style.cssText='font-family:var(--w-font-mono,monospace);font-size:10px;color:var(--w-muted);border:1px solid var(--w-border2,#2a3346);border-radius:8px;padding:4px 8px;margin-right:12px';
         v.textContent='build '+String(window.__WWI_VER).slice(-6);
+        v.style.cursor='pointer';
+        v.addEventListener('click',function(){if(W.heroHardReload)W.heroHardReload();else location.reload();});
         bar.insertBefore(v,bar.lastElementChild);
     }
     if(!document.getElementById('w-density')){
@@ -7364,7 +7520,7 @@ W.storeProductsLoad=async function(){
         var stockTxt=p.track_stock==1?String(p.stock):'∞';
         var badge=p.status==='active'?'published':(p.status==='draft'?'draft':'archived');
         html+='<tr style="border-top:1px solid var(--w-border)">'
-            +'<td style="padding:12px 14px"><div style="font-weight:600">'+W.esc(p.name)+(p.is_featured==1?' ⭐':'')+'</div><div style="font-size:11px;color:var(--w-muted)">/'+W.esc(p.slug)+(p.sku?' · '+W.esc(p.sku):'')+'</div></td>'
+            +'<td style="padding:12px 14px"><div style="font-weight:600">'+W.esc(p.name)+(p.is_featured==1?' ⭐':'')+(p.free_shipping==1?' <span class="w-badge w-badge-published" style="font-size:9px">Envío gratis</span>':'')+(p.tax_exempt==1?' <span class="w-badge w-badge-draft" style="font-size:9px">Sin IVA</span>':'')+(p.visibility==='private'?' <span class="w-badge w-badge-draft" style="font-size:9px">Privado IP</span>':'')+'</div><div style="font-size:11px;color:var(--w-muted)">/'+W.esc(p.slug)+(p.sku?' · '+W.esc(p.sku):'')+'</div></td>'
             +'<td style="padding:12px 14px;color:var(--w-muted)">'+W.esc(p.category_name||'—')+'</td>'
             +'<td style="padding:12px 14px;font-weight:600">$'+W.num((p.price_cents/100))+'</td>'
             +'<td style="padding:12px 14px;'+(p.track_stock==1&&p.stock<=3?'color:#f87171;font-weight:700':'')+'">'+stockTxt+'</td>'
@@ -7376,36 +7532,204 @@ W.storeProductsLoad=async function(){
     list.innerHTML=html;
 };
 
+W.storeProductDraftKey='sonika_product_draft_v1';
+W.storeProductDraftRead=function(){
+    try{
+        var raw=sessionStorage.getItem(W.storeProductDraftKey);if(!raw)return null;
+        var d=JSON.parse(raw);if(!d||typeof d!=='object')return null;
+        var hasData=!!((d.name&&String(d.name).trim())||(d.sku&&String(d.sku).trim())||(d.description&&String(d.description).trim())||(d.short_description&&String(d.short_description).trim())||Number(d.price_cents||0)>0||Number(d.stock||0)>0||(Array.isArray(d.images)&&d.images.length)||(Array.isArray(d.variants)&&d.variants.length));
+        return hasData?d:null;
+    }catch(e){return null}
+};
+W.storeProductDraftClear=function(){try{sessionStorage.removeItem(W.storeProductDraftKey)}catch(e){}};
+W.storeProductDraftDiscard=function(){W.storeProductDraftClear();W.state.storeProductDirty=false;var b=document.getElementById('sp-draft-banner');if(b)b.remove();W.notify('Borrador descartado','info')};
+W.storeProductDraftSave=function(){
+    if(W._spEditId)return;
+    var g=function(id){var el=document.getElementById(id);return el?el.value:''};
+    if(!document.getElementById('sp-name'))return;
+    var variants=[];
+    document.querySelectorAll('#sp-variants > div').forEach(function(row){
+        var nm=row.querySelector('.sp-v-name');var pr=row.querySelector('.sp-v-price');var st=row.querySelector('.sp-v-stock');
+        if(nm&&nm.value.trim())variants.push({name:nm.value.trim(),price_cents:W.moneyValue(pr?pr.value:0),stock:parseInt(st?st.value:0)||0});
+    });
+    var draft={name:g('sp-name'),slug:g('sp-slug'),category_id:g('sp-cat'),description:g('sp-desc'),short_description:g('sp-short'),price_cents:W.moneyValue(g('sp-price')),compare_price_cents:W.moneyValue(g('sp-compare')),sku:g('sp-sku'),stock:parseInt(g('sp-stock'))||0,track_stock:parseInt(g('sp-track')),status:g('sp-status'),is_featured:parseInt(g('sp-featured')),weight_grams:parseInt(g('sp-weight'))||0,free_shipping:(document.getElementById('sp-free-shipping')&&document.getElementById('sp-free-shipping').checked)?0:1,tax_exempt:(document.getElementById('sp-vat')&&!document.getElementById('sp-vat').checked)?1:0,visibility:(document.getElementById('sp-private')&&document.getElementById('sp-private').checked)?'private':'public',allowed_ips:g('sp-allowed-ips'),images:(W.state.storeImages||[]).slice(),variants:variants};
+    try{sessionStorage.setItem(W.storeProductDraftKey,JSON.stringify(draft))}catch(e){}
+};
+W.storeProductDraftSchedule=function(){clearTimeout(W._spDraftTimer);W._spDraftTimer=setTimeout(W.storeProductDraftSave,400)};
+
+W.moneyDigits=function(v){return String(v==null?'':v).replace(/[^\d]/g,'')};
+W.moneyFormat=function(v){var d=W.moneyDigits(v);if(!d)return '';return Number(d).toLocaleString('es-CO')};
+W.moneyDisplay=function(pesos){return '$ '+Number(pesos||0).toLocaleString('es-CO')};
+W.moneyValue=function(v){var d=W.moneyDigits(v);return d?parseInt(d,10)*100:0};
+W.moneyFormatInput=function(el){if(!el)return;var d=W.moneyDigits(el.value);el.value=d?Number(d).toLocaleString('es-CO'):''};
+
+W.storeUpdateShortCount=function(){
+    var el=document.getElementById('sp-short'), out=document.getElementById('sp-short-count');
+    if(el&&out)out.textContent=String(el.value||'').length+'/500';
+};
+
+W.storeUpdateTaxPreview=function(){
+    var el=document.getElementById('sp-tax-preview');if(!el)return;
+    var price=W.moneyValue((document.getElementById('sp-price')||{}).value);
+    var vat=document.getElementById('sp-vat')?document.getElementById('sp-vat').checked:true;
+    var rate=Number(W._taxRate)||19;
+    var include=W._taxInclude!==false;
+    if(!vat){el.innerHTML='<b>Sin IVA.</b> El precio es la base y no se discrimina IVA.';return;}
+    if(price<=0){el.textContent='Escribe el precio para ver la base y el IVA.';return;}
+    var base,tax,total;
+    if(include){base=Math.round(price/(1+rate/100));tax=price-base;total=price;}
+    else{base=price;tax=Math.round(price*rate/100);total=price+tax;}
+    el.innerHTML='Base: <b>'+W.moneyDisplay(base/100)+'</b> · IVA ('+rate+'%): <b>'+W.moneyDisplay(tax/100)+'</b> · Total: <b>'+W.moneyDisplay(total/100)+'</b>';
+};
+
+W.storeUpdatePreview=function(){
+    var nameEl=document.getElementById('sp-preview-name'),priceEl=document.getElementById('sp-preview-price'),badgesEl=document.getElementById('sp-preview-badges'),imgEl=document.getElementById('sp-preview-img');
+    if(!nameEl||!priceEl||!badgesEl)return;
+    var name=((document.getElementById('sp-name')||{}).value||'').trim()||'Producto sin nombre';
+    var price=W.moneyValue((document.getElementById('sp-price')||{}).value);
+    nameEl.textContent=name;
+    priceEl.textContent=price>0?W.moneyDisplay(price/100):'$ 0';
+    var status=(document.getElementById('sp-status')||{}).value||'draft';
+    var featured=(document.getElementById('sp-featured')||{}).value==='1';
+    var chargeShipping=document.getElementById('sp-free-shipping')?document.getElementById('sp-free-shipping').checked:true;
+    var vat=document.getElementById('sp-vat')?document.getElementById('sp-vat').checked:true;
+    var priv=document.getElementById('sp-private')?document.getElementById('sp-private').checked:false;
+    var badges=[];
+    badges.push('<span class="sp-pill">'+(status==='active'?'Activo':(status==='archived'?'Archivado':'Borrador'))+'</span>');
+    if(featured)badges.push('<span class="sp-pill purple">Destacado</span>');
+    if(!chargeShipping)badges.push('<span class="sp-pill green">Envío gratis</span>');
+    if(!vat)badges.push('<span class="sp-pill purple">Sin IVA</span>');
+    if(priv)badges.push('<span class="sp-pill red">Privado IP</span>');
+    badgesEl.innerHTML=badges.join('');
+    if(imgEl){
+        var img=(W.state.storeImages||[])[0]||'';
+        imgEl.innerHTML=img?'<img src="'+W.esc(img)+'" alt="" onerror="this.style.display=\'none\'"/>':'<span>♪</span>';
+    }
+};
+
 W.storeProductEditor=async function(id){
-    var p={id:0,name:'',slug:'',category_id:'',description:'',short_description:'',price_cents:0,compare_price_cents:0,sku:'',stock:0,track_stock:1,status:'draft',is_featured:0,images:[],variants:[]};
+    W._spEditId=id||0;
+    var draft=(!id)?W.storeProductDraftRead():null;
+    var p={id:0,name:'',slug:'',category_id:'',description:'',short_description:'',price_cents:0,compare_price_cents:0,sku:'',stock:0,track_stock:1,weight_grams:0,status:'draft',is_featured:0,free_shipping:0,tax_exempt:0,visibility:'public',allowed_ips:'',images:[],variants:[]};
     if(id){var r=await W.api('/api/v1/admin/store/products/'+id);if(r.ok&&r.data)p=r.data}
+    if(draft){p=Object.assign({},p,draft)}
+    W._taxRate=19;W._taxInclude=true;
+    try{var tc=await W.api('/api/v1/admin/store/tax-config');if(tc&&tc.data){W._taxRate=Number(tc.data.tax_rate)||19;W._taxInclude=tc.data.prices_include_tax!==false;}}catch(e){}
     var cats=(await W.api('/api/v1/admin/store/categories')).data||[];
     var catOpts='<option value="">Sin categoría</option>';
-    cats.forEach(function(c){catOpts+='<option value="'+c.id+'"'+(String(p.category_id)===String(c.id)?' selected':'')+'>'+W.esc(c.name)+'</option>'});
-    var body='<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'
-        +'<div><label style="font-size:11px;color:var(--w-muted)">Nombre *</label><input class="w-input" id="sp-name" value="'+W.esc(p.name)+'" style="width:100%"/></div>'
-        +'<div><label style="font-size:11px;color:var(--w-muted)">Slug</label><input class="w-input" id="sp-slug" value="'+W.esc(p.slug)+'" style="width:100%"/></div>'
-        +'<div><label style="font-size:11px;color:var(--w-muted)">Categoría</label><select class="w-input" id="sp-cat" style="width:100%">'+catOpts+'</select></div>'
-        +'<div><label style="font-size:11px;color:var(--w-muted)">SKU</label><input class="w-input" id="sp-sku" value="'+W.esc(p.sku)+'" style="width:100%"/></div>'
-        +'<div><label style="font-size:11px;color:var(--w-muted)">Precio (en centavos) *</label><input class="w-input" type="number" id="sp-price" value="'+p.price_cents+'" style="width:100%"/></div>'
-        +'<div><label style="font-size:11px;color:var(--w-muted)">Precio comparación (centavos)</label><input class="w-input" type="number" id="sp-compare" value="'+p.compare_price_cents+'" style="width:100%"/></div>'
-        +'<div><label style="font-size:11px;color:var(--w-muted)">Stock</label><input class="w-input" type="number" id="sp-stock" value="'+p.stock+'" style="width:100%"/></div>'
-        +'<div><label style="font-size:11px;color:var(--w-muted)">Estado</label><select class="w-input" id="sp-status" style="width:100%">'
-            +['draft','active','archived'].map(function(s){return '<option value="'+s+'"'+(p.status===s?' selected':'')+'>'+s+'</option>'}).join('')+'</select></div>'
-        +'<div><label style="font-size:11px;color:var(--w-muted)">Controlar stock</label><select class="w-input" id="sp-track" style="width:100%"><option value="1"'+(p.track_stock==1?' selected':'')+'>Sí</option><option value="0"'+(p.track_stock!=1?' selected':'')+'>No (ilimitado)</option></select></div>'
-        +'<div><label style="font-size:11px;color:var(--w-muted)">Destacado</label><select class="w-input" id="sp-featured" style="width:100%"><option value="0"'+(p.is_featured!=1?' selected':'')+'>No</option><option value="1"'+(p.is_featured==1?' selected':'')+'>Sí</option></select></div>'
+    cats.forEach(function(c){
+        var label=(c.level&&c.level>1&&c.path)?c.path.replace(/\//g,' / '):c.name;
+        catOpts+='<option value="'+c.id+'"'+(String(p.category_id)===String(c.id)?' selected':'')+'>'+W.esc(label)+'</option>';
+    });
+    var draftBanner=draft?'<div id="sp-draft-banner" style="display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:#eef6ff;border:1px solid #bfdbfe;color:#1e3a8a;border-radius:10px;padding:9px 11px;font-size:11.5px;line-height:1.45;margin-bottom:12px"><span><b>Borrador recuperado.</b> Puedes continuar donde lo dejaste.</span><button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.storeProductDraftDiscard()">Descartar borrador</button></div>':'';
+    var errorBox='<div id="sp-error" role="alert" style="display:none;background:#fff1f0;border:1px solid #f5c2c0;color:#9f1d17;border-radius:10px;padding:10px 12px;font-size:12px;line-height:1.5;margin-bottom:12px"></div>';
+    var pricePesos=Math.round((parseInt(p.price_cents)||0)/100);
+    var comparePesos=Math.round((parseInt(p.compare_price_cents)||0)/100);
+    var statusOpts=[['draft','Borrador'],['active','Activo'],['archived','Archivado']].map(function(s){return '<option value="'+s[0]+'"'+(p.status===s[0]?' selected':'')+'>'+s[1]+'</option>'}).join('');
+    var editorCss='<style>'
+        +'.sp-editor{display:grid;grid-template-columns:minmax(0,1fr) 246px;gap:16px;align-items:start}'
+        +'.sp-editor__main{display:grid;gap:12px;min-width:0}'
+        +'.sp-card{background:var(--w-bg2);border:1px solid var(--w-border);border-radius:14px;padding:14px}'
+        +'.sp-card__head{display:flex;gap:9px;align-items:flex-start;margin-bottom:12px}'
+        +'.sp-card__num{width:23px;height:23px;border-radius:8px;background:var(--w-brand);color:#fff;display:grid;place-items:center;font-size:10px;font-weight:800;flex:none}'
+        +'.sp-card h4{margin:0;font-size:12.5px;color:var(--w-text);letter-spacing:.01em}'
+        +'.sp-card__head p{margin:2px 0 0;font-size:10.5px;color:var(--w-muted);line-height:1.4}'
+        +'.sp-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}'
+        +'.sp-grid .full{grid-column:1/-1}'
+        +'.sp-label{display:block;font-size:10px;font-weight:800;color:var(--w-muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em}'
+        +'.sp-money{display:flex;align-items:center;border:1px solid var(--w-border);border-radius:8px;background:var(--w-surface);overflow:hidden}'
+        +'.sp-money span{padding:0 10px;color:var(--w-muted);font-weight:800;font-size:12px}'
+        +'.sp-money input{border:0!important;border-radius:0!important;background:transparent!important;flex:1;box-shadow:none!important}'
+        +'.sp-check{display:flex;gap:9px;align-items:flex-start;padding:9px 10px;border:1px solid var(--w-border);border-radius:10px;background:var(--w-surface);font-size:12px;font-weight:700;color:var(--w-text);cursor:pointer;margin-top:8px;line-height:1.35}'
+        +'.sp-check input{margin-top:2px;flex:none}'
+        +'.sp-check small{display:block;font-size:10.5px;font-weight:400;color:var(--w-muted);margin-top:2px;line-height:1.45}'
+        +'.sp-hint{font-size:10.5px;color:var(--w-muted);line-height:1.45;margin-top:5px}'
+        +'.sp-hint b{color:var(--w-text)}'
+        +'.sp-side{position:sticky;top:0;display:grid;gap:12px}'
+        +'.sp-preview{background:linear-gradient(160deg,var(--w-surface),var(--w-bg2));border:1px solid var(--w-border);border-radius:14px;padding:12px;overflow:hidden}'
+        +'.sp-preview__label{font-size:9px;text-transform:uppercase;letter-spacing:.09em;color:var(--w-muted);font-weight:800;margin-bottom:8px}'
+        +'.sp-preview__img{width:100%;height:126px;object-fit:cover;border-radius:10px;background:var(--w-bg);border:1px solid var(--w-border);display:grid;place-items:center;color:var(--w-muted);font-size:26px;overflow:hidden}'
+        +'.sp-preview__img img{width:100%;height:100%;object-fit:cover}'
+        +'.sp-preview__name{font-weight:800;font-size:12.5px;color:var(--w-text);margin-top:8px;line-height:1.35;min-height:32px}'
+        +'.sp-preview__price{font-weight:800;font-size:16px;color:var(--w-brand);margin-top:4px}'
+        +'.sp-preview__badges{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}'
+        +'.sp-pill{font-size:9px;font-weight:800;padding:3px 6px;border-radius:999px;background:var(--w-bg);border:1px solid var(--w-border);color:var(--w-muted)}'
+        +'.sp-pill.green{background:rgba(13,159,114,.12);border-color:rgba(13,159,114,.3);color:#0d9f72}'
+        +'.sp-pill.purple{background:rgba(124,92,255,.12);border-color:rgba(124,92,255,.3);color:#7c5cff}'
+        +'.sp-pill.red{background:rgba(242,13,22,.1);border-color:rgba(242,13,22,.3);color:#f20d16}'
+        +'.sp-tips{background:var(--w-bg2);border:1px dashed var(--w-border);border-radius:14px;padding:12px;font-size:10.5px;color:var(--w-muted);line-height:1.55}'
+        +'.sp-tips b{display:block;color:var(--w-text);font-size:11px;margin-bottom:5px}'
+        +'.sp-tips ul{margin:0;padding-left:15px}'
+        +'.sp-tips li{margin:3px 0}'
+        +'@media(max-width:900px){.sp-editor{grid-template-columns:1fr}.sp-side{position:static;grid-row:1}.sp-grid{grid-template-columns:1fr}}'
+        +'</style>';
+    var body=errorBox+draftBanner+editorCss
+        +'<div class="sp-editor"><div class="sp-editor__main">'
+        +'<section class="sp-card"><div class="sp-card__head"><span class="sp-card__num">01</span><div><h4>Información básica</h4><p>Nombre, categoría y estado del producto.</p></div></div><div class="sp-grid">'
+        +'<div class="full"><label class="sp-label">Nombre *</label><input class="w-input" id="sp-name" value="'+W.esc(p.name)+'" placeholder="Ej: Guitarra eléctrica Fender Player"/></div>'
+        +'<div><label class="sp-label">Slug</label><input class="w-input" id="sp-slug" value="'+W.esc(p.slug)+'" placeholder="se-genera-automaticamente"/></div>'
+        +'<div><label class="sp-label">Categoría</label><select class="w-input" id="sp-cat">'+catOpts+'</select></div>'
+        +'<div><label class="sp-label">SKU</label><input class="w-input" id="sp-sku" value="'+W.esc(p.sku)+'" placeholder="Código interno"/></div>'
+        +'<div><label class="sp-label">Estado</label><select class="w-input" id="sp-status">'+statusOpts+'</select></div>'
+        +'<div><label class="sp-label">Destacado</label><select class="w-input" id="sp-featured"><option value="0"'+(p.is_featured!=1?' selected':'')+'>No</option><option value="1"'+(p.is_featured==1?' selected':'')+'>Sí, destacar</option></select></div>'
+        +'</div></section>'
+        +'<section class="sp-card"><div class="sp-card__head"><span class="sp-card__num">02</span><div><h4>Precio e impuestos</h4><p>Escribe en pesos; el signo $ y los separadores se agregan automáticamente.</p></div></div><div class="sp-grid">'
+        +'<div><label class="sp-label">Precio *</label><div class="sp-money"><span>$</span><input class="w-input" type="text" inputmode="numeric" id="sp-price" value="'+(pricePesos?W.moneyFormat(pricePesos):'')+'" placeholder="1.000" onfocus="this.select()"/></div><div class="sp-hint">Ej: 1.000 = $1.000 COP</div></div>'
+        +'<div><label class="sp-label">Precio comparación</label><div class="sp-money"><span>$</span><input class="w-input" type="text" inputmode="numeric" id="sp-compare" value="'+(comparePesos?W.moneyFormat(comparePesos):'')+'" placeholder="Opcional" onfocus="this.select()"/></div><div class="sp-hint">Precio anterior tachado.</div></div>'
         +'</div>'
-        +'<div style="margin-top:12px"><label style="font-size:11px;color:var(--w-muted)">Descripción corta</label><input class="w-input" id="sp-short" value="'+W.esc(p.short_description||'')+'" style="width:100%"/></div>'
-        +'<div style="margin-top:12px"><label style="font-size:11px;color:var(--w-muted)">Descripción</label><textarea class="w-input" id="sp-desc" rows="4" style="width:100%">'+W.esc(p.description||'')+'</textarea></div>'
-        +'<div style="margin-top:12px"><label style="font-size:11px;color:var(--w-muted)">Imágenes</label><div id="sp-images-list" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px"></div>'
-        +'<div style="display:flex;gap:6px"><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.storeMediaPicker()">+ Elegir del Media</button>'
-        +'<input class="w-input" id="sp-img-url" placeholder="https://... o /assets/uploads/..." style="flex:1"/>'
-        +'<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.storeAddImageUrl()">+ URL</button></div></div>'
-        +'<div style="margin-top:12px"><label style="font-size:11px;color:var(--w-muted)">Variantes (nombre, precio en centavos, stock)</label><div id="sp-variants"></div><button class="w-btn w-btn-secondary w-btn-sm" style="margin-top:6px" onclick="wontia.storeVariantRow()">+ Variante</button></div>';
-    W.modal(id?('Editar producto #'+id):'Nuevo producto',body,'<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cancelar</button><button class="w-btn w-btn-primary" onclick="wontia.storeProductSave('+(id||0)+')">Guardar</button>');
+        +'<label class="sp-check"><input type="checkbox" id="sp-vat"'+(p.tax_exempt!=1?' checked':'')+'> <span>Cobrar IVA ('+W._taxRate+'%)<small>Desmárcalo para días sin IVA o productos exentos. El precio no cambia: solo se discrimina el impuesto.</small></span></label>'
+        +'<div id="sp-tax-preview" class="sp-hint"></div>'
+        +'</section>'
+        +'<section class="sp-card"><div class="sp-card__head"><span class="sp-card__num">03</span><div><h4>Inventario y envío</h4><p>Stock, peso y regla de flete.</p></div></div><div class="sp-grid">'
+        +'<div><label class="sp-label">Stock</label><input class="w-input" type="number" min="0" id="sp-stock" value="'+(parseInt(p.stock)||0)+'"/></div>'
+        +'<div><label class="sp-label">Controlar stock</label><select class="w-input" id="sp-track"><option value="1"'+(p.track_stock==1?' selected':'')+'>Sí, controlar</option><option value="0"'+(p.track_stock!=1?' selected':'')+'>No, ilimitado</option></select></div>'
+        +'<div><label class="sp-label">Peso (gramos)</label><input class="w-input" type="number" min="0" id="sp-weight" value="'+(parseInt(p.weight_grams)||0)+'"/><div class="sp-hint">Se usa para la promesa de entrega en Barranquilla.</div></div>'
+        +'</div>'
+        +'<label class="sp-check"><input type="checkbox" id="sp-free-shipping"'+(p.free_shipping!=1?' checked':'')+'> <span>Cobrar flete o transporte a este producto<small>Desmárcalo para que este producto no pague flete y no sume al umbral de envío gratis.</small></span></label>'
+        +'</section>'
+        +'<section class="sp-card"><div class="sp-card__head"><span class="sp-card__num">04</span><div><h4>Visibilidad</h4><p>Controla quién puede ver y comprar este producto.</p></div></div>'
+        +'<label class="sp-check"><input type="checkbox" id="sp-private"'+(p.visibility==='private'?' checked':'')+'> <span>Visible solo para IPs autorizadas<small>No aparece en catálogo, búsquedas, sitemap ni API para otras IPs. Los administradores con sesión siempre pueden verlo.</small></span></label>'
+        +'<div id="sp-private-wrap" style="display:'+(p.visibility==='private'?'block':'none')+';margin-top:8px"><label class="sp-label">IPs autorizadas</label><div style="display:flex;gap:6px;flex-wrap:wrap"><input class="w-input" id="sp-allowed-ips" value="'+W.esc(p.allowed_ips||'')+'" placeholder="190.1.2.3, 10.0.0.0/8, 190.1.2.*" style="flex:1;min-width:180px"/><button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.storeUseMyIp()">Usar mi IP</button></div><div class="sp-hint">Acepta IP exacta, CIDR o comodín. Si lo dejas vacío, solo lo verán administradores con sesión.</div></div>'
+        +'</section>'
+        +'<section class="sp-card"><div class="sp-card__head"><span class="sp-card__num">05</span><div><h4>Descripción e imágenes</h4><p>Cuéntale al cliente qué hace especial este producto.</p></div></div>'
+        +'<label class="sp-label">Descripción corta</label><input class="w-input" id="sp-short" maxlength="500" value="'+W.esc(p.short_description||'')+'" placeholder="Una frase que resuma el producto"/><div class="sp-hint" id="sp-short-count" style="text-align:right">0/500</div>'
+        +'<label class="sp-label" style="margin-top:10px">Descripción</label><textarea class="w-input" id="sp-desc" rows="5" placeholder="Características, medidas, materiales, garantía...">'+W.esc(p.description||'')+'</textarea>'
+        +'<label class="sp-label" style="margin-top:10px">Imágenes</label><div id="sp-images-list" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px"></div>'
+        +'<div style="display:flex;gap:6px;flex-wrap:wrap"><button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.storeMediaPicker()">+ Elegir del Media</button><input class="w-input" id="sp-img-url" placeholder="https://... o /assets/uploads/..." style="flex:1;min-width:160px"/><button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.storeAddImageUrl()">+ URL</button></div>'
+        +'</section>'
+        +'<section class="sp-card"><div class="sp-card__head"><span class="sp-card__num">06</span><div><h4>Variantes</h4><p>Opcional: tallas, colores o presentaciones. El precio también se escribe en pesos.</p></div></div><div id="sp-variants"></div><button type="button" class="w-btn w-btn-secondary w-btn-sm" style="margin-top:6px" onclick="wontia.storeVariantRow()">+ Variante</button></section>'
+        +'</div><aside class="sp-side"><div class="sp-preview"><div class="sp-preview__label">Vista rápida</div><div class="sp-preview__img" id="sp-preview-img"><span>♪</span></div><div class="sp-preview__name" id="sp-preview-name"></div><div class="sp-preview__price" id="sp-preview-price"></div><div class="sp-preview__badges" id="sp-preview-badges"></div></div>'
+        +'<div class="sp-tips"><b>Buenas prácticas</b><ul><li>Nombre claro y sin mayúsculas sostenidas.</li><li>El precio se escribe en pesos: 1.000 = $1.000.</li><li>Marca envío gratis solo si el flete lo asume SONIKA.</li><li>Los productos privados no se indexan en buscadores.</li></ul></div></aside></div>';
+    W.modal(id?('Editar producto #'+id):'Nuevo producto',body,'<button type="button" class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cancelar</button><button type="button" class="w-btn w-btn-primary" id="sp-save" onclick="wontia.storeProductSave('+(id||0)+')">Guardar producto</button>',{wide:true});
     W.state.storeImages=(p.images||[]).slice();
+    W.state.storeProductDirty=false;
     W.storeRenderImages();
     (p.variants||[]).forEach(function(v){W.storeVariantRow(v)});
+    W._modalDirty=function(){return !!W.state.storeProductDirty};
+    var privateChk=document.getElementById('sp-private');
+    if(privateChk)privateChk.addEventListener('change',function(){var w=document.getElementById('sp-private-wrap');if(w)w.style.display=privateChk.checked?'block':'none';W.storeUpdatePreview();});
+    W.storeUpdateTaxPreview();
+    W.storeUpdatePreview();
+    W.storeUpdateShortCount();
+    var content=document.getElementById('w-modal-content');
+    if(content){
+        content.addEventListener('input',function(e){
+            var t=e.target;if(!t)return;
+            if(t.matches&&t.matches('#sp-price,#sp-compare,.sp-v-price'))W.moneyFormatInput(t);
+            if((t.id&&t.id.indexOf('sp-')===0)||(t.classList&&(t.classList.contains('sp-v-name')||t.classList.contains('sp-v-price')||t.classList.contains('sp-v-stock')))){
+                W.state.storeProductDirty=true;W.storeProductDraftSchedule();
+                if(t.id==='sp-price'||t.id==='sp-compare')W.storeUpdateTaxPreview();
+                W.storeUpdatePreview();W.storeUpdateShortCount();
+            }
+        });
+        content.addEventListener('change',function(e){
+            var t=e.target;if(!t)return;
+            if((t.id&&t.id.indexOf('sp-')===0)||(t.classList&&(t.classList.contains('sp-v-name')||t.classList.contains('sp-v-price')||t.classList.contains('sp-v-stock')))){
+                W.state.storeProductDirty=true;W.storeProductDraftSchedule();
+                W.storeUpdateTaxPreview();W.storeUpdatePreview();W.storeUpdateShortCount();
+            }
+        });
+    }
 };
 
 W.storeRenderImages=function(){
@@ -7418,11 +7742,13 @@ W.storeRenderImages=function(){
             +'<img src="'+W.esc(u)+'" style="width:100%;height:100%;object-fit:cover" onerror="this.style.opacity=.25"/>'
             +'<button class="w-btn w-btn-danger w-btn-sm" style="position:absolute;top:2px;right:2px;padding:1px 6px;font-size:11px" onclick="wontia.storeRemoveImage('+i+')">×</button></div>';
     }).join('');
+    if(typeof W.storeUpdatePreview==='function')W.storeUpdatePreview();
 };
 
 W.storeRemoveImage=function(i){
     (W.state.storeImages||[]).splice(i,1);
     W.storeRenderImages();
+    W.state.storeProductDirty=true;W.storeProductDraftSchedule();
 };
 
 W.storeAddImageUrl=function(){
@@ -7433,28 +7759,41 @@ W.storeAddImageUrl=function(){
     W.state.storeImages.push(u);
     if(el)el.value='';
     W.storeRenderImages();
+    W.state.storeProductDirty=true;W.storeProductDraftSchedule();
 };
 
 W.storeMediaPicker=async function(){
+    var existing=document.getElementById('sp-media-picker');
+    if(existing){existing.remove();return}
+    var host=document.getElementById('sp-img-url');
+    if(!host){W.notify('Abre el editor de producto para elegir imágenes.','error');return}
+    var section=host.parentNode?host.parentNode.parentNode:null;
+    if(!section)return;
+    var panel=document.createElement('div');
+    panel.id='sp-media-picker';
+    panel.style.cssText='margin-top:10px;border:1px solid var(--w-border);border-radius:12px;padding:10px;background:var(--w-bg2)';
+    panel.innerHTML='<div style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:8px"><b style="font-size:12px">Elegir imagen del Media</b><button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="document.getElementById(\'sp-media-picker\').remove()">Cerrar</button></div><div style="font-size:11px;color:var(--w-muted)">Cargando…</div>';
+    section.appendChild(panel);
     var r=await W.api('/api/v1/admin/media?page=1');
     var rows=r.data||[];
-    if(!rows.length){W.notify('No hay archivos en Media. Sube imágenes primero.','error');return}
-    var grid='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px;max-height:420px;overflow:auto">';
+    if(!rows.length){panel.innerHTML='<div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><span style="font-size:11px;color:var(--w-muted)">No hay archivos en Media. Sube imágenes primero.</span><button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="document.getElementById(\'sp-media-picker\').remove()">Cerrar</button></div>';return}
+    var grid='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px;max-height:360px;overflow:auto">';
     rows.forEach(function(m){
         var isImg=(m.mime||'').indexOf('image/')===0;
-        grid+='<div style="cursor:pointer;border:1px solid var(--w-border);border-radius:10px;overflow:hidden" onclick="wontia.storePickMedia(\''+W.esc(m.url).replace(/'/g,'')+'\')">'
+        grid+='<div style="cursor:pointer;border:1px solid var(--w-border);border-radius:10px;overflow:hidden;background:var(--w-surface)" onclick="wontia.storePickMedia(\''+W.esc(m.url).replace(/'/g,'')+'\')">'
             +(isImg?'<img src="'+W.esc(m.url)+'" style="width:100%;height:84px;object-fit:cover;display:block"/>':'<div style="height:84px;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--w-muted)">'+W.esc(m.mime||'file')+'</div>')
             +'<div style="font-size:10px;color:var(--w-muted);padding:4px 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+W.esc(m.filename||'')+'</div></div>';
     });
     grid+='</div>';
-    W.modal('Elegir imagen del Media',grid,'<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cerrar</button>');
+    panel.innerHTML='<div style="display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:8px"><b style="font-size:12px">Elegir imagen del Media</b><button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="document.getElementById(\'sp-media-picker\').remove()">Cerrar</button></div>'+grid;
 };
 
 W.storePickMedia=function(url){
     W.state.storeImages=W.state.storeImages||[];
     W.state.storeImages.push(url);
-    W.closeModal();
+    var panel=document.getElementById('sp-media-picker');if(panel)panel.remove();
     W.storeRenderImages();
+    W.state.storeProductDirty=true;W.storeProductDraftSchedule();
 };
 
 W.storeVariantRow=function(v){
@@ -7463,27 +7802,72 @@ W.storeVariantRow=function(v){
     var d=document.createElement('div');
     d.style.cssText='display:grid;grid-template-columns:1fr 110px 90px 34px;gap:6px;margin-top:6px';
     d.innerHTML='<input class="w-input sp-v-name" value="'+W.esc(v.name)+'" placeholder="Ej: Talla M"/>'
-        +'<input class="w-input sp-v-price" type="number" value="'+(v.price_cents||0)+'" placeholder="Precio"/>'
+        +'<input class="w-input sp-v-price" type="text" inputmode="numeric" value="'+(v.price_cents?W.moneyFormat(Math.round(v.price_cents/100)):'')+'" placeholder="Precio $" onfocus="this.select()"/>'
         +'<input class="w-input sp-v-stock" type="number" value="'+(v.stock||0)+'" placeholder="Stock"/>'
-        +'<button class="w-btn w-btn-danger w-btn-sm" onclick="this.parentNode.remove()">×</button>';
+        +'<button type="button" class="w-btn w-btn-danger w-btn-sm" onclick="this.parentNode.remove()">×</button>';
     c.appendChild(d);
+    if(document.getElementById('sp-name')){W.state.storeProductDirty=true;W.storeProductDraftSchedule();}
+};
+
+W.storeUseMyIp=async function(){
+    var input=document.getElementById('sp-allowed-ips');
+    if(!input)return;
+    try{
+        var r=await W.api('/api/v1/admin/store/current-ip');
+        var ip=r&&r.data?String(r.data.ip||''):'';
+        if(!ip){W.notify('No se pudo detectar tu IP.','error');return}
+        var current=input.value.trim();
+        if(current && current.split(',').map(function(x){return x.trim()}).indexOf(ip)<0)input.value=current+', '+ip;
+        else input.value=ip;
+        W.state.storeProductDirty=true;W.storeProductDraftSchedule();
+        W.notify('IP agregada: '+ip,'success');
+    }catch(e){W.notify('No se pudo detectar tu IP.','error')}
 };
 
 W.storeProductSave=async function(id){
     var v=function(s){var el=document.querySelector(s);return el?el.value:''};
+    var errorEl=document.getElementById('sp-error');
+    var showError=function(msg,silent){if(errorEl){errorEl.textContent=msg;errorEl.style.display='block';try{errorEl.scrollIntoView({behavior:'smooth',block:'nearest'})}catch(e){}}if(!silent)W.notify(msg,'error')};
+    var name=String(v('#sp-name')||'').trim();
+    if(name.length<2){showError('Escribe un nombre de producto válido.');var n=document.getElementById('sp-name');if(n)n.focus();return}
     var images=(W.state.storeImages||[]).slice();
     var variants=[];
     document.querySelectorAll('#sp-variants > div').forEach(function(row){
         var nm=row.querySelector('.sp-v-name').value.trim();
         if(!nm)return;
-        variants.push({name:nm,price_cents:parseInt(row.querySelector('.sp-v-price').value)||0,stock:parseInt(row.querySelector('.sp-v-stock').value)||0});
+        variants.push({name:nm,price_cents:W.moneyValue(row.querySelector('.sp-v-price').value),stock:parseInt(row.querySelector('.sp-v-stock').value)||0});
     });
-    var payload={id:id||undefined,name:v('#sp-name'),slug:v('#sp-slug'),category_id:v('#sp-cat')||null,sku:v('#sp-sku'),
-        price_cents:parseInt(v('#sp-price'))||0,compare_price_cents:parseInt(v('#sp-compare'))||0,stock:parseInt(v('#sp-stock'))||0,
-        track_stock:parseInt(v('#sp-track')),status:v('#sp-status'),is_featured:parseInt(v('#sp-featured')),
+    var payload={id:id||undefined,name:name,slug:v('#sp-slug'),category_id:v('#sp-cat')||null,sku:v('#sp-sku'),
+        price_cents:W.moneyValue(v('#sp-price')),compare_price_cents:W.moneyValue(v('#sp-compare')),stock:parseInt(v('#sp-stock'))||0,
+        track_stock:parseInt(v('#sp-track')),weight_grams:parseInt(v('#sp-weight'))||0,status:v('#sp-status'),is_featured:parseInt(v('#sp-featured')),
+        free_shipping:(document.getElementById('sp-free-shipping')&&document.getElementById('sp-free-shipping').checked)?0:1,
+        tax_exempt:(document.getElementById('sp-vat')&&!document.getElementById('sp-vat').checked)?1:0,
+        visibility:(document.getElementById('sp-private')&&document.getElementById('sp-private').checked)?'private':'public',
+        allowed_ips:v('#sp-allowed-ips'),
         short_description:v('#sp-short'),description:v('#sp-desc'),images:images,variants:variants};
-    var r=await W.api(id?('/api/v1/admin/store/products/'+id):'/api/v1/admin/store/products',{method:id?'PUT':'POST',body:payload});
-    if(r.ok){W.notify('Producto guardado','success');W.closeModal();W.storeProductsLoad()}
+    var btn=document.getElementById('sp-save');
+    var oldLabel=btn?btn.textContent:'Guardar';
+    if(btn){btn.disabled=true;btn.textContent='Guardando…'}
+    if(errorEl){errorEl.style.display='none';errorEl.textContent=''}
+    try{
+        var r=await W.api(id?('/api/v1/admin/store/products/'+id):'/api/v1/admin/store/products',{method:id?'PUT':'POST',body:payload});
+        if(r&&r.ok){
+            clearTimeout(W._spDraftTimer);
+            W.state.storeProductDirty=false;
+            W.storeProductDraftClear();
+            W.notify(id?'Producto actualizado':'Producto creado','success');
+            W.closeModal(true);
+            if(!id){var st=document.getElementById('store-p-status');if(st)st.value='';var q=document.getElementById('store-p-search');if(q)q.value='';}
+            W.storeProductsLoad();
+            return;
+        }
+        var msg=(r&&(r.message||(r.data&&r.data.message)))||'No se pudo guardar el producto. Intenta de nuevo.';
+        showError(msg,true);
+    }catch(e){
+        showError('Error de conexión al guardar el producto.');
+    }finally{
+        if(btn){btn.disabled=false;btn.textContent=oldLabel}
+    }
 };
 
 W.storeProductDelete=function(id){
@@ -7502,7 +7886,8 @@ W.storeCategories=async function(){
     else{
         html+='<div class="w-card" style="padding:0"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="text-align:left;color:var(--w-muted);font-size:11px;text-transform:uppercase"><th style="padding:12px 14px">Nombre</th><th style="padding:12px 14px">Slug</th><th style="padding:12px 14px">Productos</th><th style="padding:12px 14px">Activa</th><th style="padding:12px 14px"></th></tr></thead><tbody>';
         rows.forEach(function(c){
-            html+='<tr style="border-top:1px solid var(--w-border)"><td style="padding:12px 14px;font-weight:600">'+W.esc(c.name)+'</td><td style="padding:12px 14px;color:var(--w-muted)">'+W.esc(c.slug)+'</td>'
+            var indent=(c.level&&c.level>1)?'— '.repeat(c.level-1):'';
+            html+='<tr style="border-top:1px solid var(--w-border)"><td style="padding:12px 14px;font-weight:600">'+W.esc(indent+(c.name||''))+'</td><td style="padding:12px 14px;color:var(--w-muted)">'+W.esc(c.path||c.slug)+'</td>'
                 +'<td style="padding:12px 14px">'+(c.product_count||0)+'</td><td style="padding:12px 14px">'+(c.is_active==1?'Sí':'No')+'</td>'
                 +'<td style="padding:12px 14px;text-align:right;white-space:nowrap"><button class="w-btn w-btn-secondary w-btn-sm" onclick=\'wontia.storeCategoryEditor('+JSON.stringify(c)+')\'>Editar</button> '
                 +'<button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.storeCategoryDelete('+c.id+')">Eliminar</button></td></tr>';
@@ -7535,68 +7920,465 @@ W.storeCategoryDelete=function(id){
     });
 };
 
-W.storeOrders=async function(){
+W.storeOrdersTab='active';
+W.storeOrdersSelected=[];
+
+W.storeOrders=async function(tab){
+    if(tab)W.storeOrdersTab=tab;
     var el=document.getElementById('store-content');
-    el.innerHTML='<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px"><input class="w-input" style="width:240px" id="store-o-search" placeholder="Buscar pedido, cliente..."/>'
-        +'<select class="w-input" id="store-o-pay" style="width:150px"><option value="">Pago: todos</option><option value="pending">Pendiente</option><option value="paid">Pagado</option><option value="failed">Fallido</option></select>'
-        +'<select class="w-input" id="store-o-ful" style="width:170px"><option value="">Estado: todos</option><option value="new">Nuevo</option><option value="confirmed">Confirmado</option><option value="preparing">Preparando</option><option value="shipped">Enviado</option><option value="delivered">Entregado</option><option value="cancelled">Cancelado</option></select></div>'
+    el.innerHTML='<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:12px">'
+        +'<div style="display:flex;gap:6px;flex-wrap:wrap">'
+        +'<button type="button" class="w-btn w-btn-secondary w-btn-sm" id="store-o-tab-active" onclick="wontia.storeOrdersSetTab(\'active\')">Pedidos <span id="store-o-count-active" style="opacity:.7"></span></button>'
+        +'<button type="button" class="w-btn w-btn-secondary w-btn-sm" id="store-o-tab-archived" onclick="wontia.storeOrdersSetTab(\'archived\')">Archivados <span id="store-o-count-archived" style="opacity:.7"></span></button>'
+        +'</div>'
+        +'<div style="display:flex;gap:6px;flex-wrap:wrap">'
+        +'<button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.storeOrdersMetrics()">Métricas</button>'
+        +'<button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.storeOrdersDetectTests()">Detectar pruebas</button>'
+        +'<button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.storeOrdersExport()">Exportar CSV</button>'
+        +'</div></div>'
+        +'<div class="w-card" style="padding:10px 12px;margin-bottom:12px">'
+        +'<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">'
+        +'<input class="w-input" style="width:210px" id="store-o-search" placeholder="Buscar pedido, cliente, email..."/>'
+        +'<select class="w-input" id="store-o-pay" style="width:135px"><option value="">Pago: todos</option><option value="pending">Pendiente</option><option value="paid">Pagado</option><option value="failed">Fallido</option><option value="refunded">Reembolsado</option></select>'
+        +'<select class="w-input" id="store-o-ful" style="width:155px"><option value="">Estado: todos</option><option value="new">Nuevo</option><option value="confirmed">Confirmado</option><option value="preparing">Preparando</option><option value="shipped">Enviado</option><option value="delivered">Entregado</option><option value="cancelled">Cancelado</option></select>'
+        +'<select class="w-input" id="store-o-test" style="width:135px"><option value="">Tipo: todos</option><option value="0">Reales</option><option value="1">Pruebas</option></select>'
+        +'<button type="button" class="w-btn w-btn-primary w-btn-sm" id="store-o-bulk" onclick="wontia.storeOrdersArchiveSelected()">Archivar seleccionados</button>'
+        +'<button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.storeOrdersMarkSelected(1)">Marcar prueba</button>'
+        +'<button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.storeOrdersMarkSelected(0)">Quitar prueba</button>'
+        +'</div>'
+        +'<details style="margin-top:8px"><summary style="cursor:pointer;font-size:11px;color:var(--w-muted);font-weight:700">Filtros avanzados</summary>'
+        +'<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:end;margin-top:8px">'
+        +'<div><label style="display:block;font-size:10px;color:var(--w-muted);margin-bottom:3px">Método de pago</label><select class="w-input" id="store-o-method" style="width:150px"><option value="">Todos</option><option value="breb">Bre-B</option><option value="mercadopago">Mercado Pago</option><option value="sistecredito">Sistecrédito</option><option value="epayco">ePayco</option><option value="addi">Addi</option><option value="request">Pago asistido</option><option value="cod">Contra entrega</option><option value="wompi">Wompi</option></select></div>'
+        +'<div><label style="display:block;font-size:10px;color:var(--w-muted);margin-bottom:3px">Desde</label><input type="date" class="w-input" id="store-o-from" style="width:135px"/></div>'
+        +'<div><label style="display:block;font-size:10px;color:var(--w-muted);margin-bottom:3px">Hasta</label><input type="date" class="w-input" id="store-o-to" style="width:135px"/></div>'
+        +'<div><label style="display:block;font-size:10px;color:var(--w-muted);margin-bottom:3px">Monto mín. ($)</label><input type="number" min="0" step="1" class="w-input" id="store-o-min" style="width:110px"/></div>'
+        +'<div><label style="display:block;font-size:10px;color:var(--w-muted);margin-bottom:3px">Monto máx. ($)</label><input type="number" min="0" step="1" class="w-input" id="store-o-max" style="width:110px"/></div>'
+        +'<button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.storeOrdersClearFilters()">Limpiar filtros</button>'
+        +'<button type="button" class="w-btn w-btn-secondary w-btn-sm" id="store-o-filtered" onclick="wontia.storeOrdersArchiveFiltered()">Archivar filtrados</button>'
+        +'</div></details>'
+        +'<div id="store-o-summary" style="font-size:11px;color:var(--w-muted);margin-top:8px"></div>'
+        +'</div>'
         +'<div id="store-o-list"></div>';
+    W.storeOrdersSelected=[];
     W.storeOrdersLoad();
-    document.getElementById('store-o-search').addEventListener('input',W.storeOrdersLoad);
-    document.getElementById('store-o-pay').addEventListener('change',W.storeOrdersLoad);
-    document.getElementById('store-o-ful').addEventListener('change',W.storeOrdersLoad);
+    ['store-o-search','store-o-pay','store-o-ful','store-o-test','store-o-method','store-o-from','store-o-to','store-o-min','store-o-max'].forEach(function(id){
+        var e=document.getElementById(id);if(!e)return;
+        e.addEventListener(id==='store-o-search'?'input':'change',W.storeOrdersLoad);
+    });
+};
+
+W.storeOrdersSetTab=function(tab){
+    W.storeOrdersTab=tab||'active';
+    W.storeOrdersSelected=[];
+    W.storeOrdersLoad();
+};
+
+W.storeOrdersFilters=function(){
+    var v=function(id){var e=document.getElementById(id);return e?String(e.value||'').trim():''};
+    var min=v('store-o-min'),max=v('store-o-max');
+    return {
+        search:v('store-o-search'),
+        payment_status:v('store-o-pay'),
+        fulfillment_status:v('store-o-ful'),
+        is_test:v('store-o-test'),
+        payment_method:v('store-o-method'),
+        date_from:v('store-o-from'),
+        date_to:v('store-o-to'),
+        min_cents:min!==''?(Math.round(parseFloat(min)*100)||''):'',
+        max_cents:max!==''?(Math.round(parseFloat(max)*100)||''):'',
+        archived:W.storeOrdersTab==='archived'?'1':'0'
+    };
+};
+
+W.storeOrdersClearFilters=function(){
+    ['store-o-search','store-o-pay','store-o-ful','store-o-test','store-o-method','store-o-from','store-o-to','store-o-min','store-o-max'].forEach(function(id){
+        var e=document.getElementById(id);if(e)e.value='';
+    });
+    W.storeOrdersSelected=[];
+    W.storeOrdersLoad();
+};
+
+W.storeOrdersExport=function(){
+    var f=W.storeOrdersFilters();
+    var qs=Object.keys(f).map(function(k){return encodeURIComponent(k)+'='+encodeURIComponent(f[k])}).join('&');
+    window.open('/api/v1/admin/store/orders/export?'+qs,'_blank');
+};
+
+W.storeOrdersMetrics=async function(){
+    var a=await W.api('/api/v1/admin/store/overview?include_tests=0');
+    var b=await W.api('/api/v1/admin/store/overview?include_tests=1');
+    var s0=(a&&a.data&&a.data.stats)||{},s1=(b&&b.data&&b.data.stats)||{};
+    var row=function(label,key,money){
+        var v0=s0[key]||0,v1=s1[key]||0;
+        var fmt=function(v){return money?W.ocMoney(v||0,'COP'):W.num(v||0)};
+        return '<tr style="border-top:1px solid var(--w-border)"><td style="padding:8px 6px">'+label+'</td><td style="padding:8px 6px">'+fmt(v0)+'</td><td style="padding:8px 6px">'+fmt(v1)+'</td></tr>';
+    };
+    var h='<p style="font-size:12px;color:var(--w-muted);margin:0 0 10px">Los pedidos de prueba se excluyen por defecto de los totales. Aquí puedes comparar ambos escenarios.</p>'
+        +'<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="text-align:left;color:var(--w-muted);font-size:10px;text-transform:uppercase"><th style="padding:8px 6px">Métrica</th><th style="padding:8px 6px">Sin pruebas</th><th style="padding:8px 6px">Con pruebas</th></tr></thead><tbody>'
+        +row('Pedidos','orders_total')
+        +row('Pagados','orders_paid')
+        +row('Ingresos','revenue_cents',true)
+        +row('Nuevos','orders_new')
+        +row('Enviados','orders_shipped')
+        +'</tbody></table>';
+    W.modal('Métricas de pedidos',h,'<button type="button" class="w-btn w-btn-primary" onclick="wontia.closeModal()">Cerrar</button>');
+};
+
+W.storeOrdersMarkSelected=async function(isTest){
+    var ids=W.storeOrdersSelected.slice();
+    if(!ids.length){W.notify('Selecciona al menos un pedido','info');return}
+    var r=await W.api('/api/v1/admin/store/orders/test',{method:'POST',body:{ids:ids,is_test:isTest?1:0}});
+    if(r&&r.ok){
+        W.notify((isTest?'Pedidos marcados como prueba: ':'Pedidos marcados como reales: ')+((r.data&&r.data.updated)||ids.length),'success');
+        W.storeOrdersSelected=[];
+        W.storeOrdersLoad();
+    }else W.notify((r&&r.message)||'No se pudo actualizar la marca','error');
+};
+
+W.storeOrdersArchiveFiltered=function(){
+    W.storeOrdersArchivePrompt({all:true,archived:W.storeOrdersTab!=='archived',filters:W.storeOrdersFilters()});
 };
 
 W.storeOrdersLoad=async function(){
     var list=document.getElementById('store-o-list');
     if(!list)return;
-    var q=document.getElementById('store-o-search').value,ps=document.getElementById('store-o-pay').value,fs=document.getElementById('store-o-ful').value;
-    var r=await W.api('/api/v1/admin/store/orders?search='+encodeURIComponent(q)+'&payment_status='+ps+'&fulfillment_status='+fs+'&limit=200');
+    var tab=W.storeOrdersTab||'active';
+    var f=W.storeOrdersFilters();
+    f.limit=200;
+    var qs=Object.keys(f).map(function(k){return encodeURIComponent(k)+'='+encodeURIComponent(f[k])}).join('&');
+    var r=await W.api('/api/v1/admin/store/orders?'+qs);
     var rows=r.data||[];
-    if(!rows.length){list.innerHTML='<div class="w-empty-state"><h3>Sin pedidos</h3><p>Los pedidos de la tienda aparecerán aquí.</p></div>';return}
+    var counts=r.counts||{};
+    var setCount=function(id,n){var e=document.getElementById(id);if(e)e.textContent='('+(parseInt(n,10)||0)+')'};
+    setCount('store-o-count-active',counts.active);
+    setCount('store-o-count-archived',counts.archived);
+    var setTabClass=function(id,on){var e=document.getElementById(id);if(e)e.className='w-btn w-btn-sm '+(on?'w-btn-primary':'w-btn-secondary')};
+    setTabClass('store-o-tab-active',tab==='active');
+    setTabClass('store-o-tab-archived',tab==='archived');
+    var bulk=document.getElementById('store-o-bulk');
+    if(bulk)bulk.textContent=tab==='archived'?'Restaurar seleccionados':'Archivar seleccionados';
+    var filtered=document.getElementById('store-o-filtered');
+    if(filtered)filtered.textContent=tab==='archived'?'Restaurar filtrados':'Archivar filtrados';
+    var summary=document.getElementById('store-o-summary');
+    if(summary){
+        summary.textContent='Mostrando '+rows.length+' · Reales: '+(parseInt(counts.real,10)||0)+' · Pruebas: '+(parseInt(counts.tests,10)||0)+' · Total histórico: '+(parseInt(counts.total,10)||0)+'. Los pedidos de prueba no se incluyen en los totales del dashboard.';
+    }
+    if(!rows.length){list.innerHTML='<div class="w-empty-state"><h3>'+(tab==='archived'?'Sin pedidos archivados':'Sin pedidos')+'</h3><p>'+(tab==='archived'?'Los pedidos que archives aparecerán aquí.':'No hay pedidos que coincidan con los filtros.')+'</p></div>';return}
     var payColor={paid:'#34d399',pending:'#fbbf24',failed:'#f87171',refunded:'#8593ab'};
-    var html='<div class="w-card" style="padding:0;overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="text-align:left;color:var(--w-muted);font-size:11px;text-transform:uppercase"><th style="padding:12px 14px">Pedido</th><th style="padding:12px 14px">Cliente</th><th style="padding:12px 14px">Total</th><th style="padding:12px 14px">Pago</th><th style="padding:12px 14px">Estado</th><th style="padding:12px 14px">Fecha</th></tr></thead><tbody>';
+    var reasonLabels={prueba:'Prueba',duplicado:'Duplicado',spam:'Spam',cancelado:'Cancelado',manual:'Manual',auto_failed:'Auto: fallido/cancelado',auto_test:'Auto: prueba',undo:'Deshecho'};
+    var html='<div class="w-card" style="padding:0;overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="text-align:left;color:var(--w-muted);font-size:11px;text-transform:uppercase"><th style="padding:12px 10px;width:34px"><input type="checkbox" id="store-o-all" onchange="wontia.storeOrdersToggleAll(this.checked)"/></th><th style="padding:12px 14px">Pedido</th><th style="padding:12px 14px">Cliente</th><th style="padding:12px 14px">Total</th><th style="padding:12px 14px">Pago</th><th style="padding:12px 14px">Estado</th><th style="padding:12px 14px">Fecha</th>'+(tab==='archived'?'<th style="padding:12px 14px">Archivado</th>':'')+'<th style="padding:12px 14px"></th></tr></thead><tbody>';
     rows.forEach(function(o){
+        var archived=!!o.archived_at;
+        var testBadge=+o.is_test?' <span style="font-size:9px;font-weight:800;letter-spacing:.04em;color:#8a641e;border:1px solid #e5cc91;background:#fbf1d7;border-radius:99px;padding:2px 6px;vertical-align:middle">PRUEBA</span>':'';
+        var archivedCell=tab==='archived'?'<td style="padding:12px 14px;color:var(--w-muted)">'+W.esc(reasonLabels[o.archive_reason]||o.archive_reason||'—')+'<div style="font-size:10px">'+W.esc((o.archived_at||'').slice(0,16))+(o.archived_by_name?' · '+W.esc(o.archived_by_name):'')+'</div></td>':'';
         html+='<tr style="border-top:1px solid var(--w-border);cursor:pointer" onclick="wontia.storeOrderDetail('+o.id+')">'
-            +'<td style="padding:12px 14px;font-weight:600">'+W.esc(o.order_number||o.uuid.slice(0,8))+'</td>'
+            +'<td style="padding:12px 10px"><input type="checkbox" class="store-o-check" value="'+o.id+'"'+(W.storeOrdersSelected.indexOf(o.id)>-1?' checked':'')+' onclick="event.stopPropagation()" onchange="wontia.storeOrdersToggle('+o.id+',this.checked)"/></td>'
+            +'<td style="padding:12px 14px;font-weight:600">'+W.esc(o.order_number||o.uuid.slice(0,8))+testBadge+'</td>'
             +'<td style="padding:12px 14px">'+W.esc(o.customer_name||'')+'<div style="font-size:11px;color:var(--w-muted)">'+W.esc(o.customer_email||'')+'</div></td>'
             +'<td style="padding:12px 14px;font-weight:600">$'+W.num((o.total_cents/100))+'</td>'
             +'<td style="padding:12px 14px"><span style="color:'+(payColor[o.payment_status]||'inherit')+';font-weight:600">'+W.esc(o.payment_status)+'</span></td>'
             +'<td style="padding:12px 14px">'+W.esc(o.fulfillment_status)+'</td>'
-            +'<td style="padding:12px 14px;color:var(--w-muted)">'+W.esc((o.created_at||'').slice(0,16))+'</td></tr>';
+            +'<td style="padding:12px 14px;color:var(--w-muted)">'+W.esc((o.created_at||'').slice(0,16))+'</td>'
+            +archivedCell
+            +'<td style="padding:12px 14px;text-align:right"><button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="event.stopPropagation();wontia.storeOrderArchive('+o.id+','+(archived?0:1)+')">'+(archived?'Restaurar':'Archivar')+'</button></td></tr>';
     });
     html+='</tbody></table></div>';
     list.innerHTML=html;
 };
 
+W.storeOrdersToggleAll=function(checked){
+    var ids=[];
+    document.querySelectorAll('.store-o-check').forEach(function(c){
+        c.checked=!!checked;
+        var id=parseInt(c.value,10);
+        if(checked&&id)ids.push(id);
+    });
+    W.storeOrdersSelected=checked?ids:[];
+};
+
+W.storeOrdersToggle=function(id,checked){
+    id=parseInt(id,10);
+    if(!id)return;
+    var i=W.storeOrdersSelected.indexOf(id);
+    if(checked&&i<0)W.storeOrdersSelected.push(id);
+    if(!checked&&i>-1)W.storeOrdersSelected.splice(i,1);
+};
+
+W.storeOrdersArchiveSelected=function(){
+    var ids=W.storeOrdersSelected.slice();
+    if(!ids.length){W.notify('Selecciona al menos un pedido','info');return}
+    W.storeOrdersArchivePrompt({ids:ids,archived:W.storeOrdersTab!=='archived'});
+};
+
+W.storeOrderArchive=function(id,archived){
+    W.storeOrdersArchivePrompt({ids:[id],archived:!!archived});
+};
+
+W.storeOrdersArchivePrompt=function(payload){
+    W._archivePending=payload||{};
+    var archived=!!payload.archived;
+    var count=payload.all?'los pedidos filtrados':((payload.ids||[]).length+' pedido(s)');
+    var body='<div style="font-size:13px;line-height:1.6">'
+        +'<p style="margin:0 0 10px">'+(archived?'Se archivarán ':'Se restaurarán ')+W.esc(String(count))+' '+(archived?'y dejarán de aparecer en la bandeja principal.':'y volverán a la bandeja principal.')+'</p>'
+        +(archived?'<label style="display:block;font-size:11px;font-weight:700;color:var(--w-muted);margin-bottom:4px">Motivo</label><select class="w-input" id="store-archive-reason" style="width:100%"><option value="prueba">Pedido de prueba</option><option value="duplicado">Duplicado</option><option value="spam">Spam</option><option value="cancelado">Cancelado</option><option value="manual">Otro / manual</option></select>':'')
+        +'</div>';
+    W.modal(archived?'Archivar pedidos':'Restaurar pedidos',body,'<button type="button" class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cancelar</button><button type="button" class="w-btn w-btn-primary" onclick="wontia.storeArchiveConfirm()">'+(archived?'Archivar':'Restaurar')+'</button>');
+};
+
+W.storeArchiveConfirm=async function(){
+    var p=W._archivePending||{};
+    var reasonEl=document.getElementById('store-archive-reason');
+    var reason=reasonEl?reasonEl.value:'manual';
+    W.closeModal();
+    var body={archived:p.archived?1:0,reason:reason};
+    if(p.all){body.all=1;body.filters=p.filters||{}}
+    else body.ids=p.ids||[];
+    var r=await W.api('/api/v1/admin/store/orders/archive',{method:'POST',body:body});
+    if(r&&r.ok){
+        var n=(r.data&&r.data.updated)||0;
+        W.storeOrdersSelected=[];
+        W.storeOrdersLoad();
+        if(p.archived&&!p.all&&p.ids&&p.ids.length&&n>0){
+            W.notifyUndo('Pedidos archivados: '+n,function(){W.storeOrdersArchiveDirect(p.ids,false,'undo')});
+        }else W.notify((p.archived?'Pedidos archivados: ':'Pedidos restaurados: ')+n,'success');
+    }else W.notify((r&&r.message)||'No se pudo actualizar el archivado','error');
+};
+
+W.storeOrdersArchiveDirect=async function(ids,archived,reason){
+    var r=await W.api('/api/v1/admin/store/orders/archive',{method:'POST',body:{ids:ids,archived:archived?1:0,reason:reason||'undo'}});
+    if(r&&r.ok){W.notify(archived?'Pedidos archivados':'Pedidos restaurados','success');W.storeOrdersLoad()}
+    else W.notify((r&&r.message)||'No se pudo deshacer','error');
+};
+
+W.storeOrdersDetectTests=async function(){
+    var r=await W.api('/api/v1/admin/store/orders/detect-tests');
+    var rows=r.data||[];
+    if(!rows.length){W.notify('No se detectaron pedidos de prueba','info');return}
+    W._detectRows=rows;
+    var h='<p style="font-size:12px;color:var(--w-muted);margin:0 0 10px">Se detectaron '+rows.length+' candidatos por correo, nombre, número TEST- o monto mínimo. Revisa antes de confirmar.</p>'
+        +'<div style="max-height:340px;overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="text-align:left;color:var(--w-muted);font-size:10px;text-transform:uppercase"><th style="padding:8px 6px;width:30px"><input type="checkbox" id="store-detect-all" checked onchange="wontia.storeDetectToggleAll(this.checked)"/></th><th style="padding:8px 6px">Pedido</th><th style="padding:8px 6px">Cliente</th><th style="padding:8px 6px">Total</th><th style="padding:8px 6px">Motivos</th></tr></thead><tbody>';
+    rows.forEach(function(o){
+        h+='<tr style="border-top:1px solid var(--w-border)"><td style="padding:8px 6px"><input type="checkbox" class="store-detect-check" value="'+o.id+'" checked/></td>'
+            +'<td style="padding:8px 6px;font-weight:600">'+W.esc(o.order_number||('#'+o.id))+'</td>'
+            +'<td style="padding:8px 6px">'+W.esc(o.customer_name||'')+'<div style="font-size:10px;color:var(--w-muted)">'+W.esc(o.customer_email||'')+'</div></td>'
+            +'<td style="padding:8px 6px">$'+W.num(((o.total_cents||0)/100))+'</td>'
+            +'<td style="padding:8px 6px;color:var(--w-muted)">'+W.esc((o.test_reasons||[]).join(' · '))+'</td></tr>';
+    });
+    h+='</tbody></table></div>';
+    W.modal('Detectar pedidos de prueba',h,'<button type="button" class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cancelar</button><button type="button" class="w-btn w-btn-primary" onclick="wontia.storeDetectConfirm()">Marcar y archivar</button>');
+};
+
+W.storeDetectToggleAll=function(checked){
+    document.querySelectorAll('.store-detect-check').forEach(function(c){c.checked=!!checked});
+};
+
+W.storeDetectConfirm=async function(){
+    var ids=[];
+    document.querySelectorAll('.store-detect-check:checked').forEach(function(c){var id=parseInt(c.value,10);if(id)ids.push(id)});
+    if(!ids.length){W.notify('Selecciona al menos un pedido','info');return}
+    W.closeModal();
+    var r1=await W.api('/api/v1/admin/store/orders/test',{method:'POST',body:{ids:ids,is_test:1}});
+    if(!r1||!r1.ok){W.notify((r1&&r1.message)||'No se pudieron marcar como prueba','error');return}
+    var r2=await W.api('/api/v1/admin/store/orders/archive',{method:'POST',body:{ids:ids,archived:1,reason:'prueba'}});
+    if(r2&&r2.ok){
+        W.storeOrdersSelected=[];
+        W.storeOrdersLoad();
+        W.notifyUndo('Pruebas marcadas y archivadas: '+ids.length,async function(){
+            await W.api('/api/v1/admin/store/orders/archive',{method:'POST',body:{ids:ids,archived:0,reason:'undo'}});
+            await W.api('/api/v1/admin/store/orders/test',{method:'POST',body:{ids:ids,is_test:0}});
+            W.storeOrdersLoad();
+        });
+    }else W.notify((r2&&r2.message)||'No se pudieron archivar las pruebas','error');
+};
+
+W.orderMoney=function(cents){
+    var n=(Number(cents)||0)/100;
+    var dec=Math.abs(n-Math.round(n))>0.004;
+    try{return '$'+n.toLocaleString('es-CO',{minimumFractionDigits:dec?2:0,maximumFractionDigits:dec?2:0});}catch(e){return '$'+W.num(n);}
+};
+W.orderDate=function(s){s=String(s||'');return s?s.replace('T',' ').slice(0,16):'—';};
+W.orderMethodLabel=function(m){var map={mercadopago:'Mercado Pago',breb:'Bre-B',addi:'Addi',sistecredito:'Sistecrédito',epayco:'ePayco',request:'Pago asistido',cod:'Contra entrega',wompi:'Wompi',gift_card:'Tarjeta de regalo'};return map[String(m||'')]||String(m||'—');};
+W.orderChannelLabel=function(c){var map={email:'Correo',sms:'SMS',whatsapp:'WhatsApp'};return map[String(c||'')]||String(c||'—');};
+W.orderEventLabel=function(e){var map={order_received:'Pedido recibido',customer_validated:'Pedido validado por el cliente',preparing:'En preparación',shipped:'Enviado',review_request:'Solicitud de reseña',payment_settled:'Abono bancario confirmado',reported_to_provider:'Reportado a Miche',customer_confirmed:'Cliente confirmó',customer_rejected:'Cliente no confirmó'};return map[String(e||'')]||String(e||'—');};
+W.orderChip=function(text,tone){return '<span class="w-op-chip w-op-chip--'+(tone||'mute')+'">'+W.esc(text)+'</span>';};
+W.orderCopy=function(text){try{navigator.clipboard.writeText(String(text||''));W.notify('Copiado','success');}catch(e){window.prompt('Copia:',String(text||''));}};
+W.orderCopySummary=function(id){
+    var o=W._orderDetail;if(!o)return;
+    var lines=['Pedido '+(o.order_number||o.uuid),'Cliente: '+(o.customer_name||'')+' · '+(o.customer_document||'')+' · '+(o.customer_phone||''),'Entrega: '+[o.shipping_detail&&o.shipping_detail.line1,o.shipping_detail&&o.shipping_detail.city,o.shipping_detail&&o.shipping_detail.department].filter(Boolean).join(', '),'Productos:'];
+    (o.items||[]).forEach(function(it){lines.push('- '+(it.qty||1)+' x '+(it.name||'')+' · SKU '+(it.sku||'—')+' · '+W.orderMoney(it.line_total_cents||it.subtotal_cents));});
+    lines.push('Total: '+W.orderMoney(o.total_cents));
+    W.orderCopy(lines.join('\n'));
+};
+W.orderPanelToggle=function(force){
+    var ct=document.getElementById('w-modal-content');if(!ct||!ct.classList.contains('w-order-panel'))return;
+    var full=typeof force==='boolean'?force:!ct.classList.contains('w-order-panel--full');
+    ct.classList.toggle('w-order-panel--full',full);
+    ct.style.width=full?'100vw':'96vw';ct.style.maxWidth=full?'100vw':'1180px';
+    ct.style.height=full?'100vh':'92vh';ct.style.maxHeight=full?'100vh':'92vh';
+    ct.style.borderRadius=full?'0':'14px';
+    var ov=document.getElementById('w-modal');if(ov){ov.style.alignItems=full?'stretch':'center';ov.style.padding=full?'0':'';}
+    var b=document.getElementById('so-full');if(b){b.textContent=full?'⤢':'⛶';b.title=full?'Salir de pantalla completa':'Pantalla completa';}
+    try{localStorage.setItem('sonika_order_panel_full',full?'1':'0')}catch(e){}
+};
+W.orderSettlePayment=async function(id){
+    var ref=document.getElementById('so-settle-ref');var v=ref?ref.value.trim():'';
+    if(!v){W.notify('Escribe la referencia del abono bancario','error');return;}
+    var r=await W.api('/api/v1/admin/store/orders/'+id+'/checklist/payment',{method:'POST',body:{settled:true,reference:v}});
+    if(r&&r.ok){W.notify('Abono bancario confirmado','success');W.storeOrderDetail(id);}else W.notify((r&&r.message)||'No se pudo confirmar el abono','error');
+};
+W.orderReportProvider=async function(id){
+    var r=await W.api('/api/v1/admin/store/orders/'+id+'/report-provider',{method:'POST',body:{}});
+    if(r&&r.ok){W.notify('Pedido reportado a Miche','success');W.storeOrderDetail(id);W.storeOrdersLoad();return;}
+    var msg=(r&&r.message)||'No se pudo reportar el pedido';
+    if(r&&r.missing&&r.missing.length)msg+=': '+r.missing.join(', ');
+    W.notify(msg,'error');
+};
 W.storeOrderDetail=async function(id){
     var r=await W.api('/api/v1/admin/store/orders/'+id);
-    if(!r.ok||!r.data)return;
-    var o=r.data;
-    var items=(o.items||[]).map(function(it){return '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--w-border);font-size:13px"><span>'+(it.qty)+' × '+W.esc(it.name)+(it.variant_name?' ('+W.esc(it.variant_name)+')':'')+'</span><span>$'+W.num((it.subtotal_cents/100))+'</span></div>'}).join('');
-    var addr=o.shipping_address||{};
-    var body='<div style="font-size:13px;line-height:1.9">'
-        +'<div><strong>Cliente:</strong> '+W.esc(o.customer_name||'')+' · '+W.esc(o.customer_email||'')+' · '+W.esc(o.customer_phone||'')+'</div>'
-        +'<div><strong>Entrega:</strong> '+W.esc([addr.line1,addr.city,addr.region].filter(function(x){return x}).join(', '))+'</div>'
-        +(addr.department_code?'<div style="font-size:11px;color:var(--w-muted)">DANE '+W.esc(addr.department_code)+' / '+W.esc(addr.municipality_code||'')+(o.shipping_carrier?' · '+W.esc(o.shipping_carrier):'')+'</div>':'')
-        +(o.shipping_eta_min_days&&o.shipping_eta_max_days?'<div style="font-size:11px;color:var(--w-muted)">Entrega estimada: '+W.esc(o.shipping_eta_min_days)+'-'+W.esc(o.shipping_eta_max_days)+' días</div>':'')
-        +(o.notes?'<div><strong>Notas:</strong> '+W.esc(o.notes)+'</div>':'')
-        +'<div style="margin-top:12px">'+items+'</div>'
-        +'<div style="display:flex;justify-content:space-between;padding:6px 0"><span>Subtotal</span><span>$'+W.num((o.subtotal_cents/100))+'</span></div>'
-        +'<div style="display:flex;justify-content:space-between;padding:6px 0"><span>Envío</span><span>'+(o.shipping_cents>0?'$'+W.num((o.shipping_cents/100)):'Gratis')+'</span></div>'
-        +'<div style="display:flex;justify-content:space-between;padding:6px 0;font-weight:800;font-size:15px"><span>Total</span><span>$'+W.num((o.total_cents/100))+'</span></div>'
-        +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px">'
-        +'<div><label style="font-size:11px;color:var(--w-muted)">Estado del pago</label><select class="w-input" id="so-pay" style="width:100%">'+['pending','paid','failed','refunded'].map(function(s){return '<option value="'+s+'"'+(o.payment_status===s?' selected':'')+'>'+s+'</option>'}).join('')+'</select></div>'
-        +'<div><label style="font-size:11px;color:var(--w-muted)">Estado del pedido</label><select class="w-input" id="so-ful" style="width:100%">'+['new','confirmed','preparing','shipped','delivered','cancelled'].map(function(s){return '<option value="'+s+'"'+(o.fulfillment_status===s?' selected':'')+'>'+s+'</option>'}).join('')+'</select></div>'
-        +'</div>'
-        +'<div style="margin-top:12px"><label style="font-size:11px;color:var(--w-muted)">Notas internas</label><textarea class="w-input" id="so-notes" rows="2" style="width:100%">'+W.esc(o.admin_notes||'')+'</textarea></div></div>';
-    W.modal('Pedido '+(o.order_number||o.uuid.slice(0,8)),body,'<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cerrar</button><button class="w-btn w-btn-primary" onclick="wontia.storeOrderSave('+id+')">Guardar cambios</button>');
+    if(!r||!r.ok||!r.data){W.notify((r&&r.message)||'No se pudo cargar el pedido','error');return;}
+    var o=r.data;W._orderDetail=o;
+    var ops=o.operations||{},cl=ops.checklist||{},prov=ops.provider||{},pay=o.payment_detail||{},ship=o.shipping_detail||{},cust=o.customer_detail||{},items=o.items||[];
+    var meta=pay.meta||{};
+    var testBadge=(+o.is_test)?W.orderChip('PRUEBA','warn'):'';
+    var archiveBadge=o.archived_at?W.orderChip('ARCHIVADO','mute'):'';
+    var payTone=o.payment_status==='paid'?'ok':(o.payment_status==='failed'||o.payment_status==='refunded'?'bad':'warn');
+    var fulTone=o.fulfillment_status==='delivered'?'ok':(o.fulfillment_status==='cancelled'?'bad':'mute');
+    var itemsHtml=items.map(function(it){
+        var img='<div class="w-op-prod-media"><span class="w-op-prod-fallback">📦</span>'+(it.image?'<img src="'+W.esc(it.image)+'" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.remove()">':'')+'</div>';
+        var sku=it.sku?W.esc(it.sku):'<span class="w-op-chip w-op-chip--warn">SIN SKU</span>';
+        var name=it.product_url?'<a href="'+W.esc(it.product_url)+'" target="_blank" rel="noopener">'+W.esc(it.name||'Producto')+'</a>':W.esc(it.name||'Producto');
+        var metaBits=[it.brand,it.category,it.variant_name].filter(Boolean).map(W.esc).join(' · ');
+        return '<tr><td><div class="w-op-prod">'+img+'<div style="min-width:0"><div class="w-op-prod-name">'+name+'</div><div class="w-op-sku">SKU '+sku+'</div>'+(metaBits?'<div class="w-op-muted">'+metaBits+'</div>':'')+'</div></div></td><td class="w-op-money">'+(it.qty||1)+'</td><td class="w-op-money">'+W.orderMoney(it.unit_price_cents||it.price_cents)+'</td><td class="w-op-money"><b>'+W.orderMoney(it.line_total_cents||it.subtotal_cents)+'</b></td></tr>';
+    }).join('');
+    var discount=Number(o.discount_cents)||0, tax=Number(o.tax_cents)||0, shipping=Number(o.shipping_cents)||0;
+    var discountBits=[];
+    if(Number(o.breb_discount_cents)>0)discountBits.push('Bre-B '+W.orderMoney(o.breb_discount_cents));
+    if(Number(meta.coupon_discount_cents)>0)discountBits.push('Cupón '+(meta.coupon_code?W.esc(meta.coupon_code)+' ':'')+W.orderMoney(meta.coupon_discount_cents));
+    if(Number(meta.points_discount_cents)>0)discountBits.push('Puntos '+W.orderMoney(meta.points_discount_cents));
+    if(Number(meta.recommendation_discount_cents)>0)discountBits.push('Recomendación '+W.orderMoney(meta.recommendation_discount_cents));
+    if(Number(meta.gift_card_cents)>0)discountBits.push('Tarjeta de regalo '+W.orderMoney(meta.gift_card_cents));
+    var totals='<div class="w-op-totals"><div><span>Subtotal</span><b>'+W.orderMoney(o.subtotal_cents)+'</b></div>'
+        +(discount>0?'<div><span>Descuentos</span><b>−'+W.orderMoney(discount)+'</b></div>':'')
+        +(discountBits.length?'<div class="w-op-muted" style="display:block">'+discountBits.join(' · ')+'</div>':'')
+        +(tax>0?'<div><span>IVA incluido</span><b>'+W.orderMoney(tax)+'</b></div>':'')
+        +'<div><span>Envío</span><b>'+(shipping>0?W.orderMoney(shipping):'Gratis')+'</b></div>'
+        +'<div class="total"><span>Total</span><b>'+W.orderMoney(o.total_cents)+'</b></div></div>';
+    var paymentExtra='';
+    if(pay.mercadopago){
+        var mp=pay.mercadopago;
+        paymentExtra='<div class="w-op-grid2" style="margin-top:9px">'
+            +'<div class="w-op-field"><label>Medio</label><div>'+W.esc(String(mp.payment_method_id||'').toUpperCase()||'—')+(mp.installments>1?' · '+mp.installments+' cuotas':'')+'</div></div>'
+            +'<div class="w-op-field"><label>ID de pago</label><div class="w-op-sku">'+W.esc(mp.payment_id||'—')+'</div></div>'
+            +(Number(mp.fee_cents)>0?'<div class="w-op-field"><label>Comisión MP</label><div>'+W.orderMoney(mp.fee_cents)+'</div></div>':'')
+            +(Number(mp.net_received_cents)>0?'<div class="w-op-field"><label>Neto recibido</label><div><b>'+W.orderMoney(mp.net_received_cents)+'</b></div></div>':'')
+            +(mp.money_release_status?'<div class="w-op-field"><label>Liberación</label><div>'+W.esc(mp.money_release_status)+'</div></div>':'')
+            +(mp.money_release_date?'<div class="w-op-field"><label>Fecha liberación</label><div>'+W.orderDate(mp.money_release_date)+'</div></div>':'')
+            +'</div>';
+    } else if(pay.addi){
+        paymentExtra='<div class="w-op-grid2" style="margin-top:9px"><div class="w-op-field"><label>Intento Addi</label><div class="w-op-sku">'+W.esc(pay.addi.addi_order_id||'—')+'</div></div><div class="w-op-field"><label>Estado</label><div>'+W.esc(pay.addi.status||'—')+'</div></div><div class="w-op-field"><label>Aprobado</label><div>'+W.orderMoney(pay.addi.approved_amount_cents||0)+'</div></div></div>';
+    } else if(pay.breb){
+        paymentExtra='<div class="w-op-grid2" style="margin-top:9px"><div class="w-op-field"><label>Comprobante</label><div>'+W.esc(pay.breb.proof_status||'—')+'</div></div><div class="w-op-field"><label>Recibido</label><div>'+W.orderDate(pay.breb.proof_at)+'</div></div></div>';
+    }
+    var customerHtml='<div class="w-op-card"><div class="w-op-card-head"><h4>Cliente</h4>'+W.orderChip(cust.id?'Registrado':'Invitado','mute')+'</div>'
+        +'<div class="w-op-field"><label>Nombre</label><div><b>'+W.esc(cust.name||'—')+'</b></div></div>'
+        +'<div class="w-op-field" style="margin-top:7px"><label>Documento</label><div>'+W.esc(cust.document||'—')+'</div></div>'
+        +'<div class="w-op-field" style="margin-top:7px"><label>Correo</label><div><a href="mailto:'+W.esc(cust.email||'')+'">'+W.esc(cust.email||'—')+'</a></div></div>'
+        +'<div class="w-op-field" style="margin-top:7px"><label>Teléfono</label><div><a href="tel:'+W.esc(cust.phone||'')+'">'+W.esc(cust.phone||'—')+'</a> <button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="wontia.orderCopy(\''+W.esc(cust.phone||'')+'\')">Copiar</button></div></div>'
+        +'<div class="w-op-field" style="margin-top:7px"><label>ID cliente</label><div class="w-op-sku">'+(cust.id?('#'+cust.id):'—')+'</div></div></div>';
+    var addrText=[ship.line1,ship.city,ship.department].filter(Boolean).join(', ');
+    var shipHtml='<div class="w-op-card"><div class="w-op-card-head"><h4>Entrega</h4>'+W.orderChip(ship.carrier||'Por asignar',ship.carrier?'ok':'mute')+'</div>'
+        +'<div class="w-op-field"><label>Dirección</label><div>'+W.esc(ship.line1||'—')+' <button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="wontia.orderCopy(\''+W.esc(addrText)+'\')">Copiar</button></div></div>'
+        +'<div class="w-op-grid2" style="margin-top:8px"><div class="w-op-field"><label>Ciudad</label><div>'+W.esc(ship.city||'—')+'</div></div><div class="w-op-field"><label>Departamento</label><div>'+W.esc(ship.department||'—')+'</div></div><div class="w-op-field"><label>DANE</label><div class="w-op-sku">'+W.esc((ship.department_code||'—')+' / '+(ship.municipality_code||'—'))+'</div></div><div class="w-op-field"><label>Entrega estimada</label><div>'+(ship.eta_min_days&&ship.eta_max_days?W.esc(ship.eta_min_days+'-'+ship.eta_max_days+' días'):'—')+'</div></div></div>'
+        +(ship.notes?'<div class="w-op-field" style="margin-top:8px"><label>Indicaciones</label><div>'+W.esc(ship.notes)+'</div></div>':'')
+        +((ops.shipment&&ops.shipment.tracking_number)?'<div class="w-op-field" style="margin-top:8px"><label>Tracking</label><div>'+W.esc(ops.shipment.carrier||'')+' · '+(ops.shipment.tracking_url?'<a href="'+W.esc(ops.shipment.tracking_url)+'" target="_blank" rel="noopener">'+W.esc(ops.shipment.tracking_number)+'</a>':W.esc(ops.shipment.tracking_number))+'</div></div>':'')
+        +'</div>';
+    var checkIco=function(ok){return '<span class="w-op-check-ico '+(ok?'ok':'pending')+'">'+(ok?'✓':'•')+'</span>';};
+    var paymentDesc=cl.payment_settled?('Confirmado '+W.orderDate(cl.payment_settled_at)+(cl.payment_settlement_ref?' · Ref. '+W.esc(cl.payment_settlement_ref):'')):'Aún no se ha confirmado el abono en la cuenta bancaria.';
+    var payForm=!cl.payment_settled?'<div class="w-op-payform w-op-noprint"><input class="w-input" id="so-settle-ref" placeholder="Referencia del abono bancario" style="flex:1;min-width:150px"/><button class="w-btn w-btn-primary w-btn-sm" type="button" onclick="wontia.orderSettlePayment('+id+')">Confirmar abono</button></div>':'';
+    var confirmedDesc=cl.customer_confirmed?('Confirmado '+W.orderDate(cl.customer_confirmed_at)+(cl.confirmation_call_id?' · Llamada '+W.esc(cl.confirmation_call_id):'')+(cl.confirmation_phrase?' · “'+W.esc(cl.confirmation_phrase)+'”':'')):'Pendiente: Wontia AIP debe llamar y confirmar dirección, productos y pedido.';
+    var reconfirmedDesc=cl.reconfirmed?('Reconfirmado '+W.orderDate(cl.reconfirmed_at)+(cl.reconfirmed_source?' · '+W.esc(cl.reconfirmed_source):'')):'Pendiente: el sistema debe validar la segunda confirmación.';
+    var missing=(cl.missing||[]);
+    var reportDisabled=!cl.can_report;
+    var reportBtn='<button class="w-btn '+(cl.provider_reported?'w-btn-secondary':'w-btn-primary')+'" type="button" '+(reportDisabled?'disabled':'')+' onclick="wontia.orderReportProvider('+id+')">'+(cl.provider_reported?'Pedido reportado a Miche':'Reportar pedido a proveedor (Miche)')+'</button>';
+    var checklistHtml='<div class="w-op-card"><div class="w-op-card-head"><h4>Checklist de despacho</h4>'+W.orderChip((cl.progress||0)+'/3','mute')+'</div>'
+        +'<div class="w-op-progress"><i style="width:'+Math.round(((cl.progress||0)/3)*100)+'%"></i></div>'
+        +'<div class="w-op-check">'+checkIco(!!cl.payment_settled)+'<div class="w-op-check-body"><div class="w-op-check-title">1. Dinero en cuenta bancaria</div><div class="w-op-check-desc">'+paymentDesc+'</div>'+payForm+'</div></div>'
+        +'<div class="w-op-check">'+checkIco(!!cl.customer_confirmed)+'<div class="w-op-check-body"><div class="w-op-check-title">2. Cliente confirmó por llamada</div><div class="w-op-check-desc">'+confirmedDesc+'</div></div></div>'
+        +'<div class="w-op-check">'+checkIco(!!cl.reconfirmed)+'<div class="w-op-check-body"><div class="w-op-check-title">3. Reconfirmación del sistema</div><div class="w-op-check-desc">'+reconfirmedDesc+'</div></div></div>'
+        +(missing.length?'<div class="w-op-missing"><b>Falta:</b> '+missing.map(W.esc).join(' · ')+'</div>':'')
+        +'<div class="w-op-actions" style="margin-top:10px">'+reportBtn+'</div>'
+        +'<details class="w-op-details"><summary>Frases de confirmación de la llamada</summary><div class="w-op-muted"><b>Confirman:</b> '+((cl.phrases&&cl.phrases.confirmation)||[]).map(function(x){return '“'+W.esc(x)+'”'}).join(', ')+'<br><b>Rechazan:</b> '+((cl.phrases&&cl.phrases.rejection)||[]).map(function(x){return '“'+W.esc(x)+'”'}).join(', ')+'</div></details></div>';
+    var provCase=prov.case,partner=prov.partner,task=(prov.tasks||[])[0],handoff=(prov.handoffs||[])[0];
+    var providerHtml='<div class="w-op-card"><div class="w-op-card-head"><h4>Proveedor / Miche</h4>'+(cl.provider_reported?W.orderChip('Reportado','ok'):W.orderChip('Pendiente','mute'))+'</div>'
+        +(provCase?'<div class="w-op-field"><label>Proveedor</label><div><b>'+W.esc(partner&&partner.name?partner.name:'Miche')+'</b></div></div><div class="w-op-grid2" style="margin-top:7px"><div class="w-op-field"><label>Caso</label><div class="w-op-sku">#'+W.esc(provCase.id)+' · '+W.esc(provCase.status)+'</div></div><div class="w-op-field"><label>Tarea</label><div>'+W.esc(task?(task.status+' · '+(task.title||'')):'Sin tarea')+'</div></div></div>'+(handoff?'<div class="w-op-field" style="margin-top:7px"><label>Handoff</label><div>'+W.esc(handoff.status)+' · '+W.orderDate(handoff.sent_at)+'</div></div>':'')+(ops.shipment?'<div class="w-op-field" style="margin-top:7px"><label>Envío</label><div>'+W.esc(ops.shipment.status||'')+' · '+W.esc(ops.shipment.carrier||'')+'</div></div>':'')
+            :'<div class="w-op-muted">Aún no reportado. Completa los 3 checks y usa el botón para enviarlo a Miche.</div>')
+        +'</div>';
+    var notifRows=(ops.notifications||[]).map(function(n){return '<div class="w-op-notif"><div><b>'+W.esc(W.orderChannelLabel(n.channel))+'</b> · '+W.esc(W.orderEventLabel(n.event))+'</div><div class="w-op-muted">'+W.esc(n.status||'')+' · '+W.orderDate(n.sent_at||n.created_at)+(n.error?' · '+W.esc(n.error):'')+'</div></div>';}).join('');
+    var notifHtml='<div class="w-op-card"><div class="w-op-card-head"><h4>Notificaciones</h4>'+W.orderChip((ops.notifications||[]).length+' registradas','mute')+'</div>'+(notifRows||'<div class="w-op-muted">Sin notificaciones registradas. El envío multicanal se activará en la siguiente fase.</div>')+'</div>';
+    var tlRows=(ops.timeline||[]).map(function(t){return '<div class="w-op-tl"><span class="w-op-tl-dot"></span><div><div class="w-op-tl-title">'+W.esc(t.title||'')+'</div>'+(t.detail?'<div class="w-op-tl-detail">'+W.esc(t.detail)+'</div>':'')+'<div class="w-op-tl-date">'+W.orderDate(t.at)+(t.actor?' · '+W.esc(t.actor):'')+'</div></div></div>';}).join('');
+    var timelineHtml='<div class="w-op-card"><div class="w-op-card-head"><h4>Historial del pedido</h4>'+W.orderChip((ops.timeline||[]).length+' eventos','mute')+'</div><div class="w-op-timeline">'+(tlRows||'<div class="w-op-muted">Sin eventos.</div>')+'</div></div>';
+    var overviewHtml='<div class="w-op-card"><div class="w-op-card-head"><h4>Resumen de la transacción</h4>'+W.orderChip(W.orderMethodLabel(pay.method),'mute')+'</div>'
+        +'<div class="w-op-grid2"><div class="w-op-field"><label>Estado del pago</label><div>'+W.orderChip(String(o.payment_status||''),payTone)+'</div></div><div class="w-op-field"><label>Estado del pedido</label><div>'+W.orderChip(String(o.fulfillment_status||''),fulTone)+'</div></div><div class="w-op-field"><label>Referencia</label><div class="w-op-sku">'+W.esc(pay.reference||pay.provider_ref||'—')+'</div></div><div class="w-op-field"><label>Pagado</label><div>'+W.orderDate(pay.paid_at)+'</div></div></div>'
+        +paymentExtra+totals+'</div>';
+    var manageHtml='<div class="w-op-card w-op-noprint"><div class="w-op-card-head"><h4>Gestión</h4>'+W.orderChip(o.archived_at?'Archivado':'Activo',o.archived_at?'mute':'ok')+'</div>'
+        +'<div class="w-op-grid2"><div class="w-op-field"><label>Estado del pago</label><select class="w-input" id="so-pay" style="width:100%">'+['pending','paid','failed','refunded'].map(function(s){return '<option value="'+s+'"'+(o.payment_status===s?' selected':'')+'>'+s+'</option>'}).join('')+'</select></div><div class="w-op-field"><label>Estado del pedido</label><select class="w-input" id="so-ful" style="width:100%">'+['new','confirmed','preparing','shipped','delivered','cancelled'].map(function(s){return '<option value="'+s+'"'+(o.fulfillment_status===s?' selected':'')+'>'+s+'</option>'}).join('')+'</select></div></div>'
+        +'<div class="w-op-field" style="margin-top:9px"><label>Notas internas</label><textarea class="w-input" id="so-notes" rows="2" style="width:100%">'+W.esc(o.admin_notes||'')+'</textarea></div>'
+        +(o.archived_at?'<div class="w-op-muted" style="margin-top:7px">Archivado '+W.orderDate(o.archived_at)+' · '+W.esc(o.archive_reason||'—')+(o.archived_by_name?' · '+W.esc(o.archived_by_name):'')+'</div>':'')
+        +'</div>';
+    var heroImg=o.order_image||(items[0]&&items[0].image)||'';
+    var heroMedia='<div class="w-op-hero-media"><span class="w-op-hero-fallback">📦</span>'+(heroImg?'<img src="'+W.esc(heroImg)+'" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.remove()">':'')+'</div>';
+    var hero='<div class="w-op-hero"><div class="w-op-hero-left">'+heroMedia+'<div><div class="w-op-kicker">Pedido</div><div class="w-op-title">'+W.esc(o.order_number||o.uuid)+'</div><div class="w-op-muted">'+W.esc(cust.name||'')+' · '+W.orderDate(o.created_at)+'</div><div class="w-op-chips">'+W.orderChip(o.payment_status==='paid'?'Pagado':'Pago '+String(o.payment_status||''),payTone)+W.orderChip(o.fulfillment_status==='delivered'?'Entregado':(o.fulfillment_status==='shipped'?'Enviado':'Pedido '+String(o.fulfillment_status||'')),fulTone)+testBadge+archiveBadge+(cl.provider_reported?W.orderChip('Reportado a Miche','ok'):'')+'</div></div></div><div class="w-op-hero-r"><div class="w-op-total">'+W.orderMoney(o.total_cents)+'</div><div class="w-op-actions"><button class="w-btn w-btn-secondary w-btn-sm w-op-noprint" type="button" onclick="wontia.orderCopySummary('+id+')">Copiar resumen</button><button class="w-btn w-btn-secondary w-btn-sm w-op-noprint" type="button" onclick="window.print()">Imprimir</button></div></div></div>';
+    var style='<style>'
+        +'.w-order-panel{display:flex;flex-direction:column;overflow:hidden}.w-order-panel .w-modal-head{margin:0!important;padding:15px 20px!important;border-bottom:1px solid var(--w-border);flex:0 0 auto}.w-order-panel>.w-modal-actions{margin:0!important;padding:11px 20px!important;border-top:1px solid var(--w-border);flex:0 0 auto}.w-order-panel>.w-op-body{flex:1;min-height:0;overflow-y:auto;padding:16px 20px;background:var(--w-bg)}'
+        +'.w-op-hero{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;background:var(--w-surface);border:1px solid var(--w-border);border-radius:14px;padding:14px 16px;margin-bottom:14px}.w-op-hero-left{display:flex;gap:13px;align-items:flex-start;min-width:0}.w-op-hero-media{position:relative;width:72px;height:72px;border-radius:12px;border:1px solid var(--w-border);background:#fff;overflow:hidden;flex:none;display:grid;place-items:center}.w-op-hero-fallback{position:absolute;inset:0;display:grid;place-items:center;font-size:24px;color:var(--w-muted);background:var(--w-bg2)}.w-op-hero-media img{position:relative;z-index:1;width:100%;height:100%;object-fit:contain;background:#fff}.w-op-kicker{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--w-muted);font-weight:850}.w-op-title{font:800 20px/1.2 Sora,Inter,system-ui,sans-serif;letter-spacing:-.02em}.w-op-total{font:800 22px/1 Sora,Inter,system-ui,sans-serif;text-align:right;font-variant-numeric:tabular-nums}.w-op-chips{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px}.w-op-hero-r{text-align:right}.w-op-hero-r .w-op-actions{justify-content:flex-end;margin-top:8px}'
+        +'.w-op-wrap{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(320px,.9fr);gap:14px;align-items:start}.w-op-main,.w-op-side{display:flex;flex-direction:column;gap:14px;min-width:0}'
+        +'.w-op-card{background:var(--w-surface);border:1px solid var(--w-border);border-radius:13px;padding:13px 14px;min-width:0}.w-op-card-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:9px}.w-op-card-head h4{margin:0;font-size:12px;font-weight:800}.w-op-muted{color:var(--w-muted);font-size:11px;line-height:1.5}.w-op-sku{font-family:\'JetBrains Mono\',ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;color:var(--w-muted);word-break:break-all}'
+        +'.w-op-chip{display:inline-flex;align-items:center;border-radius:999px;padding:3px 7px;font-size:9px;font-weight:850;letter-spacing:.02em;white-space:nowrap}.w-op-chip--ok{background:#ecfdf5;color:#047857}.w-op-chip--warn{background:#fffbeb;color:#b45309}.w-op-chip--bad{background:#fef2f2;color:#b91c1c}.w-op-chip--mute{background:var(--w-bg2);color:var(--w-muted)}'
+        +'.w-op-table{width:100%;border-collapse:collapse;font-size:11.5px}.w-op-table th{text-align:left;color:var(--w-muted);font-size:9px;letter-spacing:.06em;text-transform:uppercase;padding:7px 6px;border-bottom:1px solid var(--w-border)}.w-op-table td{padding:9px 6px;border-bottom:1px solid var(--w-border);vertical-align:top}.w-op-table tr:last-child td{border-bottom:0}.w-op-prod{display:flex;gap:9px;align-items:flex-start;min-width:0}.w-op-prod-media{position:relative;width:38px;height:38px;border-radius:8px;border:1px solid var(--w-border);background:#fff;overflow:hidden;flex:none;display:grid;place-items:center}.w-op-prod-fallback{position:absolute;inset:0;display:grid;place-items:center;color:var(--w-muted);font-size:15px;background:var(--w-bg2)}.w-op-prod-media img{position:relative;z-index:1;width:100%;height:100%;object-fit:cover;background:#fff}.w-op-prod-name{font-weight:700;font-size:11.5px;line-height:1.35;overflow-wrap:anywhere}.w-op-prod-name a{color:var(--w-text);text-decoration:none}.w-op-prod-name a:hover{text-decoration:underline}.w-op-money{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}.w-op-totals{display:flex;flex-direction:column;gap:4px;margin-top:10px}.w-op-totals>div{display:flex;justify-content:space-between;gap:12px;font-size:11.5px}.w-op-totals .total{border-top:1px solid var(--w-border);padding-top:8px;margin-top:4px;font-weight:850;font-size:14px}'
+        +'.w-op-grid2{display:grid;grid-template-columns:1fr 1fr;gap:9px}.w-op-field label{display:block;font-size:9px;text-transform:uppercase;letter-spacing:.07em;color:var(--w-muted);font-weight:850;margin-bottom:2px}.w-op-field>div{font-size:11.5px;line-height:1.5;overflow-wrap:anywhere}.w-op-field a{color:var(--w-text)}.w-op-field .w-btn{margin-left:4px}'
+        +'.w-op-progress{height:5px;border-radius:999px;background:var(--w-bg2);overflow:hidden;margin-bottom:8px}.w-op-progress i{display:block;height:100%;background:var(--w-primary);border-radius:999px}.w-op-check{display:flex;gap:9px;align-items:flex-start;padding:8px 0;border-top:1px solid var(--w-border)}.w-op-check:first-of-type{border-top:0}.w-op-check-ico{width:19px;height:19px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:900;flex:none;margin-top:1px}.w-op-check-ico.ok{background:#dcfce7;color:#166534}.w-op-check-ico.pending{background:#fef3c7;color:#92400e}.w-op-check-body{flex:1;min-width:0}.w-op-check-title{font-size:11.5px;font-weight:750}.w-op-check-desc{font-size:10.5px;color:var(--w-muted);line-height:1.45;margin-top:2px}.w-op-missing{margin-top:8px;padding:8px 9px;border:1px solid #fde68a;background:#fffbeb;color:#92400e;border-radius:9px;font-size:10.5px;line-height:1.45}.w-op-payform{display:flex;gap:6px;align-items:center;margin-top:7px;flex-wrap:wrap}.w-op-details{margin-top:9px}.w-op-details summary{cursor:pointer;font-size:10.5px;font-weight:750;color:var(--w-muted)}.w-op-details .w-op-muted{margin-top:6px}'
+        +'.w-op-timeline{display:flex;flex-direction:column}.w-op-tl{display:grid;grid-template-columns:12px minmax(0,1fr);gap:9px;padding:6px 0;position:relative}.w-op-tl:not(:last-child):before{content:\'\';position:absolute;left:5px;top:20px;bottom:-4px;width:1px;background:var(--w-border)}.w-op-tl-dot{width:9px;height:9px;border-radius:50%;background:var(--w-primary);margin-top:4px;box-shadow:0 0 0 3px rgba(124,60,255,.12)}.w-op-tl-title{font-size:11px;font-weight:750}.w-op-tl-detail{font-size:10.5px;color:var(--w-muted);line-height:1.4}.w-op-tl-date{font-size:9.5px;color:var(--w-muted);margin-top:1px}'
+        +'.w-op-notif{padding:7px 0;border-top:1px solid var(--w-border);font-size:11px}.w-op-notif:first-of-type{border-top:0}'
+        +'.w-order-panel--full .w-op-wrap{grid-template-columns:minmax(0,1.8fr) minmax(360px,.9fr)}'
+        +'@media(max-width:980px){.w-op-wrap{grid-template-columns:1fr}.w-op-hero{flex-direction:column}.w-op-hero-r{text-align:left}.w-op-hero-r .w-op-actions{justify-content:flex-start}.w-op-grid2{grid-template-columns:1fr}}'
+        +'@media(max-width:600px){.w-op-table thead{display:none}.w-op-table tr{display:grid;grid-template-columns:1fr auto;gap:3px;padding:9px 0;border-bottom:1px solid var(--w-border)}.w-op-table td{border:0;padding:0}.w-op-table td:first-child{grid-column:1/-1}.w-op-table td:nth-child(2){text-align:left}.w-op-table td:nth-child(3),.w-op-table td:nth-child(4){text-align:right}.w-order-panel>.w-op-body{padding:12px}}'
+        +'@media print{body *{visibility:hidden!important}#w-modal,#w-modal *{visibility:visible!important}#w-modal{position:absolute!important;inset:0!important;background:#fff!important;display:block!important}#w-modal-content{width:100%!important;max-width:100%!important;height:auto!important;max-height:none!important;border:0!important;box-shadow:none!important;padding:0!important;border-radius:0!important}.w-order-panel .w-modal-head button,.w-order-panel>.w-modal-actions,.w-op-noprint{display:none!important}.w-order-panel>.w-op-body{overflow:visible!important;padding:0!important;background:#fff!important}.w-op-wrap{grid-template-columns:1fr 1fr!important}.w-op-card{break-inside:avoid}}'
+        +'</style>';
+    var body=style+'<div class="w-op-body">'+hero+'<div class="w-op-wrap"><div class="w-op-main">'
+        +'<div class="w-op-card"><div class="w-op-card-head"><h4>Productos</h4>'+W.orderChip(items.length+' ítems','mute')+'</div><div style="overflow:auto"><table class="w-op-table"><thead><tr><th>Producto / SKU</th><th style="text-align:right">Cant.</th><th style="text-align:right">Unitario</th><th style="text-align:right">Total</th></tr></thead><tbody>'+(itemsHtml||'<tr><td colspan="4" class="w-op-muted">Sin productos.</td></tr>')+'</tbody></table></div></div>'
+        +overviewHtml+timelineHtml+'</div><div class="w-op-side">'+customerHtml+shipHtml+checklistHtml+providerHtml+notifHtml+manageHtml+'</div></div></div>';
+    W.modal('Pedido '+W.esc(o.order_number||o.uuid.slice(0,8)),body,'<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cerrar</button><button class="w-btn w-btn-secondary" onclick="wontia.storeOrderTestToggle('+id+','+(o.is_test?0:1)+')">'+(o.is_test?'Quitar prueba':'Marcar prueba')+'</button><button class="w-btn w-btn-secondary" onclick="wontia.storeOrderArchive('+id+','+(o.archived_at?0:1)+')">'+(o.archived_at?'Restaurar pedido':'Archivar pedido')+'</button><button class="w-btn w-btn-primary" onclick="wontia.storeOrderSave('+id+')">Guardar cambios</button>',{wide:true});
+    var ct=document.getElementById('w-modal-content');
+    if(ct){
+        ct.classList.add('w-order-panel');
+        ct.style.width='96vw';ct.style.maxWidth='1180px';ct.style.height='92vh';ct.style.maxHeight='92vh';ct.style.borderRadius='14px';
+        var head=ct.querySelector('.w-modal-head');
+        if(head){
+            head.style.margin='0';head.style.padding='15px 20px';head.style.borderBottom='1px solid var(--w-border)';head.style.flex='0 0 auto';
+            var close=head.querySelector('button');
+            if(close&&!document.getElementById('so-full')){
+                var fs=document.createElement('button');fs.type='button';fs.id='so-full';fs.title='Pantalla completa';fs.textContent='⛶';
+                fs.style.cssText='flex:none;width:34px;height:34px;border-radius:10px;border:1px solid var(--w-border);background:var(--w-bg2);color:var(--w-text);font-size:17px;line-height:1;cursor:pointer;margin-right:6px';
+                fs.onclick=function(){W.orderPanelToggle()};
+                head.insertBefore(fs,close);
+            }
+        }
+        var bodyEl=ct.children[1];if(bodyEl){bodyEl.style.flex='1';bodyEl.style.minHeight='0';bodyEl.style.overflowY='auto';bodyEl.style.background='var(--w-bg)';bodyEl.style.padding='0';bodyEl.style.border='0';}
+        var act=ct.querySelector('.w-modal-actions');if(act){act.style.margin='0';act.style.padding='11px 20px';act.style.borderTop='1px solid var(--w-border)';act.style.flex='0 0 auto';}
+        try{if(localStorage.getItem('sonika_order_panel_full')==='1')W.orderPanelToggle(true);}catch(e){}
+    }
+};
+
+W.storeOrderTestToggle=async function(id,isTest){
+    var r=await W.api('/api/v1/admin/store/orders/test',{method:'POST',body:{ids:[id],is_test:isTest?1:0}});
+    if(r&&r.ok){W.notify(isTest?'Pedido marcado como prueba':'Pedido marcado como real','success');W.closeModal();W.storeOrdersLoad()}
+    else W.notify((r&&r.message)||'No se pudo actualizar la marca','error');
 };
 
 W.storeOrderSave=async function(id){
     var payload={payment_status:document.getElementById('so-pay').value,fulfillment_status:document.getElementById('so-ful').value,admin_notes:document.getElementById('so-notes').value};
     var r=await W.api('/api/v1/admin/store/orders/'+id,{method:'PUT',body:payload});
-    if(r.ok){W.notify('Pedido actualizado','success');W.closeModal();W.storeOrdersLoad()}
+    if(r&&r.ok){W.notify('Pedido actualizado','success');W.storeOrderDetail(id);W.storeOrdersLoad()}
 };
 
 W.storeShipping=async function(tab){
@@ -7606,6 +8388,10 @@ W.storeShipping=async function(tab){
     var r=await W.api('/api/v1/admin/store/shipping/overview');
     if(!r.ok||!r.data){el.innerHTML='<div class="w-empty-state"><h3>No se pudo cargar Envíos</h3><p>'+W.esc(r.message||'Intenta de nuevo.')+'</p></div>';return}
     W._shipping=r.data;
+    try{
+        var coord=await W.api('/api/v1/admin/store/shipping/coordinadora');
+        W._coord=(coord&&coord.ok)?coord.data:null;
+    }catch(e){W._coord=null}
     if(!W._shippingDept&&W._shipping.departments&&W._shipping.departments.length)W._shippingDept=W._shipping.departments[0].code;
     W.shippingRender();
 };
@@ -7665,14 +8451,136 @@ W.shippingCoverageHtml=function(){
     return h;
 };
 
+W.coordField=function(label,field){
+    return '<div><label style="display:block;font-size:9.5px;font-weight:800;color:var(--w-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px">'+W.esc(label)+'</label>'+field+'</div>';
+};
+
+W.shippingCoordMsg=function(msg,ok){
+    var el=document.getElementById('coord-msg');if(!el)return;
+    el.style.display='block';
+    el.style.background=ok?'#f0fdf4':'#fef2f2';
+    el.style.border='1px solid '+(ok?'#bbf7d0':'#fecaca');
+    el.style.color=ok?'#166534':'#991b1b';
+    el.textContent=msg;
+};
+
+W.shippingCoordinadoraHtml=function(){
+    var d=W._coord||{},s=d.settings||{},st=d.stats||{},run=d.latest_run;
+    var configured=!!s.configured,enabled=String(s.enabled||'0')==='1';
+    var status=configured?(enabled?'Activa':'Configurada'):'Sin configurar';
+    var color=configured?(enabled?'#15803d':'#b45309'):'#b91c1c';
+    var queued=String(s.sync_requested||'0');
+    var h='<div class="w-card" style="padding:16px;margin-bottom:16px">';
+    h+='<div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start"><div style="flex:1;min-width:260px"><h3 style="margin:0;font-size:15px">Cotizador Coordinadora</h3><p style="margin:4px 0 0;font-size:11.5px;color:var(--w-muted);line-height:1.5">Conecta el Web Service de Coordinadora para construir una tabla estándar de fletes nacionales con margen de seguridad, redondeo y diagnóstico semanal.</p></div><div style="display:flex;gap:7px;flex-wrap:wrap"><span style="font-size:10px;font-weight:800;padding:4px 8px;border-radius:999px;background:'+(configured?'#dcfce7':'#fee2e2')+';color:'+color+'">'+W.esc(status)+'</span>'+(queued!=='0'?'<span style="font-size:10px;font-weight:800;padding:4px 8px;border-radius:999px;background:#fef3c7;color:#92400e">En cola: '+W.esc(queued)+'</span>':'')+'<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.shippingCoordTest()">Probar conexión</button><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.shippingCoordQuickSync()">Rápida</button><button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.shippingCoordSync()">Sincronizar ahora</button></div></div>';
+    h+='<div id="coord-msg" style="display:none;margin-top:10px;border-radius:9px;padding:9px 11px;font-size:11.5px;line-height:1.45"></div>';
+    h+='<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin-top:12px">'
+        +W.shippingStat('Tarifas Coordinadora',W.num(st.rates||0),(st.municipalities||0)+' municipios')
+        +W.shippingStat('Última sincronización',st.last_sync_at?String(st.last_sync_at).slice(0,10):'—',st.last_status||'Sin ejecutar')
+        +W.shippingStat('Margen',String(s.markup_pct||0)+'%','redondeo $'+W.num((s.rounding_cents||0)/100))
+        +W.shippingStat('Tolerancia',String(s.tolerance_pct||0)+'%','alerta semanal')
+        +'</div>';
+    h+='<details style="margin-top:12px"><summary style="cursor:pointer;font-size:12px;font-weight:800;color:var(--w-text)">Configurar conexión y credenciales</summary><div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:10px">';
+    h+=W.coordField('Estado','<select class="w-input" id="coord-enabled"><option value="1"'+(enabled?' selected':'')+'>Activa</option><option value="0"'+(!enabled?' selected':'')+'>Inactiva</option></select>');
+    h+=W.coordField('Modo','<select class="w-input" id="coord-mode"><option value="soap" selected>SOAP AGS 1.5 (oficial)</option></select>');
+    h+=W.coordField('API Key','<input class="w-input" id="coord-apikey" value="" placeholder="'+(s.apikey_masked?W.esc(s.apikey_masked):'apikey de Coordinadora')+'"/>');
+    h+=W.coordField('Clave','<input class="w-input" id="coord-clave" type="password" value="" placeholder="'+(s.clave_set?'•••••• (guardada)':'clave de Coordinadora')+'"/>');
+    h+=W.coordField('NIT','<input class="w-input" id="coord-nit" value="'+W.esc(s.nit||'')+'"/>');
+    h+=W.coordField('División','<input class="w-input" id="coord-div" value="'+W.esc(s.div||'')+'"/>');
+    h+=W.coordField('Cuenta','<input class="w-input" id="coord-cuenta" value="'+W.esc(s.cuenta||'')+'"/>');
+    h+=W.coordField('Código origen','<input class="w-input" id="coord-origin" value="'+W.esc(s.origin_code||'08001000')+'" placeholder="08001000"/>');
+    h+=W.coordField('Producto','<input class="w-input" type="number" min="0" id="coord-producto" value="'+W.esc(s.producto||'0')+'"/>');
+    h+=W.coordField('Nivel de servicio','<input class="w-input" type="number" min="0" id="coord-nivel" value="'+W.esc(s.nivel_servicio||'1')+'"/>');
+    h+=W.coordField('Margen de seguridad (%)','<input class="w-input" type="number" min="0" max="100" step="0.5" id="coord-markup" value="'+W.esc(s.markup_pct||'8')+'"/>');
+    h+=W.coordField('Redondeo (COP)','<input class="w-input" type="number" min="0" step="100" id="coord-rounding" value="'+W.esc(Math.round((s.rounding_cents||10000)/100))+'"/>');
+    h+=W.coordField('Tolerancia de cambio (%)','<input class="w-input" type="number" min="0" max="100" step="0.5" id="coord-tolerance" value="'+W.esc(s.tolerance_pct||'5')+'"/>');
+    h+=W.coordField('Diagnóstico semanal','<select class="w-input" id="coord-sync-enabled"><option value="1"'+(String(s.sync_enabled||'1')==='1'?' selected':'')+'>Sí</option><option value="0"'+(String(s.sync_enabled||'1')!=='1'?' selected':'')+'>No</option></select>');
+    h+=W.coordField('Modo de sincronización','<select class="w-input" id="coord-sync-mode"><option value="missing"'+(s.sync_mode==='missing'?' selected':'')+'>Crear faltantes</option><option value="update"'+(s.sync_mode==='update'?' selected':'')+'>Actualizar existentes</option></select>');
+    h+=W.coordField('Auto-actualizar','<select class="w-input" id="coord-auto-update"><option value="0"'+(String(s.auto_update||'0')!=='1'?' selected':'')+'>No, solo alertar</option><option value="1"'+(String(s.auto_update||'0')==='1'?' selected':'')+'>Sí, si el cambio es ≤ 25%</option></select>');
+    h+='</div><div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:10px"><button class="w-btn w-btn-primary w-btn-sm" onclick="wontia.shippingCoordSave()">Guardar configuración</button><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.shippingCoordDiagnose()">Diagnóstico semanal</button><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.shippingCoordQuickDiagnose()">Diagnóstico rápido</button></div></details>';
+    h+='<details style="margin-top:10px"><summary style="cursor:pointer;font-size:12px;font-weight:800;color:var(--w-text)">Cotizar prueba</summary><div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:9px"><input class="w-input" id="coord-q-code" placeholder="Código ciudad (11001000)"/><input class="w-input" id="coord-q-weight" type="number" min="1" value="1000" placeholder="Peso gramos"/><input class="w-input" id="coord-q-value" type="number" min="0" value="50000" placeholder="Valor declarado COP"/><button class="w-btn w-btn-secondary" onclick="wontia.shippingCoordQuote()">Cotizar</button></div><div id="coord-q-out" style="font-size:11.5px;color:var(--w-muted);margin-top:7px"></div></details>';
+    if(run){
+        h+='<div style="margin-top:12px;border-top:1px solid var(--w-border);padding-top:10px"><div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><b style="font-size:12px">Última ejecución #'+(run.id||'')+'</b><span style="font-size:10.5px;color:var(--w-muted)">'+W.esc(run.mode||'')+' · '+W.esc(run.status||'')+' · '+W.esc((run.started_at||'').slice(0,19))+'</span></div><div style="font-size:11px;color:var(--w-muted);margin-top:3px">'+W.esc(run.message||'')+' · '+W.num(run.quotes||0)+' cotizaciones · '+W.num(run.created_count||0)+' creadas · '+W.num(run.updated_count||0)+' actualizadas · '+W.num(run.error_count||0)+' errores</div>';
+        var items=run.items||[];
+        if(items.length){
+            h+='<div style="max-height:240px;overflow:auto;margin-top:8px"><table style="width:100%;border-collapse:collapse;font-size:10.5px"><thead><tr style="text-align:left;color:var(--w-muted)"><th style="padding:5px 6px">Destino</th><th style="padding:5px 6px">Peso</th><th style="padding:5px 6px">Base</th><th style="padding:5px 6px">Aplicado</th><th style="padding:5px 6px">Dif.</th><th style="padding:5px 6px">Estado</th></tr></thead><tbody>';
+            items.slice(0,40).forEach(function(it){
+                var label=it.municipality_code||it.department_code||'Nacional';
+                var color=it.status==='error'?'#b91c1c':(it.status==='review'?'#b45309':(it.status==='created'||it.status==='updated'?'#15803d':'var(--w-muted)'));
+                var wmax=it.weight_max_grams!=null?((it.weight_max_grams/1000)+' kg'):'∞';
+                h+='<tr style="border-top:1px solid var(--w-border)"><td style="padding:5px 6px">'+W.esc(label)+'</td><td style="padding:5px 6px">'+W.esc(((it.weight_min_grams||0)/1000)+'-'+wmax)+'</td><td style="padding:5px 6px">$'+W.num((it.quoted_base_cents||0)/100)+'</td><td style="padding:5px 6px">$'+W.num((it.quoted_cents||0)/100)+'</td><td style="padding:5px 6px;color:'+color+'">'+W.esc(String(it.difference_pct||0))+'%</td><td style="padding:5px 6px;color:'+color+'">'+W.esc(it.status||'')+'</td></tr>';
+            });
+            h+='</tbody></table></div>';
+        }
+        h+='</div>';
+    }
+    h+='</div>';
+    return h;
+};
+
+W.shippingCoordSave=async function(){
+    var val=function(id){var el=document.getElementById(id);return el?el.value:''};
+    var payload={enabled:val('coord-enabled'),mode:val('coord-mode'),nit:val('coord-nit'),div:val('coord-div'),cuenta:val('coord-cuenta'),origin_code:val('coord-origin'),producto:val('coord-producto'),nivel_servicio:val('coord-nivel'),markup_pct:val('coord-markup'),rounding_cents:Math.round((parseFloat(val('coord-rounding'))||0)*100),tolerance_pct:val('coord-tolerance'),sync_enabled:val('coord-sync-enabled'),sync_mode:val('coord-sync-mode'),auto_update:val('coord-auto-update')};
+    var ak=val('coord-apikey');if(ak)payload.apikey=ak;
+    var cl=val('coord-clave');if(cl)payload.clave=cl;
+    var r=await W.api('/api/v1/admin/store/shipping/coordinadora/save',{method:'POST',body:payload});
+    W.shippingCoordMsg((r&&r.message)||(r&&r.ok?'Guardado':'Error'),!!(r&&r.ok));
+    if(r&&r.ok)setTimeout(function(){W.storeShipping('tarifas')},500);
+};
+
+W.shippingCoordTest=async function(){
+    W.shippingCoordMsg('Probando conexión con Coordinadora…',true);
+    var r=await W.api('/api/v1/admin/store/shipping/coordinadora/test',{method:'POST',body:{}});
+    W.shippingCoordMsg((r&&r.message)||(r&&r.ok?'Conexión correcta':'Error'),!!(r&&r.ok));
+};
+
+W.shippingCoordQuote=async function(){
+    var val=function(id){var el=document.getElementById(id);return el?el.value:''};
+    var out=document.getElementById('coord-q-out');if(out)out.textContent='Cotizando…';
+    var r=await W.api('/api/v1/admin/store/shipping/coordinadora/quote',{method:'POST',body:{destination_code:val('coord-q-code'),weight_grams:parseInt(val('coord-q-weight'))||1000,declared_value_cents:Math.round((parseFloat(val('coord-q-value'))||0)*100)}});
+    if(r&&r.ok){if(out)out.innerHTML='Base: <b>$'+W.num((r.base_cents||0)/100)+'</b> · Aplicado: <b>$'+W.num((r.cost_cents||0)/100)+'</b> · Entrega: <b>'+W.esc(r.eta_min_days||'')+'-'+W.esc(r.eta_max_days||'')+' días</b>';}
+    else if(out)out.textContent=(r&&r.message)||'No se pudo cotizar.';
+};
+
+W.shippingCoordSync=async function(){
+    if(!window.confirm('Se encolará una sincronización completa para que la ejecute el job runner. ¿Continuar?'))return;
+    W.shippingCoordMsg('Encolando sincronización completa…',true);
+    var r=await W.api('/api/v1/admin/store/shipping/coordinadora/sync',{method:'POST',body:{mode:'missing'}});
+    W.shippingCoordMsg((r&&r.message)||(r&&r.ok?'Sincronización encolada':'Error'),!!(r&&r.ok));
+    if(r&&r.ok)setTimeout(function(){W.storeShipping('tarifas')},30000);
+};
+
+W.shippingCoordQuickSync=async function(){
+    if(!window.confirm('La sincronización rápida consulta 12 destinos y 4 rangos de peso. Puede tardar alrededor de 40 segundos. ¿Continuar?'))return;
+    W.shippingCoordMsg('Sincronización rápida en curso… no cierres esta pestaña.',true);
+    var r=await W.api('/api/v1/admin/store/shipping/coordinadora/sync',{method:'POST',body:{mode:'missing',limit:12,brackets:4,run_now:1}});
+    W.shippingCoordMsg((r&&r.message)||(r&&r.ok?'Sincronización rápida completada':'Error'),!!(r&&r.ok));
+    if(r&&r.ok)setTimeout(function(){W.storeShipping('tarifas')},800);
+};
+
+W.shippingCoordDiagnose=async function(){
+    W.shippingCoordMsg('Encolando diagnóstico semanal…',true);
+    var r=await W.api('/api/v1/admin/store/shipping/coordinadora/diagnose',{method:'POST',body:{limit:80}});
+    W.shippingCoordMsg((r&&r.message)||(r&&r.ok?'Diagnóstico encolado':'Error'),!!(r&&r.ok));
+    if(r&&r.ok)setTimeout(function(){W.storeShipping('tarifas')},30000);
+};
+
+W.shippingCoordQuickDiagnose=async function(){
+    W.shippingCoordMsg('Diagnóstico rápido en curso…',true);
+    var r=await W.api('/api/v1/admin/store/shipping/coordinadora/diagnose',{method:'POST',body:{limit:12,run_now:1}});
+    W.shippingCoordMsg((r&&r.message)||(r&&r.ok?'Diagnóstico rápido completado':'Error'),!!(r&&r.ok));
+    if(r&&r.ok)setTimeout(function(){W.storeShipping('tarifas')},800);
+};
+
 W.shippingRatesHtml=function(){
     var rates=(W._shipping&&W._shipping.rates)||[];
-    if(!rates.length)return '<div class="w-empty-state"><h3>Sin tarifas</h3><p>Crea una tarifa nacional o por departamento.</p></div>';
-    var h='<div class="w-card" style="padding:0;overflow:hidden"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="text-align:left;color:var(--w-muted);font-size:10px;text-transform:uppercase"><th style="padding:11px 13px">Tarifa</th><th style="padding:11px 13px">Cobertura</th><th style="padding:11px 13px">Transportadora</th><th style="padding:11px 13px">Costo</th><th style="padding:11px 13px">Gratis desde</th><th style="padding:11px 13px">Entrega</th><th style="padding:11px 13px">Estado</th><th style="padding:11px 13px"></th></tr></thead><tbody>';
+    var h=W.shippingCoordinadoraHtml();
+    if(!rates.length)return h+'<div class="w-empty-state"><h3>Sin tarifas</h3><p>Crea una tarifa nacional o por departamento, o sincroniza con Coordinadora.</p></div>';
+    h+='<div class="w-card" style="padding:0;overflow:hidden"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="text-align:left;color:var(--w-muted);font-size:10px;text-transform:uppercase"><th style="padding:11px 13px">Tarifa</th><th style="padding:11px 13px">Cobertura</th><th style="padding:11px 13px">Peso</th><th style="padding:11px 13px">Transportadora</th><th style="padding:11px 13px">Costo</th><th style="padding:11px 13px">Gratis desde</th><th style="padding:11px 13px">Entrega</th><th style="padding:11px 13px">Estado</th><th style="padding:11px 13px"></th></tr></thead><tbody>';
     rates.forEach(function(r){
         var scope={nacional:'Nacional',departamento:'Departamento',municipio:'Municipio'}[r.scope]||r.scope;
         var where=r.scope==='municipio'?((r.municipality_name||'')+', '+(r.department_name||'')):(r.scope==='departamento'?(r.department_name||''):'Todo Colombia');
-        h+='<tr style="border-top:1px solid var(--w-border)"><td style="padding:10px 13px;font-weight:700">'+W.esc(r.name)+'</td><td style="padding:10px 13px"><span style="font-size:10px;padding:2px 6px;border-radius:999px;background:#eef2ff;color:#3730a3">'+W.esc(scope)+'</span><div style="font-size:10px;color:var(--w-muted);margin-top:3px">'+W.esc(where)+'</div></td><td style="padding:10px 13px;color:var(--w-muted)">'+W.esc(r.carrier||'—')+'</td><td style="padding:10px 13px">$'+W.num((r.cost_cents||0)/100)+'</td><td style="padding:10px 13px">'+(r.free_over_cents!=null?'$'+W.num(r.free_over_cents/100):'Umbral global')+'</td><td style="padding:10px 13px;color:var(--w-muted)">'+(r.eta_min_days&&r.eta_max_days?r.eta_min_days+'-'+r.eta_max_days+' días':'—')+'</td><td style="padding:10px 13px">'+(r.is_active==1?'<span style="color:#15803d">Activa</span>':'<span style="color:#b91c1c">Inactiva</span>')+'</td><td style="padding:10px 13px;text-align:right;white-space:nowrap"><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.shippingRateEditor('+r.id+')">Editar</button> <button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.shippingRateDelete('+r.id+')">Eliminar</button></td></tr>';
+        var weight=(r.weight_min_grams||0)===0&&(r.weight_max_grams==null||r.weight_max_grams==='')?'Todo peso':(Math.round((r.weight_min_grams||0)/1000*10)/10)+'-'+(r.weight_max_grams!=null?Math.round((r.weight_max_grams||0)/1000*10)/10:'∞')+' kg';
+        h+='<tr style="border-top:1px solid var(--w-border)"><td style="padding:10px 13px;font-weight:700">'+W.esc(r.name)+'</td><td style="padding:10px 13px"><span style="font-size:10px;padding:2px 6px;border-radius:999px;background:#eef2ff;color:#3730a3">'+W.esc(scope)+'</span><div style="font-size:10px;color:var(--w-muted);margin-top:3px">'+W.esc(where)+'</div></td><td style="padding:10px 13px;color:var(--w-muted)">'+W.esc(weight)+'</td><td style="padding:10px 13px;color:var(--w-muted)">'+W.esc(r.carrier||'—')+'</td><td style="padding:10px 13px">$'+W.num((r.cost_cents||0)/100)+'</td><td style="padding:10px 13px">'+(r.free_over_cents!=null?'$'+W.num(r.free_over_cents/100):'Umbral global')+'</td><td style="padding:10px 13px;color:var(--w-muted)">'+(r.eta_min_days&&r.eta_max_days?r.eta_min_days+'-'+r.eta_max_days+' días':'—')+'</td><td style="padding:10px 13px">'+(r.is_active==1?'<span style="color:#15803d">Activa</span>':'<span style="color:#b91c1c">Inactiva</span>')+'</td><td style="padding:10px 13px;text-align:right;white-space:nowrap"><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.shippingRateEditor('+r.id+')">Editar</button> <button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.shippingRateDelete('+r.id+')">Eliminar</button></td></tr>';
     });
     return h+'</tbody></table></div>';
 };
@@ -7709,6 +8617,8 @@ W.shippingRateEditor=function(id,prefill){
         +'<div id="sr-dept-wrap" style="margin-top:12px;display:none"><label style="font-size:11px;color:var(--w-muted)">Departamento</label><select class="w-input" id="sr-dept" onchange="wontia.shippingScope()" style="width:100%">'+options+'</select></div>'
         +'<div id="sr-mun-wrap" style="margin-top:12px;display:none"><label style="font-size:11px;color:var(--w-muted)">Municipio</label><select class="w-input" id="sr-mun" style="width:100%"><option value="'+W.esc(mun)+'">Cargando...</option></select></div>'
         +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px"><div><label style="font-size:11px;color:var(--w-muted)">Costo COP *</label><input class="w-input" type="number" min="0" step="100" id="sr-cost" value="'+W.esc(String(rate?Math.round((rate.cost_cents||0)/100):''))+'" style="width:100%"/></div><div><label style="font-size:11px;color:var(--w-muted)">Gratis desde COP</label><input class="w-input" type="number" min="0" step="1000" id="sr-free" value="'+W.esc(rate&&rate.free_over_cents!=null?String(Math.round(rate.free_over_cents/100)):'')+'" placeholder="Vacío = umbral global" style="width:100%"/><small style="color:var(--w-muted);font-size:10px">Vacío usa el umbral global. 0 = nunca gratis.</small></div></div>'
+        +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:12px"><div><label style="font-size:11px;color:var(--w-muted)">Peso mínimo (kg)</label><input class="w-input" type="number" min="0" step="0.1" id="sr-weight-min" value="'+W.esc(rate?String(Math.round((rate.weight_min_grams||0)/100)/10):'0')+'" style="width:100%"/></div><div><label style="font-size:11px;color:var(--w-muted)">Peso máximo (kg)</label><input class="w-input" type="number" min="0" step="0.1" id="sr-weight-max" value="'+W.esc(rate&&rate.weight_max_grams!=null?String(Math.round((rate.weight_max_grams||0)/100)/10):'')+'" placeholder="Vacío = todo peso" style="width:100%"/></div><div><label style="font-size:11px;color:var(--w-muted)">Margen (%)</label><input class="w-input" type="number" min="0" max="100" step="0.5" id="sr-markup" value="'+W.esc(String(rate?rate.markup_pct||0:0))+'" style="width:100%"/></div></div>'
+        +((rate&&rate.sync_source==='coordinadora')?'<div style="margin-top:10px;font-size:10.5px;color:#b45309;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:7px 9px">Esta tarifa fue sincronizada con Coordinadora. Si la editas, quedará marcada como manual.</div>':'')
         +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px"><div><label style="font-size:11px;color:var(--w-muted)">Entrega mínima (días)</label><input class="w-input" type="number" min="1" max="60" id="sr-eta-min" value="'+W.esc(String(rate&&rate.eta_min_days?rate.eta_min_days:2))+'" style="width:100%"/></div><div><label style="font-size:11px;color:var(--w-muted)">Entrega máxima (días)</label><input class="w-input" type="number" min="1" max="60" id="sr-eta-max" value="'+W.esc(String(rate&&rate.eta_max_days?rate.eta_max_days:5))+'" style="width:100%"/></div></div>'
         +'<div style="display:flex;gap:18px;flex-wrap:wrap;margin-top:12px"><label style="font-size:12px;display:flex;gap:7px;align-items:center"><input type="checkbox" id="sr-cod" '+(rate&&rate.cod_enabled==0?'':'checked')+'/> Contraentrega disponible</label><label style="font-size:12px;display:flex;gap:7px;align-items:center"><input type="checkbox" id="sr-active" '+((!rate||rate.is_active==1)?'checked':'')+'/> Tarifa activa</label></div>';
     W.modal(isEdit?'Editar tarifa':'Nueva tarifa de envío',body,'<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cancelar</button><button class="w-btn w-btn-primary" onclick="wontia.shippingRateSave('+(rate?rate.id:0)+')">Guardar tarifa</button>');
@@ -7736,8 +8646,9 @@ W.shippingScope=async function(){
 
 W.shippingRateSave=async function(id){
     var val=function(x){var el=document.getElementById(x);return el?el.value:''};
-    var payload={scope:val('sr-scope'),name:val('sr-name').trim(),department_code:val('sr-dept'),municipality_code:val('sr-mun'),carrier:val('sr-carrier').trim(),cost_cents:Math.round((parseFloat(val('sr-cost'))||0)*100),eta_min_days:parseInt(val('sr-eta-min'))||2,eta_max_days:parseInt(val('sr-eta-max'))||5,cod_enabled:document.getElementById('sr-cod')&&document.getElementById('sr-cod').checked?1:0,is_active:document.getElementById('sr-active')&&document.getElementById('sr-active').checked?1:0};
+    var payload={scope:val('sr-scope'),name:val('sr-name').trim(),department_code:val('sr-dept'),municipality_code:val('sr-mun'),carrier:val('sr-carrier').trim(),cost_cents:Math.round((parseFloat(val('sr-cost'))||0)*100),eta_min_days:parseInt(val('sr-eta-min'))||2,eta_max_days:parseInt(val('sr-eta-max'))||5,weight_min_grams:Math.round((parseFloat(val('sr-weight-min'))||0)*1000),weight_max_grams:String(val('sr-weight-max')).trim()===''?null:Math.round((parseFloat(val('sr-weight-max'))||0)*1000),markup_pct:parseFloat(val('sr-markup'))||0,sync_source:'manual',cod_enabled:document.getElementById('sr-cod')&&document.getElementById('sr-cod').checked?1:0,is_active:document.getElementById('sr-active')&&document.getElementById('sr-active').checked?1:0};
     var free=String(val('sr-free')).trim();payload.free_over_cents=free===''?null:Math.round((parseFloat(free)||0)*100);
+    if(payload.weight_max_grams!=null&&payload.weight_max_grams<payload.weight_min_grams){W.notify('El peso máximo no puede ser menor que el mínimo','error');return}
     if(id)payload.id=id;
     if(!payload.name){W.notify('Escribe un nombre para la tarifa','error');return}
     if(payload.scope!=='national'&&!payload.department_code){W.notify('Selecciona un departamento','error');return}
@@ -7768,7 +8679,7 @@ W.storeAddi=async function(){
         +W.addiStat('Compra permitida',lc.minAmount!=null?('$'+W.num(lc.minAmount)+' - $'+W.num(lc.maxAmount||0)):'Consultar',lc.isActiveAlly?'Ally activo':'Ally inactivo')
         +'</div>';
     if(!s.configured)h+='<div class="w-card" style="border-left:3px solid #d97706;background:#fffbeb;margin-bottom:14px"><b>Configura las credenciales de Addi</b><p style="font-size:12px;color:#92400e;margin:5px 0 0">Sin ally slug, client ID y client secret el método no aparecerá en el checkout.</p></div>';
-    else if(lc&&lc.isActiveAlly===false)h+='<div class="w-card" style="border-left:3px solid #dc2626;background:#fef2f2;margin-bottom:14px"><b>Addi reporta el ally como inactivo</b><p style="font-size:12px;color:#991b1b;margin:5px 0 0">El método se ocultará en el checkout hasta que Addi active el comercio o marques “Forzar visible”. Última consulta: '+W.esc(s.last_config_at||'—')+'</p></div>';
+    else if(lc&&lc.isActiveAlly===false)h+='<div class="w-card" style="border-left:3px solid #dc2626;background:#fef2f2;margin-bottom:14px"><b>Addi reporta el ally como inactivo</b><p style="font-size:12px;color:#991b1b;margin:5px 0 0">El método aparecerá deshabilitado en el checkout hasta que Addi active el comercio (ally <b>'+W.esc(s.ally_slug||'—')+'</b>) o marques “Forzar visible”. Última consulta: '+W.esc(s.last_config_at||'—')+'</p></div>';
     h+='<div class="w-card" style="padding:16px;margin-bottom:14px"><h3 style="margin:0 0 12px">Credenciales y conexión</h3><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'
         +'<div><label style="font-size:11px;color:var(--w-muted)">Integración</label><select class="w-input" id="ad-enabled" style="width:100%"><option value="1"'+(s.enabled?' selected':'')+'>Activa</option><option value="0"'+(s.enabled?'':' selected')+'>Inactiva</option></select></div>'
         +'<div><label style="font-size:11px;color:var(--w-muted)">Ambiente</label><select class="w-input" id="ad-env" style="width:100%"><option value="staging"'+(s.environment==='staging'?' selected':'')+'>Staging</option><option value="production"'+(s.environment==='production'?' selected':'')+'>Producción</option></select></div>'
@@ -7787,8 +8698,8 @@ W.storeAddi=async function(){
     var rows=W._addi.transactions||[];
     h+='<div class="w-card" style="padding:0;overflow:hidden"><div style="padding:14px 16px;border-bottom:1px solid var(--w-border);display:flex;justify-content:space-between;align-items:center"><h3 style="margin:0">Transacciones Addi</h3><span style="font-size:11px;color:var(--w-muted)">'+rows.length+' registradas</span></div>';
     if(!rows.length)h+='<div class="w-empty-state" style="padding:30px"><h3>Sin transacciones</h3><p>Las solicitudes de crédito aparecerán aquí.</p></div>';
-    else{h+='<div style="overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="text-align:left;color:var(--w-muted);font-size:10px;text-transform:uppercase"><th style="padding:10px 14px">Pedido</th><th style="padding:10px 14px">Cliente</th><th style="padding:10px 14px">Monto</th><th style="padding:10px 14px">Estado</th><th style="padding:10px 14px">Application</th><th style="padding:10px 14px">Fecha</th><th style="padding:10px 14px"></th></tr></thead><tbody>';
-      rows.forEach(function(t){var col=W.addiStatusClass(t.status);h+='<tr style="border-top:1px solid var(--w-border)"><td style="padding:9px 14px"><b>'+W.esc(t.order_number||'—')+'</b></td><td style="padding:9px 14px;color:var(--w-muted)">'+W.esc(t.customer_name||t.customer_email||'—')+'</td><td style="padding:9px 14px">$'+W.num((t.amount_cents||0)/100)+'</td><td style="padding:9px 14px"><span style="padding:2px 7px;border-radius:999px;font-size:10px;font-weight:700;background:'+col.bg+';color:'+col.fg+'">'+W.esc(t.status||'—')+'</span></td><td style="padding:9px 14px;color:var(--w-muted);font-size:10px">'+W.esc(t.application_id||'—')+'</td><td style="padding:9px 14px;color:var(--w-muted);font-size:10px">'+W.esc((t.created_at||'').slice(0,16))+'</td><td style="padding:9px 14px;text-align:right">'+(t.status==='APPROVED'?'<button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.addiCancel(\''+W.esc(t.order_uuid)+'\')">Cancelar</button>':'')+'</td></tr>'});
+    else{h+='<div style="overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="text-align:left;color:var(--w-muted);font-size:10px;text-transform:uppercase"><th style="padding:10px 14px">Pedido</th><th style="padding:10px 14px">Cliente</th><th style="padding:10px 14px">Monto</th><th style="padding:10px 14px">Estado</th><th style="padding:10px 14px">Intento Addi</th><th style="padding:10px 14px">Application</th><th style="padding:10px 14px">Fecha</th><th style="padding:10px 14px"></th></tr></thead><tbody>';
+      rows.forEach(function(t){var col=W.addiStatusClass(t.status);h+='<tr style="border-top:1px solid var(--w-border)"><td style="padding:9px 14px"><b>'+W.esc(t.order_number||'—')+'</b></td><td style="padding:9px 14px;color:var(--w-muted)">'+W.esc(t.customer_name||t.customer_email||'—')+'</td><td style="padding:9px 14px">$'+W.num((t.amount_cents||0)/100)+'</td><td style="padding:9px 14px"><span style="padding:2px 7px;border-radius:999px;font-size:10px;font-weight:700;background:'+col.bg+';color:'+col.fg+'">'+W.esc(t.status||'—')+'</span></td><td style="padding:9px 14px;color:var(--w-muted);font-size:10px">'+W.esc(t.addi_order_id||'—')+'</td><td style="padding:9px 14px;color:var(--w-muted);font-size:10px">'+W.esc(t.application_id||'—')+'</td><td style="padding:9px 14px;color:var(--w-muted);font-size:10px">'+W.esc((t.created_at||'').slice(0,16))+'</td><td style="padding:9px 14px;text-align:right">'+(t.status==='APPROVED'?'<button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.addiCancel(\''+W.esc(t.addi_order_id)+'\')">Cancelar</button>':'')+'</td></tr>'});
       h+='</tbody></table></div>';}
     h+='</div>';
     el.innerHTML=h;
@@ -7815,18 +8726,18 @@ W.storeAddiTest=async function(){
     W.modal('Prueba de conexión Addi',h,'<button class="w-btn w-btn-primary" onclick="wontia.closeModal()">Cerrar</button>');
 };
 W.addiGenPass=function(){var chars='ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%*?-_';var a=new Uint32Array(32);if(window.crypto&&crypto.getRandomValues)crypto.getRandomValues(a);var s='';for(var i=0;i<32;i++)s+=chars[(a[i]||Math.floor(Math.random()*chars.length))%chars.length];var el=document.getElementById('ad-cb-pass');if(el)el.value=s;};
-W.addiCancel=function(uuid){W.confirm('¿Solicitar cancelación total de este crédito Addi? Solo se permite una cancelación por transacción.',async function(){var r=await W.api('/api/v1/admin/addi/cancel/'+encodeURIComponent(uuid),{method:'POST',body:{}});if(r.ok){W.notify(r.message||'Cancelación solicitada','success');W.storeAddi()}else W.notify(r.message||'No se pudo cancelar','error')})};
+W.addiCancel=function(id){W.confirm('¿Solicitar cancelación total de este intento Addi? Solo se permite una cancelación por transacción.',async function(){var r=await W.api('/api/v1/admin/addi/cancel/'+encodeURIComponent(id),{method:'POST',body:{}});if(r.ok){W.notify(r.message||'Cancelación solicitada','success');W.storeAddi()}else W.notify(r.message||'No se pudo cancelar','error')})};
 
 W.storeLogoMethods=[['breb','Bre-B'],['addi','Addi'],['request','WhatsApp / pago asistido'],['mercadopago','Mercado Pago'],['epayco','ePayco']];
 W.storeLogoCard=function(id,label,url,custom){
     url=url||'';
-    return '<div class="w-card" style="padding:12px;margin:0"><div style="display:flex;gap:10px;align-items:center;margin-bottom:8px"><div style="width:92px;height:48px;border:1px solid var(--w-border);border-radius:9px;background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden"><img id="ss-logo-prev-'+id+'" src="'+W.esc(url)+'" alt="" style="max-width:100%;max-height:100%;object-fit:contain;display:'+(url?'block':'none')+'"/><span id="ss-logo-empty-'+id+'" style="font-size:10px;color:var(--w-muted);display:'+(url?'none':'block')+'">Sin logo</span></div><div style="flex:1;min-width:0"><b style="font-size:12px">'+W.esc(label)+'</b><input class="w-input" id="ss-logo-'+id+'" value="'+W.esc(url)+'" placeholder="https://... o /assets/uploads/..." oninput="wontia.storeLogoPreview(\''+id+'\')" style="width:100%;font-size:11px;margin-top:5px"/></div></div><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><input type="file" accept="image/*" onchange="wontia.storeLogoUpload(\''+id+'\',this)" style="font-size:10px;max-width:150px"/><button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.storeLogoRemove(\''+id+'\')">Quitar</button>'+(custom?'<button type="button" class="w-btn w-btn-danger w-btn-sm" onclick="wontia.storeLogoRemoveMethod('+id+')">Eliminar método</button>':'')+'</div></div>';
+    return '<div class="w-card" style="padding:12px;margin:0"><div style="display:flex;gap:10px;align-items:center;margin-bottom:8px"><div style="width:92px;height:48px;border:1px solid var(--w-border);border-radius:9px;background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden"><img id="ss-logo-prev-'+id+'" src="'+W.esc(url)+'" alt="" style="max-width:100%;max-height:100%;object-fit:contain;display:'+(url?'block':'none')+'"/><span id="ss-logo-empty-'+id+'" style="font-size:10px;color:var(--w-muted);display:'+(url?'none':'block')+'">Sin logo</span></div><div style="flex:1;min-width:0"><b style="font-size:12px">'+W.esc(label)+'</b><input class="w-input" id="ss-logo-'+id+'" value="'+W.esc(url)+'" placeholder="https://... o /assets/uploads/..." oninput="wontia.storeLogoPreview(\''+id+'\')" style="width:100%;font-size:11px;margin-top:5px"/></div></div><div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap"><input type="file" accept="image/*" onchange="wontia.storeLogoUpload(\''+id+'\',this)" style="font-size:10px;max-width:150px"/><button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.storeLogoRemove(\''+id+'\')">Quitar logo</button>'+(custom?'<button type="button" class="w-btn w-btn-danger w-btn-sm" onclick="wontia.storeLogoRemoveMethod(\''+id+'\')">Eliminar método</button>':'')+'</div></div>';
 };
 W.storeLogoPreview=function(id){var v=document.getElementById('ss-logo-'+id),img=document.getElementById('ss-logo-prev-'+id),empty=document.getElementById('ss-logo-empty-'+id);if(!v||!img)return;var u=v.value.trim();img.src=u;img.style.display=u?'block':'none';if(empty)empty.style.display=u?'none':'block';};
 W.storeLogoRemove=function(id){var v=document.getElementById('ss-logo-'+id);if(v)v.value='';W.storeLogoPreview(id);W.storeLogoSave()};
 W.storeLogoSave=async function(){
     var logos={};W.storeLogoMethods.forEach(function(pair){var el=document.getElementById('ss-logo-'+pair[0]);var u=el?el.value.trim():'';if(u)logos[pair[0]]=u});
-    var r=await W.api('/api/v1/admin/store/settings',{method:'PUT',body:{store_payment_logos:JSON.stringify(logos),store_payment_logo_methods:JSON.stringify(W.storeLogoCustom||[]),store_payment_logo_methods:JSON.stringify(W.storeLogoCustom||[])}});
+    var r=await W.api('/api/v1/admin/store/settings',{method:'PUT',body:{store_payment_logos:JSON.stringify(logos),store_payment_logo_methods:JSON.stringify(W.storeLogoCustom||[])}});
     if(r.ok)W.notify('Logos de pago guardados','success');else W.notify((r&&r.message)||'No se pudieron guardar los logos','error');
 };
 W.storeLogoUpload=async function(id,input){
@@ -8140,9 +9051,10 @@ W.storeSettings=async function(){
         +'</div>'
         +'<div style="margin-top:12px"><label style="font-size:11px;color:var(--w-muted)">Nota de envío</label><input class="w-input" id="ss-shipnote" value="'+W.esc(s.store_shipping_note||'')+'" style="width:100%"/></div>'
         +'</div>'
-        +'<div class="w-card" style="margin-top:14px"><h3 style="margin-top:0">Métodos de pago</h3><div style="display:flex;gap:18px;flex-wrap:wrap">'
+        +'<details class="w-card" style="margin-top:14px;padding:14px"><summary style="cursor:pointer;font-weight:700">Métodos legacy (flujos anteriores)</summary><p style="font-size:11px;color:var(--w-muted);margin:8px 0 10px">Estos métodos aplican a flujos anteriores de la tienda. La visibilidad del checkout actual se controla en la tarjeta <b>Métodos de pago en el checkout</b>.</p><div style="display:flex;gap:18px;flex-wrap:wrap">'
         +pm.map(function(m){var label={wompi:'Wompi (en línea)',cod:'Contra entrega',manual:'Pago asistido (WhatsApp)'}[m];return '<label style="font-size:13px;display:flex;gap:8px;align-items:center"><input type="checkbox" class="ss-pm" value="'+m+'"'+(methods.indexOf(m)>-1?' checked':'')+'/> '+label+'</label>'}).join('')
-        +'</div></div>'
+        +'</div></details>'
+        +W.checkoutPaymentPanel(s.checkout_payment_methods||{methods:[]})
         +'<div class="w-card" style="margin-top:14px"><h3 style="margin-top:0">Wompi</h3><div style="font-size:12px;color:var(--w-muted);margin-bottom:12px">Llaves del comercio (cada tienda usa sus propias llaves).</div>'
         +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'
         +'<div><label style="font-size:11px;color:var(--w-muted)">Public key</label><input class="w-input" id="ss-wompi-pub" value="'+W.esc(s.store_wompi_public_key||'')+'" style="width:100%"/></div>'
@@ -8161,11 +9073,21 @@ W.storeSettings=async function(){
         +'<div><label style="font-size:11px;color:var(--w-muted)">Horas sin comprar antes de recordar</label><input class="w-input" type="number" id="ss-rec-h" value="'+(parseInt(s.store_recovery_hours)||24)+'" style="width:100%"/></div>'
         +'<div><label style="font-size:11px;color:var(--w-muted)">Reserva de inventario (minutos)</label><input class="w-input" type="number" id="ss-res-min" value="'+(parseInt(s.store_reservation_minutes)||20)+'" style="width:100%"/></div>'
         +'</div></div>'
+        +'<div class="w-card" style="margin-top:14px"><h3 style="margin-top:0">Archivado automático</h3><p style="font-size:12px;color:var(--w-muted);margin:5px 0 12px">Mantén la bandeja de Pedidos limpia. Los pedidos archivados no se borran: pasan a la pestaña Archivados.</p><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Activo</label><select class="w-input" id="ss-auto-archive" style="width:100%"><option value="0"'+((s.store_auto_archive_enabled==='1')?'':' selected')+'>No</option><option value="1"'+((s.store_auto_archive_enabled==='1')?' selected':'')+'>Sí</option></select></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Días para fallidos/cancelados</label><input class="w-input" type="number" min="1" id="ss-archive-failed" value="'+(parseInt(s.store_archive_failed_days)||30)+'" style="width:100%"/></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Días para pruebas</label><input class="w-input" type="number" min="1" id="ss-archive-test" value="'+(parseInt(s.store_archive_test_days)||7)+'" style="width:100%"/></div>'
+        +'</div></div>'
+        +'<div class="w-card" style="margin-top:14px"><h3 style="margin-top:0">Contrato Partner</h3><p style="font-size:12px;color:var(--w-muted);margin:5px 0 12px">Envía un recordatorio por correo a los Partners que aún no han firmado la versión vigente del contrato.</p><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Recordatorio automático</label><select class="w-input" id="ss-contract-reminder" style="width:100%"><option value="0"'+((s.partner_contract_reminder_enabled==='1')?'':' selected')+'>No</option><option value="1"'+((s.partner_contract_reminder_enabled==='1')?' selected':'')+'>Sí</option></select></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Días después del registro</label><input class="w-input" type="number" min="1" max="60" id="ss-contract-reminder-days" value="'+(parseInt(s.partner_contract_reminder_days)||3)+'" style="width:100%"/></div>'
+        +'</div></div>'
+        +W.giftCardsPanel(s)
         +'<div class="w-card" style="margin-top:14px"><h3 style="margin-top:0">Monedas</h3><div style="font-size:12px;color:var(--w-muted);margin-bottom:8px">La moneda base se cobra; las demás son referenciales (conversión por tasa). JSON: [{"code":"USD","label":"USD","symbol":"US$","rate":0.00025}]</div><textarea class="w-input" id="ss-currencies" rows="3" style="width:100%;font-family:monospace">'+W.esc(s.store_currencies||'')+'</textarea></div>'
         +'<div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap"><button class="w-btn w-btn-primary" onclick="wontia.storeSettingsSave()">Guardar configuración</button>'
         +'<button class="w-btn w-btn-secondary" onclick="wontia.storeMaintenance()">Liberar stock de pedidos vencidos</button></div>';
     var logoOptions=(W.storeLogoMethods||[]).map(function(pair){return '<option value="'+W.esc(pair[0])+'">'+W.esc(pair[1])+'</option>'}).join('');
-    var logosSection='<div class="w-card" id="store-payment-logos" style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap"><div><h3 style="margin:0">Logos de métodos de pago</h3><p style="font-size:12px;color:var(--w-muted);margin:5px 0 0">Detecta los métodos instalados, permite crear métodos manuales ilimitados y relacionar cada logo con su método.</p></div><button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.storeLogoSave()">Guardar logos</button></div>'
+    var logosSection='<div class="w-card" id="store-payment-logos" style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap"><div><h3 style="margin:0">Logos de métodos de pago</h3><p style="font-size:12px;color:var(--w-muted);margin:5px 0 0">Muestra los métodos activos. Para ocultar un método, desactívalo en <b>Métodos de pago en el checkout</b>. <b>Quitar logo</b> solo borra la imagen.</p></div><button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.storeLogoSave()">Guardar logos</button></div>'
         +'<div style="margin-top:14px;padding:12px;border:1px solid var(--w-border);border-radius:10px;background:#fbfcff">'
         +'<div style="display:grid;grid-template-columns:1.3fr 1fr auto;gap:8px;align-items:end">'
         +'<div><label style="font-size:11px;color:var(--w-muted)">Método instalado</label><select class="w-input" id="ss-logo-method-select" onchange="wontia.storeLogoSelect()" style="width:100%"><option value="">Selecciona un método...</option>'+logoOptions+'</select></div>'
@@ -8182,12 +9104,185 @@ W.storeSettings=async function(){
         +'<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(245px,1fr));gap:10px;margin-top:12px">'+W.storeLogoMethods.map(function(pair){var isCustom=(W.storeLogoCustom||[]).some(function(x){return String(x.id)===String(pair[0])});return W.storeLogoCard(pair[0],pair[1],logos[pair[0]]||'',isCustom)}).join('')+'</div></div>';
     el.innerHTML=logosSection+W.catalogPanel(s)+W.recommendationPanel(s)+W.socialProofPanel(s)+W.impactNotePanel(s)+body;
     W.catalogRenderChips();
+    if(document.getElementById('gc-admin-list'))W.giftCardsLoad();
 };
 
 W.salesToggle=async function(on){
     var r=await W.api('/api/v1/admin/store/settings',{method:'PUT',body:{store_show_sales:on?1:0}});
     if(r&&r.ok)W.notify(on?'Etiqueta de vendidos visible':'Etiqueta de vendidos oculta','success');
     else W.notify('No se pudo cambiar la visibilidad','error');
+};
+W.checkoutPaymentPanel=function(cpm){
+    cpm=cpm||{};var methods=Array.isArray(cpm.methods)?cpm.methods:[];
+    if(!methods.length)return '<div class="w-card" style="margin-top:14px"><h3 style="margin-top:0">Métodos de pago en el checkout</h3><p style="font-size:12px;color:var(--w-muted);margin:0">No se detectaron métodos de pago instalados.</p></div>';
+    var status=function(m){
+        var color=m.available?'#0d7a58':(m.configured?'#b45309':'#64748b');
+        var label=m.available?'Disponible':(m.configured?'No disponible':'No configurado');
+        return '<span class="w-badge" style="background:'+color+';color:#fff">'+label+'</span>';
+    };
+    var rows=methods.map(function(m){
+        var id=W.esc(m.id||'');var vis=m.visible_now?'<span style="font-size:9px;color:#0d7a58;font-weight:800">Visible ahora</span>':'<span style="font-size:9px;color:#94a3b8">Oculto</span>';
+        return '<tr data-cpm-row data-cpm-id="'+id+'" data-cpm-available="'+(m.available?1:0)+'" data-cpm-sort="'+(parseInt(m.sort)||0)+'">'
+            +'<td><input type="checkbox" data-cpm-enabled '+(+m.enabled===1?'checked':'')+'/></td>'
+            +'<td style="min-width:190px"><b style="font-size:12px">'+W.esc(m.label||id)+'</b><div style="font-size:10px;color:var(--w-muted)">'+id+' · '+W.esc(m.source||'')+'</div><div style="margin-top:4px;display:flex;gap:5px;align-items:center;flex-wrap:wrap">'+status(m)+vis+'</div></td>'
+            +'<td><input class="w-input" data-cpm-label value="'+W.esc(m.label_override||'')+'" placeholder="'+W.esc(m.label||m.id)+'" style="width:145px"/></td>'
+            +'<td><input class="w-input" data-cpm-badge value="'+W.esc(m.has_override?(m.badge_override||''):(m.badge||''))+'" placeholder="'+W.esc(m.badge||'Ej. 3% OFF')+'" style="width:100px"/></td>'
+            +'<td><input class="w-input" type="number" min="0" data-cpm-sort value="'+(parseInt(m.sort)||0)+'" style="width:70px"/></td>'
+            +'<td><input class="w-input" type="date" data-cpm-from value="'+W.esc(String(m.from||'').slice(0,10))+'" style="width:135px"/></td>'
+            +'<td><input class="w-input" type="date" data-cpm-to value="'+W.esc(String(m.to||'').slice(0,10))+'" style="width:135px"/></td>'
+            +'</tr>';
+    }).join('');
+    var defaultOptions=methods.map(function(m){return '<option value="'+W.esc(m.id)+'"'+(String(cpm.default_method||'')===String(m.id)?' selected':'')+'>'+W.esc(m.label||m.id)+'</option>'}).join('');
+    var visibleCount=parseInt(cpm.visible_count)||methods.filter(function(m){return m.visible_now}).length;
+    var totalCount=parseInt(cpm.all_count)||methods.length;
+    return '<div class="w-card" style="margin-top:14px" id="checkout-payment-panel">'
+        +'<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap"><div><h3 style="margin:0">Métodos de pago en el checkout</h3><p style="font-size:12px;color:var(--w-muted);margin:5px 0 0;max-width:780px">Activa, oculta, ordena y renombra los métodos que verá el cliente en el carrito y en el checkout. Puedes programar una ventana de fechas para campañas o lanzamientos.</p></div><div style="display:flex;gap:6px;flex-wrap:wrap"><a class="w-btn w-btn-secondary w-btn-sm" href="/checkout" target="_blank" rel="noopener">Ver checkout</a><button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.checkoutPaymentReset()">Restablecer</button></div></div>'
+        +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><span class="w-badge" style="background:#101d3a;color:#fff">'+visibleCount+' de '+totalCount+' visibles</span><span class="w-badge" style="background:'+(cpm.configured?'#0d7a58':'#b45309')+';color:#fff">'+(cpm.configured?'Control manual':'Modo automático')+'</span><span class="w-badge" style="background:#eef2ff;color:#3730a3">Predeterminado: '+W.esc((methods.filter(function(m){return String(m.id)===String(cpm.default_method)})[0]||{}).label||cpm.default_method||'—')+'</span></div>'
+        +((cpm.configured)?'':'<p style="font-size:11px;color:#b45309;margin:8px 0 0">Ahora se muestran todos los métodos disponibles. Al guardar, el sistema respeta solo los que marques.</p>')
+        +'<div style="overflow:auto;margin-top:12px"><table class="w-table"><thead><tr><th>Visible</th><th>Método</th><th>Etiqueta personalizada</th><th>Badge</th><th>Orden</th><th>Desde</th><th>Hasta</th></tr></thead><tbody>'+rows+'</tbody></table></div>'
+        +'<div style="display:grid;grid-template-columns:1fr 1.6fr;gap:12px;margin-top:12px;align-items:end">'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Método predeterminado</label><select class="w-input" id="cpm-default" style="width:100%">'+defaultOptions+'</select></div>'
+        +'<div style="font-size:11px;color:var(--w-muted);line-height:1.5">El orden menor aparece primero. Si un método no está disponible, se oculta automáticamente y el sistema usa el siguiente. Si todos los métodos configurados dejan de estar disponibles, se activa un respaldo para no bloquear la compra.</div>'
+        +'</div>'
+        +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button type="button" class="w-btn w-btn-primary" onclick="wontia.checkoutPaymentSave()">Guardar métodos de pago</button><span id="cpm-save-result" style="font-size:11px;color:var(--w-muted);align-self:center"></span></div>'
+        +'<p style="font-size:10.5px;color:var(--w-muted);margin:8px 0 0">Esta tarjeta se guarda con su propio botón. El botón general "Guardar configuración" no modifica los métodos de pago.</p>'
+        +'</div>';
+};
+W.checkoutPaymentReset=function(){
+    document.querySelectorAll('[data-cpm-row]').forEach(function(row){
+        var avail=row.getAttribute('data-cpm-available')==='1';
+        var en=row.querySelector('[data-cpm-enabled]');if(en)en.checked=avail;
+        ['[data-cpm-label]','[data-cpm-badge]','[data-cpm-from]','[data-cpm-to]'].forEach(function(sel){var el=row.querySelector(sel);if(el)el.value=''});
+        var sort=row.querySelector('[data-cpm-sort]');if(sort)sort.value=row.getAttribute('data-cpm-sort')||'0';
+    });
+    var first=document.querySelector('[data-cpm-row] [data-cpm-enabled]:checked');
+    var sel=document.getElementById('cpm-default');
+    if(sel&&first){var row=first.closest('[data-cpm-row]');if(row)sel.value=row.getAttribute('data-cpm-id')||sel.value}
+    W.notify('Valores restablecidos. Pulsa Guardar para aplicar.','info');
+};
+W.checkoutPaymentSave=async function(){
+    var rows=[];document.querySelectorAll('[data-cpm-row]').forEach(function(row){
+        var g=function(sel){var el=row.querySelector(sel);return el?el.value:''};
+        var en=row.querySelector('[data-cpm-enabled]');
+        rows.push({id:row.getAttribute('data-cpm-id')||'',enabled:en&&en.checked?1:0,label:g('[data-cpm-label]'),badge:g('[data-cpm-badge]'),sort:parseInt(g('[data-cpm-sort]'))||0,from:g('[data-cpm-from]'),to:g('[data-cpm-to]')});
+    });
+    var def=document.getElementById('cpm-default');var defaultMethod=def?def.value:'';
+    var out=document.getElementById('cpm-save-result');if(out)out.textContent='Guardando…';
+    var r=await W.api('/api/v1/admin/store/checkout-payment-methods',{method:'PUT',body:{methods:rows,default_method:defaultMethod}});
+    if(r&&r.ok){if(out)out.innerHTML='<span style="color:#0d7a58">Guardado. Recargando…</span>';W.notify(r.message||'Métodos de pago actualizados','success');W.storeSettings()}
+    else{if(out)out.innerHTML='<span style="color:#b42318">'+W.esc((r&&r.message)||'No se pudo guardar')+'</span>';W.notify((r&&r.message)||'No se pudo guardar','error')}
+};
+W.gcAdminState={cards:[],occasions:[],stats:null};
+W.gcMoney=function(cents,cur){try{return W.ocMoney(cents||0,cur||'COP')}catch(e){return '$'+Math.round((cents||0)/100).toLocaleString('es-CO')}};
+W.gcStatusLabel=function(s){return ({active:'Activa',depleted:'Agotada',void:'Anulada',expired:'Vencida'})[s]||s||''};
+W.gcStatusColor=function(s){return ({active:'#0d7a58',depleted:'#64748b',void:'#b42318',expired:'#b45309'})[s]||'#64748b'};
+W.giftCardsPanel=function(s){
+    var enabled=s.gift_card_enabled!=='0';
+    return '<div class="w-card" id="gc-admin-panel" style="margin-top:14px">'
+        +'<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap"><div><h3 style="margin:0">Tarjetas de regalo</h3><p style="font-size:12px;color:var(--w-muted);margin:5px 0 0;max-width:760px">Vende saldo prepago por ocasión. El cliente recibe código + PIN por correo y puede usarlo total o parcialmente en el checkout. La tarjeta se emite al confirmar el pago.</p></div><div style="display:flex;gap:6px;flex-wrap:wrap"><a class="w-btn w-btn-secondary w-btn-sm" href="/tarjetas-de-regalo" target="_blank" rel="noopener">Ver página</a><button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.giftCardsLoad()">Actualizar</button></div></div>'
+        +'<div id="gc-admin-stats" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px"></div>'
+        +'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:14px;padding-top:14px;border-top:1px solid var(--w-border)">'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Tarjetas activas</label><select class="w-input" id="gc-adm-enabled" style="width:100%"><option value="0"'+(enabled?'':' selected')+'>No</option><option value="1"'+(enabled?' selected':'')+'>Sí</option></select></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Monto mínimo (COP)</label><input class="w-input" type="number" min="1000" step="1000" id="gc-adm-min" value="'+(Math.round(parseInt(s.gift_card_min_cents||1000000)/100))+'" style="width:100%"/></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Monto máximo (COP)</label><input class="w-input" type="number" min="10000" step="1000" id="gc-adm-max" value="'+(Math.round(parseInt(s.gift_card_max_cents||200000000)/100))+'" style="width:100%"/></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Vigencia (días)</label><input class="w-input" type="number" min="30" max="3650" id="gc-adm-expiry" value="'+(parseInt(s.gift_card_expiry_days||365))+'" style="width:100%"/></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Reserva sin pago (horas)</label><input class="w-input" type="number" min="1" max="240" id="gc-adm-hold" value="'+(parseInt(s.gift_card_hold_hours||24))+'" style="width:100%"/></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">URL de términos</label><input class="w-input" id="gc-adm-terms" value="'+W.esc(s.gift_card_terms_url||'/politicas')+'" style="width:100%"/></div>'
+        +'</div>'
+        +'<div style="margin-top:14px;padding:14px;border:1px solid var(--w-border);border-radius:12px;background:var(--w-bg2)">'
+        +'<h4 style="margin:0 0 4px">Emitir tarjeta manualmente</h4><p style="font-size:11px;color:var(--w-muted);margin:0 0 12px">Para regalos corporativos, compensaciones o ventas asistidas. Se envía por correo al destinatario.</p>'
+        +'<div style="display:grid;grid-template-columns:1.2fr .8fr 1fr 1fr;gap:10px">'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Ocasión</label><select class="w-input" id="gc-adm-occasion" style="width:100%"><option value="">Cargando...</option></select></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Monto (COP)</label><input class="w-input" type="number" min="1000" step="1000" id="gc-adm-amount" value="100000" style="width:100%"/></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Destinatario</label><input class="w-input" id="gc-adm-recipient" placeholder="Nombre" style="width:100%"/></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Correo destinatario</label><input class="w-input" type="email" id="gc-adm-email" placeholder="correo@ejemplo.com" style="width:100%"/></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Comprador (opcional)</label><input class="w-input" id="gc-adm-purchaser" placeholder="Nombre" style="width:100%"/></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Correo comprador (opcional)</label><input class="w-input" type="email" id="gc-adm-purchaser-email" placeholder="correo@ejemplo.com" style="width:100%"/></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Vigencia (días)</label><input class="w-input" type="number" min="1" max="3650" id="gc-adm-issue-expiry" value="'+(parseInt(s.gift_card_expiry_days||365))+'" style="width:100%"/></div>'
+        +'<div><label style="font-size:11px;color:var(--w-muted)">Entrega</label><input class="w-input" type="date" id="gc-adm-delivery" style="width:100%"/></div>'
+        +'</div>'
+        +'<div style="margin-top:10px"><label style="font-size:11px;color:var(--w-muted)">Mensaje</label><input class="w-input" id="gc-adm-message" maxlength="300" placeholder="Mensaje para el destinatario" style="width:100%"/></div>'
+        +'<div style="display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap"><button type="button" class="w-btn w-btn-primary w-btn-sm" onclick="wontia.giftCardIssue()">Emitir y enviar</button><span id="gc-adm-issue-result" style="font-size:12px"></span></div>'
+        +'</div>'
+        +'<div id="gc-admin-list" style="margin-top:14px">Cargando tarjetas...</div>'
+        +'<details style="margin-top:14px"><summary style="cursor:pointer;font-weight:700;font-size:13px">Ocasiones y diseños</summary><div id="gc-admin-occasions" style="margin-top:10px">Cargando ocasiones...</div></details>'
+        +'</div>';
+};
+W.giftCardsLoad=async function(){
+    var r=await W.api('/api/v1/admin/gift-cards/overview');
+    if(!r||!r.ok){var box=document.getElementById('gc-admin-list');if(box)box.innerHTML='<div class="w-empty-state"><h3>No se pudieron cargar las tarjetas</h3><p>Revisa que las tablas estén creadas.</p></div>';return}
+    var d=r.data||{};W.gcAdminState.cards=d.cards||[];W.gcAdminState.occasions=d.occasions||[];W.gcAdminState.stats=d.stats||{};
+    var st=d.stats||{};
+    var kpi=function(v,l,c){return '<div class="w-card" style="flex:1;min-width:130px;text-align:center;margin:0"><div style="font-size:24px;font-weight:800;'+(c?'color:'+c:'')+'">'+W.num(v||0)+'</div><div style="font-size:11px;color:var(--w-muted);margin-top:4px">'+l+'</div></div>'};
+    var stats=document.getElementById('gc-admin-stats');
+    if(stats)stats.innerHTML=kpi(st.active||0,'Activas','#0d7a58')+kpi(st.total||0,'Emitidas')+kpi(W.gcMoney(st.balance_cents),'Saldo disponible','#2563eb')+kpi(W.gcMoney(st.redeemed_cents),'Canjeado','#7c3aed')+kpi(st.orders||0,'Pedidos de tarjeta');
+    var sel=document.getElementById('gc-adm-occasion');
+    if(sel){
+        var current=sel.value;
+        sel.innerHTML='<option value="">Sin ocasión</option>'+W.gcAdminState.occasions.map(function(o){return '<option value="'+o.id+'"'+(String(current)===String(o.id)?' selected':'')+'>'+W.esc(o.icon+' '+o.name)+'</option>'}).join('');
+    }
+    var list=document.getElementById('gc-admin-list');
+    if(list){
+        if(!W.gcAdminState.cards.length){list.innerHTML='<div class="w-empty-state" style="padding:18px"><h3>Sin tarjetas todavía</h3><p>Emite una tarjeta o espera la primera compra en la tienda.</p></div>'}
+        else{
+            var h='<div style="overflow:auto"><table class="w-table"><thead><tr><th>Tarjeta</th><th>Ocasión</th><th>Saldo</th><th>Destinatario</th><th>Estado</th><th>Pedido</th><th></th></tr></thead><tbody>';
+            W.gcAdminState.cards.forEach(function(c){
+                h+='<tr><td><b style="font-family:monospace;font-size:11px">'+W.esc(c.code_masked||'')+'</b><div style="font-size:10px;color:var(--w-muted)">'+W.esc((c.created_at||'').slice(0,16))+'</div></td>'
+                    +'<td style="font-size:11px">'+W.esc((c.occasion_icon||'')+' '+(c.occasion_name||'—'))+'</td>'
+                    +'<td><b>'+W.gcMoney(c.balance_cents,c.currency)+'</b><div style="font-size:10px;color:var(--w-muted)">de '+W.gcMoney(c.amount_cents,c.currency)+'</div></td>'
+                    +'<td style="font-size:11px">'+W.esc(c.recipient_name||'')+'<div style="font-size:10px;color:var(--w-muted)">'+W.esc(c.recipient_email||'')+'</div></td>'
+                    +'<td><span class="w-badge" style="background:'+W.gcStatusColor(c.status)+';color:#fff">'+W.esc(W.gcStatusLabel(c.status))+'</span>'+(c.delivered_at?'<div style="font-size:9px;color:var(--w-muted)">Entregada</div>':'')+'</td>'
+                    +'<td style="font-size:10px">'+W.esc(c.order_number||'—')+'<div style="color:var(--w-muted)">'+W.esc(c.order_payment_status||'')+'</div></td>'
+                    +'<td style="white-space:nowrap"><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.giftCardResend('+c.id+')">Reenviar</button> '+(c.status==='void'?'':'<button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.giftCardVoid('+c.id+')">Anular</button>')+'</td></tr>';
+            });
+            h+='</tbody></table></div>';
+            list.innerHTML=h;
+        }
+    }
+    var occ=document.getElementById('gc-admin-occasions');
+    if(occ){
+        if(!W.gcAdminState.occasions.length){occ.innerHTML='<div style="font-size:12px;color:var(--w-muted)">Sin ocasiones. Crea la primera con la API o vuelve a cargar.</div>'}
+        else{
+            var oh='<div style="overflow:auto"><table class="w-table"><thead><tr><th>Activa</th><th>Ícono</th><th>Nombre</th><th>Slug</th><th>Orden</th><th></th></tr></thead><tbody>';
+            W.gcAdminState.occasions.forEach(function(o){
+                oh+='<tr><td><input type="checkbox" id="gc-occ-active-'+o.id+'" '+(+o.active===1?'checked':'')+'/></td>'
+                    +'<td><input class="w-input" id="gc-occ-icon-'+o.id+'" value="'+W.esc(o.icon||'')+'" style="width:64px"/></td>'
+                    +'<td><input class="w-input" id="gc-occ-name-'+o.id+'" value="'+W.esc(o.name||'')+'" style="width:170px"/></td>'
+                    +'<td style="font-size:10px;color:var(--w-muted)">'+W.esc(o.slug||'')+'</td>'
+                    +'<td><input class="w-input" type="number" id="gc-occ-sort-'+o.id+'" value="'+(parseInt(o.sort_order)||0)+'" style="width:80px"/></td>'
+                    +'<td><button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.giftCardOccasionSave('+o.id+')">Guardar</button></td></tr>';
+            });
+            oh+='</tbody></table></div>';
+            occ.innerHTML=oh;
+        }
+    }
+};
+W.giftCardIssue=async function(){
+    var val=function(id){var el=document.getElementById(id);return el?el.value:''};
+    var out=document.getElementById('gc-adm-issue-result');
+    var amount=Math.round((parseFloat(val('gc-adm-amount'))||0)*100);
+    var payload={occasion_id:parseInt(val('gc-adm-occasion'))||0,amount_cents:amount,recipient_name:val('gc-adm-recipient').trim(),recipient_email:val('gc-adm-email').trim(),
+        purchaser_name:val('gc-adm-purchaser').trim(),purchaser_email:val('gc-adm-purchaser-email').trim(),message:val('gc-adm-message').trim(),
+        expiry_days:parseInt(val('gc-adm-issue-expiry'))||365,delivery_at:val('gc-adm-delivery')};
+    var r=await W.api('/api/v1/admin/gift-cards/issue',{method:'POST',body:payload});
+    if(r&&r.ok&&r.card){if(out)out.innerHTML='<span style="color:#0d7a58;font-weight:700">Tarjeta emitida:</span> <b style="font-family:monospace">'+W.esc(r.card.code)+'</b> · PIN <b style="font-family:monospace">'+W.esc(r.card.pin)+'</b>'+(r.delivered?' · enviada':' · envío programado');W.notify(r.message||'Tarjeta emitida','success');W.giftCardsLoad()}
+    else{if(out)out.innerHTML='<span style="color:#b42318">'+W.esc((r&&r.message)||'No se pudo emitir la tarjeta.')+'</span>';W.notify((r&&r.message)||'Error al emitir','error')}
+};
+W.giftCardVoid=async function(id){
+    var reason=window.prompt('Motivo de la anulación (opcional):','');if(reason===null)return;
+    var r=await W.api('/api/v1/admin/gift-cards/'+id+'/void',{method:'POST',body:{reason:reason}});
+    if(r&&r.ok){W.notify(r.message||'Tarjeta anulada','success');W.giftCardsLoad()}else W.notify((r&&r.message)||'No se pudo anular','error');
+};
+W.giftCardResend=async function(id){
+    if(!window.confirm('¿Reenviar esta tarjeta al correo del destinatario?'))return;
+    var r=await W.api('/api/v1/admin/gift-cards/'+id+'/resend',{method:'POST',body:{}});
+    if(r&&r.ok)W.notify(r.message||'Tarjeta reenviada','success');else W.notify((r&&r.message)||'No se pudo reenviar','error');
+};
+W.giftCardOccasionSave=async function(id){
+    var g=function(k){var el=document.getElementById('gc-occ-'+k+'-'+id);return el?el.value:''};
+    var payload={name:g('name'),icon:g('icon'),sort_order:parseInt(g('sort'))||0,active:document.getElementById('gc-occ-active-'+id).checked?1:0};
+    var r=await W.api('/api/v1/admin/gift-cards/occasions/'+id,{method:'PUT',body:payload});
+    if(r&&r.ok)W.notify('Ocasión guardada','success');else W.notify((r&&r.message)||'No se pudo guardar','error');
 };
 W.storeSettingsSave=async function(){
     var v=function(s){return document.querySelector(s).value};
@@ -8208,6 +9303,10 @@ W.storeSettingsSave=async function(){
         store_loyalty_enabled:v('#ss-loy-on'),store_loyalty_points_per_1000:parseInt(v('#ss-loy-rate'))||1,store_loyalty_redeem_cents:parseInt(v('#ss-loy-val'))||100,
         store_currencies:v('#ss-currencies'),
         store_recovery_enabled:v('#ss-rec-on'),store_recovery_hours:parseInt(v('#ss-rec-h'))||24,store_reservation_minutes:parseInt(v('#ss-res-min'))||20,
+        store_auto_archive_enabled:v('#ss-auto-archive'),store_archive_failed_days:parseInt(v('#ss-archive-failed'))||30,store_archive_test_days:parseInt(v('#ss-archive-test'))||7,
+        partner_contract_reminder_enabled:v('#ss-contract-reminder'),partner_contract_reminder_days:parseInt(v('#ss-contract-reminder-days'))||3,
+        gift_card_enabled:v('#gc-adm-enabled'),gift_card_min_cents:Math.round((parseFloat(v('#gc-adm-min'))||10000)*100),gift_card_max_cents:Math.round((parseFloat(v('#gc-adm-max'))||2000000)*100),
+        gift_card_expiry_days:parseInt(v('#gc-adm-expiry'))||365,gift_card_hold_hours:parseInt(v('#gc-adm-hold'))||24,gift_card_terms_url:v('#gc-adm-terms'),
         store_payment_methods:methods,store_wompi_public_key:v('#ss-wompi-pub'),store_wompi_integrity_key:v('#ss-wompi-int'),store_wompi_events_key:v('#ss-wompi-evt')};
     var r=await W.api('/api/v1/admin/store/settings',{method:'PUT',body:payload});
     if(r.ok){W.notify('Configuración guardada','success');W.storeSettings()}
@@ -9186,10 +10285,11 @@ W.renderMercadoPago=async function(){
     var modeLabel=s.mode==='checkout_api'?'Checkout API (tarjeta en el sitio)':'Checkout Pro (redirección)';
     var h='<div class="w-card"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap"><div><div style="font-size:11px;color:var(--w-muted)">Pagos</div><h3 style="margin:0">Mercado Pago</h3><p style="font-size:12px;color:var(--w-muted);margin:5px 0 0">Pasarela completa: credenciales manuales, Checkout Pro, Checkout API con tokenización, webhooks firmados, conciliación y reembolsos.</p></div><div class="w-flex w-gap-sm">'+badge+liveBadge+'<span style="font-size:10px;font-weight:800;padding:4px 8px;border-radius:999px;background:#f1f5f9;color:#475569">'+W.esc(s.environment||'sandbox')+'</span></div></div></div>';
     h+=(flash?'<div class="w-card" style="margin-top:12px;border-left:3px solid '+(flash.error?'#b42318':'#0d9f72')+';background:'+(flash.error?'#fef3f2':'#f0fdf4')+';color:'+(flash.error?'#7a271a':'#065f46')+'"><b>'+W.esc(flash.text)+'</b>'+(flash.at?' <span style="font-size:11px">'+W.esc(flash.at)+'</span>':'')+'</div>':'');
+    if(s.environment==='production') h+='<div class="w-card" style="margin-top:12px;border-left:3px solid #b45309;background:#fffbeb;color:#7c2d12;font-size:12px;line-height:1.55"><b>Modo producción activo.</b> Los pagos son reales y las tarjetas/usuarios de prueba no funcionan. Para probar PSE usa un monto de al menos $1.600; Efecty desde $5.000. Recomendado: $10.000 o más. Para pruebas sin dinero, cambia a Sandbox con credenciales de prueba. <button class="w-btn w-btn-secondary w-btn-sm" type="button" style="margin-left:6px" onclick="wontia.mpDiagnosticPreference()">Probar preferencia</button></div>';
     h+='<div class="w-card" style="margin-top:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span style="width:10px;height:10px;border-radius:99px;background:'+(live?'#0d9f72':(ready?'#f59e0b':'#94a3b8'))+';box-shadow:0 0 0 4px rgba(100,116,139,.12)"></span><div><b style="font-size:12px">'+(live?'Listo para cobrar':(ready?'Configurado, pero deshabilitado':'Configuración pendiente'))+'</b><div style="font-size:11px;color:var(--w-muted)">'+W.esc(modeLabel)+' · Token: '+W.esc((s.token&&s.token.label)||'—')+(s.token&&s.token.expires_at?' · vence '+W.esc(s.token.expires_at):'')+'</div></div>'+(s.last_test_at?'<span style="margin-left:auto;font-size:10.5px;color:var(--w-muted)">Última prueba: '+W.esc(s.last_test_at)+'</span>':'')+'</div>';
     h+='<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px">'+W.ocKpi('Pagos',st.payments||0)+W.ocKpi('Aprobados',st.paid||0,'#0d7a58')+W.ocKpi('Pendientes',st.pending||0,'#b45309')+W.ocKpi('Fallidos',st.failed||0,'#b42318')+W.ocKpi('Reembolsados',st.refunded||0)+W.ocKpi('Recaudado',W.ocMoney(st.amount_paid_cents||0,s.currency||'COP'))+W.ocKpi('Webhooks',st.webhooks||0)+W.ocKpi('Firma inválida',st.webhooks_invalid||0,(st.webhooks_invalid||0)>0?'#b42318':undefined)+'</div>';
 
-    h+='<div class="w-card" style="margin-top:14px"><div class="w-flex-between" style="gap:10px;flex-wrap:wrap"><div><h3 style="margin:0">Conexión y credenciales</h3><p style="font-size:12px;color:var(--w-muted);margin:5px 0 0">Los secretos se guardan cifrados (AES-256-GCM) y nunca se envían al frontend. Deja un campo secreto vacío para conservar el valor actual.</p></div><div class="w-flex w-gap-sm"><button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="wontia.mpTest(this)">Probar conexión</button><button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="wontia.renderMercadoPago()">Actualizar</button></div></div>';
+    h+='<div class="w-card" style="margin-top:14px"><div class="w-flex-between" style="gap:10px;flex-wrap:wrap"><div><h3 style="margin:0">Conexión y credenciales</h3><p style="font-size:12px;color:var(--w-muted);margin:5px 0 0">Los secretos se guardan cifrados (AES-256-GCM) y nunca se envían al frontend. Deja un campo secreto vacío para conservar el valor actual.</p></div><div class="w-flex w-gap-sm"><button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="wontia.mpDiagnosticPreference()">Probar preferencia</button><button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="wontia.mpTest(this)">Probar conexión</button><button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="wontia.renderMercadoPago()">Actualizar</button></div></div>';
     (d.settings&&d.settings.health||[]).length?h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:7px;margin-top:12px">'+d.settings.health.map(function(x){var col=x.severity==='error'?'#b42318':(x.severity==='warn'?'#b45309':'#0d7a58');return '<div style="display:flex;gap:7px;align-items:flex-start;border:1px solid var(--w-border);border-radius:8px;padding:7px 9px"><span style="width:7px;height:7px;border-radius:99px;background:'+col+';margin-top:5px;flex:0 0 auto"></span><div><b style="font-size:11px">'+W.esc(x.label||x.key)+'</b><div style="font-size:10px;color:var(--w-muted);line-height:1.4">'+W.esc(x.detail||'')+'</div></div></div>'}).join('')+'</div>':'';
     var secretNote=function(set,key){return set?'<span style="font-size:10px;color:#047857;font-weight:700">Guardado</span>':'<span style="font-size:10px;color:#b45309;font-weight:700">Sin configurar</span>'}
     h+='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin-top:14px">'
@@ -9205,7 +10305,7 @@ W.renderMercadoPago=async function(){
       +'<div><label style="font-size:11px;color:var(--w-muted)">Descripción</label><input class="w-input" id="mp-description" value="'+W.esc(s.description||'')+'" style="width:100%"/></div>'
       +'<div><label style="font-size:11px;color:var(--w-muted)">Descriptor del estado de cuenta</label><input class="w-input" id="mp-statement" value="'+W.esc(s.statement_descriptor||'SONIKA')+'" maxlength="22" style="width:100%"/></div>'
       +'<div><label style="font-size:11px;color:var(--w-muted)">Cuotas máximas</label><input class="w-input" type="number" min="1" max="36" id="mp-installments" value="'+(parseInt(s.max_installments)||12)+'" style="width:100%"/></div>'
-      +'<div><label style="font-size:11px;color:var(--w-muted)">Modo binario</label><select class="w-input" id="mp-binary" style="width:100%"><option value="1"'+(s.binary_mode?' selected':'')+'>Sí (aprobado o rechazado)</option><option value="0"'+(s.binary_mode?'':' selected')+'>No (permitir pendientes)</option></select></div>'
+      +'<div><label style="font-size:11px;color:var(--w-muted)">Modo binario (solo Checkout API)</label><select class="w-input" id="mp-binary" style="width:100%"><option value="1"'+(s.binary_mode?' selected':'')+'>Sí (aprobado o rechazado)</option><option value="0"'+(s.binary_mode?'':' selected')+'>No (permitir pendientes)</option></select><div style="font-size:10px;color:var(--w-muted);margin-top:3px">En Checkout Pro siempre se permiten pagos pendientes para PSE y transferencias.</div></div>'
       +'<div><label style="font-size:11px;color:var(--w-muted)">URL de éxito personalizada</label><input class="w-input" id="mp-success-url" value="'+W.esc(s.success_url||'')+'" placeholder="Opcional" style="width:100%"/></div>'
       +'</div>';
     h+='<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:10px;font-size:11px">'
@@ -9281,6 +10381,16 @@ W.mpTest=async function(btn){
       +(d.error?'<div style="margin-top:12px;border-left:3px solid #b42318;padding:6px 9px;background:#fef3f2;color:#7a271a">'+W.esc(d.error)+'</div>':'')
       +'<div style="font-size:10.5px;color:var(--w-muted);margin-top:12px">Comprobado: '+W.esc(d.checked_at||'')+'</div></div>';
     W.modal('Diagnóstico de Mercado Pago',h,'<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cerrar</button>');
+};
+W.mpDiagnosticPreference=async function(){
+    var amount=window.prompt('Monto de prueba en pesos. PSE desde $1.600, Efecty desde $5.000. Recomendado: $10.000.','10000');
+    if(amount===null)return;
+    var pesos=parseFloat(String(amount).replace(/[^\d.,]/g,'').replace(',','.'))||0;
+    if(pesos<1000){W.notify('El monto mínimo es $1.000.','error');return}
+    var r=await W.api('/api/v1/admin/mercadopago/diagnostic-preference',{method:'POST',body:{amount_cents:Math.round(pesos*100)}});
+    if(!r||!r.ok||!r.data||!r.data.redirect_url){W.notify((r&&r.message)||'No se pudo crear la preferencia de prueba.','error');return}
+    W.notify('Preferencia de prueba creada. Abriendo Mercado Pago…','success');
+    window.open(r.data.redirect_url,'_blank','noopener');
 };
 W.mpOAuth=async function(){
     var r=await W.api('/api/v1/admin/mercadopago/oauth/start',{method:'POST'});

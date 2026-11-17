@@ -5,6 +5,7 @@
   var CARTKEY = window.SONIKA_CARTKEY || 'sonika_cart';
   var MKEY = 'sonika_pay_method';
   var CKEY = 'sonika_coupon';
+  var GCKEY = 'sonika_gift_card';
   var methods = (PAY.methods || []).slice();
   if (!methods.length) methods = [{ id: 'request', label: 'Coordinar pago por WhatsApp' }];
   var cartRoot = document.getElementById('skpayCartItems');
@@ -16,7 +17,7 @@
   var mpBrickBox = document.getElementById('mpBrickContainer');
   if (!isCart && !isCheckout && !proofForm && !qrModal && !mpBrickBox) return;
 
-  var state = { items: readItems(), method: '', coupon: readCoupon(), points: 0, quote: null, busy: false, seq: 0, error: '' };
+  var state = { items: readItems(), method: '', coupon: readCoupon(), points: 0, giftCard: readGiftCard(), quote: null, busy: false, seq: 0, error: '' };
 
   function readItems() {
     try {
@@ -55,6 +56,29 @@
     } catch (e) {}
   }
 
+  function readGiftCard() {
+    try {
+      var raw = sessionStorage.getItem(GCKEY) || '';
+      if (!raw) return null;
+      var v = JSON.parse(raw);
+      if (!v || !v.code || !v.pin) return null;
+      return { code: String(v.code).trim().toUpperCase(), pin: String(v.pin).replace(/\D+/g, '') };
+    } catch (e) { return null; }
+  }
+  function saveGiftCard(v) {
+    state.giftCard = v && v.code && v.pin ? { code: String(v.code).trim().toUpperCase(), pin: String(v.pin).replace(/\D+/g, '') } : null;
+    try {
+      if (state.giftCard) sessionStorage.setItem(GCKEY, JSON.stringify(state.giftCard));
+      else sessionStorage.removeItem(GCKEY);
+    } catch (e) {}
+  }
+  function fillGiftCardInputs() {
+    var code = document.getElementById('skpayGiftCardCode');
+    var pin = document.getElementById('skpayGiftCardPin');
+    if (code && state.giftCard) code.value = state.giftCard.code;
+    if (pin && state.giftCard) pin.value = state.giftCard.pin;
+  }
+
   function writeItems(items) {
     state.items = items;
     try { localStorage.setItem(CARTKEY, JSON.stringify(items)); } catch (e) {}
@@ -86,6 +110,8 @@
     var saved = '';
     try { saved = localStorage.getItem(MKEY) || ''; } catch (e) {}
     if (findMethod(saved)) return String(saved);
+    var preferred = String(PAY.default_method || '');
+    if (findMethod(preferred)) return preferred;
     return firstEnabledMethod();
   }
   function setMethod(id) {
@@ -336,6 +362,7 @@
         payment_method: method,
         coupon: state.coupon,
         points: state.points,
+        gift_card: state.giftCard || null,
         shipping: shippingContext()
       })
     }).then(function (r) { return r.json(); });
@@ -380,6 +407,10 @@
   function refreshAddi() {
     var card = addiCard();
     if (!card || !state.quote) return;
+    if (!PAY.addi) {
+      addiSetState(true, 'Addi no está disponible en este momento.', true);
+      return;
+    }
     var amount = Number(state.quote.total_cents) || 0;
     var force = !!(PAY.addi && PAY.addi.force_visible);
     var seq = (state.addiSeq || 0) + 1;
@@ -391,14 +422,18 @@
         var cfg = d && d.ok ? (d.data || {}) : null;
         var active = !!(cfg && cfg.isActiveAlly);
         if (!active && !force) {
-          addiSetState(true, 'Estamos habilitando este medio de pago.', true);
+          addiSetState(true, 'Addi no está activo para este comercio todavía.', true);
           return;
         }
         var min = Number(cfg && cfg.minAmount) || 0;
         var max = Number(cfg && cfg.maxAmount) || 0;
-        var valid = !!cfg && active && amount >= min * 100 && (max <= 0 || amount <= max * 100);
+        var policy = cfg && cfg.policy ? cfg.policy : null;
+        var policyVisible = !!policy && policy.isVisible !== false;
+        var valid = !!cfg && active && policyVisible && amount >= min * 100 && (max <= 0 || amount <= max * 100);
         if (!valid) {
-          var note = active ? 'Addi aplica para compras entre ' + money(min * 100) + ' y ' + money(max * 100) + '.' : 'Addi no está activo para este comercio.';
+          var note = active
+            ? 'Addi aplica para compras entre ' + money(min * 100) + ' y ' + money(max * 100) + '.'
+            : 'Addi no está activo para este comercio todavía.';
           addiSetState(true, note, true);
         } else {
           addiSetState(true, '', false);
@@ -580,25 +615,47 @@
     if (Number(q.points_discount_cents) > 0) {
       h += '<div class="skpay__line skpay__line--save"><span>Puntos (' + Number(q.points_used) + ')</span><span>-' + money(q.points_discount_cents) + '</span></div>';
     }
+    if (Number(q.gift_card_discount_cents) > 0) {
+      h += '<div class="skpay__line skpay__line--save"><span>Tarjeta de regalo ' + esc(q.gift_card_code_masked || '') + '</span><span>−' + money(q.gift_card_discount_cents) + '</span></div>';
+    }
     h += '<div class="skpay__line skpay__line--muted"><span>IVA incluido' + (taxRate > 0 ? ' (' + taxRate + '%)' : '') + '</span><span>' + money(tax) + '</span></div>';
+    if (Number(q.tax_exempt_items) > 0) {
+      h += '<div class="skpay__hint">Incluye ' + Number(q.tax_exempt_items) + ' producto(s) sin IVA.</div>';
+    }
     h += '<div class="skpay__line"><span>Envío</span><span class="' + (free ? 'skpay__free' : '') + '">' + (free ? 'Gratis' : money(q.shipping_cents)) + '</span></div>';
     if (q.shipping && q.shipping.eta_label && q.shipping.location_selected) {
       var place = (q.shipping.municipality || '') === (q.shipping.department || '') ? (q.shipping.municipality || '') : ((q.shipping.municipality || '') + ', ' + (q.shipping.department || ''));
       h += '<div class="skpay__hint">Entrega estimada: ' + esc(q.shipping.eta_label) + ' en ' + esc(place) + '.</div>';
+      if (q.shipping.eta_note) h += '<div class="skpay__hint">' + esc(q.shipping.eta_note) + '</div>';
     } else if (q.shipping && q.shipping.location_missing) {
       h += '<div class="skpay__hint">Selecciona departamento y municipio para calcular el envío exacto.</div>';
     }
-    if (free) {
-      h += '<div class="skpay__hint">Envío gratis aplicado: tu compra supera el mínimo antes de IVA.</div>';
+    var taxRateForFree = Number(q.tax_rate) || 0;
+    var shippingNote = String(q.shipping_note || '');
+    if (shippingNote) {
+      h += '<div class="skpay__hint">' + esc(shippingNote) + '</div>';
+    } else if (free) {
+      var freeNet = Number(q.free_shipping_net_cents) || 0;
+      var freeGross = Math.round(freeNet * (1 + taxRateForFree / 100));
+      h += '<div class="skpay__hint">Envío gratis aplicado: tu compra supera ' + money(freeNet) + ' antes de IVA (' + money(freeGross) + ' con IVA).</div>';
     } else {
-      var missing = Math.max(0, (Number(q.free_shipping_net_cents) || 0) - (Number(q.net_before_cents) || 0));
-      h += '<div class="skpay__hint skpay__hint--warn">Te faltan ' + money(missing) + ' (antes de IVA) para obtener envío gratis.</div>';
+      var baseNet = Number(q.shipping_net_before_cents);
+      if (!isFinite(baseNet) || baseNet <= 0) baseNet = Number(q.net_before_cents) || 0;
+      var missing = Math.max(0, (Number(q.free_shipping_net_cents) || 0) - baseNet);
+      var missingGross = Math.round(missing * (1 + taxRateForFree / 100));
+      h += '<div class="skpay__hint skpay__hint--warn">Te faltan ' + money(missing) + ' antes de IVA (' + money(missingGross) + ' con IVA) para obtener envío gratis.</div>';
     }
     h += '<div class="skpay__line skpay__line--total"><span>Total</span><span>' + money(total) + '</span></div>';
+    var giftCoversTotal = Number(q.gift_card_discount_cents) > 0 && total === 0;
+    if (giftCoversTotal) {
+      h += '<div class="skpay__hint">Tu tarjeta de regalo cubre el total. No se realizará ningún cobro adicional ni se abrirá la pasarela de pago.</div>';
+    }
     if (recDiscount > 0) {
       h += '<div class="skpay__rec-total"><span>Ahorro total en recomendados</span><b>-' + money(recDiscount) + '</b></div>';
     }
-    if (state.method === 'breb') {
+    if (giftCoversTotal) {
+      h += '<p class="skpay__tiny" style="margin:10px 0 0">El pedido se pagará con el saldo de tu tarjeta de regalo. Al confirmar, quedará registrado y recibirás la confirmación por correo.</p>';
+    } else if (state.method === 'breb') {
       h += '<p class="skpay__tiny" style="margin:10px 0 0">Al confirmar, recibirás el QR de Bre-B y podrás adjuntar tu comprobante. El pedido queda pendiente de verificación.</p>';
     } else if (state.method === 'mercadopago' || state.method === 'epayco') {
       h += '<p class="skpay__tiny" style="margin:10px 0 0">Al confirmar, te llevaremos a la pasarela para completar el pago.</p>';
@@ -643,7 +700,40 @@
     }
     renderCouponMsg();
     renderPointsMsg();
+    renderGiftCardMsg();
     disableActions(false);
+  }
+
+  function renderGiftCardMsg() {
+    var el = document.getElementById('skpayGiftCardMsg');
+    if (!el) return;
+    var q = state.quote;
+    if (!state.giftCard) {
+      if (q && q.gift_card_ok === false) {
+        el.textContent = q.gift_card_message || 'La tarjeta de regalo no es válida.';
+        el.style.color = '#b42318';
+      } else {
+        el.textContent = '';
+        el.style.color = '';
+      }
+      return;
+    }
+    if (!q) {
+      el.textContent = 'Validando tarjeta de regalo…';
+      el.style.color = '#6b7280';
+      return;
+    }
+    if (q.gift_card_ok === true && Number(q.gift_card_discount_cents) > 0) {
+      var extra = Number(q.total_cents) === 0 ? ' Tu tarjeta cubre el total de la compra.' : '';
+      el.textContent = 'Tarjeta ' + (q.gift_card_code_masked || state.giftCard.code) + ' aplicada: −' + money(q.gift_card_discount_cents) + '.' + extra;
+      el.style.color = '#166534';
+    } else if (q.gift_card_ok === false) {
+      el.textContent = q.gift_card_message || 'No se pudo aplicar la tarjeta.';
+      el.style.color = '#b42318';
+    } else {
+      el.textContent = '';
+      el.style.color = '';
+    }
   }
 
   function renderPointsMsg() {
@@ -696,12 +786,13 @@
   }
 
   function methodLabel() {
+    if (state.quote && Number(state.quote.total_cents) === 0 && Number(state.quote.gift_card_discount_cents) > 0) return 'Tarjeta de regalo';
     var m = findMethod(state.method);
     return m ? m.label : 'Pago';
   }
 
   function disableActions(disabled) {
-    var blocked = disabled || !state.quote || state.quote.issue_count > 0 || state.quote.coupon_ok === false || (state.points > 0 && Number(state.quote.points_used) <= 0);
+    var blocked = disabled || !state.quote || state.quote.issue_count > 0 || state.quote.coupon_ok === false || state.quote.gift_card_ok === false || (state.points > 0 && Number(state.quote.points_used) <= 0);
     var go = document.getElementById('skpayGoCheckout');
     if (go) {
       go.setAttribute('aria-disabled', blocked ? 'true' : 'false');
@@ -736,9 +827,9 @@
       }
       var go = e.target.closest('#skpayGoCheckout');
       if (go) {
-        if (!state.quote || state.quote.issue_count > 0 || state.quote.coupon_ok === false) {
+        if (!state.quote || state.quote.issue_count > 0 || state.quote.coupon_ok === false || state.quote.gift_card_ok === false) {
           e.preventDefault();
-          setError(state.quote && state.quote.coupon_ok === false ? (state.quote.coupon_message || 'Revisa el cupón.') : 'Revisa la disponibilidad de tu carrito antes de continuar.');
+          setError(state.quote && state.quote.gift_card_ok === false ? (state.quote.gift_card_message || 'Revisa la tarjeta de regalo.') : (state.quote && state.quote.coupon_ok === false ? (state.quote.coupon_message || 'Revisa el cupón.') : 'Revisa la disponibilidad de tu carrito antes de continuar.'));
         }
         return;
       }
@@ -789,6 +880,57 @@
         refresh();
         return;
       }
+      var gcApply = e.target.closest('#skpayGiftCardApply');
+      if (gcApply) {
+        e.preventDefault();
+        var gcCodeEl = document.getElementById('skpayGiftCardCode');
+        var gcPinEl = document.getElementById('skpayGiftCardPin');
+        var gcCode = gcCodeEl ? String(gcCodeEl.value || '').trim().toUpperCase() : '';
+        var gcPin = gcPinEl ? String(gcPinEl.value || '').replace(/\D+/g, '') : '';
+        var gcMsg = document.getElementById('skpayGiftCardMsg');
+        if (!gcCode || gcPin.length !== 6) {
+          if (gcMsg) { gcMsg.textContent = 'Escribe el código completo y el PIN de 6 dígitos.'; gcMsg.style.color = '#b42318'; }
+          return;
+        }
+        gcApply.disabled = true;
+        gcApply.textContent = 'Validando…';
+        fetch('/api/v1/public/gift-cards/validate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code: gcCode, pin: gcPin })
+        }).then(function (r) { return r.json(); }).then(function (d) {
+          gcApply.disabled = false;
+          gcApply.textContent = 'Aplicar';
+          if (d && d.ok && d.data && d.data.code) {
+            saveGiftCard({ code: d.data.code, pin: gcPin });
+            if (gcCodeEl) gcCodeEl.value = d.data.code;
+            state.quote = null;
+            renderLoading();
+            refresh();
+          } else if (gcMsg) {
+            gcMsg.textContent = (d && d.message) || 'No pudimos validar la tarjeta.';
+            gcMsg.style.color = '#b42318';
+          }
+        }).catch(function () {
+          gcApply.disabled = false;
+          gcApply.textContent = 'Aplicar';
+          if (gcMsg) { gcMsg.textContent = 'Error de conexión. Intenta de nuevo.'; gcMsg.style.color = '#b42318'; }
+        });
+        return;
+      }
+      var gcClear = e.target.closest('#skpayGiftCardClear');
+      if (gcClear) {
+        e.preventDefault();
+        saveGiftCard(null);
+        var gcc = document.getElementById('skpayGiftCardCode');
+        var gcp = document.getElementById('skpayGiftCardPin');
+        if (gcc) gcc.value = '';
+        if (gcp) gcp.value = '';
+        state.quote = null;
+        renderLoading();
+        refresh();
+        return;
+      }
     });
 
     document.addEventListener('change', function (e) {
@@ -800,16 +942,23 @@
     });
 
     document.addEventListener('keydown', function (e) {
-      if (e.key !== 'Enter' || !e.target || e.target.id !== 'skpayCoupon') return;
-      e.preventDefault();
-      var apply = document.getElementById('skpayCouponApply');
-      if (apply) apply.click();
+      if (e.key !== 'Enter' || !e.target) return;
+      if (e.target.id === 'skpayCoupon') {
+        e.preventDefault();
+        var apply = document.getElementById('skpayCouponApply');
+        if (apply) apply.click();
+      } else if (e.target.id === 'skpayGiftCardCode' || e.target.id === 'skpayGiftCardPin') {
+        e.preventDefault();
+        var gcApply = document.getElementById('skpayGiftCardApply');
+        if (gcApply) gcApply.click();
+      }
     });
   }
 
   function initCart() {
     if (!isCart) return;
     setMethod(initialMethod());
+    fillGiftCardInputs();
     bindActions();
     refresh();
   }
@@ -817,6 +966,7 @@
   function initCheckout() {
     if (!isCheckout) return;
     setMethod(initialMethod());
+    fillGiftCardInputs();
     bindActions();
     var form = document.getElementById('skpayForm');
     if (!form) return;
@@ -832,6 +982,7 @@
       if (!state.quote) { setError('Espera un momento mientras calculamos el total.'); return; }
       if (state.quote.issue_count > 0) { setError('Revisa la disponibilidad de tu carrito antes de continuar.'); return; }
       if (state.quote.coupon_ok === false) { setError(state.quote.coupon_message || 'Revisa el cupón antes de continuar.'); return; }
+      if (state.giftCard && state.quote.gift_card_ok !== true) { setError(state.quote.gift_card_message || 'Revisa la tarjeta de regalo antes de continuar.'); return; }
       if (state.points > 0 && Number(state.quote.points_used) <= 0) { setError(state.quote.points_message || 'No se pudieron aplicar los puntos.'); return; }
       var couponEl = document.getElementById('skpayCoupon');
       if (couponEl && String(couponEl.value || '').trim().toUpperCase() !== state.coupon) {
@@ -884,6 +1035,7 @@
         payment_method: state.method,
         coupon: state.coupon,
         points: state.points,
+        gift_card: state.giftCard || null,
         quote_code: (function () { try { return localStorage.getItem('sonika_quote_code') || ''; } catch (e) { return ''; } })()
       };
       state.busy = true;
@@ -895,9 +1047,11 @@
       }).then(function (r) { return r.json(); }).then(function (d) {
         if (d && d.ok && d.data && d.data.uuid) {
           try { localStorage.removeItem(CARTKEY); localStorage.removeItem(CKEY); localStorage.removeItem('sonika_quote_code'); } catch (e) {}
+          try { sessionStorage.removeItem(GCKEY); } catch (e) {}
           state.items = [];
           state.coupon = '';
           state.points = 0;
+          state.giftCard = null;
           paintCount();
           var pay = d.data.payment || {};
           if ((pay.method === 'addi' || pay.method === 'sistecredito' || pay.method === 'mercadopago') && pay.redirect_url) {

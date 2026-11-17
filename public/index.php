@@ -11,6 +11,24 @@ use App\Core\Database;
 use App\Core\Response;
 
 Config::load();
+try {
+    \App\Services\SeoInternalTrafficService::capture();
+} catch (\Throwable $e) {
+}
+$__blockPath = (string)parse_url((string)($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH);
+if (!preg_match('~^/(admin|api/v1/admin)(/|$)~i', $__blockPath)) {
+    try {
+        $__clientIp = \App\Services\SeoLiveMonitorService::clientIp();
+        if ($__clientIp && \App\Services\SeoIpSecurityService::isBlocked($__clientIp)) {
+            http_response_code(403);
+            header('Content-Type: text/plain; charset=utf-8');
+            echo '403 Forbidden';
+            exit;
+        }
+    } catch (\Throwable $e) {
+    }
+}
+\App\Services\SeoLiveMonitorService::register();
 $requestedLang = isset($_GET['lang']) ? strtolower(trim((string)$_GET['lang'])) : null;
 \App\Core\Lang::init($requestedLang);
 if ($requestedLang !== null && in_array($requestedLang, \App\Core\Lang::available(), true)) {
@@ -33,6 +51,14 @@ $app->boot();
 $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $uri = rtrim($uri, '/') ?: '/';
 
+// El Hero se edita en caliente y usa imágenes versionadas. Forzamos
+// revalidación del HTML de la home para que los cambios de zoom/imagen
+// lleguen a móvil sin depender de la caché heurística del navegador.
+if ($uri === '/') {
+    header('Cache-Control: no-cache, must-revalidate, max-age=0');
+    header('Pragma: no-cache');
+}
+
 if (str_starts_with($uri, '/api/')) {
     require ROOT_DIR . '/public/api.php';
     exit;
@@ -53,6 +79,20 @@ if ($uri === '/sitemap.xml') {
     exit;
 }
 
+if ($uri === '/sitemap-brick.xml') {
+    require ROOT_DIR . '/public/sitemap-brick.php';
+    exit;
+}
+
+try {
+    $redirect = \App\Bricks\SeoGlobalLaunch\SeoGlobalLaunchBrick::redirectFor((string)($_SERVER['REQUEST_URI'] ?? $uri));
+    if ($redirect && !empty($redirect['to'])) {
+        header('Location: ' . $redirect['to'], true, (int)($redirect['status'] ?? 301));
+        exit;
+    }
+} catch (\Throwable $e) {
+}
+
 try {
     $db = Database::instance();
     $slug = $uri === '/' ? 'home' : trim($uri, '/');
@@ -68,6 +108,10 @@ try {
         if (is_file($themeRouter)) {
             $handled = require $themeRouter;
             if ($handled) exit;
+        }
+        try {
+            \App\Bricks\SeoGlobalLaunch\SeoGlobalLaunchBrick::record404($uri, (string)($_SERVER['HTTP_REFERER'] ?? ''));
+        } catch (\Throwable $e) {
         }
         http_response_code(404);
         echo '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>404 — Wontia</title><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet"/><style>body{font-family:Inter,sans-serif;background:#F6F6F3;color:#2F2F2F;text-align:center;padding:100px 20px}h1{font-size:80px;color:#9B8CDE;margin-bottom:8px}p{color:#6B6B6B;margin-bottom:24px}a{display:inline-block;padding:12px 28px;border-radius:12px;background:linear-gradient(135deg,#9B8CDE,#B89EFF);color:#fff;text-decoration:none;font-weight:600}</style></head><body><h1>404</h1><p>The page you\'re looking for doesn\'t exist.</p><a href="/">Go home</a></body></html>';

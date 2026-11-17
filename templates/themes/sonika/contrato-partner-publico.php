@@ -1,5 +1,7 @@
 <?php
-$contract = (new \App\Services\ArtistContractService())->current();
+$contractSvc = new \App\Services\ArtistContractService();
+$contract = $contractSvc->current();
+$contractBody = $contract ? $contractSvc->bodyFor(null) : 'Contrato no disponible.';
 ?>
 <section class="pc">
   <style>
@@ -17,9 +19,9 @@ $contract = (new \App\Services\ArtistContractService())->current();
     <div class="pc__head">
       <div class="pc__eyebrow">SONIKA Partners · Comparte, vende y gana</div>
       <h1>Contrato de participación</h1>
-      <div class="pc__meta">Versión <?= htmlspecialchars((string)($contract['version'] ?? '—'), ENT_QUOTES, 'UTF-8') ?> · Vigente desde <?= htmlspecialchars((string)($contract['effective_at'] ?? '—'), ENT_QUOTES, 'UTF-8') ?><br>Intsolcom, LLC · Intsolcom S.A.S. · NIT 901749025-8</div>
+      <div class="pc__meta">Versión <?= htmlspecialchars((string)($contract['version'] ?? '—'), ENT_QUOTES, 'UTF-8') ?> · Vigente desde <?= htmlspecialchars((string)($contract['effective_at'] ?? '—'), ENT_QUOTES, 'UTF-8') ?><br>Intsolcom, LLC · Intsolcom S.A.S. · NIT 901749025-8<br><b>Mismo contrato para todos los perfiles.</b> El perfil elegido se registra al firmar.</div>
     </div>
-    <div class="pc__body"><?= htmlspecialchars((string)($contract['body'] ?? 'Contrato no disponible.'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?></div>
+    <div class="pc__body"><?= htmlspecialchars($contractBody, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?></div>
     <div class="pc__actions"><a class="pc__btn pc__btn--primary" href="/sonika-partners#registro">Quiero ser Partner SONIKA</a><a class="pc__btn pc__btn--secondary" href="/mi-antro?next=contrato">Ya tengo cuenta: firmar contrato</a><a class="pc__btn pc__btn--secondary" href="/sonika-partners">Volver al programa</a></div>
   </div>
 </section>

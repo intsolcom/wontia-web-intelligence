@@ -160,10 +160,20 @@ CREATE TABLE analytics_views (
     user_agent VARCHAR(500),
     ip_hash VARCHAR(64),
     is_internal TINYINT DEFAULT 0,
+    session_id VARCHAR(64) DEFAULT NULL,
+    visitor_hash VARCHAR(64) DEFAULT NULL,
+    is_bot TINYINT NOT NULL DEFAULT 0,
+    utm_source VARCHAR(120) DEFAULT NULL,
+    utm_medium VARCHAR(120) DEFAULT NULL,
+    utm_campaign VARCHAR(160) DEFAULT NULL,
+    utm_term VARCHAR(160) DEFAULT NULL,
+    utm_content VARCHAR(160) DEFAULT NULL,
+    fbclid VARCHAR(255) DEFAULT NULL,
     country VARCHAR(5),
     device VARCHAR(20),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_site_date (site_id, created_at),
+    INDEX idx_site_internal_bot (site_id, is_internal, is_bot, created_at),
     FOREIGN KEY (site_id) REFERENCES sites(id)
 ) ENGINE=InnoDB;
 

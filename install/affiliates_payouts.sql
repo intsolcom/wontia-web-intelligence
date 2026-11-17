@@ -1,4 +1,4 @@
--- SONIKA Artist Partners — Fase 6: liquidaciones por lote (modo simulacion). Idempotente.
+-- SONIKA Partners — Fase 6: liquidaciones por lote (modo simulacion). Idempotente.
 CREATE TABLE IF NOT EXISTS affiliate_payout_batches (
   id INT AUTO_INCREMENT PRIMARY KEY,
   site_id INT NOT NULL,

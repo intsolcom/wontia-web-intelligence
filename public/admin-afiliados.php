@@ -32,7 +32,25 @@ $msg = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = (string)($_POST['action'] ?? '');
     $by = (string)((Session::user()['name'] ?? 'admin'));
-    if ($action === 'create_batch') {
+    if ($action === 'save_visibility') {
+        $enabled = !empty($_POST['public_profiles_enabled']);
+        $msg = $svc->setPublicProfilesEnabled($enabled)
+            ? ($enabled
+                ? 'Perfiles públicos personalizados activados. Cada Partner decide si muestra su página.'
+                : 'Perfiles públicos personalizados desactivados. Todos los Partners redirigen al catálogo original con su link de atribución.')
+            : 'No se pudo guardar el interruptor global.';
+    } elseif ($action === 'profile_visibility') {
+        $pid = (int)($_POST['profile_id'] ?? 0);
+        $enabled = !empty($_POST['enabled']);
+        $r = $svc->setPublicProfileEnabled($pid, $enabled);
+        if (!empty($r['ok'])) {
+            if (!empty($r['visible'])) $msg = 'Partner #' . $pid . ' → visible al público.';
+            elseif ($enabled) $msg = 'Partner #' . $pid . ' → preferencia guardada; el interruptor global está apagado, así que sigue oculto.';
+            else $msg = 'Partner #' . $pid . ' → perfil oculto; usará el catálogo original con su link de atribución.';
+        } else {
+            $msg = (string)($r['message'] ?? 'No se pudo actualizar la visibilidad.');
+        }
+    } elseif ($action === 'create_batch') {
         $r = $svc->createPayoutBatch(date('Y-m'), $by);
         $msg = $r['ok'] ? ('Lote #' . $r['batch'] . ' creado · ' . $r['items'] . ' ítems · $ ' . number_format((float)$r['total'], 0, ',', '.')) : (string)$r['message'];
     } elseif ($action === 'approve_batch') {
@@ -54,6 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 $profiles = $svc->listProfiles(300);
 $ready = $svc->ready();
+$globalVisibility = $svc->publicProfilesEnabled();
 ?><!DOCTYPE html>
 <html lang="es">
 <head>
@@ -79,16 +98,44 @@ form{display:flex;gap:6px;align-items:center}
 select{padding:7px 9px;border:1px solid #dbe7e1;border-radius:8px;font:inherit;font-size:12.5px}
 button{padding:7px 12px;border:0;border-radius:8px;background:#0d9f72;color:#fff;font-weight:700;font-size:12.5px;cursor:pointer}
 .empty{padding:40px;text-align:center;color:#94a3b8}
+.visbar{max-width:1120px;margin:0 auto 14px;background:linear-gradient(135deg,#fff,#f7fbff);border:1px solid #dbe7f5;border-radius:14px;padding:14px 16px;display:flex;gap:14px;align-items:center;flex-wrap:wrap;box-shadow:0 8px 22px rgba(16,24,40,.05)}
+.visbar b{font-size:14px;color:#101d3a;display:block}
+.visbar small{font-size:11.5px;color:#64748b;line-height:1.5;display:block;margin-top:3px}
+.visbar .visbar__txt{flex:1;min-width:260px}
+.visbar .toggle{display:inline-flex;gap:9px;align-items:center;background:#fff;border:1px solid #e6eeea;border-radius:10px;padding:8px 11px;font-size:12px;font-weight:700;color:#334155;cursor:pointer}
+.visbar .toggle input{width:17px;height:17px;accent-color:#0d9f72}
+.visbar .state{font-size:10.5px;font-weight:850;letter-spacing:.05em;text-transform:uppercase;border-radius:999px;padding:5px 10px;border:1px solid}
+.visbar .state.on{background:#e5f5ef;color:#0d7a58;border-color:#bfe3d5}
+.visbar .state.off{background:#f1f5f9;color:#475569;border-color:#dbe3ec}
+.visform{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.visform label{font-size:11px;font-weight:700;color:#51607a;display:inline-flex;gap:5px;align-items:center;cursor:pointer}
+.visform input[type=checkbox]{width:15px;height:15px;accent-color:#0d9f72}
+.visform .mini{padding:5px 9px;font-size:11px}
+.visform .eff{font-size:10px;font-weight:800;border-radius:999px;padding:3px 8px}
+.visform .eff.on{background:#e5f5ef;color:#0d7a58}
+.visform .eff.off{background:#f1f5f9;color:#475569}
 </style>
 </head>
 <body>
 <div class="head"><h1>Partners · SONIKA Partners</h1><a href="/admin">← Volver al panel</a></div>
 <?php if ($msg !== ''): ?><div class="msg"><?= htmlspecialchars($msg) ?></div><?php endif; ?>
+<div class="visbar">
+  <div class="visbar__txt">
+    <b>Perfiles públicos personalizados</b>
+    <small>Interruptor global. Apagado = todos los Partners usan el catálogo original con su link de atribución, sin fotos, videos ni trayectoria. Encendido = cada Partner decide con su checkbox. Recomendado: mantener apagado hasta tener el diseño aprobado.</small>
+  </div>
+  <span class="state <?= $globalVisibility ? 'on' : 'off' ?>"><?= $globalVisibility ? 'Activo' : 'Modo catálogo' ?></span>
+  <form method="post" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+    <input type="hidden" name="action" value="save_visibility" />
+    <label class="toggle"><input type="checkbox" name="public_profiles_enabled" value="1" <?= $globalVisibility ? 'checked' : '' ?> /> Permitir perfiles personalizados</label>
+    <button type="submit">Guardar</button>
+  </form>
+</div>
 <?php if (!$ready): ?><div class="tbl"><div class="empty">Las tablas de afiliados aún no están creadas.</div></div>
 <?php elseif (!$profiles): ?><div class="tbl"><div class="empty">Aún no hay solicitudes.</div></div>
 <?php else: ?>
 <div class="tbl"><table>
-<thead><tr><th>#</th><th>Partner / Correo</th><th>Categoría interna</th><th>Instrumento</th><th>Estado</th><th>Documentos</th><th>Acción</th></tr></thead>
+<thead><tr><th>#</th><th>Partner / Correo</th><th>Categoría interna</th><th>Instrumento</th><th>Perfil público</th><th>Estado</th><th>Documentos</th><th>Acción</th></tr></thead>
 <tbody>
 <?php foreach ($profiles as $p):
     $doc = preg_replace('/\D/', '', (string)($p['doc_number'] ?? ''));
@@ -102,6 +149,19 @@ button{padding:7px 12px;border:0;border-radius:8px;background:#0d9f72;color:#fff
   <td><b><?= htmlspecialchars($name) ?></b><br><small><?= htmlspecialchars((string)$p['email']) ?> · Doc <?= htmlspecialchars($docMask) ?></small></td>
   <td><span class="st"><?= htmlspecialchars($catLabel) ?></span></td>
   <td><?= htmlspecialchars((string)($p['music_instrument'] ?? '—')) ?></td>
+  <td><?php
+    $pp = (int)($p['public_profile_enabled'] ?? 0) === 1;
+    $eff = $pp && $globalVisibility;
+  ?>
+    <form class="visform" method="post">
+      <input type="hidden" name="action" value="profile_visibility" />
+      <input type="hidden" name="profile_id" value="<?= (int)$p['id'] ?>" />
+      <label><input type="checkbox" name="enabled" value="1"<?= $pp ? ' checked' : '' ?> /> Mostrar</label>
+      <span class="eff <?= $eff ? 'on' : 'off' ?>"><?= $eff ? 'Visible' : 'Oculto' ?></span>
+      <button class="mini" type="submit">Aplicar</button>
+    </form>
+    <?php if ($pp && !$globalVisibility): ?><small>Global apagado</small><?php endif; ?>
+  </td>
   <td><span class="st <?= htmlspecialchars((string)$p['status']) ?>"><?= htmlspecialchars((string)$p['status']) ?></span></td>
   <td><?php
       try {

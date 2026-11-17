@@ -1,0 +1,21 @@
+CREATE TABLE IF NOT EXISTS addi_transactions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    site_id INT NOT NULL DEFAULT 1,
+    order_uuid CHAR(36) NOT NULL,
+    addi_order_id VARCHAR(100) NOT NULL,
+    order_number VARCHAR(30) NULL,
+    application_id VARCHAR(100) NULL,
+    status VARCHAR(30) NOT NULL DEFAULT 'CREATED',
+    amount_cents BIGINT NOT NULL DEFAULT 0,
+    approved_amount_cents BIGINT NOT NULL DEFAULT 0,
+    currency VARCHAR(5) NOT NULL DEFAULT 'COP',
+    redirect_url VARCHAR(1000) NULL,
+    error VARCHAR(500) NULL,
+    callback_json LONGTEXT NULL,
+    callback_at DATETIME NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY addi_site_order_id (site_id, addi_order_id),
+    KEY idx_addi_order_uuid (site_id, order_uuid),
+    KEY idx_addi_status (site_id, status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

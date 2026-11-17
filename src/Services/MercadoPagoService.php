@@ -33,9 +33,9 @@ class MercadoPagoService
         'mercadopago_webhook_secret' => '',
         'mercadopago_statement_descriptor' => 'SONIKA',
         'mercadopago_label' => 'Mercado Pago',
-        'mercadopago_description' => 'Paga con tarjeta, PSE, Nequi o efectivo.',
+        'mercadopago_description' => 'Paga con tarjeta, PSE o transferencia. Si eliges PSE, selecciona tu banco antes de pagar.',
         'mercadopago_max_installments' => '12',
-        'mercadopago_binary_mode' => '1',
+        'mercadopago_binary_mode' => '0',
         'mercadopago_success_url' => '',
         'mercadopago_token_cache' => '',
         'mercadopago_oauth_refresh' => '',
@@ -95,7 +95,7 @@ class MercadoPagoService
             'webhook_secret' => TwoFactorService::decrypt((string)$raw['mercadopago_webhook_secret']),
             'statement_descriptor' => mb_substr(trim((string)$raw['mercadopago_statement_descriptor']) ?: 'SONIKA', 0, 22),
             'label' => trim((string)$raw['mercadopago_label']) ?: 'Mercado Pago',
-            'description' => trim((string)$raw['mercadopago_description']) ?: 'Paga con tarjeta, PSE, Nequi o efectivo.',
+            'description' => trim((string)$raw['mercadopago_description']) ?: 'Paga con tarjeta, PSE o transferencia. Si eliges PSE, selecciona tu banco antes de pagar.',
             'max_installments' => max(1, min(36, (int)$raw['mercadopago_max_installments'])),
             'binary_mode' => $raw['mercadopago_binary_mode'] !== '0',
             'success_url' => trim((string)$raw['mercadopago_success_url']),
@@ -195,7 +195,7 @@ class MercadoPagoService
             'mercadopago_public_key' => mb_substr($publicKey, 0, 190),
             'mercadopago_statement_descriptor' => mb_substr(trim((string)($data['statement_descriptor'] ?? '')) ?: 'SONIKA', 0, 22),
             'mercadopago_label' => mb_substr(trim((string)($data['label'] ?? '')) ?: 'Mercado Pago', 0, 80),
-            'mercadopago_description' => mb_substr(trim((string)($data['description'] ?? '')) ?: 'Paga con tarjeta, PSE, Nequi o efectivo.', 0, 160),
+            'mercadopago_description' => mb_substr(trim((string)($data['description'] ?? '')) ?: 'Paga con tarjeta, PSE o transferencia. Si eliges PSE, selecciona tu banco antes de pagar.', 0, 160),
             'mercadopago_max_installments' => (string)$maxInstallments,
             'mercadopago_binary_mode' => !empty($data['binary_mode']) ? '1' : '0',
             'mercadopago_success_url' => $this->cleanUrl((string)($data['success_url'] ?? '')),
@@ -580,7 +580,7 @@ class MercadoPagoService
 
     // ─────────────────────────── Pagos ───────────────────────────
 
-    public function createPreference(array $order): array
+    public function createPreference(array $order, string $idempotencyKey = ''): array
     {
         $this->ensureTables();
         $s = $this->settings();
@@ -596,6 +596,23 @@ class MercadoPagoService
         }
         $base = $this->baseUrl();
         $back = $base . '/pedido/' . rawurlencode($uuid);
+        $customerName = trim((string)($order['customer_name'] ?? ''));
+        $nameParts = preg_split('/\s+/', $customerName, 2) ?: [];
+        $customerPhone = preg_replace('/\D+/', '', (string)($order['customer_phone'] ?? ''));
+        $customerAddress = (array)($order['shipping_address'] ?? []);
+        $payer = array_filter([
+            'name' => (string)($nameParts[0] ?? ''),
+            'surname' => (string)($nameParts[1] ?? ''),
+            'email' => (string)($order['customer_email'] ?? ''),
+            'identification' => $this->identification((string)($order['customer_document'] ?? '')),
+            'phone' => $customerPhone !== '' ? ['area_code' => '57', 'number' => $customerPhone] : null,
+            'address' => array_filter([
+                'zip_code' => (string)($customerAddress['postal_code'] ?? ''),
+                'street_name' => (string)($customerAddress['line1'] ?? ''),
+                'street_number' => (string)($customerAddress['street_number'] ?? ''),
+            ]) ?: null,
+        ]);
+        $isCheckoutPro = $s['mode'] === 'checkout_pro';
         $payload = [
             'items' => [[
                 'id' => $number,
@@ -605,15 +622,13 @@ class MercadoPagoService
                 'currency_id' => $this->currency(),
                 'unit_price' => round(((int)($order['total_cents'] ?? 0)) / 100, 2),
             ]],
-            'payer' => array_filter([
-                'name' => (string)($order['customer_name'] ?? ''),
-                'email' => (string)($order['customer_email'] ?? ''),
-                'identification' => $this->identification((string)($order['customer_document'] ?? '')),
-            ]),
+            'payer' => $payer,
             'external_reference' => mb_substr($number, 0, 64),
             'notification_url' => $this->webhookUrl(),
             'statement_descriptor' => $s['statement_descriptor'],
-            'binary_mode' => $s['binary_mode'],
+            // En Checkout Pro el modo binario rechaza PSE y transferencias pendientes.
+            // Se mantiene solo para Checkout API, donde el pago se procesa en el sitio.
+            'binary_mode' => $isCheckoutPro ? false : $s['binary_mode'],
             'back_urls' => [
                 'success' => $back . '?mp=success',
                 'failure' => $back . '?mp=failure',
@@ -627,7 +642,7 @@ class MercadoPagoService
         if (str_starts_with($back, 'https://')) $payload['auto_return'] = 'approved';
 
         $result = $this->apiRequest('POST', '/checkout/preferences', $payload, [
-            'idempotency' => 'mp-pref-' . $uuid,
+            'idempotency' => $idempotencyKey !== '' ? $idempotencyKey : 'mp-pref-' . $uuid,
         ]);
         if (empty($result['ok'])) {
             $this->logPayment($order, [
@@ -660,6 +675,55 @@ class MercadoPagoService
             'init_point' => $initPoint,
             'sandbox_init_point' => $sandboxPoint,
             'status' => 'pending',
+        ];
+    }
+
+    /** Preferencia de diagnóstico: permite ver qué métodos ofrece Mercado Pago sin crear un pedido. */
+    public function createDiagnosticPreference(int $amountCents = 1000000, string $title = 'Prueba de pago SONIKA'): array
+    {
+        $s = $this->settings();
+        if (!$this->available($s)) return ['ok' => false, 'message' => 'Mercado Pago no está habilitado o configurado.'];
+        $amountCents = max(1000, min(34000000000, $amountCents));
+        $base = $this->baseUrl();
+        $ref = 'DIAG-' . date('YmdHis') . '-' . substr(bin2hex(random_bytes(3)), 0, 5);
+        $payload = [
+            'items' => [[
+                'id' => $ref,
+                'title' => mb_substr($title, 0, 120),
+                'description' => 'Preferencia de diagnóstico. No se cobra hasta completar el pago.',
+                'quantity' => 1,
+                'currency_id' => $this->currency(),
+                'unit_price' => round($amountCents / 100, 2),
+            ]],
+            'external_reference' => $ref,
+            'statement_descriptor' => $s['statement_descriptor'],
+            'binary_mode' => false,
+            'payment_methods' => ['installments' => $s['max_installments']],
+            'back_urls' => [
+                'success' => $base . '/checkout?mp=diagnostic_success',
+                'failure' => $base . '/checkout?mp=diagnostic_failure',
+                'pending' => $base . '/checkout?mp=diagnostic_pending',
+            ],
+            'metadata' => ['diagnostic' => true, 'site' => 'sonika'],
+        ];
+        if (str_starts_with($base, 'https://')) $payload['auto_return'] = 'approved';
+        $res = $this->apiRequest('POST', '/checkout/preferences', $payload);
+        if (empty($res['ok'])) {
+            return ['ok' => false, 'message' => (string)($res['message'] ?? 'No se pudo crear la preferencia de diagnóstico.'), 'status' => (int)($res['status'] ?? 0)];
+        }
+        $data = (array)($res['data'] ?? []);
+        $init = (string)($data['init_point'] ?? '');
+        $sandbox = (string)($data['sandbox_init_point'] ?? '');
+        $redirect = $s['environment'] === 'sandbox' && $sandbox !== '' ? $sandbox : ($init !== '' ? $init : $sandbox);
+        return [
+            'ok' => true,
+            'preference_id' => (string)($data['id'] ?? ''),
+            'init_point' => $init,
+            'sandbox_init_point' => $sandbox,
+            'redirect_url' => $redirect,
+            'environment' => $s['environment'],
+            'amount_cents' => $amountCents,
+            'message' => 'Preferencia de diagnóstico creada.',
         ];
     }
 
@@ -1104,6 +1168,10 @@ class MercadoPagoService
                 if ($mapped === 'refunded') {
                     $db->prepare("UPDATE store_orders SET payment_status = 'refunded', updated_at = NOW() WHERE uuid = ? AND site_id = @site_id")
                         ->execute([$uuid]);
+                }
+                try {
+                    (new GiftCardService())->onOrderFailed((int)$order['id'], $mapped === 'refunded' ? 'Pago reembolsado en Mercado Pago' : 'Pago rechazado en Mercado Pago');
+                } catch (\Throwable $e) {
                 }
             }
             $meta = json_decode((string)($order['payment_meta'] ?? ''), true) ?: [];

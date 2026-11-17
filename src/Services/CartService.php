@@ -29,7 +29,7 @@ class CartService
             $qty = max(1, min(self::MAX_QTY, (int)($it['qty'] ?? 1)));
             $r = $this->resolve($ref, $catalog);
             if ($r === null) {
-                $lines[] = ['ref' => $ref, 'title' => '', 'image' => '', 'price_cents' => 0, 'qty' => $qty, 'line_total_cents' => 0, 'available' => false, 'stock' => 0, 'issue' => 'not_found'];
+                $lines[] = ['ref' => $ref, 'title' => '', 'image' => '', 'price_cents' => 0, 'qty' => $qty, 'line_total_cents' => 0, 'available' => false, 'stock' => 0, 'weight_grams' => 0, 'issue' => 'not_found'];
                 $issues++;
                 continue;
             }
@@ -41,10 +41,22 @@ class CartService
             $line = $r['price_cents'] * $qty;
             $subtotal += $line;
             $qtyTotal += $qty;
+            $rec = is_array($it['rec'] ?? null) ? [
+                'source' => (string)($it['rec']['source'] ?? ''),
+                'campaign' => (string)($it['rec']['campaign'] ?? ''),
+                'slot' => (string)($it['rec']['slot'] ?? ''),
+                'reason' => mb_substr((string)($it['rec']['reason'] ?? ''), 0, 160),
+            ] : null;
             $lines[] = [
                 'ref' => $ref, 'title' => $r['title'], 'image' => $r['image'],
                 'price_cents' => $r['price_cents'], 'qty' => $qty, 'line_total_cents' => $line,
-                'available' => $r['available'], 'stock' => $r['stock'], 'issue' => $issue,
+                'available' => $r['available'], 'stock' => $r['stock'], 'weight_grams' => (int)($r['weight_grams'] ?? 0), 'issue' => $issue,
+                'free_shipping' => !empty($r['free_shipping']), 'tax_exempt' => !empty($r['tax_exempt']),
+                'visibility' => (string)($r['visibility'] ?? 'public'),
+                'product_id' => (int)($r['product_id'] ?? 0), 'variant_id' => $r['variant_id'] ?? null,
+                'sku' => (string)($r['sku'] ?? ''), 'product_ref' => (string)($r['product_ref'] ?? $ref),
+                'brand' => (string)($r['brand'] ?? ''), 'category' => (string)($r['category'] ?? ''),
+                'rec' => $rec,
             ];
         }
 
@@ -55,13 +67,22 @@ class CartService
     {
         // 1) store_products (tienda nativa)
         try {
-            $st = Database::instance()->prepare("SELECT name, slug, price_cents, stock, track_stock, status, images FROM store_products WHERE site_id = @site_id AND (slug = ? OR id = ?) LIMIT 1");
-            $st->execute([$ref, (int)$ref]);
+            $st = Database::instance()->prepare("SELECT id, name, slug, sku, vendor, product_type, catalog_handle, price_cents, stock, track_stock, status, images, weight_grams, free_shipping, tax_exempt, visibility, allowed_ips FROM store_products WHERE site_id = @site_id AND (slug = ? OR catalog_handle = ? OR id = ?) LIMIT 1");
+            $st->execute([$ref, $ref, (int)$ref]);
             $p = $st->fetch();
             if ($p) {
+                if (!IpAccessService::canViewProduct($p)) return null;
                 $imgs = json_decode((string)($p['images'] ?? ''), true) ?: [];
                 $avail = ($p['status'] === 'active') && ((int)$p['track_stock'] === 0 || (int)$p['stock'] > 0);
-                return ['title' => (string)$p['name'], 'image' => (string)($imgs[0] ?? ''), 'price_cents' => (int)$p['price_cents'], 'stock' => (int)$p['stock'], 'available' => $avail];
+                return [
+                    'title' => (string)$p['name'], 'image' => (string)($imgs[0] ?? ''), 'price_cents' => (int)$p['price_cents'],
+                    'stock' => (int)$p['stock'], 'available' => $avail, 'weight_grams' => (int)($p['weight_grams'] ?? 0),
+                    'free_shipping' => (int)($p['free_shipping'] ?? 0) === 1, 'tax_exempt' => (int)($p['tax_exempt'] ?? 0) === 1,
+                    'visibility' => (string)($p['visibility'] ?? 'public'),
+                    'product_id' => (int)($p['id'] ?? 0), 'variant_id' => null,
+                    'sku' => (string)($p['sku'] ?? ''), 'product_ref' => (string)($p['slug'] ?? ''),
+                    'brand' => (string)($p['vendor'] ?? ''), 'category' => (string)($p['product_type'] ?? ''),
+                ];
             }
         } catch (\Throwable $e) {
         }
@@ -77,6 +98,11 @@ class CartService
                 'price_cents' => (int)round(((float)($v['price'] ?? 0)) * 100),
                 'stock' => 0,
                 'available' => !empty($v['available']),
+                'weight_grams' => (int)($p['weight_grams'] ?? ($v['weight_grams'] ?? 0)),
+                'free_shipping' => false, 'tax_exempt' => false, 'visibility' => 'public',
+                'product_id' => 0, 'variant_id' => isset($v['id']) ? (int)$v['id'] : null,
+                'sku' => (string)($v['sku'] ?? ($p['sku'] ?? '')), 'product_ref' => $ref,
+                'brand' => (string)($p['vendor'] ?? ($p['brand'] ?? '')), 'category' => (string)($p['product_type'] ?? ($p['type'] ?? '')),
             ];
         }
         return null;

@@ -14,6 +14,12 @@ class AffiliateService
 {
     public const STATUSES = ['DRAFT', 'EMAIL_PENDING', 'PHONE_PENDING', 'DOCUMENTS_PENDING', 'REVIEW_REQUIRED', 'APPROVED', 'REJECTED', 'SUSPENDED', 'TERMINATED'];
     public const TTL_DAYS = 30;
+    /** La cookie de atribución se conserva 180 días; la comisión se valida con el último clic de 30 días. */
+    public const COOKIE_DAYS = 180;
+    /** “Mantener sesión iniciada” en el panel del Partner. */
+    public const REMEMBER_DAYS = 30;
+    public const MAX_STORE_PRODUCTS = 60;
+    public const STORE_COLLECTION_SLUG = 'mi-tienda';
     public const FORMULA_VERSION = 'puntos_sonika_v2';
     public const POINTS_PER_VALUE = 100000.0;
     public const POINTS_PER_ORDER = 1;
@@ -31,6 +37,7 @@ class AffiliateService
         'artist' => 'Artista',
         'influencer' => 'Influencer / creador',
         'natural' => 'Persona natural',
+        'commercial' => 'Comercial / negocio',
     ];
     // Puntos SONIKA: valor + ventas válidas + premium. La racha suma porcentaje aparte.
     public const POINT_TIERS = [
@@ -45,6 +52,102 @@ class AffiliateService
     {
         try { Database::instance()->query('SELECT 1 FROM affiliate_profiles LIMIT 1'); return true; }
         catch (\Throwable $e) { return false; }
+    }
+
+    private static ?bool $publicProfilesCache = null;
+
+    /**
+     * Interruptor global de perfiles personalizados. Apagado por defecto:
+     * el sitio y el catálogo original se mantienen intactos y el Partner
+     * solo aporta su enlace de atribución.
+     */
+    public function publicProfilesEnabled(): bool
+    {
+        if (self::$publicProfilesCache !== null) return self::$publicProfilesCache;
+        return self::$publicProfilesCache = $this->setting('affiliate_public_profiles_enabled') === '1';
+    }
+
+    public function setPublicProfilesEnabled(bool $enabled): bool
+    {
+        try {
+            Database::instance()->prepare("INSERT INTO settings (site_id, `key`, `value`) VALUES (@site_id, 'affiliate_public_profiles_enabled', :v) ON DUPLICATE KEY UPDATE `value` = VALUES(`value`)")
+                ->execute(['v' => $enabled ? '1' : '0']);
+            self::$publicProfilesCache = null;
+            $this->log(null, 'public_profiles_global_' . ($enabled ? 'on' : 'off'));
+            return true;
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Un perfil solo se publica si el interruptor global y el permiso del
+     * Partner están activos. Así el modo catálogo puede ser global o puntual.
+     */
+    public function publicProfileVisible(array $affiliate): bool
+    {
+        if ((string)($affiliate['status'] ?? '') !== 'APPROVED') return false;
+        if ((int)($affiliate['public_profile_enabled'] ?? 0) !== 1) return false;
+        if (trim((string)($affiliate['slug'] ?? '')) === '') return false;
+        return $this->publicProfilesEnabled();
+    }
+
+    /** Guarda la preferencia del Partner y devuelve el estado real ya aplicado. */
+    public function setPublicProfileEnabled(int $affiliateId, bool $enabled): array
+    {
+        $aff = $this->getById($affiliateId);
+        if (!$aff) return ['ok' => false, 'message' => 'Partner no encontrado.'];
+        try {
+            Database::instance()->prepare('UPDATE affiliate_profiles SET public_profile_enabled = :v WHERE id = :id AND site_id = @site_id')
+                ->execute(['v' => $enabled ? 1 : 0, 'id' => $affiliateId]);
+        } catch (\Throwable $e) {
+            return ['ok' => false, 'message' => 'No se pudo guardar la visibilidad.'];
+        }
+        $aff['public_profile_enabled'] = $enabled ? 1 : 0;
+        $code = $this->ensureLink($affiliateId);
+        $global = $this->publicProfilesEnabled();
+        $visible = $this->publicProfileVisible($aff);
+        $this->log($affiliateId, 'public_profile_' . ($enabled ? 'on' : 'off'), ['visible' => $visible, 'global' => $global]);
+
+        if ($enabled && !$global) {
+            $message = 'Preferencia guardada. Tu perfil seguirá oculto hasta que SONIKA active los perfiles públicos.';
+        } elseif ($enabled) {
+            $message = 'Perfil público activado. Tu página ya es visible para todos.';
+        } else {
+            $message = 'Perfil oculto. Tus clientes verán el catálogo original con tu link de atribución.';
+        }
+
+        return [
+            'ok' => true,
+            'enabled' => $enabled,
+            'visible' => $visible,
+            'state' => $visible ? 'visible' : ((string)($aff['status'] ?? '') === 'APPROVED' ? 'hidden' : 'review'),
+            'global' => $global,
+            'code' => $code,
+            'public_path' => $visible ? '/artista/' . rawurlencode((string)$aff['slug']) : ($code !== '' ? '/r/' . rawurlencode($code) : '/tienda'),
+            'message' => $message,
+        ];
+    }
+
+    /** Enlace que debe compartir el Partner: su página si es visible o su link de atribución. */
+    public function publicPath(array $affiliate): string
+    {
+        if ($this->publicProfileVisible($affiliate)) {
+            return '/artista/' . rawurlencode((string)$affiliate['slug']);
+        }
+        $code = $this->ensureLink((int)($affiliate['id'] ?? 0));
+        return $code !== '' ? '/r/' . rawurlencode($code) : '/tienda';
+    }
+
+    private function setting(string $key): string
+    {
+        try {
+            $st = Database::instance()->prepare('SELECT `value` FROM settings WHERE site_id = @site_id AND `key` = ? LIMIT 1');
+            $st->execute([$key]);
+            return trim((string)$st->fetchColumn());
+        } catch (\Throwable $e) {
+            return '';
+        }
     }
 
     public function slugify(string $s): string
@@ -343,7 +446,7 @@ class AffiliateService
                 'niche' => isset($in['niche']) ? substr((string)$in['niche'], 0, 120) : null,
                 'audience' => isset($in['audience_size']) ? substr((string)$in['audience_size'], 0, 60) : null,
                 'platforms' => !empty($platforms) ? json_encode($platforms, JSON_UNESCAPED_UNICODE) : null,
-                'public_profile' => $category === 'artist' ? 1 : 0,
+                'public_profile' => 0,
                 'payout' => isset($in['payout_method']) ? substr((string)$in['payout_method'], 0, 40) : null,
                 'tax' => isset($in['tax_id']) ? substr((string)$in['tax_id'], 0, 40) : null,
                 'me' => $in['music_experience'] ?? null, 'mi' => $in['music_instrument'] ?? null,
@@ -358,10 +461,20 @@ class AffiliateService
                 if ($c) $this->acceptContract($id, (int)$c['id']);
             }
             // Confirmación de correo obligatoria por OTP al registrarse.
-            $this->sendOtp($email);
+            $otp = $this->sendOtp($email);
             // Aviso interno a superadmins/admins por cada nuevo registro.
             $this->notifyNewArtist($id, $in, $email, $slug);
-            return ['ok' => true, 'id' => $id, 'slug' => $slug, 'profile_category' => $category, 'program' => 'SONIKA Partners'];
+            return [
+                'ok' => true,
+                'id' => $id,
+                'slug' => $slug,
+                'profile_category' => $category,
+                'program' => 'SONIKA Partners',
+                'email' => $email,
+                'otp' => true,
+                'otp_sent' => !empty($otp['sent']),
+                'next' => 'verify_email',
+            ];
         } catch (\Throwable $e) {
             return ['ok' => false, 'message' => 'No se pudo crear (¿correo ya registrado?).'];
         }
@@ -512,37 +625,372 @@ class AffiliateService
         } catch (\Throwable $e) { return []; }
     }
 
-    /** Ruta pública del partner: página de artista si la tiene; si no, tienda. */
+    /** Colección principal “Mi tienda”. Se crea la primera vez que el Partner elige un producto. */
+    public function defaultCollection(int $affiliateId, bool $create = false): ?array
+    {
+        try {
+            $db = Database::instance();
+            $st = $db->prepare('SELECT * FROM affiliate_collections WHERE affiliate_id = :a AND site_id = @site_id ORDER BY CASE WHEN slug = :s THEN 0 ELSE 1 END, sort_order, id LIMIT 1');
+            $st->execute(['a' => $affiliateId, 's' => self::STORE_COLLECTION_SLUG]);
+            $row = $st->fetch();
+            if ($row) return $row;
+            if (!$create) return null;
+            $db->prepare('INSERT INTO affiliate_collections (site_id, affiliate_id, name, slug, products, sort_order, created_at) VALUES (@site_id, :a, :n, :s, :p, 0, NOW())')
+                ->execute(['a' => $affiliateId, 'n' => 'Mi tienda', 's' => self::STORE_COLLECTION_SLUG, 'p' => '[]']);
+            $id = (int)$db->lastInsertId();
+            $st = $db->prepare('SELECT * FROM affiliate_collections WHERE id = :id AND site_id = @site_id LIMIT 1');
+            $st->execute(['id' => $id]);
+            return $st->fetch() ?: null;
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    /** Handles elegidos por el Partner para su tienda. */
+    public function storeProducts(int $affiliateId): array
+    {
+        $col = $this->defaultCollection($affiliateId, false);
+        if (!$col) return [];
+        $handles = json_decode((string)($col['products'] ?? '[]'), true);
+        if (!is_array($handles)) return [];
+        $out = [];
+        foreach ($handles as $h) {
+            $h = trim((string)$h);
+            if ($h !== '' && !in_array($h, $out, true)) $out[] = $h;
+        }
+        return array_slice($out, 0, self::MAX_STORE_PRODUCTS);
+    }
+
+    /** Agrega o quita un producto de la tienda del Partner. */
+    public function storeProductToggle(int $affiliateId, string $handle, string $action): array
+    {
+        $handle = trim($handle);
+        if ($handle === '' || !preg_match('/^[A-Za-z0-9._~%\-]{1,190}$/', $handle)) {
+            return ['ok' => false, 'message' => 'Producto no válido.'];
+        }
+        if (!$this->productExists($handle)) {
+            return ['ok' => false, 'message' => 'Ese producto no está disponible en el catálogo SONIKA.'];
+        }
+        $col = $this->defaultCollection($affiliateId, true);
+        if (!$col) return ['ok' => false, 'message' => 'No se pudo abrir tu tienda.'];
+        $handles = json_decode((string)($col['products'] ?? '[]'), true);
+        if (!is_array($handles)) $handles = [];
+        $handles = array_values(array_filter(array_map(static fn($h) => trim((string)$h), $handles)));
+        $has = in_array($handle, $handles, true);
+        if ($action === 'add') {
+            if (!$has) {
+                if (count($handles) >= self::MAX_STORE_PRODUCTS) {
+                    return ['ok' => false, 'message' => 'Tu tienda ya tiene el máximo de ' . self::MAX_STORE_PRODUCTS . ' productos.'];
+                }
+                $handles[] = $handle;
+            }
+        } else {
+            $handles = array_values(array_filter($handles, static fn($h) => $h !== $handle));
+        }
+        try {
+            Database::instance()->prepare('UPDATE affiliate_collections SET products = :p WHERE id = :id AND site_id = @site_id')
+                ->execute(['p' => json_encode(array_values($handles), JSON_UNESCAPED_UNICODE), 'id' => (int)$col['id']]);
+            $this->log($affiliateId, $action === 'add' ? 'store_product_added' : 'store_product_removed', ['handle' => $handle]);
+            return [
+                'ok' => true,
+                'added' => $action === 'add',
+                'handle' => $handle,
+                'count' => count($handles),
+                'products' => $handles,
+                'message' => $action === 'add' ? 'Producto agregado a tu tienda.' : 'Producto quitado de tu tienda.',
+            ];
+        } catch (\Throwable $e) {
+            return ['ok' => false, 'message' => 'No se pudo actualizar tu tienda.'];
+        }
+    }
+
+    /** Valida un handle contra el catálogo sincronizado y la tienda local. */
+    public function productExists(string $handle): bool
+    {
+        static $cache = null;
+        if ($cache === null) {
+            $cache = [];
+            $paths = [];
+            if (defined('ROOT_DIR')) $paths[] = ROOT_DIR . '/public/assets/uploads/_catalog/catalog.json';
+            $paths[] = dirname(__DIR__, 2) . '/templates/themes/sonika/catalog.json';
+            foreach ($paths as $f) {
+                if (!is_file($f)) continue;
+                $d = json_decode((string)@file_get_contents($f), true);
+                foreach ((array)($d['products'] ?? []) as $p) {
+                    $h = trim((string)($p['handle'] ?? ''));
+                    if ($h !== '') $cache[$h] = true;
+                }
+            }
+            try {
+                $st = Database::instance()->query('SELECT slug FROM store_products WHERE site_id = @site_id');
+                foreach ($st->fetchAll(\PDO::FETCH_COLUMN) as $h) {
+                    $h = trim((string)$h);
+                    if ($h !== '') $cache[$h] = true;
+                }
+            } catch (\Throwable $e) {
+            }
+        }
+        return isset($cache[$handle]);
+    }
+
+    /** Datos que consume el panel “Mi Tienda”. */
+    public function storeData(int $affiliateId): array
+    {
+        $aff = $this->getById($affiliateId);
+        if (!$aff) return ['ok' => false, 'message' => 'Partner no encontrado.'];
+        $code = $this->ensureLink($affiliateId);
+        $products = $this->storeProducts($affiliateId);
+        return [
+            'ok' => true,
+            'code' => $code,
+            'link' => $code !== '' ? '/r/' . rawurlencode($code) : '',
+            'store_path' => $this->publicPath($aff),
+            'products' => $products,
+            'count' => count($products),
+            'stats' => $this->attributionStats($affiliateId),
+            'cookie_days' => self::COOKIE_DAYS,
+            'ttl_days' => self::TTL_DAYS,
+            'max_products' => self::MAX_STORE_PRODUCTS,
+        ];
+    }
+
+    /** Salud de la atribución: clics recientes, último clic y conversión. */
+    public function attributionStats(int $affiliateId): array
+    {
+        $out = [
+            'clicks_30d' => 0, 'clicks_total' => 0, 'last_click' => null, 'orders_30d' => 0,
+            'conversion' => 0.0, 'cookie_days' => self::COOKIE_DAYS, 'ttl_days' => self::TTL_DAYS,
+        ];
+        try {
+            $db = Database::instance();
+            $st = $db->prepare('SELECT COUNT(*) FROM affiliate_clicks WHERE affiliate_id = :a AND site_id = @site_id AND is_bot = 0 AND clicked_at >= (NOW() - INTERVAL ' . self::TTL_DAYS . ' DAY)');
+            $st->execute(['a' => $affiliateId]);
+            $out['clicks_30d'] = (int)$st->fetchColumn();
+            $st = $db->prepare('SELECT COUNT(*) FROM affiliate_clicks WHERE affiliate_id = :a AND site_id = @site_id AND is_bot = 0');
+            $st->execute(['a' => $affiliateId]);
+            $out['clicks_total'] = (int)$st->fetchColumn();
+            $st = $db->prepare('SELECT MAX(clicked_at) FROM affiliate_clicks WHERE affiliate_id = :a AND site_id = @site_id AND is_bot = 0');
+            $st->execute(['a' => $affiliateId]);
+            $out['last_click'] = $st->fetchColumn() ?: null;
+            $st = $db->prepare('SELECT COUNT(*) FROM affiliate_commissions WHERE affiliate_id = :a AND site_id = @site_id AND created_at >= (NOW() - INTERVAL ' . self::TTL_DAYS . ' DAY)');
+            $st->execute(['a' => $affiliateId]);
+            $out['orders_30d'] = (int)$st->fetchColumn();
+            if ($out['clicks_30d'] > 0) $out['conversion'] = round($out['orders_30d'] / $out['clicks_30d'] * 100, 1);
+        } catch (\Throwable $e) {
+        }
+        return $out;
+    }
+
+    /** Token “recordarme”: selector:validator; solo se guarda el hash del validador. */
+    public function createRememberToken(int $affiliateId): string
+    {
+        $this->ensureAuxTables();
+        try {
+            $db = Database::instance();
+            $db->prepare('DELETE FROM affiliate_remember_tokens WHERE site_id = @site_id AND expires_at < NOW()')->execute();
+            $selector = bin2hex(random_bytes(8));
+            $validator = bin2hex(random_bytes(32));
+            $db->prepare('INSERT INTO affiliate_remember_tokens (site_id, affiliate_id, selector, validator_hash, expires_at, created_at) VALUES (@site_id, :a, :s, :h, DATE_ADD(NOW(), INTERVAL ' . self::REMEMBER_DAYS . ' DAY), NOW())')
+                ->execute(['a' => $affiliateId, 's' => $selector, 'h' => hash('sha256', $validator)]);
+            return $selector . ':' . $validator;
+        } catch (\Throwable $e) {
+            return '';
+        }
+    }
+
+    public function validateRememberToken(string $cookie): ?array
+    {
+        $this->ensureAuxTables();
+        if (!preg_match('/^([a-f0-9]{16}):([a-f0-9]{64})$/i', trim($cookie), $m)) return null;
+        try {
+            $db = Database::instance();
+            $st = $db->prepare('SELECT * FROM affiliate_remember_tokens WHERE selector = :s AND site_id = @site_id AND expires_at >= NOW() LIMIT 1');
+            $st->execute(['s' => $m[1]]);
+            $row = $st->fetch();
+            if (!$row || !hash_equals((string)$row['validator_hash'], hash('sha256', $m[2]))) return null;
+            $db->prepare('UPDATE affiliate_remember_tokens SET last_used_at = NOW() WHERE id = :id')->execute(['id' => (int)$row['id']]);
+            return $this->getById((int)$row['affiliate_id']);
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    public function revokeRememberToken(string $cookie): void
+    {
+        $this->ensureAuxTables();
+        if (!preg_match('/^([a-f0-9]{16}):([a-f0-9]{64})$/i', trim($cookie), $m)) return;
+        try {
+            Database::instance()->prepare('DELETE FROM affiliate_remember_tokens WHERE selector = :s AND site_id = @site_id')->execute(['s' => $m[1]]);
+        } catch (\Throwable $e) {
+        }
+    }
+
+    /** Destino del clic: página propia solo si es visible; si no, catálogo original. */
     public function storePath(array $affiliate): string
     {
         $slug = trim((string)($affiliate['slug'] ?? ''));
-        $category = (string)($affiliate['profile_category'] ?? 'natural');
-        $public = (int)($affiliate['public_profile_enabled'] ?? 0) === 1;
-        if ($category === 'artist' && $public && $slug !== '') return '/artista/' . rawurlencode($slug);
+        if ($slug !== '' && $this->publicProfileVisible($affiliate)) return '/artista/' . rawurlencode($slug);
         return '/tienda';
+    }
+
+    private static bool $auxReady = false;
+
+    /** Tablas auxiliares idempotentes: alias de enlaces antiguos y “recordarme”. */
+    private function ensureAuxTables(): void
+    {
+        if (self::$auxReady) return;
+        self::$auxReady = true;
+        try {
+            $db = Database::instance();
+            $db->exec("CREATE TABLE IF NOT EXISTS affiliate_link_aliases (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                site_id INT NOT NULL,
+                code VARCHAR(64) NOT NULL,
+                affiliate_id INT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY uq_site_code (site_id, code),
+                INDEX idx_aff (affiliate_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+            $db->exec("CREATE TABLE IF NOT EXISTS affiliate_remember_tokens (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                site_id INT NOT NULL,
+                affiliate_id INT NOT NULL,
+                selector VARCHAR(32) NOT NULL,
+                validator_hash CHAR(64) NOT NULL,
+                expires_at DATETIME NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                last_used_at DATETIME NULL,
+                UNIQUE KEY uq_site_selector (site_id, selector),
+                INDEX idx_aff (affiliate_id),
+                INDEX idx_exp (expires_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+        } catch (\Throwable $e) {
+        }
+    }
+
+    private function transliterateName(string $s): string
+    {
+        $s = trim($s);
+        if ($s === '') return '';
+        if (function_exists('iconv')) {
+            $t = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $s);
+            if (is_string($t) && trim($t) !== '') $s = $t;
+        }
+        return str_replace(['ñ', 'Ñ'], ['n', 'N'], $s);
+    }
+
+    /** Base legible del código: nombre-apellido. */
+    public function friendlyCodeBase(array $aff): string
+    {
+        $name = trim((string)($aff['full_name'] ?? ''));
+        if ($name === '') $name = trim((string)($aff['public_name'] ?? ''));
+        if ($name === '') $name = trim((string)($aff['artist_name'] ?? ''));
+        if ($name === '') $name = 'partner';
+        $slug = $this->slugify($this->transliterateName($name));
+        $parts = array_values(array_filter(explode('-', $slug), static fn($p) => $p !== ''));
+        $first = $parts[0] ?? 'partner';
+        $last = $parts[1] ?? '';
+        $base = $last !== '' ? $first . '-' . $last : $first;
+        return substr($base, 0, 48);
+    }
+
+    private function linkCodeFree(string $code, int $affiliateId): bool
+    {
+        try {
+            $db = Database::instance();
+            $st = $db->prepare('SELECT affiliate_id FROM affiliate_links WHERE code = :c AND site_id = @site_id LIMIT 1');
+            $st->execute(['c' => $code]);
+            $owner = $st->fetchColumn();
+            if ($owner !== false && (int)$owner !== $affiliateId) return false;
+            $st = $db->prepare('SELECT affiliate_id FROM affiliate_link_aliases WHERE code = :c AND site_id = @site_id LIMIT 1');
+            $st->execute(['c' => $code]);
+            $owner = $st->fetchColumn();
+            if ($owner !== false && (int)$owner !== $affiliateId) return false;
+            return true;
+        } catch (\Throwable $e) {
+            return true;
+        }
+    }
+
+    /**
+     * Código legible y no enumerable: nombre-apellido-#### con un número aleatorio.
+     * No expone el ID interno del Partner.
+     */
+    private function newLinkCode(string $base, int $affiliateId): string
+    {
+        for ($i = 0; $i < 40; $i++) {
+            $code = $base . '-' . str_pad((string)random_int(0, 9999), 4, '0', STR_PAD_LEFT);
+            if ($this->linkCodeFree($code, $affiliateId)) return $code;
+        }
+        return $base . '-' . substr(bin2hex(random_bytes(4)), 0, 8);
+    }
+
+    /** Resuelve un código actual o un alias histórico. */
+    public function resolveLink(string $code): ?array
+    {
+        $code = trim($code);
+        if ($code === '') return null;
+        $this->ensureAuxTables();
+        try {
+            $db = Database::instance();
+            $st = $db->prepare('SELECT * FROM affiliate_links WHERE code = :c AND site_id = @site_id LIMIT 1');
+            $st->execute(['c' => $code]);
+            $link = $st->fetch();
+            if ($link) return $link;
+            if (preg_match('/^[a-z0-9\-]{2,64}$/i', $code)) {
+                $st = $db->prepare('SELECT l.* FROM affiliate_link_aliases a INNER JOIN affiliate_links l ON l.affiliate_id = a.affiliate_id AND l.site_id = a.site_id WHERE a.code = :c AND a.site_id = @site_id LIMIT 1');
+                $st->execute(['c' => $code]);
+                return $st->fetch() ?: null;
+            }
+        } catch (\Throwable $e) {
+        }
+        return null;
     }
 
     public function ensureLink(int $affiliateId): string
     {
+        $this->ensureAuxTables();
         try {
             $db = Database::instance();
             $aff = $this->getById($affiliateId);
-            $target = $aff ? $this->storePath($aff) : '/artistas';
+            if (!$aff) return '';
+            $target = $this->storePath($aff);
+            $base = $this->friendlyCodeBase($aff);
             $st = $db->prepare('SELECT id, code, target_url FROM affiliate_links WHERE affiliate_id = :a AND site_id = @site_id LIMIT 1');
             $st->execute(['a' => $affiliateId]);
             $row = $st->fetch();
             if ($row) {
+                $current = (string)$row['code'];
+                $isLegacy = (bool)preg_match('/^[a-f0-9]{10}$/i', $current);
+                $isNameBased = $current !== '' && (bool)preg_match('/^' . preg_quote($base, '/') . '-\d+/i', $current);
+                $idSuffix = $affiliateId < 10000 ? str_pad((string)$affiliateId, 4, '0', STR_PAD_LEFT) : (string)$affiliateId;
+                $exposesId = $current !== '' && strcasecmp($current, $base . '-' . $idSuffix) === 0;
+                if ($isLegacy || !$isNameBased || $exposesId) {
+                    $newCode = $this->newLinkCode($base, $affiliateId);
+                    if ($newCode !== $current) {
+                        try {
+                            $db->prepare('INSERT IGNORE INTO affiliate_link_aliases (site_id, code, affiliate_id, created_at) VALUES (@site_id, :c, :a, NOW())')
+                                ->execute(['c' => $current, 'a' => $affiliateId]);
+                        } catch (\Throwable $e) {
+                        }
+                        $db->prepare('UPDATE affiliate_links SET code = :c, target_url = :t WHERE id = :id AND site_id = @site_id')
+                            ->execute(['c' => $newCode, 't' => $target, 'id' => (int)$row['id']]);
+                        return $newCode;
+                    }
+                }
                 if ((string)$row['target_url'] !== $target) {
                     $db->prepare('UPDATE affiliate_links SET target_url = :t WHERE id = :id AND site_id = @site_id')
                         ->execute(['t' => $target, 'id' => (int)$row['id']]);
                 }
-                return (string)$row['code'];
+                return $current;
             }
-            $code = substr(bin2hex(random_bytes(5)), 0, 10);
+            $code = $this->newLinkCode($base, $affiliateId);
             $db->prepare('INSERT INTO affiliate_links (site_id, affiliate_id, code, target_url, created_at) VALUES (@site_id, :a, :c, :t, NOW())')
                 ->execute(['a' => $affiliateId, 'c' => $code, 't' => $target]);
             return $code;
-        } catch (\Throwable $e) { return ''; }
+        } catch (\Throwable $e) {
+            return '';
+        }
     }
 
     /** Registra un clic de afiliado (llamado desde la ruta /r/{code}). */
@@ -551,10 +999,9 @@ class AffiliateService
         if (!$this->ready()) return null;
         try {
             $db = Database::instance();
-            $st = $db->prepare('SELECT * FROM affiliate_links WHERE code = :c AND site_id = @site_id LIMIT 1');
-            $st->execute(['c' => $code]);
-            $link = $st->fetch();
+            $link = $this->resolveLink($code);
             if (!$link) return null;
+            $code = (string)$link['code'];
             $aff = $this->getById((int)$link['affiliate_id']);
             if (!$aff || $aff['status'] !== 'APPROVED') return null;
             $ua = (string)($_SERVER['HTTP_USER_AGENT'] ?? '');
@@ -686,9 +1133,11 @@ class AffiliateService
         try {
             $db = Database::instance();
             if ($affiliateId === null && $code) {
-                $st = $db->prepare('SELECT affiliate_id FROM affiliate_links WHERE code = :c AND site_id = @site_id LIMIT 1');
-                $st->execute(['c' => $code]);
-                $affiliateId = (int)$st->fetchColumn() ?: null;
+                $link = $this->resolveLink($code);
+                if ($link) {
+                    $affiliateId = (int)$link['affiliate_id'];
+                    $code = (string)$link['code'];
+                }
             }
             if (!$affiliateId) return null;
             $aff = $this->getById($affiliateId);
@@ -916,7 +1365,7 @@ class AffiliateService
                     $sent = $es->sendHtml($email, 'Tu código de verificación — SONIKA Partners', '<div style="font-family:Arial,sans-serif"><p>Tu código de verificación es:</p><p style="font-size:28px;font-weight:800;letter-spacing:4px">' . $code . '</p><p>Vence en 10 minutos. Si no lo solicitaste, ignora este correo.</p></div>');
                 } catch (\Throwable $x) {}
             }
-            return ['ok' => true, 'sent' => $sent];
+            return ['ok' => true, 'sent' => $sent, 'expires_in' => 600];
         } catch (\Throwable $e) { return ['ok' => false, 'message' => 'No se pudo generar el código.']; }
     }
 
@@ -937,7 +1386,7 @@ class AffiliateService
             $db->prepare('UPDATE affiliate_otps SET used = 1 WHERE id = :id')->execute(['id' => $o['id']]);
             $prof = $this->profileByEmail($email);
             if ($prof && in_array($prof['status'], ['DRAFT', 'EMAIL_PENDING'], true)) $this->setStatus((int)$prof['id'], 'REVIEW_REQUIRED');
-            return ['ok' => true, 'verified' => true];
+            return ['ok' => true, 'verified' => true, 'next' => 'login', 'status' => 'REVIEW_REQUIRED'];
         } catch (\Throwable $e) { return ['ok' => false, 'message' => 'Error al verificar.']; }
     }
 

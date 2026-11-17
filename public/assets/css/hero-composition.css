@@ -3,7 +3,11 @@
 .hero-comp summary{cursor:pointer;font-weight:800;font-size:12px;color:#111}
 .hero-comp__body{margin-top:8px;display:grid;gap:8px}
 .hero-comp__preview{position:relative;width:100%;aspect-ratio:16/9;background:#0b0b0b;border-radius:8px;overflow:hidden;border:1px solid #222}
+.hero-comp__preview[data-device="mobile"]{aspect-ratio:390/844;max-width:190px;margin-left:auto;margin-right:auto}
+.hero-comp__preview-badge{position:absolute;left:6px;top:6px;z-index:2;border-radius:999px;background:rgba(0,0,0,.66);color:#fff;font:800 8.5px/1 Sora,system-ui,sans-serif;letter-spacing:.04em;text-transform:uppercase;padding:4px 7px;pointer-events:none}
 .hero-comp__preview img{display:block;width:100%;height:100%;object-fit:cover}
+.hero-comp__presets{gap:4px}
+.hero-comp__presets .w-btn{padding:4px 8px;font-size:10px;min-height:26px}
 .hero-comp__section{border-top:1px solid var(--w-border,#e5e7eb);padding-top:8px;display:grid;gap:5px}
 .hero-comp__label{font-size:9.5px;font-weight:900;letter-spacing:.06em;text-transform:uppercase;color:var(--w-muted,#6b7280)}
 .hero-comp__row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:11px;color:#444}

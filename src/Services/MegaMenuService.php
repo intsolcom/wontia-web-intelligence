@@ -48,7 +48,7 @@ class MegaMenuService
         $products = $products ?? $this->catalog();
         if (!$categories) return $this->tagTree($products, $newDays, $sort);
 
-        $sig = md5(json_encode(array_map(fn($c) => (string)($c['slug'] ?? ''), $categories)) . '|' . count($products) . '|' . $newDays);
+        $sig = md5('brandnorm-v3|taxonomy-v' . (class_exists('\\App\\Services\\CatalogTaxonomyService') ? \App\Services\CatalogTaxonomyService::VERSION : 0) . '|' . json_encode(array_map(fn($c) => [(string)($c['slug'] ?? ''), count((array)($c['children'] ?? []))], $categories)) . '|' . count($products) . '|' . $newDays);
         $cache = rtrim(sys_get_temp_dir(), '/\\') . DIRECTORY_SEPARATOR . 'wwi_mega_' . $sig . '.json';
         if (is_file($cache) && (time() - filemtime($cache)) < self::CACHE_TTL) {
             $c = json_decode((string)@file_get_contents($cache), true);
@@ -84,6 +84,7 @@ class MegaMenuService
                 if ($t !== '') { $types[$t] = ($types[$t] ?? 0) + 1; if (empty($typeImg[$t])) { $im = $this->img($p); if ($im !== '') $typeImg[$t] = $im; } }
                 if ($catImg === '') { $im2 = $this->img($p); if ($im2 !== '') $catImg = $im2; }
                 $v = trim((string)($p['vendor'] ?? ''));
+                if ($v !== '' && function_exists('sonika_brand_name')) $v = \sonika_brand_name($v);
                 if ($v !== '') $brands[$v] = ($brands[$v] ?? 0) + 1;
 
                 foreach ($this->structuredTags($p) as $lvl => $val) {
@@ -101,7 +102,7 @@ class MegaMenuService
             arsort($types); arsort($brands); arsort($models);
             $typeList = [];
             foreach (array_slice($types, 0, 24, true) as $tn => $cnt) {
-                $typeList[] = ['name' => $tn, 'count' => (int)$cnt, 'url' => $catUrl . '&tipo=' . urlencode($tn), 'thumb' => (string)($typeImg[$tn] ?? '')];
+                $typeList[] = ['name' => $tn, 'count' => (int)$cnt, 'url' => $catUrl . (str_contains($catUrl, '?') ? '&' : '?') . 'tipo=' . urlencode($tn), 'thumb' => (string)($typeImg[$tn] ?? '')];
             }
             $brandList = [];
             foreach (array_slice($brands, 0, 24, true) as $bn => $cnt) {
@@ -199,7 +200,7 @@ class MegaMenuService
             if ($lo >= $hi) continue;
             $ranges[] = [
                 'name' => '$' . number_format($lo, 0, ',', '.') . ' – $' . number_format($hi, 0, ',', '.'),
-                'url' => $catUrl . '&min=' . $lo . '&max=' . $hi,
+                'url' => $catUrl . (str_contains($catUrl, '?') ? '&' : '?') . 'min=' . $lo . '&max=' . $hi,
             ];
         }
         return $ranges;
@@ -214,7 +215,7 @@ class MegaMenuService
     private function tagTree(array $products, int $newDays, string $sort = 'alpha'): array
     {
         $file = $this->catalogFile();
-        $sig = md5(($file ? (int)@filemtime($file) : 0) . '|' . count($products) . '|' . $newDays . '|' . $sort);
+        $sig = md5('brandnorm-v3|' . ($file ? (int)@filemtime($file) : 0) . '|' . count($products) . '|' . $newDays . '|' . $sort);
         $cache = rtrim(sys_get_temp_dir(), '/\\') . DIRECTORY_SEPARATOR . 'wwi_megatag_' . $sig . '.json';
         if (is_file($cache) && (time() - filemtime($cache)) < 3600) {
             $c = json_decode((string)@file_get_contents($cache), true);

@@ -17,6 +17,30 @@ class CatalogReconciliationService
     private const FOLD = ['á'=>'a','à'=>'a','ä'=>'a','â'=>'a','ã'=>'a','é'=>'e','è'=>'e','ë'=>'e','ê'=>'e','í'=>'i','ì'=>'i','ï'=>'i','î'=>'i','ó'=>'o','ò'=>'o','ö'=>'o','ô'=>'o','õ'=>'o','ú'=>'u','ù'=>'u','ü'=>'u','û'=>'u','ñ'=>'n','ç'=>'c'];
 
     /** Clasificación (curación/investigación): fold(tag-categoría) => slug legacy. FUENTE ÚNICA. */
+    public const LEGACY_TO_TOP = [
+        'guitarras' => 'cuerdas',
+        'acordeon' => 'vientos',
+        'pianos' => 'teclados',
+        'amplificadores' => 'audio',
+        'microfono-miche' => 'microfonos',
+        'cabeza-movil' => 'iluminacion',
+        'cuerdas-guitarras' => 'accesorios',
+    ];
+
+    /** Tags de Miche que no son categorías reales o que el clasificador ya resuelve. */
+    public const EXTRA_MAP = [
+        'sonido' => 'amplificadores', 'grabacion' => 'amplificadores', 'grabación' => 'amplificadores',
+        'tocadiscos' => 'amplificadores', 'giradiscos' => 'amplificadores', 'reproductor' => 'amplificadores',
+        'interfaz' => 'amplificadores', 'intefaces' => 'amplificadores', 'interface' => 'amplificadores',
+        'dispersor' => 'amplificadores', 'driver' => 'amplificadores', 'medusa' => 'amplificadores',
+        'laser' => 'cabeza-movil', 'videobeam' => 'cabeza-movil', 'liquido humo' => 'cabeza-movil',
+        'polish' => 'cuerdas-guitarras', 'ejecitador' => 'cuerdas-guitarras', 'ejercitador' => 'cuerdas-guitarras',
+        'snowboard' => '', 'tienda' => '',
+    ];
+
+    /** Tags que no generan alerta de "categoría no mapeada" (son datos sucios, no taxonomía). */
+    public const IGNORE_UNMAPPED = ['snowboard', 'tienda', 'outlet', 'semana', 'promo', 'dia sin iva']; 
+
     public const LEGACY_MAP = [
         // Percusión
         'parche'=>'percusion','parches'=>'percusion','conga'=>'percusion','congas'=>'percusion','platillo'=>'percusion','platillos'=>'percusion','baqueta'=>'percusion','baquetas'=>'percusion','pandereta'=>'percusion','panderetas'=>'percusion','bongo'=>'percusion','bongos'=>'percusion','bateria'=>'percusion','baterias'=>'percusion','campana'=>'percusion','campanas'=>'percusion','cajon'=>'percusion','cajones'=>'percusion','shaker'=>'percusion','shakers'=>'percusion','guiro'=>'percusion','guiros'=>'percusion','guache'=>'percusion','timbal'=>'percusion','timbales'=>'percusion','caja vallenata'=>'percusion','maracas'=>'percusion','maraca'=>'percusion','jam blocks'=>'percusion','redoblante'=>'percusion','clave'=>'percusion','claves'=>'percusion','tambor'=>'percusion','tambores'=>'percusion','djembe'=>'percusion','vibra'=>'percusion','afuche'=>'percusion','castanuela'=>'percusion','castanuelas'=>'percusion','metalofono'=>'percusion','metalofonos'=>'percusion','tambora'=>'percusion','xilofonos'=>'percusion','xilofono'=>'percusion','escobilla'=>'percusion','guacharaca'=>'percusion','shekere'=>'percusion','triangulo'=>'percusion','cienpies'=>'percusion','palo de lluvia'=>'percusion','cabezote'=>'percusion','caja'=>'percusion','percusion'=>'percusion',
@@ -40,9 +64,14 @@ class CatalogReconciliationService
     {
         $f = self::fold($tagCat);
         if ($f === '') return '';
-        if (isset(self::LEGACY_MAP[$f])) return self::LEGACY_MAP[$f];
-        foreach (self::LEGACY_MAP as $k => $v) { if ($k !== '' && str_contains($f, $k)) return $v; }
-        return '';
+        $map = self::LEGACY_MAP + self::EXTRA_MAP;
+        $slug = '';
+        if (isset($map[$f])) $slug = $map[$f];
+        else {
+            foreach ($map as $k => $v) { if ($k !== '' && str_contains($f, $k)) { $slug = $v; break; } }
+        }
+        // La auditoría compara contra las categorías PADRE canónicas.
+        return self::LEGACY_TO_TOP[$slug] ?? $slug;
     }
 
     public function reportPath(): string
@@ -152,8 +181,10 @@ class CatalogReconciliationService
                 $mapped = self::legacySlug($tagCat);
                 if ($mapped === '') {
                     $fk = self::fold($tagCat);
-                    if (!isset($unmappedCats[$fk])) $unmappedCats[$fk] = ['name' => $tagCat, 'count' => 0, 'sample' => $title];
-                    $unmappedCats[$fk]['count']++;
+                    if (!in_array($fk, self::IGNORE_UNMAPPED, true) && !isset($unmappedCats[$fk])) {
+                        $unmappedCats[$fk] = ['name' => $tagCat, 'count' => 0, 'sample' => $title];
+                    }
+                    if (!in_array($fk, self::IGNORE_UNMAPPED, true)) $unmappedCats[$fk]['count']++;
                 } else {
                     if (isset($covTag[$mapped])) $covTag[$mapped]++;
                     if ($kw && !in_array($mapped, $kw, true)) $divergence[] = ['title' => $title, 'handle' => $hdl, 'tag' => $tagCat, 'tag_slug' => $mapped, 'kw_slugs' => $kw];
@@ -301,7 +332,7 @@ class CatalogReconciliationService
         if ($heroNo > 0) {
             $out['issues'][] = ['id' => 'mn_hero_img', 'level' => 'info', 'label' => 'Mega Menú: ' . $heroNo . ' hero(s) sin imagen (categoría sin foto).'];
         }
-        if (preg_match('~data-mn-panel="guitarras"(.*?)data-mn-panel="~s', $html, $mp)) {
+        if (preg_match('~data-mn-panel="cuerdas"(.*?)data-mn-panel="~s', $html, $mp)) {
             if (preg_match_all('~mn-card__img"><img src="([^"]+)"~', $mp[1], $mm)) {
                 $uniq = count(array_unique($mm[1]));
                 if (count($mm[1]) > 1 && $uniq === 1) {

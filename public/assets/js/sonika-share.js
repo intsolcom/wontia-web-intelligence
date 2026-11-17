@@ -142,13 +142,15 @@
 
   function productUrl(ref) {
     var base = location.origin || (location.protocol + '//' + location.host);
-    return base + '/producto/' + encodeURIComponent(ref);
+    var code = String(P.ref || '').trim();
+    return base + '/producto/' + encodeURIComponent(ref) + (code ? '?ref=' + encodeURIComponent(code) : '');
   }
 
   function affiliateUrl(ref, code) {
-    if (!code) return productUrl(ref);
+    var partnerCode = String(code || P.ref || '').trim();
+    if (!partnerCode) return productUrl(ref);
     var base = location.origin || (location.protocol + '//' + location.host);
-    return base + '/r/' + encodeURIComponent(code) + '/p/' + encodeURIComponent(ref);
+    return base + '/r/' + encodeURIComponent(partnerCode) + '/p/' + encodeURIComponent(ref);
   }
 
   function readProduct(btn) {
@@ -471,7 +473,7 @@
     state.mode = mode === 'partner' ? 'partner' : 'friend';
     state.product = product;
     state.productUrl = productUrl(product.ref);
-    state.partnerUrl = (P.approved && P.code) ? affiliateUrl(product.ref, P.code) : state.productUrl;
+    state.partnerUrl = (P.approved && P.code) ? affiliateUrl(product.ref, P.code) : affiliateUrl(product.ref, P.ref || P.code);
     state.template = S.default_template || 'directo';
     state.support = true;
     state.message = buildMessage();

@@ -53,6 +53,54 @@ if (!function_exists('sonika_pager')) {
 
 $path = trim((string)$uri, '/');
 $segments = $path === '' ? [] : explode('/', $path);
+$segments = array_map(static function ($segment) {
+    $decoded = rawurldecode((string)$segment);
+    // No permitir que un %2F altere la estructura de la ruta.
+    return str_contains($decoded, '/') ? (string)$segment : $decoded;
+}, $segments);
+if (function_exists('sonika_aff_capture')) sonika_aff_capture();
+
+// Taxonomía: redirecciones 301 de las URLs legacy a la jerarquía canónica.
+$__legacyCat = [
+    'guitarras' => 'cuerdas/guitarras',
+    'acordeon' => 'vientos/acordeones',
+    'pianos' => 'teclados/pianos',
+    'amplificadores' => 'audio/amplificadores',
+    'microfono-miche' => 'microfonos',
+    'cabeza-movil' => 'iluminacion/cabezas-moviles',
+    'cuerdas-guitarras' => 'accesorios',
+];
+$__legacySeg = (string)($segments[0] ?? '');
+if (isset($__legacyCat[$__legacySeg]) && count($segments) === 1 && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET') {
+    $__target = $__legacyCat[$__legacySeg];
+    if ($__legacySeg === 'guitarras' && !empty($_GET['sub']) && is_string($_GET['sub'])) {
+        $__sub = strtolower(trim((string)$_GET['sub']));
+        $__subMap = [
+            'bajos' => 'cuerdas/bajos',
+            'electricas' => 'cuerdas/guitarras/electricas',
+            'electroacusticas' => 'cuerdas/guitarras/electroacusticas',
+            'acusticas-amplificadas' => 'cuerdas/guitarras/electroacusticas',
+            'acusticas' => 'cuerdas/guitarras/acusticas',
+            'clasicas' => 'cuerdas/guitarras/clasicas',
+        ];
+        if (isset($__subMap[$__sub])) $__target = $__subMap[$__sub];
+    }
+    $__keep = $_GET;
+    unset($__keep['sub']);
+    $__qs = http_build_query($__keep);
+    header('Location: /' . $__target . ($__qs !== '' ? '?' . $__qs : ''), true, 301);
+    exit;
+}
+// Nodos renombrados dentro de la jerarquía.
+$__legacyPaths = [
+    'cuerdas/guitarras/acusticas-amplificadas' => 'cuerdas/guitarras/electroacusticas',
+];
+$__legacyPath = trim($path, '/');
+if (isset($__legacyPaths[$__legacyPath]) && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET') {
+    $__qs = http_build_query($_GET);
+    header('Location: /' . $__legacyPaths[$__legacyPath] . ($__qs !== '' ? '?' . $__qs : ''), true, 301);
+    exit;
+}
 
 if (($segments[0] ?? '') === 'contacto') {
     header('Location: /soporte#contacto', true, 302);
@@ -64,11 +112,12 @@ if (($segments[0] ?? '') === 'asesor') {
 }
 
 if (($segments[0] ?? '') === 'r' && !empty($segments[1])) {
+    header('X-Robots-Tag: noindex, nofollow, noarchive');
     $__aff = (new \App\Services\AffiliateService())->recordClick((string)$segments[1], (string)($_COOKIE['wwi_seo_sid'] ?? ''));
     if ($__aff) {
         $__secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
         @setcookie('sonika_aff', (string)$__aff['code'], [
-            'expires' => time() + (\App\Services\AffiliateService::TTL_DAYS * 86400),
+            'expires' => time() + (\App\Services\AffiliateService::COOKIE_DAYS * 86400),
             'path' => '/',
             'secure' => $__secure,
             'httponly' => false,
@@ -77,8 +126,17 @@ if (($segments[0] ?? '') === 'r' && !empty($segments[1])) {
         $_COOKIE['sonika_aff'] = (string)$__aff['code'];
         $__dest = (string)($__aff['store_path'] ?? '/tienda');
         $__to = is_string($_GET['to'] ?? null) ? trim((string)$_GET['to']) : '';
+        $__toPath = (string)parse_url($__to, PHP_URL_PATH);
+        $__toQuery = (string)parse_url($__to, PHP_URL_QUERY);
+        $__safePrefixes = ['/producto/', '/tienda', '/artista/', '/carrito', '/checkout', '/tarjetas-de-regalo', '/categorias/', '/marcas/', '/ofertas', '/buscar'];
+        $__safeRedirect = false;
         if ($__to !== '' && $__to[0] === '/' && strpos($__to, '//') !== 0 && strpos($__to, '\\') === false && !preg_match('/[\x00-\x1F\x7F]/', $__to)) {
-            $__dest = $__to;
+            foreach ($__safePrefixes as $__prefix) {
+                if ($__toPath === rtrim($__prefix, '/') || str_starts_with($__toPath, $__prefix)) { $__safeRedirect = true; break; }
+            }
+        }
+        if ($__safeRedirect) {
+            $__dest = $__toPath . ($__toQuery !== '' ? '?' . $__toQuery : '');
         }
         if (($segments[2] ?? '') === 'p' && !empty($segments[3])) {
             $__dest = '/producto/' . rawurlencode(rawurldecode((string)$segments[3]));
@@ -111,7 +169,7 @@ if (in_array((string)($segments[0] ?? ''), ['partners', 'gana-por-compartir-y-ve
 
 // SONIKA Partners — tutorial público paso a paso (/artistas/tutorial)
 if (($segments[0] ?? '') === 'artistas' && ($segments[1] ?? '') === 'tutorial') {
-    sonika_site_head('Tutorial para crear tu cuenta de Artista SONIKA', 'Guía paso a paso para registrarte en SONIKA Partners, verificar tu correo, firmar tu contrato y activar tu página.', 'https://sonika.com.co/artistas/tutorial');
+    sonika_site_head('Tutorial para crear tu cuenta de SONIKA Partners', 'Guía paso a paso para registrarte en SONIKA Partners, verificar tu correo, firmar tu contrato y activar tu página.', 'https://sonika.com.co/artistas/tutorial');
     require __DIR__ . '/tutorial-artista.php';
     sonika_site_footer();
     return true;
@@ -119,7 +177,7 @@ if (($segments[0] ?? '') === 'artistas' && ($segments[1] ?? '') === 'tutorial') 
 
 // SONIKA Partners — página oficial del programa (/artistas)
 if (($segments[0] ?? '') === 'artistas' && count($segments) === 1) {
-    sonika_site_head('Artistas SONIKA | Programa comercial para músicos', 'Únete a SONIKA Partners: catálogo personal, link propio, página de artista, comisiones y presencia en el Directorio Sonika.', 'https://sonika.com.co/artistas');
+    sonika_site_head('SONIKA Partners | Programa comercial para músicos', 'Únete a SONIKA Partners: catálogo personal, link propio, página de artista, comisiones y presencia en el Directorio Sonika.', 'https://sonika.com.co/artistas');
     require __DIR__ . '/artistas.php';
     sonika_site_footer();
     return true;
@@ -137,7 +195,8 @@ if (($segments[0] ?? '') === 'artista' && ($segments[1] ?? '') === 'solicitud') 
 
 // Recuperar contraseña (OTP)
 if (($segments[0] ?? '') === 'recuperar' && count($segments) === 1) {
-    sonika_site_head('Recuperar contraseña — SONIKA Artist', 'Recupera tu acceso con un código OTP.');
+    header('X-Robots-Tag: noindex, nofollow');
+    sonika_site_head('Recuperar contraseña — SONIKA Partners', 'Recupera tu acceso con un código OTP.');
     echo '<style>.ffl{max-width:460px;margin:0 auto;padding:48px 22px 80px;font-family:Sora,system-ui}.ffl h1{font-size:24px;color:#101d3a;margin:0 0 4px}.ffl p{color:#51607a;font-size:14px;margin:0 0 20px}.ffl form{background:#fff;border:1px solid #e9efec;border-radius:16px;padding:20px;display:grid;gap:12px;box-shadow:0 10px 28px rgba(16,24,40,.06)}.ffl input{padding:11px 12px;border:1px solid #dbe7e1;border-radius:11px;font:inherit;font-size:14px}.ffl button{padding:12px;border:0;border-radius:11px;background:#0d9f72;color:#fff;font-weight:800;font-size:14px;cursor:pointer}.ffl .out{font-size:13px;min-height:16px;margin-top:8px;font-weight:600}</style>';
     echo '<section class="ffl"><h1>Recuperar contraseña</h1><p>Te enviaremos un código a tu correo para confirmar que eres tú.</p><form id="ff-rec"><input name="email" type="email" placeholder="Correo" required autocomplete="username"><button type="submit">Enviar código</button><div class="out" id="ff-rec-out"></div></form><form id="ff-rec2" style="display:none;margin-top:12px"><p style="margin:0 0 8px;font-size:13px;color:#51607a">Ingresa el código y tu nueva contraseña.</p><input name="code" inputmode="numeric" placeholder="Código OTP" required><input name="password" type="password" minlength="8" placeholder="Nueva contraseña (mín. 8)" required autocomplete="new-password"><button type="submit">Cambiar contraseña</button><div class="out" id="ff-rec2-out"></div></form><p style="margin-top:14px;font-size:12.5px"><a href="/mi-antro" style="color:#0d7a58;font-weight:700">← Volver a iniciar sesión</a></p></section>';
     echo '<script>(function(){var f=document.getElementById("ff-rec"),f2=document.getElementById("ff-rec2"),o=document.getElementById("ff-rec-out"),o2=document.getElementById("ff-rec2-out");var em="";f.addEventListener("submit",function(e){e.preventDefault();em=f.email.value.trim();o.style.color="#51607a";o.textContent="Enviando…";fetch("/api/v1/public/affiliates/recover",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:em})}).then(function(r){return r.json();}).then(function(j){if(j.ok){f.style.display="none";f2.style.display="grid";o.textContent="";}else{o.style.color="#d64545";o.textContent=j.message||"Error";}}).catch(function(){o.style.color="#d64545";o.textContent="Error de conexión.";});});f2.addEventListener("submit",function(e){e.preventDefault();var d={email:em,code:f2.code.value.trim(),password:f2.password.value};o2.style.color="#51607a";o2.textContent="Cambiando…";fetch("/api/v1/public/affiliates/recover/confirm",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(d)}).then(function(r){return r.json();}).then(function(j){if(j.ok){o2.style.color="#0d7a58";o2.textContent=j.message||"Contraseña actualizada.";setTimeout(function(){location.href="/mi-antro";},1200);}else{o2.style.color="#d64545";o2.textContent=j.message||"Error";}}).catch(function(){o2.style.color="#d64545";o2.textContent="Error de conexión.";});});})();</script>';
@@ -147,15 +206,18 @@ if (($segments[0] ?? '') === 'recuperar' && count($segments) === 1) {
 
 // Mi cuenta Partner SONIKA — login del artista (acceso privado al panel)
 if (($segments[0] ?? '') === 'mi-antro' && count($segments) === 1) {
+    header('X-Robots-Tag: noindex, nofollow');
+    header('Cache-Control: private, no-store, max-age=0');
     \App\Core\Session::start();
+    if (function_exists('sonika_partner_auto_login')) sonika_partner_auto_login();
     if (!empty($_SESSION['ff_affiliate_id'])) {
         $__p0 = (new \App\Services\AffiliateService())->getById((int)$_SESSION['ff_affiliate_id']);
         if ($__p0) { header('Location: /artista/' . $__p0['slug'] . '/panel'); exit; }
     }
     sonika_site_head('Iniciar sesión Partner SONIKA | SONIKA Partners', 'Acceso al panel de SONIKA Partners: comparte, vende y gana comisiones.');
-    echo '<style>.ffl{max-width:460px;margin:0 auto;padding:48px 22px 80px;font-family:Sora,system-ui}.ffl h1{font-size:24px;color:#101d3a;margin:0 0 4px}.ffl p{color:#51607a;font-size:14px;margin:0 0 20px}.ffl form{background:#fff;border:1px solid #e9efec;border-radius:16px;padding:20px;display:grid;gap:12px;box-shadow:0 10px 28px rgba(16,24,40,.06)}.ffl input{padding:11px 12px;border:1px solid #dbe7e1;border-radius:11px;font:inherit;font-size:14px}.ffl button{padding:12px;border:0;border-radius:11px;background:#0d9f72;color:#fff;font-weight:800;font-size:14px;cursor:pointer}.ffl .out{font-size:13px;min-height:16px;margin-top:8px;font-weight:600}</style>';
-    echo '<section class="ffl"><h1>Iniciar sesión Partner SONIKA</h1><p>Acceso a tu panel de SONIKA Partners. Entra a tu catálogo, enlaces y comisiones.</p><form id="ff-login"><input name="email" type="email" placeholder="Correo" required autocomplete="username"><input name="password" type="password" placeholder="Contraseña" required autocomplete="current-password"><button type="submit">Entrar</button><div class="out" id="ff-login-out"></div></form><form id="ff-otp" style="display:none;margin-top:12px"><p style="margin:0 0 8px;font-size:13px;color:#51607a">Ingresa el código de 6 dígitos enviado a tu correo.</p><input name="code" inputmode="numeric" placeholder="Código OTP" required><button type="submit">Verificar y entrar</button> <button type="button" id="ff-otp-resend" style="background:#fff;color:#0d7a58;border:1px solid #cfe3db;margin-top:6px">Reenviar código</button><div class="out" id="ff-otp-out"></div></form><p style="margin-top:14px;font-size:12.5px"><a href="/sonika-partners#registro" style="color:#0d7a58;font-weight:700">Crear cuenta de Partner SONIKA</a> · <a href="/recuperar" style="color:#64748b">¿Olvidaste tu contraseña?</a></p></section>';
-    echo '<script>(function(){var f=document.getElementById("ff-login"),otp=document.getElementById("ff-otp"),o=document.getElementById("ff-login-out"),oe=document.getElementById("ff-otp-out");var em="";f.addEventListener("submit",function(e){e.preventDefault();var d={};new FormData(f).forEach(function(v,k){d[k]=v;});em=d.email;o.style.color="#51607a";o.textContent="Verificando…";fetch("/api/v1/public/affiliates/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(d)}).then(function(r){return r.json();}).then(function(j){if(j.ok){f.style.display="none";otp.style.display="grid";o.textContent="";oe.style.color=j.sent===false?"#b45309":"#51607a";oe.textContent=j.sent===false?"No pudimos enviar el código. Pulsa Reenviar código.":"Código enviado. Revisa tu correo y la carpeta de spam.";}else{o.style.color="#d64545";o.textContent=j.message||"Error";}}).catch(function(){o.style.color="#d64545";o.textContent="Error de conexión.";});});otp.addEventListener("submit",function(e){e.preventDefault();var d={};new FormData(otp).forEach(function(v,k){d[k]=v;});d.email=em;oe.style.color="#51607a";oe.textContent="Verificando…";fetch("/api/v1/public/affiliates/login/verify",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(d)}).then(function(r){return r.json();}).then(function(j){if(j.ok){var next=new URLSearchParams(location.search).get("next");location.href=(next==="contrato")?"/artista/contrato":("/artista/"+j.slug+"/panel");}else{oe.style.color="#d64545";oe.textContent=j.message||"Código incorrecto.";}}).catch(function(){oe.style.color="#d64545";oe.textContent="Error de conexión.";});});var rs=document.getElementById("ff-otp-resend");if(rs)rs.addEventListener("click",function(){if(!em)return;rs.disabled=true;rs.textContent="Enviando…";fetch("/api/v1/public/affiliates/otp/send",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:em})}).then(function(r){return r.json();}).then(function(k){rs.disabled=false;rs.textContent="Reenviar código";oe.style.color=k.ok?"#0d7a58":"#d64545";oe.textContent=k.ok?"Código reenviado. Revisa tu correo y spam.":(k.message||"No se pudo reenviar.");}).catch(function(){rs.disabled=false;rs.textContent="Reenviar código";oe.style.color="#d64545";oe.textContent="Error de conexión.";});});})();</script>';
+    echo '<style>.ffl{max-width:460px;margin:0 auto;padding:48px 22px 80px;font-family:Sora,system-ui}.ffl h1{font-size:24px;color:#101d3a;margin:0 0 4px}.ffl p{color:#51607a;font-size:14px;margin:0 0 20px}.ffl form{background:#fff;border:1px solid #e9efec;border-radius:16px;padding:20px;display:grid;gap:12px;box-shadow:0 10px 28px rgba(16,24,40,.06)}.ffl input{padding:11px 12px;border:1px solid #dbe7e1;border-radius:11px;font:inherit;font-size:14px}.ffl button{padding:12px;border:0;border-radius:11px;background:#0d9f72;color:#fff;font-weight:800;font-size:14px;cursor:pointer}.ffl .out{font-size:13px;min-height:16px;margin-top:8px;font-weight:600}.ffl .remember{display:flex;align-items:flex-start;gap:8px;font-size:12.5px;color:#51607a;line-height:1.45}.ffl .remember input{width:16px;height:16px;margin-top:2px;flex:none}.ffl .note{font-size:11.5px;color:#94a3b8;margin:0;line-height:1.5}</style>';
+    echo '<section class="ffl"><h1>Iniciar sesión Partner SONIKA</h1><p>Acceso a tu panel de SONIKA Partners. Entra a tu catálogo, enlaces y comisiones.</p><form id="ff-login"><input name="email" type="email" placeholder="Correo" required autocomplete="username"><input name="password" type="password" placeholder="Contraseña" required autocomplete="current-password"><label class="remember"><input type="checkbox" name="remember" value="1" checked> <span><b>Mantener mi sesión iniciada</b> en este dispositivo por 30 días. Tu sesión normal dura 8 horas y se renueva mientras usas el panel.</span></label><button type="submit">Entrar</button><div class="out" id="ff-login-out"></div></form><form id="ff-otp" style="display:none;margin-top:12px"><p style="margin:0 0 8px;font-size:13px;color:#51607a">Ingresa el código de 6 dígitos enviado a tu correo.</p><input name="code" inputmode="numeric" placeholder="Código OTP" required><button type="submit">Verificar y entrar</button> <button type="button" id="ff-otp-resend" style="background:#fff;color:#0d7a58;border:1px solid #cfe3db;margin-top:6px">Reenviar código</button><div class="out" id="ff-otp-out"></div></form><p class="note">Si no marcas “Mantener mi sesión iniciada”, deberás volver a entrar después de 8 horas sin actividad.</p><p style="margin-top:14px;font-size:12.5px"><a href="/sonika-partners#registro" style="color:#0d7a58;font-weight:700">Crear cuenta de Partner SONIKA</a> · <a href="/recuperar" style="color:#64748b">¿Olvidaste tu contraseña?</a></p></section>';
+    echo '<script>(function(){var f=document.getElementById("ff-login"),otp=document.getElementById("ff-otp"),o=document.getElementById("ff-login-out"),oe=document.getElementById("ff-otp-out");var em="",remember=false;f.addEventListener("submit",function(e){e.preventDefault();var d={};new FormData(f).forEach(function(v,k){d[k]=v;});em=d.email;remember=!!d.remember;o.style.color="#51607a";o.textContent="Verificando…";fetch("/api/v1/public/affiliates/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(d)}).then(function(r){return r.json();}).then(function(j){if(j.ok){f.style.display="none";otp.style.display="grid";o.textContent="";oe.style.color=j.sent===false?"#b45309":"#51607a";oe.textContent=j.sent===false?"No pudimos enviar el código. Pulsa Reenviar código.":"Código enviado. Revisa tu correo y la carpeta de spam.";}else{o.style.color="#d64545";o.textContent=j.message||"Error";}}).catch(function(){o.style.color="#d64545";o.textContent="Error de conexión.";});});otp.addEventListener("submit",function(e){e.preventDefault();var d={};new FormData(otp).forEach(function(v,k){d[k]=v;});d.email=em;d.remember=remember?1:0;oe.style.color="#51607a";oe.textContent="Verificando…";fetch("/api/v1/public/affiliates/login/verify",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(d)}).then(function(r){return r.json();}).then(function(j){if(j.ok){var next=new URLSearchParams(location.search).get("next");location.href=(next==="contrato")?"/artista/contrato":("/artista/"+j.slug+"/panel");}else{oe.style.color="#d64545";oe.textContent=j.message||"Código incorrecto.";}}).catch(function(){oe.style.color="#d64545";oe.textContent="Error de conexión.";});});var rs=document.getElementById("ff-otp-resend");if(rs)rs.addEventListener("click",function(){if(!em)return;rs.disabled=true;rs.textContent="Enviando…";fetch("/api/v1/public/affiliates/otp/send",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:em})}).then(function(r){return r.json();}).then(function(k){rs.disabled=false;rs.textContent="Reenviar código";oe.style.color=k.ok?"#0d7a58":"#d64545";oe.textContent=k.ok?"Código reenviado. Revisa tu correo y spam.":(k.message||"No se pudo reenviar.");}).catch(function(){rs.disabled=false;rs.textContent="Reenviar código";oe.style.color="#d64545";oe.textContent="Error de conexión.";});});})();</script>';
     sonika_site_footer();
     return true;
 }
@@ -165,20 +227,77 @@ if (($segments[0] ?? '') === 'artista' && ($segments[2] ?? '') === 'panel' && !e
     $__svcP = new \App\Services\AffiliateService();
     $__affPP = $__svcP->getBySlugAny((string)$segments[1]);
     if ($__affPP) {
+        header('X-Robots-Tag: noindex, nofollow');
+        header('Cache-Control: private, no-store, max-age=0');
         \App\Core\Session::start();
+        if (function_exists('sonika_partner_auto_login')) sonika_partner_auto_login();
         if (empty($_SESSION['ff_affiliate_id'])) { header('Location: /mi-antro'); exit; }
         if ((int)$_SESSION['ff_affiliate_id'] !== (int)$__affPP['id']) { http_response_code(403); echo 'Acceso denegado.'; exit; }
+        if (empty($_SESSION['ff_started_at'])) {
+            $_SESSION['ff_started_at'] = time();
+            \App\Core\Session::touch();
+        } elseif (time() - (int)$_SESSION['ff_started_at'] > 300) {
+            $_SESSION['ff_started_at'] = time();
+            \App\Core\Session::touch();
+        }
         $__nameP = trim(($__affPP['artist_name'] ?: ($__affPP['public_name'] ?: $__affPP['full_name'])));
+        $__catP = (string)($__affPP['profile_category'] ?? 'natural');
+        $__profileLabelP = \App\Services\AffiliateService::PROFILE_CATEGORIES[$__catP] ?? 'Persona natural';
+        $__canBeHiredP = $__catP === 'artist';
         $__isDemo = (string)($__affPP['slug'] ?? '') === 'demo-artist';
         $__d = $__svcP->dashboard((int)$__affPP['id']);
         $__pointsP = $__svcP->pointsForMonth((int)$__affPP['id']);
-        $__storePathP = $__svcP->storePath($__affPP);
+        $__codeP = $__svcP->ensureLink((int)$__affPP['id']);
+        $__profileVisibleP = $__svcP->publicProfileVisible($__affPP);
+        $__globalProfilesP = $__svcP->publicProfilesEnabled();
+        $__approvedP = (string)($__affPP['status'] ?? '') === 'APPROVED';
+        if ($__profileVisibleP) {
+            $__storePathP = $__svcP->storePath($__affPP);
+            $__storeLabelP = $__canBeHiredP ? 'Ver mi página ↗' : 'Ver mi tienda ↗';
+        } elseif ($__approvedP && $__codeP !== '') {
+            $__storePathP = '/r/' . rawurlencode($__codeP);
+            $__storeLabelP = 'Ver mi catálogo ↗';
+        } else {
+            $__storePathP = '/artista/' . rawurlencode((string)($__affPP['slug'] ?? '')) . '?preview=1';
+            $__storeLabelP = $__canBeHiredP ? 'Vista previa de mi página ↗' : 'Vista previa de mi tienda ↗';
+        }
         $__nextPointsP = null;
         foreach (\App\Services\AffiliateService::POINT_TIERS as $__pt) { if ((float)$__pointsP['points'] < (float)$__pt[0]) { $__nextPointsP = (int)$__pt[0]; break; } }
         $__states = ['ESTIMATED' => 'Comisión estimada', 'PENDING_VALIDATION' => 'Pendiente de validación', 'APPROVED' => 'Aprobada', 'PAYMENT_QUEUED' => 'Programada para pago', 'PAID' => 'Pagada', 'REJECTED' => 'Rechazada', 'REVERSED' => 'Reversada', 'ON_HOLD' => 'En espera'];
-        $__codeP = $__svcP->ensureLink((int)$__affPP['id']);
-        $__affUrlP = (((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? 'sonika.com.co')) . '/r/' . $__codeP;
+        $__originP = sonika_origin();
+        $__affUrlP = $__originP . '/r/' . rawurlencode($__codeP);
+        if (function_exists('sonika_set_aff_ref')) sonika_set_aff_ref($__codeP);
+        if ((string)($_GET['export'] ?? '') === 'csv') {
+            $__csvHandles = $__svcP->storeProducts((int)$__affPP['id']);
+            header('Content-Type: text/csv; charset=UTF-8');
+            header('Content-Disposition: attachment; filename="mi-tienda-sonika.csv"');
+            echo "\xEF\xBB\xBF";
+            $__out = fopen('php://output', 'w');
+            fputcsv($__out, ['Producto', 'SKU', 'Precio COP', 'Stock', 'Enlace con atribución']);
+            foreach ($__csvHandles as $__h) {
+                $__p = sonika_find((string)$__h);
+                if (!$__p) continue;
+                $__v = sonika_variant($__p);
+                $__link = $__originP . '/r/' . rawurlencode($__codeP) . '/p/' . rawurlencode((string)$__h);
+                fputcsv($__out, [
+                    (string)($__p['title'] ?? $__h),
+                    (string)($__v['sku'] ?? ''),
+                    number_format((float)($__v['price'] ?? 0), 0, ',', '.'),
+                    !empty($__v['available']) ? 'Disponible' : 'Agotado',
+                    $__link,
+                ]);
+            }
+            fclose($__out);
+            exit;
+        }
         $__money = function ($c) { return '$ ' . number_format((float)$c, 0, ',', '.'); };
+        $__contractSvcP = new \App\Services\ArtistContractService();
+        $__contractP = $__contractSvcP->current();
+        $__contractSignedP = false;
+        if ($__contractP) {
+            $__accP = $__contractSvcP->latestAcceptance((int)$__affPP['id'], (int)$__contractP['id']);
+            $__contractSignedP = !empty($__accP['signed_at']);
+        }
         sonika_site_head('Mi cuenta Partner SONIKA — ' . $__nameP, 'Panel del Partner — SONIKA Partners');
         echo '<style>.ahp{max-width:1120px;margin:0 auto;padding:28px 22px 56px;font-family:Sora,system-ui,sans-serif;color:#17212b}.ahp-h{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:22px}.ahp-h h1{font-size:26px;margin:0}.ahp-hello{font-size:13px;color:#64748b;font-weight:700;margin:0 0 3px}.ahp-h .badge{background:#e5f5ef;color:#0d7a58;border-radius:999px;padding:5px 12px;font-size:12px;font-weight:800}.ahp-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:26px}.ahp-c{background:#fff;border:1px solid #e9efec;border-radius:16px;padding:16px;box-shadow:0 8px 22px rgba(16,24,40,.05)}.ahp-c small{display:block;color:#64748b;font-size:12px;font-weight:600;margin-bottom:6px}.ahp-c b{font-size:22px;color:#101d3a}.ahp-sec h2{font-size:17px;margin:22px 0 10px}.ahp table{width:100%;border-collapse:collapse;font-size:13.5px;background:#fff;border:1px solid #eef2f0;border-radius:12px;overflow:hidden}.ahp th,.ahp td{padding:10px 12px;text-align:left;border-bottom:1px solid #f1f5f3}.ahp th{background:#f6fbf9;font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:.04em}.ahp td.n{text-align:right;font-weight:700}.ahp .st{display:inline-block;border-radius:999px;padding:2px 9px;font-size:11px;font-weight:800;background:#eef4fb;color:#155eeb}.ahp .st.PAID{background:#e5f5ef;color:#0d7a58}.ahp .st.REVERSED,.ahp .st.REJECTED{background:#fdecec;color:#b42318}.ahp .note{font-size:12px;color:#94a3b8;margin-top:12px}.ahp .link{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:#101d3a;color:#fff;border-radius:14px;padding:14px 16px;margin-top:22px;font-size:13px}.ahp .link code{background:rgba(255,255,255,.12);padding:6px 10px;border-radius:8px;word-break:break-all}.ahp-tabs{display:flex;gap:8px;overflow-x:auto;margin:4px 0 18px;padding-bottom:4px;scrollbar-width:none}.ahp-tabs::-webkit-scrollbar{display:none}.ahp-tab{flex:1;min-width:112px;padding:11px 14px;border:1px solid #e6eeea;background:#fff;border-radius:12px;font:inherit;font-weight:800;font-size:13.5px;color:#334155;cursor:pointer;white-space:nowrap}.ahp-tab.on{background:#101d3a;color:#fff;border-color:#101d3a}@media(max-width:800px){.ahp-cards{grid-template-columns:repeat(2,1fr)}}@media(max-width:480px){.ahp-cards{grid-template-columns:1fr}}</style>';
         $__lg0 = is_array($__d['league'] ?? null) ? $__d['league'] : [];
@@ -186,9 +305,26 @@ if (($segments[0] ?? '') === 'artista' && ($segments[2] ?? '') === 'panel' && !e
         $__rangoIcon = $__lgIcons[$__lg0['code'] ?? ''] ?? '♫';
         echo '<style>@media(max-width:720px){.ahp{padding:18px 14px 44px}.ahp-h h1{font-size:22px}.ahp-cards{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px}.ahp-c{padding:12px}.ahp-tabs{position:sticky;top:0;z-index:6;background:rgba(255,255,255,.94);backdrop-filter:blur(10px);padding:6px 0;margin:0 0 14px;scroll-snap-type:x proximity}.ahp-tab{min-width:106px;scroll-snap-align:start;min-height:44px}.ahp input,.ahp textarea,.ahp select{font-size:16px!important}.ahp table{display:block;overflow-x:auto;white-space:nowrap;border-radius:12px}.ahp-ms-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}.ahp-pub{grid-template-columns:1fr!important}}@media(max-width:420px){.ahp-ms-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}}.ahp button,.ahp a{-webkit-tap-highlight-color:transparent}</style>';
         echo '<style>@media(max-width:760px){.ahp-tr .rte__bar button{min-width:44px!important;height:44px!important;font-size:13px!important}.ahp-tr .tag button{min-width:32px;min-height:32px}}</style>';
-        echo '<section class="ahp"><div class="ahp-hello">Hola, ' . sonika_esc($__nameP) . '</div><div class="ahp-h"><h1>Mi cuenta Partner SONIKA</h1>' . ($__isDemo ? '<span class="badge" style="background:#fff3cd;color:#8a6d00">Datos de ejemplo</span>' : '') . '<span class="badge" style="background:#101d3a;color:#fff">Tu rango: ' . $__rangoIcon . ' ' . sonika_esc((string)($__lg0['level'] ?? '—')) . '</span>' . ((string)$__affPP['status'] === 'APPROVED' ? '<a href="' . sonika_esc($__storePathP) . '" style="margin-left:auto;font-size:12.5px;color:#64748b;text-decoration:none">' . ((string)($__affPP['profile_category'] ?? '') === 'artist' ? 'Ver mi página ↗' : 'Ir a la tienda ↗') . '</a>' : '<span style="margin-left:auto;font-size:12.5px;color:#b45309;font-weight:700">Perfil en revisión</span>') . '<a href="/artista/contrato" style="margin-left:8px;font-size:12.5px;color:#0d7a58;font-weight:800;text-decoration:none">Contrato</a><button type="button" class="ahp-guide__btn" data-wiz-open>Guía</button></div>';
+        echo '<section class="ahp"><div class="ahp-hello">Hola, ' . sonika_esc($__nameP) . '</div><div class="ahp-h"><h1>Mi cuenta Partner SONIKA</h1>' . ($__isDemo ? '<span class="badge" style="background:#fff3cd;color:#8a6d00">Datos de ejemplo</span>' : '') . '<span class="badge" style="background:#101d3a;color:#fff">Tu rango: ' . $__rangoIcon . ' ' . sonika_esc((string)($__lg0['level'] ?? '—')) . '</span>' . '<a href="' . sonika_esc($__storePathP) . '" style="margin-left:auto;font-size:12.5px;color:' . ($__approvedP ? '#64748b' : '#b45309') . ';font-weight:800;text-decoration:none">' . $__storeLabelP . '</a>' . '<a href="/artista/contrato" style="margin-left:8px;font-size:12.5px;color:' . ($__contractSignedP ? '#0d7a58' : '#b45309') . ';font-weight:800;text-decoration:none">' . ($__contractSignedP ? 'Contrato firmado ✓' : 'Firmar contrato') . '</a><button type="button" class="ahp-guide__btn" data-wiz-open>Guía</button></div>';
+        echo '<style>.ahp-quick{display:flex;gap:6px;flex-wrap:wrap;align-items:center;max-width:1120px;margin:0 auto 12px;padding:0 2px}.ahp-quick__label{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#94a3b8;margin-right:4px}.ahp-quick__btn{border:1px solid #e6eeea;background:#fff;border-radius:999px;padding:7px 12px;font:800 11.5px Sora,system-ui,sans-serif;color:#334155;cursor:pointer}.ahp-quick__btn:hover{border-color:#F20D16;color:#F20D16}.ahp-quick__btn.is-active{background:#101d3a;border-color:#101d3a;color:#fff}</style>'
+            . '<div class="ahp-quick" aria-label="Accesos rápidos del panel"><span class="ahp-quick__label">Herramientas:</span>'
+            . '<button type="button" class="ahp-quick__btn" data-quick="ventas">Ventas</button>'
+            . '<button type="button" class="ahp-quick__btn" data-quick="ganancias">Ganancias</button>'
+            . '<button type="button" class="ahp-quick__btn" data-quick="tienda">Mi Tienda</button>'
+            . '<button type="button" class="ahp-quick__btn" data-quick="comunidad">Comunidad</button>'
+            . '<button type="button" class="ahp-quick__btn" data-quick="perfil">Mi Perfil</button></div>'
+            . '<script>(function(){document.querySelectorAll(".ahp-quick__btn").forEach(function(b){b.addEventListener("click",function(){var t=b.getAttribute("data-quick");var tab=document.querySelector(".ahp-tab[data-tab="+JSON.stringify(t)+"]");if(tab)tab.click();document.querySelectorAll(".ahp-quick__btn").forEach(function(x){x.classList.toggle("is-active",x===b);});});});})();</script>';
+        if (!$__contractSignedP) {
+            echo '<div role="alert" style="max-width:1120px;margin:0 auto 14px;background:linear-gradient(135deg,#fff7ed,#fffbeb);border:1px solid #f5c26b;border-left:4px solid #F20D16;border-radius:14px;padding:14px 16px;display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap;color:#7c2d12;font-size:13px;line-height:1.55"><div style="font-size:22px;line-height:1">✍</div><div style="flex:1;min-width:230px"><b style="display:block;font-size:14px;color:#9a3412">Falta firmar tu contrato</b><span>Para activar tu participación, tus comisiones y todas las herramientas del panel, firma el contrato. Es el mismo para todos los perfiles; se registrará tu perfil: <b>' . sonika_esc($__profileLabelP) . '</b>.</span></div><a href="/artista/contrato" style="display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:0 14px;border-radius:10px;background:#F20D16;color:#fff;font-weight:850;font-size:12.5px;text-decoration:none">Firmar contrato ahora →</a></div>';
+        }
         if ((string)($__affPP['status'] ?? '') !== 'APPROVED') {
-            echo '<div style="max-width:1120px;margin:0 auto 14px;background:#fffbeb;border:1px solid #fde68a;color:#92400e;border-radius:12px;padding:12px 14px;font-size:13px;line-height:1.55"><b>Tu perfil está en revisión.</b> Ya puedes entrar a Mi cuenta Partner SONIKA, completar tu perfil y firmar tu contrato. Tu página pública y tu enlace se activarán cuando el equipo apruebe tu solicitud.</div>';
+            echo '<div style="max-width:1120px;margin:0 auto 14px;background:#fffbeb;border:1px solid #fde68a;color:#92400e;border-radius:12px;padding:12px 14px;font-size:13px;line-height:1.55"><b>Tu perfil está en revisión.</b> Ya puedes usar <b>Ventas, Ganancias, Mi Tienda, tu link de partner y Mi Perfil</b>. La página pública se activará cuando el equipo apruebe tu solicitud y SONIKA habilite los perfiles personalizados.</div>';
+        }
+        if ($__approvedP && !$__profileVisibleP) {
+            $__visWhyP = $__globalProfilesP
+                ? 'Elegiste mantener tu perfil oculto.'
+                : 'SONIKA mantiene los perfiles personalizados desactivados.';
+            echo '<div role="status" style="max-width:1120px;margin:0 auto 14px;background:linear-gradient(135deg,#f8fafc,#eef4ff);border:1px solid #dbe4ff;border-left:4px solid #287bff;border-radius:14px;padding:13px 16px;display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap;color:#334155;font-size:13px;line-height:1.55"><div style="font-size:20px;line-height:1">🛍️</div><div style="flex:1;min-width:230px"><b style="display:block;font-size:13.5px;color:#101d3a">Modo catálogo activo</b><span>' . sonika_esc($__visWhyP) . ' Tus clientes ven el sitio y el catálogo original de SONIKA, con tu link de atribución. No se muestran fotos, videos ni trayectoria en una página personalizada.</span></div><a href="' . sonika_esc($__storePathP) . '" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;justify-content:center;min-height:38px;padding:0 13px;border-radius:10px;background:#287bff;color:#fff;font-weight:850;font-size:12px;text-decoration:none">Ver mi catálogo →</a></div>';
         }
         // ── Guía de primeros pasos (wizard) ─────────────────────────────
         $__wizStatus = (string)($__affPP['status'] ?? '');
@@ -216,12 +352,24 @@ if (($segments[0] ?? '') === 'artista' && ($segments[2] ?? '') === 'panel' && !e
             }
         } catch (\Throwable $e) {}
         $__wizShareDone = $__svcP->hasWizardStep((int)$__affPP['id'], 'share') || (int)($__d['clicks'] ?? 0) > 0;
+        $__wizHireWhy = $__canBeHiredP
+            ? 'Así podemos avisarte cuando alguien quiera contratarte o cuando tengas una comisión lista.'
+            : 'Así podemos avisarte cuando tengas una comisión lista o novedades del programa.';
+        $__wizProfileDesc = $__canBeHiredP
+            ? 'Escribe una descripción breve de quién eres y qué música haces.'
+            : 'Escribe una descripción breve de quién eres y qué ofreces.';
+        $__wizProfileWhy = $__canBeHiredP
+            ? 'Es lo primero que leen los fans y las personas que quieren contratarte.'
+            : 'Es lo primero que ven quienes visitan tu tienda y usan tu link de partner.';
+        $__wizProfileTip = $__canBeHiredP
+            ? 'Ejemplo: “Guitarrista de rock. Recomiendo guitarras eléctricas y pedales para sonar con todo.”'
+            : 'Ejemplo: “Tienda de instrumentos y accesorios para músicos.” o “Fan de la música que comparte lo que le gusta.”';
         $__wizardSteps = [
             [
                 'key' => 'email',
                 'title' => 'Verifica tu correo',
                 'desc' => 'Confirma que tu correo es tuyo. Es la llave para entrar y recibir avisos.',
-                'why' => 'Así podemos avisarte cuando alguien quiera contratarte o cuando tengas una comisión lista.',
+                'why' => $__wizHireWhy,
                 'tip' => 'Revisa también la carpeta de spam. Si no llega, pide un código nuevo desde el inicio de sesión.',
                 'done' => !in_array($__wizStatus, ['EMAIL_PENDING', 'DRAFT'], true),
                 'action' => '',
@@ -238,9 +386,9 @@ if (($segments[0] ?? '') === 'artista' && ($segments[2] ?? '') === 'panel' && !e
             [
                 'key' => 'profile',
                 'title' => 'Completa tu presentación',
-                'desc' => 'Escribe una descripción breve de quién eres y qué música haces.',
-                'why' => 'Es lo primero que leen los fans y las personas que quieren contratarte.',
-                'tip' => 'Ejemplo: “Guitarrista de rock. Recomiendo guitarras eléctricas y pedales para sonar con todo.”',
+                'desc' => $__wizProfileDesc,
+                'why' => $__wizProfileWhy,
+                'tip' => $__wizProfileTip,
                 'done' => $__wizBio !== '',
                 'action' => 'perfil:#ahp-bio',
             ],
@@ -365,7 +513,51 @@ if (($segments[0] ?? '') === 'artista' && ($segments[2] ?? '') === 'panel' && !e
         $__bioCur = '';
         try { $__stB = \App\Core\Database::instance()->prepare('SELECT bio FROM affiliate_stores WHERE affiliate_id = :a AND site_id = @site_id LIMIT 1'); $__stB->execute(['a' => (int)$__affPP['id']]); $__bioCur = (string)($__stB->fetchColumn() ?: ''); } catch (\Throwable $e) {}
         $__pubHtml = <<<'HTML'
-<div class="ahp-sec" data-tab="perfil"><style>
+<div class="ahp-sec" data-tab="perfil">
+<div class="ahp-vis" id="ahp-vis">
+<style>
+.ahp-vis{max-width:960px;margin:0 0 16px;background:linear-gradient(135deg,#fff,#f7fbff);border:1px solid #dbe7f5;border-radius:16px;padding:16px 18px;box-shadow:0 8px 22px rgba(16,24,40,.05)}
+.ahp-vis__top{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}
+.ahp-vis h3{margin:0;font-size:15px;color:#101d3a}
+.ahp-vis p{margin:4px 0 0;font-size:12px;color:#64748b;line-height:1.5}
+.ahp-vis__state{font-size:10.5px;font-weight:850;letter-spacing:.06em;text-transform:uppercase;border-radius:999px;padding:5px 10px;border:1px solid;white-space:nowrap}
+.ahp-vis__state.is-on{background:#e5f5ef;color:#0d7a58;border-color:#bfe3d5}
+.ahp-vis__state.is-off{background:#f1f5f9;color:#475569;border-color:#dbe3ec}
+.ahp-vis__switch{display:flex;gap:12px;align-items:center;margin-top:14px;padding:12px;border:1px solid #e6eeea;border-radius:12px;background:#fff;cursor:pointer}
+.ahp-vis__switch input{position:absolute;opacity:0;width:1px;height:1px}
+.ahp-vis__track{width:46px;height:26px;border-radius:999px;background:#cbd5e1;position:relative;flex:none;transition:background .2s}
+.ahp-vis__dot{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(15,23,42,.25);transition:transform .2s}
+.ahp-vis__switch input:checked + .ahp-vis__track{background:#0d9f72}
+.ahp-vis__switch input:checked + .ahp-vis__track .ahp-vis__dot{transform:translateX(20px)}
+.ahp-vis__switch input:focus-visible + .ahp-vis__track{outline:2px solid #287bff;outline-offset:3px}
+.ahp-vis__copy b{display:block;font-size:13px;color:#101d3a}
+.ahp-vis__copy small{display:block;font-size:11.5px;color:#64748b;margin-top:2px;line-height:1.4}
+.ahp-vis__grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.ahp-vis__grid > div{background:#fff;border:1px solid #eef2f0;border-radius:10px;padding:10px 12px}
+.ahp-vis__grid b{display:block;font-size:11.5px;color:#334155}
+.ahp-vis__grid span{display:block;font-size:11px;color:#64748b;line-height:1.45;margin-top:3px}
+.ahp-vis__foot{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px;font-size:11.5px;color:#64748b}
+.ahp-vis__foot code{background:#f1f5f9;border-radius:7px;padding:4px 7px;font-weight:800;color:#0d7a58;word-break:break-all}
+.ahp-vis__foot a,.ahp-vis__foot button{border:1px solid #cfe3db;background:#fff;color:#0d7a58;border-radius:8px;padding:6px 9px;font:800 11px Sora,system-ui,sans-serif;cursor:pointer;text-decoration:none}
+.ahp-vis__msg{font-size:12px;margin-top:9px;min-height:16px;font-weight:700}
+@media(max-width:700px){.ahp-vis__grid{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){.ahp-vis__track,.ahp-vis__dot{transition:none}}
+</style>
+<div class="ahp-vis__top"><div><h3>Visibilidad pública</h3><p>Elige si tu página personalizada se muestra al público. Si está oculta, tus clientes ven el sitio y el catálogo original de SONIKA con tu link de atribución.</p></div><span class="ahp-vis__state {{VIS_STATE_CLASS}}" id="ahp-vis-state">{{VIS_STATE}}</span></div>
+<label class="ahp-vis__switch" for="ahp-vis-toggle">
+<input type="checkbox" id="ahp-vis-toggle" name="public_profile_enabled" value="1" {{VIS_CHECKED}}>
+<span class="ahp-vis__track" aria-hidden="true"><span class="ahp-vis__dot"></span></span>
+<span class="ahp-vis__copy"><b>Mostrar mi perfil público</b><small>{{VIS_HINT}}</small></span>
+</label>
+<div class="ahp-vis__grid">
+<div><b>Si está oculto</b><span>Solo se comparte tu link de atribución. No se publican fotos, videos ni trayectoria. El catálogo y la línea gráfica de SONIKA quedan intactos.</span></div>
+<div><b>Si está visible</b><span>Se publica tu portada, foto, galería, video y trayectoria. Será visible cuando SONIKA active los perfiles personalizados.</span></div>
+</div>
+<div class="ahp-vis__foot"><span>Tu link de atribución:</span><code id="ahp-vis-path">{{VIS_ATTR_PATH}}</code><button type="button" id="ahp-vis-copy" data-abs="{{VIS_ATTR_URL}}">Copiar link</button><a id="ahp-vis-open" href="{{VIS_VIEW}}" target="_blank" rel="noopener">Ver lo que ve el público ↗</a></div>
+<div class="ahp-vis__msg" id="ahp-vis-msg" role="status" aria-live="polite"></div>
+</div>
+<script>(function(){var t=document.getElementById('ahp-vis-toggle'),m=document.getElementById('ahp-vis-msg'),st=document.getElementById('ahp-vis-state'),path=document.getElementById('ahp-vis-path'),copy=document.getElementById('ahp-vis-copy'),view=document.getElementById('ahp-vis-open');if(!t)return;function say(x,ok){if(!m)return;m.style.color=ok?'#0d7a58':'#b45309';m.textContent=x;}t.addEventListener('change',function(){t.disabled=true;say('Guardando…',true);fetch('/api/v1/public/affiliates/visibility',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({public_profile_enabled:t.checked?1:0})}).then(function(r){return r.json();}).then(function(j){t.disabled=false;if(!j.ok){t.checked=!t.checked;say(j.message||'No se pudo guardar.',false);return;}t.checked=!!j.enabled;if(st){st.textContent=j.visible?'Visible':(j.state==='review'?'En revisión':'Oculto');st.className='ahp-vis__state '+(j.visible?'is-on':'is-off');}if(j.code){var p='/r/'+encodeURIComponent(j.code);if(path)path.textContent=p;if(copy)copy.setAttribute('data-abs',location.origin+p);}if(view&&j.public_path)view.href=j.public_path;say(j.message||'Guardado.',true);}).catch(function(){t.disabled=false;say('Error de conexión.',false);});});if(copy)copy.addEventListener('click',function(){var v=copy.getAttribute('data-abs')||(location.origin+(path?path.textContent.trim():''));if(!v)return;function done(){say('Link copiado.',true);}if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(v).then(done).catch(function(){say('No se pudo copiar.',false);});}else{var ta=document.createElement('textarea');ta.value=v;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');done();}catch(e){say('No se pudo copiar.',false);}ta.remove();}});})();</script>
+<style>
 .ahp-pub{display:grid;grid-template-columns:1.15fr .85fr;gap:16px;max-width:960px}
 @media(max-width:820px){.ahp-pub{grid-template-columns:1fr}}
 .ahp-pub-card{background:#fff;border:1px solid #eef2f0;border-radius:16px;padding:16px;box-shadow:0 10px 26px rgba(16,24,40,.05)}
@@ -399,7 +591,7 @@ if (($segments[0] ?? '') === 'artista' && ($segments[2] ?? '') === 'panel' && !e
 </style>
 <form id="ah-media" class="ahp-pub" novalidate>
 <div class="ahp-pub-card">
-<h3>Perfil público</h3><p class="hint">Así te presentas en tu página de artista. Todo se actualiza al instante.</p>
+<h3>Perfil público</h3><p class="hint">Personaliza tu página. Se publicará solo cuando tú y SONIKA tengan la visibilidad activa.</p>
 <div class="namebox"><span style="font-size:18px">👤</span><div><b>{{NAME}}</b><br><small>✓ Nombre tomado de tu registro</small></div></div>
 <label for="ahp-bio">Descripción breve</label>
 <textarea id="ahp-bio" name="bio" maxlength="220" placeholder="Ej: Guitarrista de rock. Recomiendo guitarras eléctricas, pedales y accesorios para sonar con todo.">{{BIO}}</textarea>
@@ -419,11 +611,20 @@ if (($segments[0] ?? '') === 'artista' && ($segments[2] ?? '') === 'panel' && !e
 <button type="submit" class="save">Guardar perfil</button>
 <div class="msg" id="ah-media-msg"></div>
 </div>
-<div class="ahp-pub-card preview"><small>Vista previa · Hero de tu página</small><div class="q" id="ahp-bio-prev">{{BIO_PREV}}</div><div class="meta">{{NAME}} · Artista SONIKA</div><div class="meta" style="margin-top:6px">Los botones de Instagram / YouTube / TikTok aparecen solo si están configurados.</div></div>
+<div class="ahp-pub-card preview"><small>Vista previa · Hero de tu página</small><div class="q" id="ahp-bio-prev">{{BIO_PREV}}</div><div class="meta">{{NAME}} · Partner SONIKA</div><div class="meta" style="margin-top:6px">Los botones de Instagram / YouTube / TikTok aparecen solo si están configurados.</div></div>
 </form>
 <script>(function(){var f=document.getElementById('ah-media');if(!f)return;var t=f.querySelector('textarea[name=bio]'),c=document.getElementById('ahp-bio-count'),p=document.getElementById('ahp-bio-prev'),m=document.getElementById('ah-media-msg'),MAX=220;function upd(){if(!t)return;var v=t.value.trim();if(c){c.textContent=t.value.length+' / '+MAX;c.classList.toggle('warn',t.value.length>MAX-30);}if(p){p.textContent=v||'Aún sin descripción. Escribe una frase que te presente.';p.classList.toggle('empty',!v);}}if(t){t.addEventListener('input',upd);upd();}f.querySelectorAll('#ahp-bio-chips .chip').forEach(function(ch){ch.addEventListener('click',function(){if(!t)return;t.value=ch.getAttribute('data-t')||'';upd();t.focus();});});f.addEventListener('submit',function(e){e.preventDefault();var d={};new FormData(f).forEach(function(v,k){d[k]=v;});m.style.color='#51607a';m.textContent='Guardando…';fetch('/api/v1/public/affiliates/media',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)}).then(function(r){return r.json();}).then(function(j){m.style.color=j.ok?'#0d7a58':'#d64545';m.textContent=(j.ok?'✓ ':'')+(j.message||(j.ok?'Guardado':'Error'));if(j.ok&&t&&t.value.trim()&&window.AHPWiz){window.AHPWiz.markDone('profile');}}).catch(function(){m.style.color='#d64545';m.textContent='Error de conexión.';});});})();</script>
 </div>
 HTML;
+        $__visPref = (int)($__affPP['public_profile_enabled'] ?? 0) === 1;
+        $__visState = !$__approvedP ? 'En revisión' : ($__profileVisibleP ? 'Visible' : 'Oculto');
+        $__visHint = !$__approvedP
+            ? 'Tu perfil está en revisión. Guarda tu preferencia; se aplicará cuando SONIKA lo apruebe.'
+            : (!$__globalProfilesP
+                ? 'Próximamente: SONIKA aún no activa los perfiles personalizados. Puedes dejar tu preferencia marcada.'
+                : ($__visPref ? 'Tu página, fotos, videos y trayectoria son visibles al público.' : 'Tu página personalizada está oculta; solo se comparte tu link de atribución.'));
+        $__visAttrPath = $__codeP !== '' ? '/r/' . rawurlencode($__codeP) : '/tienda';
+        $__visAttrUrl = $__codeP !== '' ? $__affUrlP : ($__originP . '/tienda');
         $__pubHtml = strtr($__pubHtml, [
             '{{NAME}}' => sonika_esc((string)$__nameP),
             '{{BIO}}' => sonika_esc($__bioCur),
@@ -435,6 +636,13 @@ HTML;
             '{{G0}}' => sonika_esc((string)($__galM[0] ?? '')),
             '{{G1}}' => sonika_esc((string)($__galM[1] ?? '')),
             '{{G2}}' => sonika_esc((string)($__galM[2] ?? '')),
+            '{{VIS_CHECKED}}' => $__visPref ? 'checked' : '',
+            '{{VIS_STATE}}' => $__visState,
+            '{{VIS_STATE_CLASS}}' => $__profileVisibleP ? 'is-on' : 'is-off',
+            '{{VIS_HINT}}' => sonika_esc($__visHint),
+            '{{VIS_ATTR_PATH}}' => sonika_esc($__visAttrPath),
+            '{{VIS_ATTR_URL}}' => sonika_esc($__visAttrUrl),
+            '{{VIS_VIEW}}' => sonika_esc($__storePathP),
         ]);
         echo $__pubHtml;
         $__cvE = $__svcP->cvFor((int)$__affPP['id']) ?: [];
@@ -635,7 +843,7 @@ CSS;
             echo '</article>';
         }
         echo '</div>';
-        echo '<div class="ahp-ms-foot"><div id="ahp-ms-summary"></div><a class="ahp-ms-cta" href="/artista/' . sonika_esc((string)$__affPP['slug']) . '" target="_blank" rel="noopener">Ver mi página ↗</a></div>';
+        echo '<div class="ahp-ms-foot"><div id="ahp-ms-summary"></div><a class="ahp-ms-cta" href="' . sonika_esc($__storePathP) . '" target="_blank" rel="noopener">' . ($__profileVisibleP ? 'Ver mi página ↗' : 'Ver mi catálogo ↗') . '</a></div>';
         echo '</div></div>';
         $__msJs = <<<'JS'
 (function(){
@@ -715,18 +923,20 @@ JS;
             echo '</div>';
         }
         echo '</div>';
-        $__creqs = $__svcP->contractRequestsFor((int)$__affPP['id']);
-        echo '<div class="ahp-sec" data-tab="comunidad"><h2>Solicitudes de contratación</h2>';
-        if (!$__creqs) {
-            echo '<div style="background:#fff;border:1px dashed #dbe7e1;border-radius:12px;padding:16px;color:#94a3b8;font-size:13px">Sin solicitudes todavía.</div>';
-        } else {
-            echo '<table><thead><tr><th>De</th><th>Tipo</th><th>Fecha</th><th>Lugar</th><th>Contacto</th><th>Estado</th></tr></thead><tbody>';
-            foreach ($__creqs as $__cr) {
-                echo '<tr><td>' . sonika_esc((string)$__cr['name']) . '</td><td>' . sonika_esc((string)($__cr['event_type'] ?? '—')) . '</td><td>' . sonika_esc((string)($__cr['event_date'] ?? '—')) . '</td><td>' . sonika_esc((string)($__cr['place'] ?? '—')) . '</td><td><a href="mailto:' . sonika_esc((string)$__cr['email']) . '">' . sonika_esc((string)$__cr['email']) . '</a></td><td>' . sonika_esc((string)$__cr['status']) . '</td></tr>';
+        if ($__canBeHiredP) {
+            $__creqs = $__svcP->contractRequestsFor((int)$__affPP['id']);
+            echo '<div class="ahp-sec" data-tab="comunidad"><h2>Solicitudes de contratación</h2>';
+            if (!$__creqs) {
+                echo '<div style="background:#fff;border:1px dashed #dbe7e1;border-radius:12px;padding:16px;color:#94a3b8;font-size:13px">Sin solicitudes todavía.</div>';
+            } else {
+                echo '<table><thead><tr><th>De</th><th>Tipo</th><th>Fecha</th><th>Lugar</th><th>Contacto</th><th>Estado</th></tr></thead><tbody>';
+                foreach ($__creqs as $__cr) {
+                    echo '<tr><td>' . sonika_esc((string)$__cr['name']) . '</td><td>' . sonika_esc((string)($__cr['event_type'] ?? '—')) . '</td><td>' . sonika_esc((string)($__cr['event_date'] ?? '—')) . '</td><td>' . sonika_esc((string)($__cr['place'] ?? '—')) . '</td><td><a href="mailto:' . sonika_esc((string)$__cr['email']) . '">' . sonika_esc((string)$__cr['email']) . '</a></td><td>' . sonika_esc((string)$__cr['status']) . '</td></tr>';
+                }
+                echo '</tbody></table>';
             }
-            echo '</tbody></table>';
+            echo '</div>';
         }
-        echo '</div>';
         $__tips = $__svcP->tipsFor((int)$__affPP['id']);
         $__tipsTotal = $__svcP->tipsTotal((int)$__affPP['id']);
         echo '<div class="ahp-sec" data-tab="comunidad"><h2>Aportes de agradecimiento · ' . sonika_esc('$ ' . number_format($__tipsTotal, 0, ',', '.')) . '</h2>';
@@ -786,8 +996,115 @@ JS;
             echo '<tr><td>' . sonika_esc((string)$__r['order_ref']) . '</td><td class="n">' . $__money($__r['base_amount']) . '</td><td class="n">' . number_format((float)$__r['tier_rate'] * 100, 2, ',', '.') . '%</td><td class="n">' . $__money($__r['amount']) . '</td><td><span class="st ' . sonika_esc((string)$__r['status']) . '">' . sonika_esc($__states[$__r['status']] ?? $__r['status']) . '</span></td><td>' . sonika_esc(substr((string)$__r['created_at'], 0, 10)) . '</td></tr>';
         }
         echo '</tbody></table></div>';
-        echo '<div class="link" data-tab="tienda"><span>Tu enlace a tu vitrina: </span><code>' . sonika_esc($__affUrlP) . '</code><button type="button" class="ahp-linkcopy" id="ahp-copy-link">Copiar enlace</button></div>';
-        echo '<p class="note" data-tab="tienda" style="margin:8px 0 0;font-size:12px;color:#64748b">La atribución dura 30 días: si tu audiencia compra dentro de ese plazo, la venta queda asociada a tu enlace. El enlace dirige a tu vitrina de artista, no a la tienda oficial.</p>';
+        $__storeHandlesP = $__svcP->storeProducts((int)$__affPP['id']);
+        $__storeSetP = array_flip($__storeHandlesP);
+        $__storeStatsP = $__svcP->attributionStats((int)$__affPP['id']);
+        $__storeQ = trim((string)($_GET['q'] ?? ''));
+        $__storeCatalogP = [];
+        foreach (sonika_products() as $__cp) {
+            if ($__storeQ !== '') {
+                $__hay = mb_strtolower((string)($__cp['title'] ?? '') . ' ' . (string)($__cp['vendor'] ?? '') . ' ' . implode(' ', (array)($__cp['tags'] ?? [])));
+                if (mb_strpos($__hay, mb_strtolower($__storeQ)) === false) continue;
+            }
+            $__storeCatalogP[] = $__cp;
+            if (count($__storeCatalogP) >= 18) break;
+        }
+        $__storeCardP = function (array $p, bool $inStore) use ($__affUrlP) {
+            $h = (string)($p['handle'] ?? '');
+            $img = sonika_img($p, 360);
+            $price = sonika_price($p);
+            $avail = sonika_available($p);
+            $prodLink = $__affUrlP . '/p/' . rawurlencode($h);
+            $wa = 'https://wa.me/?text=' . rawurlencode('Mira este producto en SONIKA: ' . $prodLink);
+            $html = '<article class="ahp-store-product">';
+            $html .= '<a href="' . sonika_esc($prodLink) . '" target="_blank" rel="noopener">' . ($img !== '' ? '<img src="' . sonika_esc($img) . '" alt="' . sonika_esc((string)($p['title'] ?? '')) . '" loading="lazy">' : '<div style="height:130px;display:grid;place-items:center;background:#f4f6f5;color:#c9c5bb;font-size:34px">♪</div>') . '</a>';
+            $html .= '<div class="body"><div class="name">' . sonika_esc((string)($p['title'] ?? $h)) . '</div>';
+            $html .= '<div class="price">' . sonika_cop($price) . ' <span style="font-size:10px;color:' . ($avail ? '#0d7a58' : '#b42318') . ';font-weight:800">' . ($avail ? 'Disponible' : 'Agotado') . '</span></div>';
+            $html .= '<div class="actions">';
+            $html .= '<button type="button" class="' . ($inStore ? 'danger' : 'primary') . '" data-store-toggle="' . ($inStore ? 'remove' : 'add') . '" data-handle="' . sonika_esc($h) . '">' . ($inStore ? 'Quitar' : '+ Agregar') . '</button>';
+            $html .= '<button type="button" data-store-copy="' . sonika_esc($prodLink) . '">Copiar link</button>';
+            $html .= '<a href="' . sonika_esc($wa) . '" target="_blank" rel="noopener">WhatsApp</a>';
+            $html .= '</div></div></article>';
+            return $html;
+        };
+        echo '<div class="ahp-sec" data-tab="tienda"><style>
+.ahp-store-hero{background:linear-gradient(135deg,#101d3a,#1e2a4a);color:#fff;border-radius:16px;padding:18px;display:flex;gap:16px;flex-wrap:wrap;align-items:center}
+.ahp-store-hero h3{margin:0 0 4px;font-size:18px}
+.ahp-store-hero p{margin:0;color:#c9d2e0;font-size:13px;line-height:1.55;max-width:720px}
+.ahp-store-btn{display:inline-flex;align-items:center;justify-content:center;min-height:38px;padding:0 13px;border-radius:10px;background:#0d9f72;color:#fff;text-decoration:none;font-weight:800;font-size:12px;border:1px solid #0d9f72;cursor:pointer}
+.ahp-store-btn.ghost{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.24);color:#fff}
+.ahp-store-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin:14px 0}
+.ahp-store-card{background:#fff;border:1px solid #eef2f0;border-radius:14px;padding:14px}
+.ahp-store-card h4{margin:0 0 4px;font-size:13px;color:#101d3a}
+.ahp-store-card p{margin:0 0 10px;font-size:11.5px;color:#64748b;line-height:1.45}
+.ahp-store-link{display:flex;gap:6px;flex-wrap:wrap;align-items:center;background:#f6fbf9;border:1px solid #e6eeea;border-radius:10px;padding:8px 10px;font-size:12px}
+.ahp-store-link code{word-break:break-all;color:#0d7a58;font-weight:800}
+.ahp-store-link button{border:1px solid #cfe3db;background:#fff;color:#0d7a58;border-radius:7px;padding:5px 8px;font:800 10.5px Sora,system-ui;cursor:pointer}
+.ahp-store-metrics{display:flex;gap:14px;flex-wrap:wrap}
+.ahp-store-metrics b{display:block;font-size:18px;color:#101d3a}
+.ahp-store-metrics small{font-size:10.5px;color:#94a3b8;font-weight:700}
+.ahp-store-products{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
+.ahp-store-product{background:#fff;border:1px solid #eef2f0;border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
+.ahp-store-product>a{display:block;background:#f4f6f5}
+.ahp-store-product img{width:100%;height:130px;object-fit:cover;display:block}
+.ahp-store-product .body{padding:10px;display:flex;flex-direction:column;gap:6px;flex:1}
+.ahp-store-product .name{font-size:12.5px;font-weight:800;color:#101d3a;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:34px}
+.ahp-store-product .price{font-size:13px;font-weight:800;color:#0d7a58}
+.ahp-store-product .actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:auto}
+.ahp-store-product button,.ahp-store-product .actions a{border:1px solid #dbe7e1;background:#fff;color:#334155;border-radius:8px;padding:6px 8px;font:800 10.5px Sora,system-ui;cursor:pointer;text-decoration:none;text-align:center}
+.ahp-store-product button.primary{background:#0d9f72;border-color:#0d9f72;color:#fff}
+.ahp-store-product button.danger{background:#fff5f5;border-color:#f3c2c2;color:#b42318}
+.ahp-store-empty{background:#fff;border:1px dashed #dbe7e1;border-radius:14px;padding:18px;color:#94a3b8;font-size:13px;text-align:center}
+.ahp-store-search{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 14px}
+.ahp-store-search input{flex:1;min-width:200px;padding:9px 11px;border:1px solid #dbe7e1;border-radius:10px;font:inherit;font-size:13px;background:#fff}
+.ahp-store-search button{background:#101d3a;color:#fff;border:0;border-radius:10px;padding:9px 14px;font-weight:800;cursor:pointer}
+.ahp-store-search a{align-self:center;font-size:12px;color:#64748b;font-weight:700}
+.ahp-store-msg{font-size:12px;min-height:16px;margin-top:8px;font-weight:700;color:#0d7a58}
+.ahp-store-note{background:#f8fafc;border:1px solid #eef2f0;border-radius:12px;padding:10px 12px;font-size:11.5px;color:#64748b;line-height:1.55;margin-top:12px}
+@media(max-width:520px){.ahp-store-products{grid-template-columns:repeat(2,minmax(0,1fr))}.ahp-store-product img{height:110px}}
+</style>';
+        echo '<div class="ahp-store-hero"><div style="flex:1;min-width:260px"><h3>Tu tienda vive dentro de SONIKA</h3><p>Elige productos del catálogo oficial y véndelos con tu enlace. Los precios, el stock, los pagos, los envíos y las garantías los gestiona SONIKA. Tú te concentras en recomendar y compartir.</p></div><div style="display:flex;gap:8px;flex-wrap:wrap"><a class="ahp-store-btn" href="' . sonika_esc($__storePathP) . '" target="_blank" rel="noopener">' . ($__canBeHiredP ? 'Ver mi página ↗' : 'Ver mi tienda ↗') . '</a><a class="ahp-store-btn ghost" href="https://wa.me/?text=' . rawurlencode('Descubre mi tienda SONIKA: ' . $__affUrlP) . '" target="_blank" rel="noopener">Compartir mi tienda</a></div></div>';
+        echo '<div class="ahp-store-grid"><div class="ahp-store-card"><h4>Tu enlace de atribución</h4><p>Es el enlace que debes compartir. Si alguien compra después de entrar por él, la venta queda asociada a ti durante 30 días.</p><div class="ahp-store-link"><code>' . sonika_esc($__affUrlP) . '</code><button type="button" data-store-copy="' . sonika_esc($__affUrlP) . '">Copiar</button></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:9px"><a class="ahp-store-btn" style="min-height:32px;font-size:11px" href="' . sonika_esc($__affUrlP) . '" target="_blank" rel="noopener">Probar mi enlace</a><a class="ahp-store-btn ghost" style="min-height:32px;font-size:11px;color:#0d7a58;border-color:#cfe3db;background:#fff" href="?tab=tienda&export=csv">Descargar catálogo CSV</a></div></div>';
+        echo '<div class="ahp-store-card"><h4>Estado de tu atribución</h4><p>La cookie dura 180 días. La comisión se valida con el último clic de los últimos 30 días. Tu sesión de panel dura 8 horas y se renueva mientras trabajas.</p><div class="ahp-store-metrics"><div><b>' . (int)($__storeStatsP['clicks_30d'] ?? 0) . '</b><small>Clics 30 días</small></div><div><b>' . (int)($__storeStatsP['orders_30d'] ?? 0) . '</b><small>Pedidos 30 días</small></div><div><b>' . number_format((float)($__storeStatsP['conversion'] ?? 0), 1, ',', '.') . '%</b><small>Conversión</small></div></div><div style="margin-top:9px;font-size:11.5px;color:#64748b">En este navegador: <b id="ahp-attr-cookie" style="color:#b45309">Comprobando…</b></div><div style="margin-top:7px"><button type="button" class="ahp-store-btn" style="min-height:32px;font-size:11px" id="ahp-attr-test">Activar / probar en este navegador</button></div></div></div>';
+        echo '<h3 style="font-size:15px;margin:18px 0 8px">Productos en mi tienda <span style="color:#94a3b8;font-weight:600">(' . count($__storeHandlesP) . '/' . \App\Services\AffiliateService::MAX_STORE_PRODUCTS . ')</span></h3>';
+        if (empty($__storeHandlesP)) {
+            echo '<div class="ahp-store-empty">Tu tienda está lista para armarse. Busca productos en el catálogo de abajo y pulsa <b>+ Agregar</b>. Aparecerán en tu página pública con tu enlace de atribución.</div>';
+        } else {
+            echo '<div class="ahp-store-products">';
+            foreach ($__storeHandlesP as $__sh) {
+                $__sp = sonika_find((string)$__sh);
+                if ($__sp) echo $__storeCardP($__sp, true);
+            }
+            echo '</div>';
+        }
+        echo '<h3 style="font-size:15px;margin:22px 0 4px">Catálogo SONIKA</h3><p style="margin:0 0 8px;font-size:12px;color:#64748b">Busca por nombre, marca o categoría. Todo el catálogo está disponible para tu tienda.</p>';
+        echo '<form class="ahp-store-search" method="get" action="/artista/' . sonika_esc((string)$__affPP['slug']) . '/panel"><input type="hidden" name="tab" value="tienda"><input name="q" value="' . sonika_esc($__storeQ) . '" placeholder="Ej: guitarra, Shure, batería, consola…"><button type="submit">Buscar</button>' . ($__storeQ !== '' ? '<a href="?tab=tienda">Limpiar</a>' : '') . '</form>';
+        if (empty($__storeCatalogP)) {
+            echo '<div class="ahp-store-empty">No encontramos productos con esa búsqueda. Prueba con otra palabra.</div>';
+        } else {
+            echo '<div class="ahp-store-products">';
+            foreach ($__storeCatalogP as $__cp) echo $__storeCardP($__cp, isset($__storeSetP[(string)($__cp['handle'] ?? '')]));
+            echo '</div>';
+            if ($__storeQ === '') echo '<p style="margin:12px 0 0"><a href="/tienda" target="_blank" rel="noopener" style="color:#F20D16;font-weight:800;font-size:12px">Ver todo el catálogo SONIKA →</a></p>';
+        }
+        echo '<div class="ahp-store-msg" id="ahp-store-msg" role="status" aria-live="polite"></div>';
+        echo '<div class="ahp-store-note">La tienda del Partner usa el mismo catálogo, carrito y checkout de SONIKA. No hay una tienda aparte: tu selección se muestra en tu página pública y cada producto conserva tu código de atribución.</div>';
+        echo '<script>(function(){
+  var msg=document.getElementById("ahp-store-msg");
+  var code=' . json_encode($__codeP, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) . ';
+  function say(t,ok){if(!msg)return;msg.style.color=ok?"#0d7a58":"#b42318";msg.textContent=t;}
+  function copy(t){if(navigator.clipboard&&navigator.clipboard.writeText){return navigator.clipboard.writeText(t);}var a=document.createElement("textarea");a.value=t;a.style.position="fixed";a.style.left="-9999px";document.body.appendChild(a);a.focus();a.select();try{document.execCommand("copy");}catch(e){}a.remove();return Promise.resolve();}
+  var cookie=document.getElementById("ahp-attr-cookie");
+  if(cookie){var m=document.cookie.match(/(?:^|; )sonika_aff=([^;]+)/);var active=!!m&&decodeURIComponent(m[1])===code;cookie.textContent=active?"Activa en este navegador":"No activa en este navegador";cookie.style.color=active?"#0d7a58":"#b45309";}
+  var test=document.getElementById("ahp-attr-test");if(test)test.addEventListener("click",function(){window.open("/r/"+encodeURIComponent(code),"_blank","noopener");});
+  document.addEventListener("click",function(e){
+    var t=e.target.closest?e.target.closest("[data-store-copy]"):null;
+    if(t){e.preventDefault();copy(t.getAttribute("data-store-copy")).then(function(){say("Enlace copiado.",true);});return;}
+    var b=e.target.closest?e.target.closest("[data-store-toggle]"):null;
+    if(b){e.preventDefault();if(b.disabled)return;var h=b.getAttribute("data-handle");var a=b.getAttribute("data-store-toggle");b.disabled=true;b.textContent="Guardando…";fetch("/api/v1/public/affiliates/store/product",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({handle:h,action:a})}).then(function(r){return r.json();}).then(function(j){if(j&&j.ok){say(j.message||"Listo.",true);setTimeout(function(){location.reload();},350);}else{b.disabled=false;b.textContent=a==="add"?"+ Agregar":"Quitar";say((j&&j.message)||"No se pudo actualizar.","" );}}).catch(function(){b.disabled=false;b.textContent=a==="add"?"+ Agregar":"Quitar";say("Error de conexión.","");});return;}
+  });
+})();</script>';
+        echo '</div>';
         echo '<script>(function(){var bar=document.querySelector(".ahp-tabs");if(!bar)return;var tabs=bar.querySelectorAll(".ahp-tab"),secs=document.querySelectorAll(".ahp [data-tab]");function go(t){tabs.forEach(function(b){b.classList.toggle("on",b.getAttribute("data-tab")===t)});secs.forEach(function(s){if(s.classList.contains("ahp-tab"))return;s.hidden=(s.getAttribute("data-tab")!==t)});}tabs.forEach(function(b){b.addEventListener("click",function(){go(b.getAttribute("data-tab"))})});var init="ventas";try{init=new URLSearchParams(location.search).get("tab")||"ventas";}catch(e){}go(init);})();</script>';
         echo '</section>';
         if (empty($_SESSION['ff_started_at'])) $_SESSION['ff_started_at'] = time();
@@ -801,6 +1118,8 @@ JS;
 
 // SONIKA Partners — contrato y firma electrónica del artista
 if (($segments[0] ?? '') === 'artista' && ($segments[1] ?? '') === 'contrato') {
+    header('X-Robots-Tag: noindex, nofollow');
+    header('Cache-Control: private, no-store, max-age=0');
     \App\Core\Session::start();
     $__contractAffId = (int)($_SESSION['ff_affiliate_id'] ?? 0);
     if ($__contractAffId <= 0) { header('Location: /mi-antro?next=contrato'); exit; }
@@ -819,19 +1138,44 @@ if (($segments[0] ?? '') === 'artista' && ($segments[1] ?? '') === 'contrato') {
 
 // SONIKA Artist Hub — página pública del artista (/artista/{slug} y vanity /{slug})
 $__artSlug = ($segments[0] ?? '') === 'artista' ? (string)($segments[1] ?? '') : (count($segments) === 1 ? (string)$segments[0] : '');
-$__res2 = ['producto','buscar','tienda','carrito','checkout','pedido','cotizacion','cuenta','categorias','marcas','contacto','soporte','ofertas','politicas','r','artista'];
+$__res2 = ['producto','buscar','tienda','carrito','checkout','pedido','cotizacion','cuenta','categorias','marcas','contacto','soporte','ofertas','politicas','r','artista','tarjetas-de-regalo'];
 if ($__artSlug !== '' && !in_array($__artSlug, $__res2, true) && !(function_exists('sonika_category') && sonika_category($__artSlug))) {
     $__affSvc = new \App\Services\AffiliateService();
+    \App\Core\Session::start();
     $__affP = $__affSvc->getBySlug($__artSlug);
+    if (!$__affP && !empty($_SESSION['ff_affiliate_id'])) {
+        // El dueño puede previsualizar su perfil aunque esté en revisión u oculto.
+        $__affOwnerPreview = $__affSvc->getBySlugAny($__artSlug);
+        if ($__affOwnerPreview && (int)$__affOwnerPreview['id'] === (int)$_SESSION['ff_affiliate_id']) $__affP = $__affOwnerPreview;
+    }
     if ($__affP) {
         $__name = trim(($__affP['artist_name'] ?: ($__affP['public_name'] ?: $__affP['full_name'])));
+        $__catPageP = (string)($__affP['profile_category'] ?? 'artist');
+        $__canBeHiredPageP = $__catPageP === 'artist';
+        $__isOwnerPage = !empty($_SESSION['ff_affiliate_id']) && (int)$_SESSION['ff_affiliate_id'] === (int)$__affP['id'];
+        $__profileVisiblePage = $__affSvc->publicProfileVisible($__affP);
+        if (!$__isOwnerPage) {
+            if ((string)($__affP['status'] ?? '') !== 'APPROVED') { header('Location: /tienda'); exit; }
+            if (!$__profileVisiblePage) {
+                // Modo catálogo: la página personalizada no se publica. Se conserva
+                // la atribución enviando al Partner por su enlace corto.
+                $__redirectCode = $__affSvc->ensureLink((int)$__affP['id']);
+                $__keepTo = isset($_GET['to']) && is_string($_GET['to']) ? trim((string)$_GET['to']) : '';
+                header('X-Robots-Tag: noindex, nofollow', true);
+                header('Cache-Control: no-store, max-age=0', true);
+                header('Location: ' . ($__redirectCode !== '' ? '/r/' . rawurlencode($__redirectCode) . ($__keepTo !== '' ? '?to=' . rawurlencode($__keepTo) : '') : '/tienda'), true, 302);
+                exit;
+            }
+        }
+        if (!$__profileVisiblePage) header('X-Robots-Tag: noindex, nofollow');
         $__store = [];
         try { $st = \App\Core\Database::instance()->prepare('SELECT * FROM affiliate_stores WHERE affiliate_id = :a AND site_id = @site_id LIMIT 1'); $st->execute(['a' => (int)$__affP['id']]); $__store = $st->fetch() ?: []; } catch (\Throwable $e) {}
         $__bio = (string)($__store['bio'] ?? '');
         $__img = (string)($__store['image'] ?? '');
         try { $__mHP = $__affSvc->mediaFor((int)$__affP['id']); if (!empty($__mHP['cover'])) $__img = (string)$__mHP['cover']; } catch (\Throwable $e) {}
         $__code = $__affSvc->ensureLink((int)$__affP['id']);
-        $__origin = ((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? 'sonika.com.co');
+        if (function_exists('sonika_set_aff_ref')) sonika_set_aff_ref($__code);
+        $__origin = sonika_origin();
         $__affUrl = $__origin . '/r/' . $__code;
         $__instr = (string)($__affP['music_instrument'] ?? '');
         $__genre = (string)($__affP['music_genre'] ?? '');
@@ -841,13 +1185,21 @@ if ($__artSlug !== '' && !in_array($__artSlug, $__res2, true) && !(function_exis
         if (trim($__seoBio) === '') $__seoBio = $__bio;
         $__seoDesc = trim((string)preg_replace('/\s+/', ' ', strip_tags($__seoBio)));
         if ($__seoDesc !== '') $__seoDesc = function_exists('mb_substr') ? mb_substr($__seoDesc, 0, 160) : substr($__seoDesc, 0, 160);
-        sonika_site_head($__name . ' — SONIKA ARTIST', $__seoDesc !== '' ? $__seoDesc : ('Descubre la selección musical de ' . $__name . ' en SONIKA.'));
+        sonika_site_head($__name . ' — ' . ($__canBeHiredPageP ? 'SONIKA ARTIST' : 'SONIKA PARTNER'), $__seoDesc !== '' ? $__seoDesc : (($__canBeHiredPageP ? 'Descubre la selección musical de ' : 'Descubre la tienda y selección de ') . $__name . ' en SONIKA.'));
         echo '<style>.ah{--ah1:#F20D16;--ah2:#101d3a}.ah-hero{position:relative;overflow:hidden;background:radial-gradient(900px 400px at 80% -10%,#ffe9e9,transparent 60%),linear-gradient(135deg,#101d3a,#2a3550);color:#fff;padding:56px 0 40px}.ah-hero__in{max-width:1180px;margin:0 auto;padding:0 22px;display:flex;gap:24px;align-items:center;flex-wrap:wrap}.ah-ava{width:104px;height:104px;border-radius:24px;background:linear-gradient(135deg,#F20D16,#8b0a10);display:grid;place-items:center;font:800 40px/1 Sora,sans-serif;overflow:hidden;flex:none}.ah-ava img{width:100%;height:100%;object-fit:cover}.ah-kick{font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#ffb3b7}.ah-name{font:800 clamp(1.8rem,4vw,2.8rem)/1.05 Sora,sans-serif;margin:4px 0 6px}.ah-meta{color:#c9d2e0;font-size:14px}.ah-chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.ah-chip{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);border-radius:999px;padding:4px 11px;font-size:12px;font-weight:600}.ah-share{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}.ah-btn{display:inline-flex;align-items:center;gap:8px;background:var(--ah1);color:#fff;border:0;border-radius:12px;padding:11px 16px;font-weight:800;font-size:13.5px;cursor:pointer;text-decoration:none}.ah-btn.ghost{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22)}.ah-sec{max-width:1180px;margin:0 auto;padding:34px 22px}.ah-h{font:800 22px Sora,sans-serif;color:var(--ah2);margin:0 0 16px}.ah-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}.ah-empty{color:#78849a;background:#f6f9f7;border:1px dashed #dbe7e1;border-radius:14px;padding:22px;text-align:center;font-size:14px}.ah-cta{max-width:1180px;margin:0 auto;padding:0 22px 50px}.ah-cta__box{background:linear-gradient(135deg,#fff,#f6fbf9);border:1px solid #e9efec;border-radius:20px;padding:28px;display:flex;gap:18px;align-items:center;flex-wrap:wrap}.ah-cta__box h3{font:800 22px Sora,sans-serif;color:var(--ah2);margin:0 0 6px}.ah-cta__box p{margin:0;color:#51607a;font-size:14px}.ah-tabs{max-width:1180px;margin:20px auto 0;padding:0 22px;display:grid;grid-template-columns:1fr 1fr;gap:10px}.ah-tab{display:block;text-align:center;padding:14px;border-radius:14px;border:1px solid #e6eeea;background:#fff;color:#334155;font-weight:800;font-size:15px;text-decoration:none;transition:.15s}.ah-tab.on{background:#101d3a;color:#fff;border-color:#101d3a}.ah-tab:hover{background:#f6fbf9}@media(max-width:900px){.ah-grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:560px){.ah-grid{grid-template-columns:1fr}.ah-share{margin-left:0;width:100%}}</style>';
+        if (!$__profileVisiblePage) {
+            echo '<div style="position:sticky;top:0;z-index:50;background:linear-gradient(90deg,#fff7ed,#fffbeb);border-bottom:1px solid #f5c26b;color:#7c2d12;padding:10px 16px;font:700 12.5px Sora,system-ui,sans-serif;text-align:center">Vista previa privada · Tu perfil está oculto al público. Los visitantes ven el catálogo original con tu link de atribución. <a href="' . sonika_esc($__affUrl) . '" style="color:#b45309;text-decoration:underline">Probar mi link público</a></div>';
+        }
         echo '<div class="sonika-artist-page"><style>.sonika-artist-page{background:radial-gradient(ellipse at 75% 5%,rgba(49,75,150,.16),transparent 42%),linear-gradient(180deg,#05080d,#080d15 48%,#05080d);color:#f5f7fb;padding-bottom:50px}.sonika-artist-page .ah-hero{background-color:#080b12 !important;border-radius:0 0 18px 18px;padding:0;position:relative;isolation:isolate;overflow:hidden}.sonika-artist-page .ah-hero::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;background:linear-gradient(0deg,rgba(3,5,10,.9),rgba(3,5,10,.15) 60%)}.sonika-artist-page .ah-hero__in{position:relative;z-index:1;display:flex;gap:22px;align-items:flex-end;flex-wrap:wrap;padding:110px 22px 22px;max-width:1180px;margin:0 auto}.sonika-artist-page .ah-ava{width:118px;height:118px;border-radius:50%;border:3px solid rgba(255,255,255,.85);position:relative}.sonika-artist-page .ah-verified{position:absolute;right:6px;bottom:6px;width:26px;height:26px;border-radius:50%;background:#1d9bf0;color:#fff;display:grid;place-items:center;font-size:14px;font-weight:800;border:2px solid #05080d}.sonika-artist-page .ah-hero__body{flex:1;min-width:260px}.sonika-artist-page .ah-hero__titlerow{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.sonika-artist-page .ah-badge2{display:inline-block;background:linear-gradient(135deg,#f7d488,#e0a438);color:#3a2a08;font-weight:800;font-size:11px;padding:4px 10px;border-radius:999px}.sonika-artist-page .ah-spec{font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#c9a7ff;margin-top:6px}.sonika-artist-page .ah-quote{font-style:italic;color:#dbe3ef;font-size:15px;line-height:1.5;margin:10px 0 0;max-width:560px}.sonika-artist-page .ah-social{display:flex;gap:8px;margin-top:12px}.sonika-artist-page .ah-social a{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.1);border:1px solid rgba(174,194,222,.24);display:grid;place-items:center;color:#fff;font-size:12px;font-weight:800;text-decoration:none}.sonika-artist-page .ah-actions{display:flex;gap:10px;margin-left:auto;flex-wrap:wrap}.sonika-artist-page .ah-anchors{display:flex;gap:6px;overflow-x:auto;max-width:1180px;margin:8px auto 0;padding:0 22px;scrollbar-width:none}.sonika-artist-page .ah-anchors::-webkit-scrollbar{display:none}.sonika-artist-page .ah-anchors a{white-space:nowrap;padding:9px 14px;border-radius:10px;font-size:13px;font-weight:700;color:#b5c0d0;text-decoration:none}.sonika-artist-page .ah-anchors a.on,.sonika-artist-page .ah-anchors a:hover{background:linear-gradient(135deg,#287bff,#6246ff);color:#fff}.sonika-artist-page .ah-kick{color:#c9a7ff}.sonika-artist-page .ah-name{color:#fff;text-shadow:0 2px 18px rgba(0,0,0,.5)}.sonika-artist-page .ah-meta{color:#b5c0d0}.sonika-artist-page .ah-chip{background:rgba(98,70,255,.22) !important;border-color:rgba(174,194,222,.24) !important;color:#eef1f8}.sonika-artist-page .ah-btn{background:linear-gradient(135deg,#287bff,#6246ff) !important;box-shadow:0 8px 22px rgba(98,70,255,.35)}.sonika-artist-page .ah-btn.ghost{background:rgba(255,255,255,.08) !important;border:1px solid rgba(174,194,222,.24) !important}.sonika-artist-page .ah-ava{background:linear-gradient(135deg,#287bff,#6246ff);border:2px solid rgba(255,255,255,.55)}.sonika-artist-page .ah-tabs{max-width:1180px;margin:16px auto 6px;padding:0 22px}.sonika-artist-page .ah-tab{background:rgba(10,16,25,.9);border-color:rgba(174,194,222,.2);color:#b5c0d0}.sonika-artist-page .ah-tab.on{background:linear-gradient(135deg,#287bff,#6246ff);color:#fff;border-color:transparent}.sonika-artist-page .ah-sec{color:#f5f7fb}.sonika-artist-page .ah-sec h2,.sonika-artist-page .ah-cta__box h3{color:#fff}.sonika-artist-page .ah-sec p,.sonika-artist-page .ah-sec td,.sonika-artist-page .ah-sec li,.sonika-artist-page .ah-cta__box p{color:#b5c0d0}.sonika-artist-page .ah-sec article{background:#0a1019 !important;border-color:rgba(174,194,222,.18) !important;color:#e8ecf5}.sonika-artist-page .ah-cta__box{background:rgba(10,16,25,.9) !important;border-color:rgba(174,194,222,.2) !important}.sonika-artist-page .ah-cta__box input,.sonika-artist-page .ah-cta__box select,.sonika-artist-page .ah-cta__box textarea{background:rgba(5,8,13,.85) !important;border-color:rgba(174,194,222,.22) !important;color:#f5f7fb !important}.sonika-artist-page .ah-cta__box button{background:linear-gradient(135deg,#287bff,#6246ff) !important;color:#fff}.sonika-artist-page .ah-grid a,.sonika-artist-page .ah-grid .card,.sonika-artist-page .ah-grid .prod-card{background:#0a1019;border-color:rgba(174,194,222,.18);color:#f5f7fb}.sonika-artist-page .ah-grid .price{color:#d9c2ff}.sonika-artist-page .ah-shop{background:#fff;color:#17212b;border-radius:0;padding:34px 0;margin:0;width:100%;max-width:100%;box-sizing:border-box}.sonika-artist-page .ah-shop>h2,.sonika-artist-page .ah-shop>h3,.sonika-artist-page .ah-shop>div,.sonika-artist-page .ah-shop>p{max-width:1180px;margin-left:auto;margin-right:auto;padding-left:22px;padding-right:22px;width:100%;box-sizing:border-box}.sonika-artist-page .ah-shop .ah-h{color:#101d3a}.sonika-artist-page .ah-shop>h3{margin-left:auto!important;margin-right:auto!important}.sonika-artist-page .ah-shop>p{margin-left:auto!important;margin-right:auto!important;text-align:center}.sonika-artist-page .ah-shop p,.sonika-artist-page .ah-shop a{color:#17212b}.sonika-artist-page .ah-shop .ah-grid a,.sonika-artist-page .ah-shop .ah-grid .card,.sonika-artist-page .ah-shop .ah-grid .prod-card{background:#fff !important;border-color:#e6eeea !important;color:#17212b !important}.sonika-artist-page .ah-shop .ah-grid .price{color:#F20D16}.sonika-artist-page .ah-shop .ah-grid .cta,.sonika-artist-page .ah-shop .ah-grid button{background:linear-gradient(135deg,#F20D16,#C70A12)}</style>';
         $__ava = (string)($__mHP['avatar'] ?? '');
         if ($__ava === '') $__ava = $__img;
-        echo '<section class="ah ah-hero" id="top"' . ($__img !== '' ? ' style="background-image:linear-gradient(0deg,rgba(3,5,10,.85),rgba(3,5,10,.3)),url(' . sonika_esc($__img) . ');background-size:cover;background-position:center 30%"' : '') . '><div class="ah-hero__in"><div class="ah-ava' . ($__ava !== '' ? ' ah-ava--zoom' : '') . '"' . ($__ava !== '' ? ' data-zoom="' . sonika_esc($__ava) . '" role="button" tabindex="0" aria-label="Ampliar foto de perfil"' : '') . '>' . ($__ava !== '' ? '<img src="' . sonika_esc($__ava) . '" alt="">' : sonika_esc(mb_substr($__name, 0, 1))) . '<span class="ah-verified">✓</span></div><div class="ah-hero__body"><div class="ah-hero__titlerow"><h1 class="ah-name">' . sonika_esc($__name) . '</h1><span class="ah-badge2">👑 Artista SONIKA</span></div>';
-        if ($__instr !== '' || $__genre !== '') echo '<div class="ah-spec">' . sonika_esc(mb_strtoupper(trim($__instr . ($__genre ? ' · ' . $__genre : '')))) . '</div>';
+        echo '<section class="ah ah-hero" id="top"' . ($__img !== '' ? ' style="background-image:linear-gradient(0deg,rgba(3,5,10,.85),rgba(3,5,10,.3)),url(' . sonika_esc($__img) . ');background-size:cover;background-position:center 30%"' : '') . '><div class="ah-hero__in"><div class="ah-ava' . ($__ava !== '' ? ' ah-ava--zoom' : '') . '"' . ($__ava !== '' ? ' data-zoom="' . sonika_esc($__ava) . '" role="button" tabindex="0" aria-label="Ampliar foto de perfil"' : '') . '>' . ($__ava !== '' ? '<img src="' . sonika_esc($__ava) . '" alt="">' : sonika_esc(mb_substr($__name, 0, 1))) . '<span class="ah-verified">✓</span></div><div class="ah-hero__body"><div class="ah-hero__titlerow"><h1 class="ah-name">' . sonika_esc($__name) . '</h1><span class="ah-badge2">👑 Partner SONIKA</span></div>';
+        if ($__canBeHiredPageP) {
+            if ($__instr !== '' || $__genre !== '') echo '<div class="ah-spec">' . sonika_esc(mb_strtoupper(trim($__instr . ($__genre ? ' · ' . $__genre : '')))) . '</div>';
+        } else {
+            $__nicheP = trim((string)($__affP['niche'] ?? ''));
+            if ($__nicheP !== '') echo '<div class="ah-spec">' . sonika_esc(mb_strtoupper($__nicheP)) . '</div>';
+        }
         if ($__bio !== '') echo '<p class="ah-quote">“' . sonika_esc($__bio) . '”</p>';
         echo '<div class="ah-chips">';
         foreach ([$__genre, $__level] as $__ch) { if ($__ch !== '') echo '<span class="ah-chip">' . sonika_esc($__ch) . '</span>'; }
@@ -855,7 +1207,7 @@ if ($__artSlug !== '' && !in_array($__artSlug, $__res2, true) && !(function_exis
         if (!empty($__mHP['instagram'])) echo '<a href="https://instagram.com/' . sonika_esc((string)$__mHP['instagram']) . '" target="_blank" rel="noopener" aria-label="Instagram">IG</a>';
         if (!empty($__mHP['video_url'])) echo '<a href="' . sonika_esc((string)$__mHP['video_url']) . '" target="_blank" rel="noopener" aria-label="YouTube">▶</a>';
         if (!empty($__mHP['tiktok'])) echo '<a href="' . sonika_esc((string)$__mHP['tiktok']) . '" target="_blank" rel="noopener" aria-label="TikTok">♪</a>';
-        echo '</div></div><div class="ah-actions"><a class="ah-btn" href="#contratame">Contratar</a><a class="ah-btn ghost" target="_blank" rel="noopener" href="https://wa.me/?text=' . rawurlencode('Escucha y apoya a ' . $__name . ' en SONIKA: ' . $__affUrl) . '">Compartir</a></div></div></section>';
+        echo '</div></div><div class="ah-actions">' . ($__canBeHiredPageP ? '<a class="ah-btn" href="#contratame">Contratar</a>' : '<a class="ah-btn" href="#vitrina">Ver mi tienda</a>') . '<a class="ah-btn ghost" target="_blank" rel="noopener" href="https://wa.me/?text=' . rawurlencode('Descubre ' . $__name . ' en SONIKA: ' . $__affUrl) . '">Compartir</a></div></div></section>';
         $__mediaP = $__affSvc->mediaFor((int)$__affP['id']);
         $__galP = json_decode((string)($__mediaP['gallery'] ?? '[]'), true);
         if (!is_array($__galP)) $__galP = [];
@@ -1035,7 +1387,7 @@ CSS;
         if ($__trAch) $__ld['award'] = array_values(array_map('strval', $__trAch));
         if ($__trBands) $__ld['memberOf'] = array_map(function ($b) { return ['@type' => 'MusicGroup', 'name' => (string)$b]; }, $__trBands);
         echo '<script type="application/ld+json">' . json_encode($__ld, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . '</script>';
-        echo '<div class="ah-stickybar" id="ah-stickybar" hidden><a class="ah-btn" href="#contratame">Contratar</a><a class="ah-btn ghost" target="_blank" rel="noopener" href="' . sonika_esc('https://wa.me/?text=' . rawurlencode('Escucha y apoya a ' . $__name . ' en SONIKA: ' . $__affUrl)) . '">Compartir</a></div>';
+        echo '<div class="ah-stickybar" id="ah-stickybar" hidden>' . ($__canBeHiredPageP ? '<a class="ah-btn" href="#contratame">Contratar</a>' : '<a class="ah-btn" href="#vitrina">Ver mi tienda</a>') . '<a class="ah-btn ghost" target="_blank" rel="noopener" href="' . sonika_esc('https://wa.me/?text=' . rawurlencode('Descubre ' . $__name . ' en SONIKA: ' . $__affUrl)) . '">Compartir</a></div>';
         echo '<style>
 .sonika-artist-page .ah-dots{display:none;justify-content:center;gap:7px;margin-top:8px}
 .sonika-artist-page .ah-dot{width:7px;height:7px;border-radius:999px;border:0;padding:0;background:rgba(255,255,255,.25);cursor:pointer;transition:width .25s,background .25s}
@@ -1088,29 +1440,44 @@ CSS;
         echo '<script>(function(){var z=document.getElementById("ah-zoom");if(!z)return;var zi=document.getElementById("ah-zoom-img");function close(){z.classList.remove("on");document.body.style.overflow="";}function open(s){zi.src=s;z.classList.add("on");document.body.style.overflow="hidden";}document.querySelectorAll("[data-zoom]").forEach(function(el){el.addEventListener("click",function(e){e.preventDefault();var s=el.getAttribute("data-zoom");if(s)open(s);});el.addEventListener("keydown",function(e){if(e.key==="Enter"||e.key===" "){e.preventDefault();var s=el.getAttribute("data-zoom");if(s)open(s);}});});z.addEventListener("click",function(e){if(e.target===z||e.target.classList.contains("ah-zoom__x"))close();});document.addEventListener("keydown",function(e){if(e.key==="Escape")close();});})();</script>';
         if ($__ava !== '') echo '<div class="ah-zoom" id="ah-zoom" role="dialog" aria-modal="true" aria-label="Foto de perfil ampliada"><button type="button" class="ah-zoom__x" aria-label="Cerrar">✕</button><img id="ah-zoom-img" alt="' . sonika_esc($__name) . '"></div>';
         $__tab = ((($_GET['tab'] ?? 'vitrina') === 'pagina') ? 'pagina' : 'vitrina');
-        echo '<nav class="ah-tabs" aria-label="Secciones del artista"><a class="ah-tab ' . ($__tab === 'vitrina' ? 'on' : '') . '" href="?tab=vitrina">Mi Vitrina</a><a class="ah-tab ' . ($__tab === 'pagina' ? 'on' : '') . '" href="?tab=pagina">Mi Página</a></nav>';
+        $__vitrinaLabelP = $__canBeHiredPageP ? 'Mi Vitrina' : 'Mi Tienda';
+        $__paginaLabelP = $__canBeHiredPageP ? 'Mi Página' : 'Mi Perfil';
+        echo '<nav class="ah-tabs" aria-label="Secciones del Partner"><a class="ah-tab ' . ($__tab === 'vitrina' ? 'on' : '') . '" href="?tab=vitrina">' . $__vitrinaLabelP . '</a><a class="ah-tab ' . ($__tab === 'pagina' ? 'on' : '') . '" href="?tab=pagina">' . $__paginaLabelP . '</a></nav>';
         if ($__tab === 'vitrina') {
-        echo '<section class="ah-shop"><h2 class="ah-h">Mi Vitrina</h2>';
+        echo '<section class="ah-shop" id="vitrina"><div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between"><h2 class="ah-h" style="margin:0">' . $__vitrinaLabelP . '</h2><a class="ah-btn" style="font-size:12px;padding:8px 12px" target="_blank" rel="noopener" href="https://wa.me/?text=' . rawurlencode('Descubre mi tienda SONIKA: ' . $__affUrl) . '">Compartir mi tienda</a></div>';
+        echo '<p style="margin:6px 0 14px;font-size:12px;color:#aab4c5">Cada producto conserva tu enlace de atribución.</p>';
+        $__selectedP = $__affSvc->storeProducts((int)$__affP['id']);
+        $__renderedP = 0;
+        if (!empty($__selectedP)) {
+            echo '<h3 class="ah-h" style="font-size:17px;margin:8px 0 10px">Mi selección</h3><div class="ah-grid">';
+            foreach (array_slice($__selectedP, 0, 16) as $__h) {
+                $__p = sonika_find((string)$__h);
+                if ($__p) { sonika_product_card($__p); $__renderedP++; }
+            }
+            echo '</div>';
+        }
         $__cols = $__affSvc->collections((int)$__affP['id']);
         if (!empty($__cols)) {
             foreach ($__cols as $__col) {
+                if ((string)($__col['slug'] ?? '') === \App\Services\AffiliateService::STORE_COLLECTION_SLUG) continue;
                 $__handles = json_decode((string)($__col['products'] ?? '[]'), true);
                 if (!is_array($__handles) || !$__handles) continue;
                 echo '<h3 class="ah-h" style="font-size:17px;margin:22px 0 10px">' . sonika_esc((string)$__col['name']) . '</h3><div class="ah-grid">';
                 $__n = 0;
                 foreach ($__handles as $__h) {
                     $__p = sonika_find((string)$__h);
-                    if ($__p) { sonika_product_card($__p); $__n++; }
+                    if ($__p) { sonika_product_card($__p); $__n++; $__renderedP++; }
                     if ($__n >= 8) break;
                 }
                 echo '</div>';
             }
-        } else {
+        }
+        if ($__renderedP === 0) {
             $__prods = array_slice(sonika_products(), 0, 8);
             if (!empty($__prods)) { echo '<div class="ah-grid">'; foreach ($__prods as $__p) sonika_product_card($__p); echo '</div>'; }
             else { echo '<div class="ah-empty">La selección de ' . sonika_esc($__name) . ' estará disponible pronto.</div>'; }
         }
-        echo '<p style="margin:16px 0 0"><a href="/tienda" style="color:#F20D16;font-weight:700">Ver todo el catálogo →</a></p></section>';
+        echo '<p style="margin:16px 0 0"><a href="/tienda?ref=' . rawurlencode($__code) . '" style="color:#F20D16;font-weight:700">Ver todo el catálogo →</a></p></section>';
         }
         if ($__tab === 'pagina') {
         $__cv = $__affSvc->cvFor((int)$__affP['id']);
@@ -1126,7 +1493,9 @@ CSS;
             }
             echo '</div></section>';
         }
+        if ($__canBeHiredPageP) {
         echo '<section class="ah-cta" id="contratame"><div class="ah-cta__box"><div style="flex:1;min-width:240px"><h3>Contrátame</h3><p>¿Quieres a ' . sonika_esc($__name) . ' en tu evento o proyecto? Envía una solicitud y coordinamos disponibilidad y condiciones.</p></div><form id="ah-contract" style="display:grid;gap:8px;min-width:280px;flex:1"><input type="hidden" name="artist" value="<?= sonika_esc($__artSlug) ?>"><input name="name" placeholder="Tu nombre" required style="padding:10px;border:1px solid #dbe7e1;border-radius:10px;font:inherit"><input name="email" type="email" placeholder="Correo" required style="padding:10px;border:1px solid #dbe7e1;border-radius:10px;font:inherit"><input name="phone" placeholder="Teléfono" style="padding:10px;border:1px solid #dbe7e1;border-radius:10px;font:inherit"><div style="display:flex;gap:8px"><select name="event_type" style="flex:1;padding:10px;border:1px solid #dbe7e1;border-radius:10px;font:inherit"><option value="">Tipo de evento</option><option>Concierto</option><option>Evento privado</option><option>Sesión/estudio</option><option>Otro</option></select><input name="event_date" type="date" style="flex:1;padding:10px;border:1px solid #dbe7e1;border-radius:10px;font:inherit"></div><input name="place" placeholder="Ciudad / lugar" style="padding:10px;border:1px solid #dbe7e1;border-radius:10px;font:inherit"><textarea name="message" placeholder="Cuéntale del evento" rows="2" style="padding:10px;border:1px solid #dbe7e1;border-radius:10px;font:inherit"></textarea><button class="ah-btn" type="submit">Enviar solicitud</button><div id="ah-contract-msg" style="font-size:12.5px;min-height:16px"></div></form><script>(function(){var f=document.getElementById("ah-contract");if(!f)return;var o=document.getElementById("ah-contract-msg");f.addEventListener("submit",function(e){e.preventDefault();var d={};new FormData(f).forEach(function(v,k){d[k]=v;});o.style.color="#51607a";o.textContent="Enviando…";fetch("/api/v1/public/affiliates/contract",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(d)}).then(function(r){return r.json();}).then(function(j){o.style.color=j.ok?"#0d7a58":"#d64545";o.textContent=j.message||(j.ok?"Enviado":"Error");if(j.ok)f.reset();}).catch(function(){o.style.color="#d64545";o.textContent="Error de conexión.";});});})();</script></div></section>';
+        }
         echo '<section class="ah-cta" style="padding-top:0"><div class="ah-cta__box" style="background:linear-gradient(135deg,#fffbeb,#fff)"><div style="flex:1;min-width:240px"><h3>Aporte de agradecimiento</h3><p>Si quieres apoyar a ' . sonika_esc($__name) . ', puedes dejar un aporte voluntario. <b>Es opcional</b> y no otorga beneficios ni derechos adicionales.</p></div><form id="ah-tip" style="display:grid;gap:8px;min-width:280px;flex:1"><input type="hidden" name="artist" value="' . sonika_esc($__artSlug) . '"><input name="name" placeholder="Tu nombre" style="padding:10px;border:1px solid #dbe7e1;border-radius:10px;font:inherit"><input name="email" type="email" placeholder="Correo (opcional)" style="padding:10px;border:1px solid #dbe7e1;border-radius:10px;font:inherit"><input name="amount" type="number" min="1000" step="1000" placeholder="Monto en COP (ej. 10000)" required style="padding:10px;border:1px solid #dbe7e1;border-radius:10px;font:inherit"><input name="message" placeholder="Mensaje (opcional)" style="padding:10px;border:1px solid #dbe7e1;border-radius:10px;font:inherit"><button class="ah-btn" type="submit" style="background:#b7791f">Dejar mi aporte</button><div id="ah-tip-msg" style="font-size:12.5px;min-height:16px"></div></form></div></section><script>(function(){var f=document.getElementById("ah-tip");if(!f)return;var o=document.getElementById("ah-tip-msg");f.addEventListener("submit",function(e){e.preventDefault();var d={};new FormData(f).forEach(function(v,k){d[k]=v;});o.style.color="#51607a";o.textContent="Enviando…";fetch("/api/v1/public/affiliates/tip",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(d)}).then(function(r){return r.json();}).then(function(j){o.style.color=j.ok?"#0d7a58":"#d64545";o.textContent=j.message||(j.ok?"Gracias":"Error");if(j.ok)f.reset();}).catch(function(){o.style.color="#d64545";o.textContent="Error de conexión.";});});})();</script>';
         }
         echo '</div>';
@@ -1198,19 +1567,84 @@ if (($segments[0] ?? '') === 'cotizacion' && !empty($segments[1])) {
 
 if (($segments[0] ?? '') === 'producto' && !empty($segments[1])) {
     $product = sonika_find($segments[1]);
+    if (!$product && function_exists('sonika_find_fuzzy')) {
+        $product = sonika_find_fuzzy($segments[1]);
+        if ($product) {
+            $__canonicalProduct = '/producto/' . rawurlencode((string)($product['handle'] ?? ''));
+            $__refProduct = function_exists('sonika_aff_ref') ? sonika_aff_ref() : '';
+            if ($__refProduct !== '') $__canonicalProduct .= '?ref=' . rawurlencode($__refProduct);
+            header('Location: ' . $__canonicalProduct, true, 301);
+            exit;
+        }
+    }
     if ($product) {
+        $__privateProduct = \App\Services\IpAccessService::isPrivate($product);
+        if ($__privateProduct) header('X-Robots-Tag: noindex, nofollow, noarchive');
         $cat = null;
-        foreach (sonika_categories() as $c) { if (sonika_match($product, $c['kw'])) { $cat = $c; break; } }
+        $__txProduct = sonika_product_taxonomy($product);
+        $__txKey = (string)($__txProduct['type'] ?? '');
+        if ($__txKey === '') $__txKey = (string)($__txProduct['family'] ?? '');
+        if ($__txKey === '') $__txKey = (string)($__txProduct['parent'] ?? '');
+        if ($__txKey !== '') $cat = sonika_category($__txKey);
+        if (!$cat) {
+            foreach (sonika_categories() as $c) { if (sonika_match($product, $c['kw'])) { $cat = $c; break; } }
+        }
         if (!empty($_COOKIE[session_name()])) \App\Core\Session::start();
-        sonika_site_head(($product['title'] ?? 'Producto') . ' — SONIKA', mb_substr(strip_tags($product['body_html'] ?? ''), 0, 155));
+        $__pdpTitleText = trim((string)($product['_seo_title'] ?? '')) ?: (string)($product['title'] ?? 'Producto');
+        $__pdpBodyText = trim((string)preg_replace('/\s+/', ' ', strip_tags((string)($product['body_html'] ?? ''))));
+        $__pdpSeoText = trim((string)preg_replace('/\s+/', ' ', (string)($product['_seo_description'] ?? '')));
+        $__pdpDescText = mb_strlen($__pdpBodyText) >= 60 ? $__pdpBodyText : $__pdpSeoText;
+        if ($__pdpDescText === '') {
+            $__pdpVendor = trim((string)($product['vendor'] ?? ''));
+            $__pdpDescText = $__pdpTitleText . ($__pdpVendor !== '' ? ' de ' . $__pdpVendor : '') . '. Compra en SONIKA con envío a toda Colombia.';
+        }
+        $__pdpHeadDesc = trim((string)mb_substr($__pdpDescText, 0, 155));
+        if (mb_strlen($__pdpDescText) > 155 && preg_match('/^(.{40,})\s\S*$/u', $__pdpHeadDesc, $__m)) $__pdpHeadDesc = rtrim($__m[1], " ,.;:") . '…';
+        $__pdpHeadImg = (string)($product['images'][0]['src'] ?? '');
+        if ($__pdpHeadImg !== '' && !preg_match('~^https?://~i', $__pdpHeadImg)) $__pdpHeadImg = sonika_origin() . '/' . ltrim($__pdpHeadImg, '/');
+        $__pdpHeadTitle = $__pdpTitleText . (mb_strlen($__pdpTitleText) <= 55 ? ' — SONIKA' : '');
+        sonika_site_head($__pdpHeadTitle, $__pdpHeadDesc, null, $__privateProduct, $__pdpHeadImg);
         $crumbs = [];
-        if ($cat) { $crumbs[$cat['name']] = '/' . $cat['slug']; }
+        if ($cat) {
+            foreach (sonika_category_ancestors((string)$cat['key']) as $__ancP) $crumbs[$__ancP['name']] = $__ancP['url'];
+            $crumbs[$cat['name']] = $cat['url'];
+        }
         $crumbs[$product['title'] ?? 'Producto'] = null;
         sonika_breadcrumb($crumbs);
         $img = sonika_img($product, 900);
         $price = sonika_price($product);
         $cmp = sonika_compare($product);
         $avail = sonika_available($product);
+        $__pdpUrl = sonika_origin() . '/producto/' . rawurlencode((string)($product['handle'] ?? ''));
+        $__pdpImage = (string)$img;
+        if ($__pdpImage !== '' && !preg_match('~^https?://~i', $__pdpImage)) $__pdpImage = sonika_origin() . '/' . ltrim($__pdpImage, '/');
+        $__pdpSku = (string)(sonika_variant($product)['sku'] ?? '');
+        $__pdpBrand = trim((string)($product['vendor'] ?? ''));
+        $__pdpDesc = $__pdpDescText;
+        if (mb_strlen($__pdpDesc) > 800) $__pdpDesc = mb_substr($__pdpDesc, 0, 800);
+        $__pdpSchema = [
+            'name' => (string)($product['title'] ?? 'Producto'),
+            'description' => $__pdpDesc,
+            'url' => $__pdpUrl,
+            'sku' => $__pdpSku,
+            'brand' => ['@type' => 'Brand', 'name' => $__pdpBrand !== '' ? $__pdpBrand : 'SONIKA'],
+            'offers' => [
+                '@type' => 'Offer',
+                'url' => $__pdpUrl,
+                'priceCurrency' => (string)wwi_setting('store_currency', 'COP'),
+                'price' => number_format((float)$price, 2, '.', ''),
+                'itemCondition' => 'https://schema.org/NewCondition',
+                'availability' => $avail ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+                'seller' => ['@type' => 'Organization', 'name' => 'SONIKA', 'url' => sonika_origin() . '/'],
+            ],
+        ];
+        if ($__pdpImage !== '') $__pdpSchema['image'] = [$__pdpImage];
+        echo \App\Services\SeoService::jsonLd('Product', $__pdpSchema);
+        $__pdpCrumbs = ['Inicio' => sonika_origin() . '/'];
+        foreach ($crumbs as $__cn => $__cu) {
+            $__pdpCrumbs[$__cn] = $__cu === null ? null : (preg_match('~^https?://~i', (string)$__cu) ? (string)$__cu : sonika_origin() . '/' . ltrim((string)$__cu, '/'));
+        }
+        echo \App\Services\SeoService::breadcrumbs($__pdpCrumbs);
         $__shareCfg = sonika_share_settings();
         $__shareProduct = sonika_share_enabled('product') && ($avail || !empty($__shareCfg['show_unavailable']));
         $__disableOosAdd = !empty(sonika_catalog_settings()['disable_oos_add']);
@@ -1243,6 +1677,9 @@ if (($segments[0] ?? '') === 'producto' && !empty($segments[1])) {
             <?= sonika_product_insights_html($__pdpInsights, true) ?>
             <div class="meta">
               <span class="chip <?= $avail ? 'ok' : 'no' ?>"><?= $avail ? '● ' . sonika_esc(\App\Core\Lang::get('available', 'Disponible')) : '● ' . sonika_esc(\App\Core\Lang::get('out_of_stock', 'Agotado')) ?></span>
+              <?php if (!empty($product['_free_shipping'])): ?><span class="chip ok">Envío gratis</span><?php endif; ?>
+              <?php if (!empty($product['_tax_exempt'])): ?><span class="chip">Sin IVA</span><?php endif; ?>
+              <?php if ($__privateProduct): ?><span class="chip">Vista privada</span><?php endif; ?>
               <?php if (!empty($product['product_type'])): ?><span class="chip"><?= sonika_esc($product['product_type']) ?></span><?php endif; ?>
               <span class="chip">SKU <?= sonika_esc(sonika_variant($product)['sku'] ?? '—') ?></span>
             </div>
@@ -1255,7 +1692,7 @@ if (($segments[0] ?? '') === 'producto' && !empty($segments[1])) {
                 <button type="button" onclick="var i=document.getElementById('qty');i.value=(+i.value)+1">+</button>
               </div>
               <?php $__quoteCat = function_exists('sonika_effective_category') ? trim((string)sonika_effective_category($product)) : ''; if ($__quoteCat === '') $__quoteCat = is_array($cat) ? (string)($cat['name'] ?? '') : ''; if ($__quoteCat === '') $__quoteCat = 'Productos'; ?>
-              <button class="btn-buy" type="button" data-add="<?= sonika_esc($product['handle']) ?>" data-pdp-add="1" data-cart-url="/carrito" data-qty-target="qty" data-title="<?= sonika_esc($product['title']) ?>" data-price="<?= (float)$price ?>" data-img="<?= sonika_esc(sonika_img($product)) ?>" data-category="<?= sonika_esc($__quoteCat) ?>" data-sku="<?= sonika_esc((string)(sonika_variant($product)['sku'] ?? '')) ?>" data-product-id="<?= (int)($product['id'] ?? 0) ?>" data-available="<?= $avail ? '1' : '0' ?>" data-url="/producto/<?= sonika_esc($product['handle']) ?>"><?= sonika_esc(\App\Core\Lang::get('add_to_cart', 'Agregar al carrito')) ?></button>
+              <button class="btn-buy" type="button" data-add="<?= sonika_esc($product['handle']) ?>" data-pdp-add="1" data-cart-url="/carrito" data-qty-target="qty" data-title="<?= sonika_esc($product['title']) ?>" data-price="<?= (float)$price ?>" data-img="<?= sonika_esc(sonika_img($product)) ?>" data-category="<?= sonika_esc($__quoteCat) ?>" data-sku="<?= sonika_esc((string)(sonika_variant($product)['sku'] ?? '')) ?>" data-product-id="<?= (int)($product['id'] ?? 0) ?>" data-available="<?= $avail ? '1' : '0' ?>" data-free-shipping="<?= !empty($product['_free_shipping']) ? '1' : '0' ?>" data-url="/producto/<?= sonika_esc($product['handle']) ?>"><?= sonika_esc(\App\Core\Lang::get('add_to_cart', 'Agregar al carrito')) ?></button>
               <a class="cta sec" href="/carrito" style="margin:0" data-pdp-cart-shortcut><?= sonika_esc(\App\Core\Lang::get('go_to_cart', 'Ir al carrito')) ?></a>
               <button class="pdp-add-more" type="button" data-pdp-add-more hidden>Agregar otra unidad</button>
               <?php endif; ?>
@@ -1317,10 +1754,14 @@ if (($segments[0] ?? '') === 'producto' && !empty($segments[1])) {
 
 $cat = sonika_category($path);
 if ($cat) {
-    $baseProducts = sonika_category_products($cat['slug']);
+    $__tax = sonika_taxonomy();
+    $__catKey = (string)$cat['key'];
+    $__catAncestors = sonika_category_ancestors($__catKey);
+    $__catChildren = $__tax ? $__tax->children($__catKey) : [];
+    $baseProducts = sonika_category_products($__catKey);
     $filtered = sonika_filter_collection($baseProducts, $_GET);
     $pg = sonika_slice($filtered, 24);
-    $baseUrl = '/' . $cat['slug'];
+    $baseUrl = (string)$cat['url'];
     $pagerUrl = sonika_shop_filter_url($baseUrl, $_GET, ['page' => true, 'shop_ajax' => true]);
     if (!empty($_GET['shop_ajax'])) {
         $gpClean = $_GET; unset($gpClean['shop_ajax']);
@@ -1329,8 +1770,44 @@ if ($cat) {
         echo json_encode(sonika_shop_ajax_payload($pg, $gpClean, $baseUrl, $pagerUrl), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         return true;
     }
-    sonika_site_head($cat['name'] . ' — SONIKA', $cat['name'] . ': ' . $cat['tags'] . '. Compra en SONIKA con envío a toda Colombia.');
-    sonika_breadcrumb([$cat['name'] => null]);
+    $__catTags = trim((string)($cat['tags'] ?? ''));
+    if ($__catTags === '' && $__catAncestors) $__catTags = trim((string)($__catAncestors[count($__catAncestors) - 1]['tags'] ?? ''));
+    $__catCount = sonika_category_count($__catKey);
+    $__catDesc = $cat['name'] . ($__catTags !== '' ? ': ' . $__catTags : '') . '. '
+        . ($__catCount > 0 ? 'Explora ' . $__catCount . ' productos disponibles' : 'Explora nuestra selección')
+        . ' en SONIKA con envío a toda Colombia, garantía y asesoría personalizada.';
+    sonika_site_head($cat['name'] . ' — SONIKA', $__catDesc, sonika_origin() . $cat['url']);
+    $__crumbs = [];
+    foreach ($__catAncestors as $__anc) $__crumbs[$__anc['name']] = $__anc['url'];
+    $__crumbs[$cat['name']] = null;
+    sonika_breadcrumb($__crumbs);
+    $__catUrl = sonika_origin() . $cat['url'];
+    $__catItems = [];
+    $__catPos = 1;
+    foreach (($pg['items'] ?? []) as $__cp) {
+        $__catItems[] = [
+            '@type' => 'ListItem',
+            'position' => $__catPos++,
+            'name' => (string)($__cp['title'] ?? ''),
+            'url' => sonika_origin() . '/producto/' . rawurlencode((string)($__cp['handle'] ?? '')),
+        ];
+    }
+    echo \App\Services\SeoService::jsonLd('CollectionPage', [
+        'name' => $cat['name'],
+        'description' => $__catDesc,
+        'url' => $__catUrl,
+        'inLanguage' => 'es-CO',
+        'mainEntity' => [
+            '@type' => 'ItemList',
+            'numberOfItems' => (int)($pg['total'] ?? count($__catItems)),
+            'itemListElement' => $__catItems,
+        ],
+    ]);
+    $__catCrumbs = ['Inicio' => sonika_origin() . '/'];
+    foreach ($__crumbs as $__cn => $__cu) {
+        $__catCrumbs[$__cn] = $__cu === null ? null : (preg_match('~^https?://~i', (string)$__cu) ? (string)$__cu : sonika_origin() . '/' . ltrim((string)$__cu, '/'));
+    }
+    echo \App\Services\SeoService::breadcrumbs($__catCrumbs);
     echo sonika_shop_css();
     $__shopFilters = \App\Widgets\WidgetRegistry::render('shop-filters', []);
     ?>
@@ -1338,9 +1815,17 @@ if ($cat) {
       <div class="head"><h1><?= sonika_esc($cat['name']) ?></h1><a href="/tienda">Ver toda la tienda →</a></div>
       <div class="filters" style="margin:0 0 18px">
         <?php foreach (sonika_categories() as $c): ?>
-          <a class="<?= $c['slug'] === $cat['slug'] ? 'on' : '' ?>" href="/<?= sonika_esc($c['slug']) ?>"><?= sonika_esc($c['name']) ?></a>
+          <a class="<?= $c['key'] === $cat['key'] ? 'on' : '' ?>" href="<?= sonika_esc($c['url']) ?>"><?= sonika_esc($c['name']) ?></a>
         <?php endforeach; ?>
       </div>
+      <?php if ($__catChildren): ?>
+      <div class="filters" style="margin:0 0 18px;background:#fafafa;border:1px solid #ececec;border-radius:12px;padding:10px 12px">
+        <span style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:#333;margin-right:4px">Subcategorías</span>
+        <?php foreach ($__catChildren as $__ch): $__chCount = sonika_category_count((string)$__ch['key']); ?>
+          <a href="<?= sonika_esc($__ch['url']) ?>"><?= sonika_esc($__ch['name']) ?><?php if ($__chCount > 0): ?> <span style="color:#777;font-weight:600;font-size:11px">(<?= $__chCount ?>)</span><?php endif; ?></a>
+        <?php endforeach; ?>
+      </div>
+      <?php endif; ?>
       <div class="shop-layout<?= trim($__shopFilters) === '' ? ' shop-layout--full' : '' ?>">
         <?= $__shopFilters ?>
         <div class="shop-results" id="shop-results">
@@ -1383,7 +1868,7 @@ switch ($segments[0] ?? '') {
           <div class="head"><h1>Tienda</h1><a href="/ofertas">Ofertas →</a></div>
           <div class="filters" style="margin-bottom:14px">
             <a href="/tienda" class="on">Todos</a>
-            <?php foreach (sonika_categories() as $c): ?><a href="/<?= sonika_esc($c['slug']) ?>"><?= sonika_esc($c['name']) ?></a><?php endforeach; ?>
+            <?php foreach (sonika_categories() as $c): ?><a href="<?= sonika_esc($c['url']) ?>"><?= sonika_esc($c['name']) ?></a><?php endforeach; ?>
           </div>
           <?php if ($__catalogTags): ?>
           <div class="tienda-tags"><span class="tienda-tags__label">Marcas destacadas</span><?php foreach ($__catalogTags as $__tag): ?><a class="tienda-tag" href="<?= sonika_esc(sonika_brand_url($__tag['slug'])) ?>"><?= sonika_esc($__tag['name']) ?><small><?= (int)$__tag['count'] ?></small></a><?php endforeach; ?></div>
@@ -1521,6 +2006,7 @@ switch ($segments[0] ?? '') {
         return true;
 
     case 'carrito':
+        header('X-Robots-Tag: noindex, nofollow');
         if (!empty($_COOKIE[session_name()])) \App\Core\Session::start();
         sonika_site_head('Carrito — SONIKA', 'Revisa los productos de tu carrito.');
         sonika_breadcrumb(['Carrito' => null]);
@@ -1529,6 +2015,8 @@ switch ($segments[0] ?? '') {
         return true;
 
     case 'checkout':
+        header('X-Robots-Tag: noindex, nofollow');
+        header('Cache-Control: private, no-store, max-age=0');
         sonika_site_head('Finalizar compra - SONIKA', 'Completa tus datos para finalizar la compra.');
         sonika_breadcrumb(['Carrito' => '/carrito', 'Finalizar compra' => null]);
         require __DIR__ . '/checkout.php';
@@ -1598,7 +2086,7 @@ switch ($segments[0] ?? '') {
                   <p>Esta selección reúne productos <?= sonika_esc($__brand['name']) ?> para músicos, estudiantes, productores y tiendas. Puedes filtrar por categoría, precio y disponibilidad desde el catálogo.</p>
                   <p>Si buscas una referencia específica, usa el buscador o contáctanos para ayudarte a elegir el modelo adecuado.</p>
                   <h3>Explora por categoría</h3>
-                  <ul><?php foreach (array_slice(sonika_categories(), 0, 6) as $__cat): ?><li><a href="/<?= sonika_esc((string)$__cat['slug']) ?>"><?= sonika_esc((string)$__cat['name']) ?></a></li><?php endforeach; ?></ul>
+                  <ul><?php foreach (array_slice(sonika_categories(), 0, 6) as $__cat): ?><li><a href="<?= sonika_esc((string)$__cat['url']) ?>"><?= sonika_esc((string)$__cat['name']) ?></a></li><?php endforeach; ?></ul>
                 </div>
                 <div class="brands-faq">
                   <h2>Preguntas frecuentes</h2>
@@ -1642,7 +2130,7 @@ switch ($segments[0] ?? '') {
             <p>En SONIKA reunimos <?= count($__brands) ?> marcas para que encuentres guitarras, acordeones, percusión, pianos, audio profesional, micrófonos, iluminación y accesorios. Explora por marca y compra con envío nacional.</p>
             <div class="brands-stats"><span><b><?= count($__brands) ?></b> marcas</span><span><b><?= number_format($__totalProducts, 0, ',', '.') ?></b> productos</span><span><b>Envío</b> nacional</span></div>
             <div class="brands-cats">
-              <?php foreach (sonika_categories() as $__cat): ?><a class="brands-cat" href="/<?= sonika_esc((string)$__cat['slug']) ?>"><?= sonika_esc((string)$__cat['name']) ?></a><?php endforeach; ?>
+              <?php foreach (sonika_categories() as $__cat): ?><a class="brands-cat" href="<?= sonika_esc((string)$__cat['url']) ?>"><?= sonika_esc((string)$__cat['name']) ?></a><?php endforeach; ?>
             </div>
           </div>
           <section class="brands-section" id="brands-featured">
@@ -1687,7 +2175,16 @@ switch ($segments[0] ?? '') {
         sonika_site_footer();
         return true;
 
+    case 'tarjetas-de-regalo':
+        sonika_site_head('Tarjetas de regalo SONIKA | Regala música, regala SONIKA', 'Compra tarjetas de regalo SONIKA por ocasión: cumpleaños, grado, Navidad, Día de la Madre, Día del Padre, Amor y Amistad, Día del Músico, patrocinio al talento y más. Código y PIN canjeable en la tienda.', 'https://sonika.com.co/tarjetas-de-regalo');
+        sonika_breadcrumb(['Tarjetas de regalo' => null]);
+        require __DIR__ . '/tarjetas-regalo.php';
+        sonika_site_footer();
+        return true;
+
     case 'cuenta':
+        header('X-Robots-Tag: noindex, nofollow');
+        header('Cache-Control: private, no-store, max-age=0');
         sonika_site_head('Mi cuenta — SONIKA', 'Administra tu cuenta, pedidos, direcciones y favoritos.');
         sonika_breadcrumb(['Mi cuenta' => null]);
         ?>

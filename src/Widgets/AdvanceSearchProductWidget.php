@@ -36,6 +36,7 @@ class AdvanceSearchProductWidget extends Widget
             ['key' => 'show_available', 'label' => 'Filtro: disponibilidad', 'type' => 'toggle', 'default' => true],
             ['key' => 'new_days', 'label' => 'Novedades: días hacia atrás', 'type' => 'number', 'default' => 90],
             ['key' => 'max_price', 'label' => 'Precio máximo (0 = autodetectar)', 'type' => 'number', 'default' => 0],
+            ['key' => 'suggest_limit', 'label' => 'Resultados visibles en sugerencias (mín. 10)', 'type' => 'number', 'default' => 10, 'min' => 10, 'max' => 20, 'step' => 1],
         ];
     }
 
@@ -81,6 +82,7 @@ class AdvanceSearchProductWidget extends Widget
         $sliderMax = $maxPrice > 0 ? $maxPrice : 1000000;
         $step = max(1000, (int)round($sliderMax / 200 / 1000) * 1000);
         $newDays = max(1, (int)($c['new_days'] ?? 90));
+        $suggestLimit = max(10, min(20, (int)($c['suggest_limit'] ?? 10)));
 
         $g = fn($k) => isset($_GET[$k]) ? (string)$_GET[$k] : '';
         $q = $g('q');
@@ -93,15 +95,18 @@ class AdvanceSearchProductWidget extends Widget
         ob_start();
         echo $this->assets();
         ?>
-<form class="search ska" action="/buscar" method="get" role="search" autocomplete="off" id="ska-form" data-max="<?= (float)$sliderMax ?>" data-brands="<?= $esc(implode(',', array_map(fn($b) => $b[0], $brands))) ?>" data-types="<?= $esc(implode(',', array_map(fn($t) => $t[0], $types))) ?>" data-cats="<?= $esc(implode(',', array_map(fn($c) => $c[0], $cats))) ?>">
-  <span class="s-ic" aria-hidden="true">&#128269;</span>
+<form class="search ska" action="/buscar" method="get" role="search" autocomplete="off" id="ska-form" data-max="<?= (float)$sliderMax ?>" data-suggest-limit="<?= (int)$suggestLimit ?>" data-brands="<?= $esc(implode(',', array_map(fn($b) => $b[0], $brands))) ?>" data-types="<?= $esc(implode(',', array_map(fn($t) => $t[0], $types))) ?>" data-cats="<?= $esc(implode(',', array_map(fn($c) => $c[0], $cats))) ?>">
+  <span class="s-ic" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M16.2 16.2 21 21"/></svg></span>
   <input type="search" name="q" id="skSearch" placeholder="<?= $esc($placeholder) ?>" aria-label="Buscar productos" value="<?= $esc($q) ?>" />
   <?php if (!empty($c['show_ai'])): ?><button type="button" class="ska-ai" onclick="skaAi()" title="Buscar con IA (TIA)">&#10024;</button><?php endif; ?>
   <button type="button" class="ska-toggle" onclick="skaToggle(this)" aria-expanded="false" aria-controls="ska-panel" title="Filtros avanzados" aria-label="Filtros avanzados">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="6" y1="3" x2="6" y2="21"/><line x1="12" y1="3" x2="12" y2="21"/><line x1="18" y1="3" x2="18" y2="21"/><circle cx="6" cy="8.5" r="2.6" fill="currentColor" stroke="none"/><circle cx="12" cy="15" r="2.6" fill="currentColor" stroke="none"/><circle cx="18" cy="6.5" r="2.6" fill="currentColor" stroke="none"/></svg>
   </button>
   <button type="submit">Buscar</button>
-  <div class="sug" id="skSug" role="listbox" aria-label="Sugerencias" hidden></div>
+  <div class="sug" id="skSug" hidden>
+    <div class="sug-list" id="skSugList" role="listbox" aria-label="Sugerencias"></div>
+    <a class="sug-all" id="skSugAll" hidden></a>
+  </div>
 
   <div class="ska-panel" id="ska-panel" hidden>
     <?php if (!empty($c['show_price'])): ?>
@@ -193,8 +198,14 @@ class AdvanceSearchProductWidget extends Widget
 .ska-clear{font-size:12.5px;color:#777}
 .ska-apply{border:none;border-radius:10px;background:var(--sk-primary,#F20D16);color:#fff;font-weight:700;font-size:13px;padding:11px 20px;cursor:pointer}
 .ska-apply:hover{filter:brightness(.95)}
-.sug{position:absolute;top:calc(100% + 6px);left:0;right:0;background:#fff;border:1px solid #E6E6E6;border-radius:12px;box-shadow:0 20px 44px rgba(0,0,0,.16);z-index:150;overflow:hidden;max-height:60vh;overflow-y:auto}
+.sug{position:absolute;top:calc(100% + 6px);left:0;right:0;background:#fff;border:1px solid #E6E6E6;border-radius:12px;box-shadow:0 20px 44px rgba(0,0,0,.16);z-index:150;display:flex;flex-direction:column;overflow:hidden;max-height:60vh}
 .sug[hidden]{display:none}
+.sug-list{min-height:0;overflow-y:auto;overscroll-behavior:contain}
+.sug-all{display:flex;align-items:center;justify-content:center;gap:5px;flex:0 0 auto;padding:11px 12px;border-top:1px solid #F0F0F0;background:#fff;color:#111;text-decoration:none;font-size:12px;font-weight:700;line-height:1.35;text-align:center}
+.sug-all b{color:var(--sk-primary,#F20D16);font-weight:800}
+.sug-all:hover{background:#FFF8F8}
+.sug-all:focus-visible{outline:2px solid var(--sk-primary,#F20D16);outline-offset:-2px}
+.sug-all[hidden]{display:none}
 .ska-sug-i{display:flex;align-items:center;gap:10px;padding:8px 12px;text-decoration:none;color:#111;border-bottom:1px solid #F2F2F2}
 .ska-sug-i:last-child{border-bottom:0}
 .ska-sug-i:hover,.ska-sug-i.is-cur{background:#F5F5F5}
@@ -209,18 +220,18 @@ class AdvanceSearchProductWidget extends Widget
 .ska-ai{border:none;background:transparent;color:var(--sk-primary,#F20D16);cursor:pointer;font-size:15px;padding:0 8px;align-self:stretch}
 @media(max-width:900px){.ska-panel{grid-template-columns:1fr}}
 </style>
-<script>if(!window.skaToggle){window.skaToggle=function(b){var p=document.getElementById('ska-panel');if(!p)return;var on=p.hidden;p.hidden=!on;b.setAttribute('aria-expanded',on?'true':'false')};
+<script>if(!window.skaToggle){window.skaToggle=function(b){var p=document.getElementById('ska-panel');if(!p)return;var on=p.hidden;p.hidden=!on;b.setAttribute('aria-expanded',on?'true':'false')};window.skaReady=function(fn){if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',fn,{once:true})}else{setTimeout(fn,0)}};
 window.skaSync=function(){var f=document.getElementById('ska-form');if(!f)return;var a=document.getElementById('ska-min'),b=document.getElementById('ska-max');if(!a||!b)return;var max=parseFloat(f.getAttribute('data-max'))||0;var mn=parseFloat(a.value),mx=parseFloat(b.value);if(mn>mx){if(document.activeElement===a)a.value=mx;else b.value=mn;mn=parseFloat(a.value);mx=parseFloat(b.value)}var fmt=function(n){return '$'+Math.round(n).toLocaleString('es-CO')};document.getElementById('ska-min-o').textContent=fmt(mn);document.getElementById('ska-max-o').textContent=fmt(mx)+(mx>=max?'+':'')};
 window.skaAi=function(){var f=document.getElementById('ska-form');if(!f)return;var inp=document.getElementById('skSearch');var phrase=(inp&&inp.value||'').trim();if(phrase.length<3){if(inp){inp.focus();inp.style.boxShadow='0 0 0 2px rgba(242,13,22,.4)'}return}var btn=document.querySelector('.ska-ai');if(btn)btn.textContent='\u23F3';fetch('/api/v1/public/search/ai',{method:'POST',headers:{'Content-Type':'application/json; charset=UTF-8'},body:JSON.stringify({phrase:phrase,brands:f.getAttribute('data-brands')||'',types:f.getAttribute('data-types')||'',cats:f.getAttribute('data-cats')||''})}).then(function(r){return r.json()}).then(function(d){if(btn)btn.textContent='\u2728';if(!d||!d.ok){f.submit();return}var qs=[];Object.keys(d.filters||{}).forEach(function(k){qs.push(encodeURIComponent(k)+'='+encodeURIComponent(d.filters[k]))});window.location='/buscar?'+qs.join('&')}).catch(function(){if(btn)btn.textContent='\u2728';f.submit()})};window.skaEsc=function(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})};
 window.skaInf=function(){var more=document.getElementById('skaMore');if(!more||!('IntersectionObserver' in window))return;if(window.__skaIO)window.__skaIO.disconnect();window.__skaIO=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){var b=document.querySelector('#skaMore .ska-more');if(b&&!b.disabled)window.skaLoadMore(b)}})},{rootMargin:'500px'});window.__skaIO.observe(more)};
 window.skaLoadMore=function(btn){var f=document.getElementById('ska-form');if(!f)return;var pg=parseInt(btn.getAttribute('data-page'),10)||1;var qs=new URLSearchParams(new FormData(f));qs.set('page',pg+1);btn.textContent='Cargando\u2026';btn.disabled=true;fetch('/buscar/live?'+qs.toString()).then(function(r){return r.json()}).then(function(d){var g=document.getElementById('skResults');if(!g||!d||!d.ok)return;var more=document.getElementById('skaMore');var tmp=document.createElement('div');tmp.innerHTML=d.items||'';if(more)g.insertBefore(tmp,more);else g.appendChild(tmp);if(d.has_more){more.setAttribute('data-page',pg+1);btn.textContent='Cargar m\u00e1s';btn.disabled=false;window.skaInf()}else{if(more)more.remove()}}).catch(function(){btn.textContent='Cargar m\u00e1s';btn.disabled=false})};
-(function(){var inp=document.getElementById('skSearch'),box=document.getElementById('skSug');if(!inp||inp.__sugWired)return;inp.__sugWired=1;var t=null,esc=window.skaEsc;
-inp.addEventListener('input',function(){clearTimeout(t);var q=inp.value.trim();if(q.length<3){if(box){box.hidden=true;box.innerHTML=''}return}t=setTimeout(function(){fetch('/buscar/sugerencias?q='+encodeURIComponent(q)).then(function(r){return r.json()}).then(function(d){var res=(d&&d.results)||[];if(!box)return;if(!res.length){box.hidden=true;box.innerHTML='';return}box.innerHTML=res.map(function(x){return '<a class="ska-sug-i" href="'+esc(x.url)+'"><span class="ska-sug-img">'+(x.thumb?'<img src="'+esc(x.thumb)+'" alt="" loading="lazy"/>':'')+'</span><span class="ska-sug-b"><span class="ska-sug-t">'+esc(x.title)+'</span><span class="ska-sug-v">'+esc(x.vendor||'')+'</span></span><span class="ska-sug-p">'+esc('$'+Number(x.price||0).toLocaleString('es-CO'))+'</span></a>'}).join('');box.hidden=false}).catch(function(){})},160)});
+window.skaReady(function(){(function(){var inp=document.getElementById('skSearch'),box=document.getElementById('skSug');if(!inp||inp.__sugWired)return;inp.__sugWired=1;var t=null,esc=window.skaEsc;
+inp.addEventListener('input',function(){clearTimeout(t);var q=inp.value.trim();if(q.length<3){if(box){box.hidden=true;var l0=document.getElementById('skSugList');if(l0)l0.innerHTML='';var a0=document.getElementById('skSugAll');if(a0){a0.hidden=true;a0.removeAttribute('href')}}return}t=setTimeout(function(){var f=document.getElementById('ska-form');var params=new URLSearchParams(f?new FormData(f):undefined);params.set('q',q);params.set('limit',(f&&f.getAttribute('data-suggest-limit'))||'10');fetch('/buscar/sugerencias?'+params.toString()).then(function(r){return r.json()}).then(function(d){var res=(d&&d.results)||[];if(!box)return;var list=document.getElementById('skSugList');var all=document.getElementById('skSugAll');if(!list||!all){box.innerHTML='<div class="sug-list" id="skSugList" role="listbox" aria-label="Sugerencias"></div><a class="sug-all" id="skSugAll" hidden></a>';list=document.getElementById('skSugList');all=document.getElementById('skSugAll')}if(!res.length){box.hidden=true;if(list)list.innerHTML='';if(all){all.hidden=true;all.removeAttribute('href')}return}list.innerHTML=res.map(function(x){return '<a class="ska-sug-i" href="'+esc(x.url)+'"><span class="ska-sug-img">'+(x.thumb?'<img src="'+esc(x.thumb)+'" alt="" loading="lazy"/>':'')+'</span><span class="ska-sug-b"><span class="ska-sug-t">'+esc(x.title)+'</span><span class="ska-sug-v">'+esc(x.vendor||'')+'</span></span><span class="ska-sug-p">'+esc('$'+Number(x.price||0).toLocaleString('es-CO'))+'</span></a>'}).join('');var total=parseInt(d.total,10)||res.length;if(total>res.length){all.href=d.url||('/buscar?q='+encodeURIComponent(q));all.innerHTML='Hay '+total.toLocaleString('es-CO')+' productos disponibles: <b>Verlos todos</b> <span aria-hidden="true">&#8594;</span>';all.hidden=false}else{all.hidden=true;all.removeAttribute('href')}box.hidden=false}).catch(function(){})},160)});
 inp.addEventListener('keydown',function(e){if(!box||box.hidden)return;var items=box.querySelectorAll('.ska-sug-i');if(!items.length)return;var cur=-1;for(var i=0;i<items.length;i++)if(items[i].classList.contains('is-cur'))cur=i;if(e.key==='ArrowDown'){e.preventDefault();cur=Math.min(items.length-1,cur+1)}else if(e.key==='ArrowUp'){e.preventDefault();cur=Math.max(0,cur-1)}else if(e.key==='Enter'){if(cur>=0){e.preventDefault();location.href=items[cur].getAttribute('href')}return}else if(e.key==='Escape'){box.hidden=true;return}else return;for(var j=0;j<items.length;j++)items[j].classList.toggle('is-cur',j===cur);if(cur>=0&&items[cur].scrollIntoView)items[cur].scrollIntoView({block:'nearest'})});
 document.addEventListener('click',function(e){if(box&&!box.hidden&&!e.target.closest('#ska-form'))box.hidden=true});
-})();
+})();});
 window.addEventListener('submit',function(e){var f=e.target;if(!f||!f.classList||!f.classList.contains('ska'))return;if(!document.getElementById('skResults'))return;e.preventDefault();var qs=new URLSearchParams(new FormData(f)).toString();fetch('/buscar/live?'+qs).then(function(r){return r.json()}).then(function(d){if(!d||!d.ok){f.submit();return}var c=document.getElementById('skCount');if(c)c.textContent=d.count+' resultado(s)';var g=document.getElementById('skResults');if(g)g.innerHTML=(d.items||d.html||'')+(d.has_more?'<div id="skaMore" style="text-align:center;margin:18px 0"><button type="button" class="ska-more" data-page="1" onclick="skaLoadMore(this)">Cargar m\u00e1s</button></div>':'');window.skaInf&&skaInf();try{history.pushState({},'','/buscar?'+qs)}catch(x){}}).catch(function(){f.submit()})});window.addEventListener('change',function(e){var f=(e.target&&e.target.closest)?e.target.closest('form.ska'):null;if(!f)return;if(!document.getElementById('skResults'))return;if(e.target.matches&&e.target.matches('select,input[type=checkbox]')){if(f.requestSubmit)f.requestSubmit();else f.submit()}});
-(function(){var g=document.getElementById('skResults');if(!g)return;if(!g.querySelector('.prod-grid'))return;if(document.getElementById('skaMore'))return;var d=document.createElement('div');d.id='skaMore';d.style.cssText='text-align:center;margin:18px 0';d.innerHTML='<button type="button" class="ska-more" data-page="1" onclick="skaLoadMore(this)">Cargar m\u00e1s</button>';g.appendChild(d);if(window.skaInf)skaInf()})();}</script>
+window.skaReady(function(){(function(){var g=document.getElementById('skResults');if(!g)return;if(!g.querySelector('.prod-grid'))return;if(document.getElementById('skaMore'))return;var d=document.createElement('div');d.id='skaMore';d.style.cssText='text-align:center;margin:18px 0';d.innerHTML='<button type="button" class="ska-more" data-page="1" onclick="skaLoadMore(this)">Cargar m\u00e1s</button>';g.appendChild(d);if(window.skaInf)skaInf()})();});}</script>
 HTML;
     }
 }

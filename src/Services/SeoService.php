@@ -15,6 +15,15 @@ class SeoService
         $ogImage = $page['og_image'] ?? "$url/assets/wontia-og.png";
         $path = trim((string)($page['slug'] ?? ''), '/');
         $canonical = $page['canonical_url'] ?? rtrim($url, '/') . '/' . $path;
+        $technical = '';
+        $technicalUrl = $canonical;
+        try {
+            $brickCanonical = \App\Bricks\SeoGlobalLaunch\SeoGlobalLaunchBrick::canonicalForUrl($technicalUrl);
+            if ($brickCanonical !== '') $canonical = $brickCanonical;
+            $technical = \App\Bricks\SeoGlobalLaunch\SeoGlobalLaunchBrick::technicalHeadTags($technicalUrl);
+        } catch (\Throwable $e) {
+            $technical = '';
+        }
 
         $html = "    <title>$title</title>\n";
         $html .= "    <meta name=\"description\" content=\"$desc\">\n";
@@ -30,12 +39,15 @@ class SeoService
         $html .= "    <meta name=\"twitter:title\" content=\"$title\">\n";
         $html .= "    <meta name=\"twitter:description\" content=\"$desc\">\n";
         $html .= "    <link rel=\"canonical\" href=\"$canonical\">\n";
+        if ($technical !== '') $html .= "    " . str_replace("\n", "\n    ", rtrim($technical, "\n")) . "\n";
         if (!empty($page['no_index'])) {
             $html .= "    <meta name=\"robots\" content=\"noindex, nofollow\">\n";
         }
         // SEO Tracking (visitas, links, CTA, formularios) — solo páginas públicas indexables.
         if (empty($page['no_index'])) {
-            $v = rawurlencode(Config::get('APP_VERSION', '1'));
+            $v = @filemtime(defined('ROOT_DIR') ? ROOT_DIR . '/public/assets/js/seo-track.js' : '');
+            if (!$v) $v = Config::get('APP_VERSION', '1');
+            $v = rawurlencode((string)$v);
             $html .= "    <script src=\"/assets/js/seo-track.js?v=$v\" defer></script>\n";
         }
 
@@ -53,7 +65,9 @@ class SeoService
         $list = [];
         $pos = 1;
         foreach ($items as $name => $url) {
-            $list[] = ['@type' => 'ListItem', 'position' => $pos, 'name' => $name, 'item' => $url];
+            $entry = ['@type' => 'ListItem', 'position' => $pos, 'name' => $name];
+            if ($url !== null && $url !== '') $entry['item'] = $url;
+            $list[] = $entry;
             $pos++;
         }
         return self::jsonLd('BreadcrumbList', ['itemListElement' => $list]);

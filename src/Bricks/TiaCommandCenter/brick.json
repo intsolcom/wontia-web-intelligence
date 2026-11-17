@@ -1,0 +1,28 @@
+{
+    "name": "TIA Command Center",
+    "slug": "tia-command-center",
+    "version": "0.1.0",
+    "description": "Centro de Información Universal (CIU) de TIA: conocimiento exacto de productos, categorías, páginas y secciones de SONIKA.",
+    "author": "Wontia",
+    "category": "ai",
+    "brick_class": "App\\Bricks\\TiaCommandCenter\\TiaCommandCenterBrick",
+    "requires": {
+        "php": ">=8.1",
+        "extensions": ["pdo_mysql", "json"]
+    },
+    "config": {
+        "enabled": true,
+        "sync_on_catalog_change": true
+    },
+    "features": [
+        "Base de conocimiento CIU en texto",
+        "Ingestión de productos, categorías, páginas, secciones y blog",
+        "Búsqueda léxica y contexto para TIA",
+        "Preguntas sin respuesta para detectar huecos",
+        "Sincronización manual y panel de cobertura"
+    ],
+    "tags": ["tia", "ciu", "knowledge", "support", "sonika"],
+    "changelog": {
+        "0.1.0": "Primera versión: tablas CIU, ingestión desde catálogo y CMS, panel y contexto para TIA."
+    }
+}

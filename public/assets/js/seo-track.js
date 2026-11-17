@@ -77,6 +77,7 @@
     if (!e.fbclid && fbclid) e.fbclid = fbclid;
     if (!e.gclid && gclid) e.gclid = gclid;
     if (!e.landing_url) e.landing_url = utm.landing || location.href;
+    if (!e.event_id) e.event_id = 'evt_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 10);
     if (['cart_add', 'cart_snapshot', 'checkout_start', 'checkout_abandon'].indexOf(e.type) !== -1 && !e.cart_items) e.cart_items = cartItems();
     buf.push(e);
     if (buf.length > 30) flush(false);
@@ -104,12 +105,22 @@
     } catch (e) {}
   }
   push({ type: 'page_view', session_id: sid, page_url: page, referrer: document.referrer || '', utm: utm, device: dev() });
+  var __top = (location.pathname.split('/')[1] || '').toLowerCase();
+  if (['cuerdas','percusion','vientos','teclados','audio','microfonos','iluminacion','accesorios'].indexOf(__top) !== -1) {
+    push({ type: 'view_category', session_id: sid, page_url: page, target: location.pathname, label: __top, utm: utm, device: dev() });
+  }
+  if (location.pathname.indexOf('/buscar') === 0 && q.get('q')) {
+    push({ type: 'search', session_id: sid, page_url: page, target: location.pathname, label: q.get('q'), utm: utm, device: dev() });
+  }
+  if (location.pathname === '/carrito') {
+    push({ type: 'view_cart', session_id: sid, page_url: page, target: '/carrito', utm: utm, device: dev() });
+  }
   if (location.pathname.indexOf('/producto/') === 0) push({ type: 'product_view', session_id: sid, page_url: page, target: location.pathname, label: document.title || '', device: dev() });
   if (window.SONIKA_PURCHASE && window.SONIKA_PURCHASE.status === 'paid') {
     var purchaseKey = 'wwi_purchase_' + (window.SONIKA_PURCHASE.uuid || '');
     try {
       if (!sessionStorage.getItem(purchaseKey)) {
-        push({ type: 'purchase', session_id: sid, page_url: page, target: window.SONIKA_PURCHASE.order_number || '', label: String(window.SONIKA_PURCHASE.value_cents || 0), utm: utm, device: dev() });
+        push({ type: 'purchase', session_id: sid, page_url: page, target: window.SONIKA_PURCHASE.order_number || '', label: String(window.SONIKA_PURCHASE.value_cents || 0), value_cents: parseInt(window.SONIKA_PURCHASE.value_cents || 0, 10) || 0, currency: window.SONIKA_PURCHASE.currency || 'COP', utm: utm, device: dev() });
         tiaOutcome('purchase', window.SONIKA_PURCHASE.order_number || '', parseInt(window.SONIKA_PURCHASE.value_cents || 0, 10), window.SONIKA_PURCHASE.uuid || '');
         sessionStorage.setItem(purchaseKey, '1');
       }
@@ -117,7 +128,8 @@
   }
   window.addEventListener('sonika:cart-add', function (ev) {
     var d = ev.detail || {};
-    push({ type: 'cart_add', session_id: sid, page_url: page, target: d.handle || '', label: d.title || '', utm: utm, device: dev() });
+    var price = Math.max(0, Math.round((parseFloat(d.price) || 0) * 100));
+    push({ type: 'cart_add', session_id: sid, page_url: page, target: d.handle || '', label: d.title || '', utm: utm, device: dev(), value_cents: price, currency: 'COP', items: [{ id: d.product_id || d.sku || d.handle || '', name: d.title || '', price_cents: price, qty: 1, sku: d.sku || '' }] });
     tiaOutcome('add_to_cart', d.handle || '', 0, '');
     flush(false);
   });
@@ -132,6 +144,8 @@
     var cta = t && t.closest ? t.closest('[data-cta],[data-track],.cta,.btn') : null;
     if (a && a.href) {
       push({ type: 'link_click', session_id: sid, page_url: page, target: a.href, label: (a.getAttribute('aria-label') || a.textContent || '').trim().slice(0, 120), device: dev() });
+      if (/wa\.me|whatsapp/i.test(a.href)) push({ type: 'whatsapp_click', session_id: sid, page_url: page, target: a.href, label: (a.getAttribute('aria-label') || a.textContent || 'whatsapp').trim().slice(0, 120), device: dev() });
+      else if (/^mailto:|^tel:/i.test(a.href) || a.href.indexOf('/soporte') !== -1) push({ type: 'contact_click', session_id: sid, page_url: page, target: a.href, label: (a.getAttribute('aria-label') || a.textContent || 'contacto').trim().slice(0, 120), device: dev() });
       if (a.hostname && a.hostname !== location.hostname) push({ type: 'outbound', session_id: sid, page_url: page, target: a.href, device: dev() });
     }
     if (cta) {

@@ -131,9 +131,30 @@ class SonikaFooterWidget extends Widget
             array_splice($explora, $__partnerAt, 0, [$__partners]);
         }
 
+        $hasGiftCards = false;
+        foreach ($explora as $__it) {
+            if (stripos((string)($__it['url'] ?? ''), '/tarjetas-de-regalo') !== false) {
+                $hasGiftCards = true;
+                break;
+            }
+        }
+        if (!$hasGiftCards) {
+            $__gift = ['label' => 'Tarjetas de regalo', 'url' => '/tarjetas-de-regalo'];
+            $__giftAt = count($explora);
+            foreach ($explora as $__i => $__it) {
+                if (stripos((string)($__it['label'] ?? ''), 'sonika partners') !== false) {
+                    $__giftAt = $__i + 1;
+                    break;
+                }
+            }
+            array_splice($explora, $__giftAt, 0, [$__gift]);
+        }
+
         $cats = [];
         if (function_exists('sonika_categories')) {
-            foreach (sonika_categories() as $slug => $cat) $cats[] = ['label' => $cat['name'], 'url' => '/buscar?cat=' . $slug];
+            foreach (sonika_categories() as $cat) {
+                $cats[] = ['label' => (string)$cat['name'], 'url' => (string)($cat['url'] ?? ('/' . $cat['slug']))];
+            }
         }
 
         $pol = $this->safeJson($c['policies'] ?? []);

@@ -3,9 +3,12 @@ namespace App\Controllers;
 
 use App\Core\Request;
 use App\Core\Response;
+use App\Services\BrebService;
 use App\Services\StoreRateLimitException;
 use App\Services\StoreService;
 use App\Services\ReviewService;
+use App\Services\ShippingService;
+use App\Services\SocialProofService;
 
 class StorePublicController
 {
@@ -31,6 +34,18 @@ class StorePublicController
             'min_order_cents' => (int)$s['store_min_order_cents'],
             'terms_url' => $s['store_terms_url'],
         ]]);
+    }
+
+    public function socialProof(): void
+    {
+        $svc = new SocialProofService();
+        $event = $svc->randomEvent();
+        if (!$event) {
+            Response::json(['ok' => false, 'message' => 'Prueba social no disponible.'], 404);
+            return;
+        }
+        header('Cache-Control: no-store, max-age=0');
+        Response::json(['ok' => true, 'data' => $event, 'stats' => $svc->stats()]);
     }
 
     public function reviews(Request $req): void
@@ -99,6 +114,25 @@ class StorePublicController
         Response::json(['ok' => true, 'data' => $svc->ready() ? $svc->zones(true) : []]);
     }
 
+    public function shippingDepartments(): void
+    {
+        try {
+            Response::json(['ok' => true, 'data' => (new ShippingService())->departments()]);
+        } catch (\Throwable $e) {
+            Response::error('No se pudieron cargar los departamentos', 500);
+        }
+    }
+
+    public function shippingMunicipalities(Request $req): void
+    {
+        try {
+            $department = (string)$req->get('department', '');
+            Response::json(['ok' => true, 'data' => (new ShippingService())->municipalities($department)]);
+        } catch (\Throwable $e) {
+            Response::error('No se pudieron cargar los municipios', 500);
+        }
+    }
+
     public function createOrder(Request $req): void
     {
         try {
@@ -120,6 +154,7 @@ class StorePublicController
             Response::json(['ok' => true, 'data' => [
                 'order_number' => $result['order']['order_number'] ?? '',
                 'uuid' => $result['order']['uuid'] ?? '',
+                'payment' => $result['payment'] ?? null,
             ]], 201);
         } catch (StoreRateLimitException $e) {
             Response::error($e->getMessage(), 429);
@@ -130,12 +165,46 @@ class StorePublicController
         }
     }
 
+    public function quote(Request $req): void
+    {
+        try {
+            $body = $req->json();
+            $items = (array)($body['items'] ?? []);
+            $method = (string)($body['payment_method'] ?? 'breb');
+            $coupon = (string)($body['coupon'] ?? '');
+            $points = (int)($body['points'] ?? 0);
+            $shipping = (array)($body['shipping'] ?? []);
+            $giftCard = (array)($body['gift_card'] ?? []);
+            $q = (new BrebService())->quote($items, $method, $coupon, $points, $shipping, $giftCard);
+            Response::json(['ok' => (bool)($q['ok'] ?? false), 'data' => $q], !empty($q['ok']) ? 200 : 400);
+        } catch (\Throwable $e) {
+            Response::error('No se pudo cotizar el pedido', 400);
+        }
+    }
+
+    public function uploadProof(Request $req, string $uuid): void
+    {
+        try {
+            $file = $_FILES['proof'] ?? $_FILES['file'] ?? [];
+            $r = (new BrebService())->uploadProof($uuid, (array)$file, $req->ip());
+            $status = (int)($r['status'] ?? (!empty($r['ok']) ? 200 : 422));
+            Response::json([
+                'ok' => (bool)($r['ok'] ?? false),
+                'message' => (string)($r['message'] ?? ''),
+                'data' => ['proof_status' => $r['proof_status'] ?? null, 'max_mb' => $r['max_mb'] ?? 2],
+            ], $status);
+        } catch (\Throwable $e) {
+            Response::error('No se pudo recibir el comprobante', 500);
+        }
+    }
+
     public function orderStatus(Request $req, string $uuid): void
     {
         $svc = $this->svc();
         if (!$svc->ready()) Response::error('Tienda no disponible', 404);
         $o = $svc->orderByUuid($uuid);
         if (!$o) Response::error('Pedido no encontrado', 404);
+        $payment = (new BrebService())->paymentInfo($o);
         Response::json(['ok' => true, 'data' => [
             'uuid' => $o['uuid'],
             'order_number' => $o['order_number'],
@@ -146,7 +215,65 @@ class StorePublicController
             'fulfillment_status' => $o['fulfillment_status'],
             'items' => $o['items'],
             'created_at' => $o['created_at'],
+            'payment' => $payment,
         ]]);
+    }
+
+    public function brebQrPdf(Request $req, string $uuid): void
+    {
+        try {
+            $svc = $this->svc();
+            $order = $svc->ready() ? $svc->orderByUuid($uuid) : null;
+            if (!$order || (string)($order['payment_method'] ?? '') !== 'breb') {
+                $this->textResponse(404, 'El QR de Bre-B no esta disponible para este pedido.');
+                return;
+            }
+            $info = (new BrebService())->paymentInfo($order);
+            $breb = (array)($info['breb'] ?? []);
+            if (empty($breb['qr_image'])) {
+                $this->textResponse(404, 'El QR de Bre-B no esta configurado.');
+                return;
+            }
+            $service = new \App\Services\BrebQrPdfService();
+            $pdf = $service->pdf($order, $breb);
+            header('Content-Type: application/pdf');
+            header('Content-Disposition: attachment; filename="' . $service->filename($order) . '"');
+            header('Content-Length: ' . strlen($pdf));
+            header('Cache-Control: private, no-store, max-age=0');
+            header('X-Content-Type-Options: nosniff');
+            echo $pdf;
+        } catch (\Throwable $e) {
+            $this->textResponse(500, 'No se pudo generar el PDF del QR.');
+        }
+    }
+
+    private function textResponse(int $status, string $message): void
+    {
+        http_response_code($status);
+        header('Content-Type: text/plain; charset=utf-8');
+        header('Cache-Control: no-store');
+        echo $message;
+    }
+
+    public function sistecreditoCallback(Request $req): void
+    {
+        $raw = (string)file_get_contents('php://input');
+        $payload = $req->json();
+        if (!$payload) $payload = $_POST ?: $_GET;
+        header('Content-Type: application/json');
+        header('Cache-Control: no-store');
+        Response::json((new \App\Services\SistecreditoService())->handleCallback(is_array($payload) ? $payload : [], $raw, $req->ip()));
+    }
+
+    public function sistecreditoStatus(Request $req): void
+    {
+        $uuid = trim((string)$req->get('uuid', ''));
+        if ($uuid === '') {
+            Response::error('Pedido requerido', 400);
+            return;
+        }
+        header('Cache-Control: no-store');
+        Response::json((new \App\Services\SistecreditoService())->statusForOrder($uuid));
     }
 
     public function wompiWebhook(Request $req): void

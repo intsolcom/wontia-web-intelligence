@@ -5,7 +5,7 @@ use App\Core\Database;
 
 class StoreService
 {
-    public const TABLES = ['store_categories', 'store_products', 'store_variants', 'store_customers', 'store_orders', 'store_order_items', 'store_shipping_zones'];
+    public const TABLES = ['store_categories', 'store_products', 'store_variants', 'store_customers', 'store_orders', 'store_order_items', 'store_shipping_zones', 'store_order_events'];
 
     public const SETTING_KEYS = [
         'store_enabled', 'store_currency', 'store_payment_methods', 'store_wompi_public_key',
@@ -21,6 +21,11 @@ class StoreService
         'store_show_sales', 'store_show_sales_categories', 'store_payment_logo_methods',
         'store_recommendations', 'store_social_proof', 'store_impact_note',
         'store_recovery_enabled', 'store_recovery_hours', 'store_reservation_minutes',
+        'store_auto_archive_enabled', 'store_archive_failed_days', 'store_archive_test_days',
+        'partner_contract_reminder_enabled', 'partner_contract_reminder_days',
+        'gift_card_enabled', 'gift_card_min_cents', 'gift_card_max_cents',
+        'gift_card_expiry_days', 'gift_card_hold_hours', 'gift_card_terms_url',
+        'store_checkout_methods', 'store_checkout_default_method',
         'product_content_v2',
     ];
 
@@ -69,6 +74,10 @@ class StoreService
             "ALTER TABLE store_products ADD COLUMN IF NOT EXISTS catalog_handle VARCHAR(255) NULL",
             "ALTER TABLE store_products ADD COLUMN IF NOT EXISTS source VARCHAR(20) NOT NULL DEFAULT 'local'",
             "ALTER TABLE store_products ADD COLUMN IF NOT EXISTS catalog_synced_at DATETIME NULL",
+            "ALTER TABLE store_products ADD COLUMN IF NOT EXISTS free_shipping TINYINT(1) NOT NULL DEFAULT 0",
+            "ALTER TABLE store_products ADD COLUMN IF NOT EXISTS tax_exempt TINYINT(1) NOT NULL DEFAULT 0",
+            "ALTER TABLE store_products ADD COLUMN IF NOT EXISTS visibility VARCHAR(20) NOT NULL DEFAULT 'public'",
+            "ALTER TABLE store_products ADD COLUMN IF NOT EXISTS allowed_ips TEXT NULL",
             "ALTER TABLE store_orders MODIFY quote_code VARCHAR(40) COLLATE utf8mb4_unicode_ci NULL",
             "ALTER TABLE store_orders ADD INDEX idx_store_orders_quote (site_id, quote_code)",
             "ALTER TABLE store_orders ADD COLUMN IF NOT EXISTS shipping_rate_id INT NULL",
@@ -79,12 +88,23 @@ class StoreService
             "ALTER TABLE store_orders ADD COLUMN IF NOT EXISTS shipping_eta_max_days INT NULL",
             "ALTER TABLE store_orders ADD COLUMN IF NOT EXISTS recommendation_discount_cents INT NOT NULL DEFAULT 0",
             "ALTER TABLE store_orders ADD COLUMN IF NOT EXISTS recommendation_discount_net_cents INT NOT NULL DEFAULT 0",
+            "ALTER TABLE store_orders ADD COLUMN IF NOT EXISTS archived_at DATETIME NULL",
+            "ALTER TABLE store_orders ADD COLUMN IF NOT EXISTS is_test TINYINT NOT NULL DEFAULT 0",
+            "ALTER TABLE store_orders ADD COLUMN IF NOT EXISTS archive_reason VARCHAR(40) NULL",
+            "ALTER TABLE store_orders ADD COLUMN IF NOT EXISTS archived_by INT NULL",
+            "ALTER TABLE store_orders ADD COLUMN IF NOT EXISTS gift_card_cents BIGINT NOT NULL DEFAULT 0",
+            "ALTER TABLE store_orders ADD COLUMN IF NOT EXISTS gift_card_code VARCHAR(32) NULL",
+            "ALTER TABLE store_orders ADD INDEX idx_store_orders_archived (site_id, archived_at)",
+            "ALTER TABLE store_orders ADD INDEX idx_store_orders_test (site_id, is_test)",
             "ALTER TABLE store_order_items ADD COLUMN IF NOT EXISTS discount_cents INT NOT NULL DEFAULT 0",
             "ALTER TABLE store_order_items ADD COLUMN IF NOT EXISTS discount_net_cents INT NOT NULL DEFAULT 0",
             "ALTER TABLE store_order_items ADD COLUMN IF NOT EXISTS recommendation_discount_cents INT NOT NULL DEFAULT 0",
             "ALTER TABLE store_order_items ADD COLUMN IF NOT EXISTS recommendation_discount_net_cents INT NOT NULL DEFAULT 0",
             "ALTER TABLE store_order_items ADD COLUMN IF NOT EXISTS recommendation_rate DECIMAL(6,4) NULL",
             "ALTER TABLE store_order_items ADD COLUMN IF NOT EXISTS recommendation_source VARCHAR(40) NULL",
+            "ALTER TABLE store_order_items ADD COLUMN IF NOT EXISTS sku VARCHAR(120) NULL",
+            "ALTER TABLE store_order_items ADD COLUMN IF NOT EXISTS product_ref VARCHAR(255) NULL",
+            "ALTER TABLE store_order_items ADD COLUMN IF NOT EXISTS weight_grams INT NOT NULL DEFAULT 0",
             "ALTER TABLE store_orders MODIFY subtotal_cents BIGINT NOT NULL DEFAULT 0",
             "ALTER TABLE store_orders MODIFY subtotal_net_cents BIGINT NOT NULL DEFAULT 0",
             "ALTER TABLE store_orders MODIFY tax_cents BIGINT NOT NULL DEFAULT 0",
@@ -133,6 +153,19 @@ class StoreService
         }
         if ($out['store_currency'] === '') $out['store_currency'] = 'COP';
         if ($out['store_payment_methods'] === '') $out['store_payment_methods'] = '["cod"]';
+        if ($out['store_auto_archive_enabled'] === '') $out['store_auto_archive_enabled'] = '0';
+        if ($out['store_archive_failed_days'] === '') $out['store_archive_failed_days'] = '30';
+        if ($out['store_archive_test_days'] === '') $out['store_archive_test_days'] = '7';
+        if ($out['partner_contract_reminder_enabled'] === '') $out['partner_contract_reminder_enabled'] = '0';
+        if ($out['partner_contract_reminder_days'] === '') $out['partner_contract_reminder_days'] = '3';
+        if ($out['gift_card_enabled'] === '') $out['gift_card_enabled'] = '1';
+        if ($out['gift_card_min_cents'] === '') $out['gift_card_min_cents'] = '1000000';
+        if ($out['gift_card_max_cents'] === '') $out['gift_card_max_cents'] = '200000000';
+        if ($out['gift_card_expiry_days'] === '') $out['gift_card_expiry_days'] = '365';
+        if ($out['gift_card_hold_hours'] === '') $out['gift_card_hold_hours'] = '24';
+        if ($out['gift_card_terms_url'] === '') $out['gift_card_terms_url'] = '/politicas';
+        if ($out['store_checkout_methods'] === '') $out['store_checkout_methods'] = '';
+        if ($out['store_checkout_default_method'] === '') $out['store_checkout_default_method'] = '';
         return $out;
     }
 
@@ -151,12 +184,17 @@ class StoreService
     public function paymentMethods(): array
     {
         $s = $this->settings();
-        $m = json_decode($s['store_payment_methods'] ?: '[]', true) ?: [];
-        $m = array_values(array_intersect($m, self::PAYMENT_METHODS));
+        $raw = trim((string)$s['store_payment_methods']);
+        // Sin configuración guardada se conserva el comportamiento legado.
+        if ($raw === '') return ['cod'];
+        $decoded = json_decode($raw, true);
+        if (!is_array($decoded)) return ['cod'];
+        $m = array_values(array_intersect($decoded, self::PAYMENT_METHODS));
         if ($s['store_wompi_public_key'] === '' || $s['store_wompi_integrity_key'] === '') {
             $m = array_values(array_diff($m, ['wompi']));
         }
-        return $m ?: ['cod'];
+        // Un arreglo vacío es una decisión explícita: no reactivar Contra entrega.
+        return $m;
     }
 
     public function wompiSignature(string $reference, int $amountCents, string $currency): string
@@ -192,10 +230,17 @@ class StoreService
     public function categories(bool $activeOnly = false): array
     {
         $db = Database::instance();
-        $sql = "SELECT c.*, (SELECT COUNT(*) FROM store_products p WHERE p.category_id = c.id AND p.site_id = @site_id AND p.status = 'active') AS product_count
-                FROM store_categories c WHERE c.site_id = @site_id";
+        $sql = "SELECT c.*, parent.name AS parent_name,
+                (SELECT COUNT(*) FROM store_products p
+                    LEFT JOIN store_categories pc ON pc.id = p.category_id AND pc.site_id = p.site_id
+                    WHERE p.site_id = @site_id AND p.status = 'active'
+                      AND (p.category_id = c.id OR (c.path IS NOT NULL AND c.path <> '' AND pc.path LIKE CONCAT(c.path, '/%')))
+                ) AS product_count
+                FROM store_categories c
+                LEFT JOIN store_categories parent ON parent.id = c.parent_id AND parent.site_id = c.site_id
+                WHERE c.site_id = @site_id";
         if ($activeOnly) $sql .= " AND c.is_active = 1";
-        $sql .= " ORDER BY c.sort_order ASC, c.name ASC";
+        $sql .= " ORDER BY COALESCE(NULLIF(c.path, ''), c.slug) ASC, c.name ASC";
         $stmt = $db->prepare($sql);
         $stmt->execute();
         return $stmt->fetchAll();
@@ -206,21 +251,54 @@ class StoreService
         $db = Database::instance();
         $name = trim((string)($d['name'] ?? ''));
         if ($name === '') throw new \InvalidArgumentException('Nombre requerido');
-        $slug = trim((string)($d['slug'] ?? '')) ?: $this->slugify($name);
-        $this->assertSlugFree('store_categories', $slug, $id);
+        $existing = [];
+        if ($id) {
+            $st = $db->prepare('SELECT * FROM store_categories WHERE id = ? AND site_id = @site_id LIMIT 1');
+            $st->execute([$id]);
+            $existing = $st->fetch(\PDO::FETCH_ASSOC) ?: [];
+        }
+        $slug = trim((string)($d['slug'] ?? ''));
+        if ($slug === '') $slug = (string)($existing['slug'] ?? '') ?: $this->slugify($name);
+        // Las categorías canónicas conservan su slug/URL; el panel solo puede
+        // cambiar el nombre visible y el estado.
+        if ($existing && (string)($existing['source'] ?? '') === 'sonika' && !empty($existing['external_key'])) {
+            $slug = (string)$existing['slug'];
+        }
+        $hasParent = array_key_exists('parent_id', $d);
+        $parentId = $hasParent && !empty($d['parent_id']) ? (int)$d['parent_id'] : null;
+        if (!$hasParent && $existing) $parentId = !empty($existing['parent_id']) ? (int)$existing['parent_id'] : null;
+        $parentPath = '';
+        $level = 1;
+        if ($parentId) {
+            $st = $db->prepare('SELECT path, level FROM store_categories WHERE id = ? AND site_id = @site_id LIMIT 1');
+            $st->execute([$parentId]);
+            $parent = $st->fetch(\PDO::FETCH_ASSOC) ?: [];
+            if (!$parent) throw new \InvalidArgumentException('Categoría padre no encontrada');
+            $parentPath = trim((string)($parent['path'] ?? ''));
+            $level = (int)($parent['level'] ?? 1) + 1;
+            if ($parentPath === '') throw new \InvalidArgumentException('La categoría padre no tiene ruta jerárquica');
+        }
+        $path = $parentPath !== '' ? $parentPath . '/' . $slug : $slug;
+        $st = $db->prepare('SELECT id FROM store_categories WHERE site_id = @site_id AND path = ? AND id <> ? LIMIT 1');
+        $st->execute([$path, (int)($id ?? 0)]);
+        if ($st->fetchColumn()) throw new \InvalidArgumentException('Ya existe una categoría con esa ruta: ' . $path);
         $params = [
             'name' => $name, 'slug' => $slug,
             'description' => (string)($d['description'] ?? ''),
             'image' => (string)($d['image'] ?? ''),
+            'parent_id' => $parentId,
+            'path' => $path,
+            'level' => $level,
+            'icon' => (string)($d['icon'] ?? ''),
             'sort_order' => (int)($d['sort_order'] ?? 0),
             'is_active' => isset($d['is_active']) ? (int)(bool)$d['is_active'] : 1,
         ];
         if ($id) {
             $params['id'] = $id;
-            $db->prepare("UPDATE store_categories SET name=:name, slug=:slug, description=:description, image=:image, sort_order=:sort_order, is_active=:is_active WHERE id=:id AND site_id=@site_id")->execute($params);
+            $db->prepare("UPDATE store_categories SET name=:name, slug=:slug, description=:description, image=:image, parent_id=:parent_id, path=:path, level=:level, icon=:icon, source='manual', sort_order=:sort_order, is_active=:is_active WHERE id=:id AND site_id=@site_id")->execute($params);
             return $id;
         }
-        $db->prepare("INSERT INTO store_categories (site_id, name, slug, description, image, sort_order, is_active) VALUES (@site_id, :name, :slug, :description, :image, :sort_order, :is_active)")->execute($params);
+        $db->prepare("INSERT INTO store_categories (site_id, name, slug, description, image, parent_id, path, level, icon, source, sort_order, is_active) VALUES (@site_id, :name, :slug, :description, :image, :parent_id, :path, :level, :icon, 'manual', :sort_order, :is_active)")->execute($params);
         return (int)$db->lastInsertId();
     }
 
@@ -242,6 +320,7 @@ class StoreService
         if (!empty($f['category_id'])) { $sql .= " AND p.category_id = :cat"; $params['cat'] = (int)$f['category_id']; }
         if (!empty($f['search'])) { $sql .= " AND (p.name LIKE :q1 OR p.sku LIKE :q2)"; $params['q1'] = '%' . $f['search'] . '%'; $params['q2'] = '%' . $f['search'] . '%'; }
         if (!empty($f['featured'])) $sql .= " AND p.is_featured = 1";
+        if (empty($f['include_private'])) $sql .= " AND (p.visibility IS NULL OR p.visibility = '' OR p.visibility = 'public')";
         $sql .= " ORDER BY p.sort_order ASC, p.id DESC";
         $limit = (int)($f['limit'] ?? 0);
         if ($limit > 0) $sql .= " LIMIT " . min($limit, 5000);
@@ -260,6 +339,7 @@ class StoreService
         if (!empty($f['status'])) { $sql .= " AND p.status = :status"; $params['status'] = $f['status']; }
         if (!empty($f['category_id'])) { $sql .= " AND p.category_id = :cat"; $params['cat'] = (int)$f['category_id']; }
         if (!empty($f['search'])) { $sql .= " AND (p.name LIKE :q1 OR p.sku LIKE :q2)"; $params['q1'] = '%' . $f['search'] . '%'; $params['q2'] = '%' . $f['search'] . '%'; }
+        if (empty($f['include_private'])) $sql .= " AND (p.visibility IS NULL OR p.visibility = '' OR p.visibility = 'public')";
         $stmt = $db->prepare($sql);
         $stmt->execute($params);
         return (int)$stmt->fetchColumn();
@@ -268,7 +348,7 @@ class StoreService
     public function productsAdmin(array $f = []): array
     {
         $db = Database::instance();
-        $sql = "SELECT p.id, p.name, p.slug, p.sku, p.price_cents, p.stock, p.track_stock, p.status, p.is_featured, p.category_id, c.name AS category_name FROM store_products p LEFT JOIN store_categories c ON c.id = p.category_id WHERE p.site_id = @site_id";
+        $sql = "SELECT p.id, p.name, p.slug, p.sku, p.price_cents, p.stock, p.track_stock, p.status, p.is_featured, p.category_id, p.free_shipping, p.tax_exempt, p.visibility, p.allowed_ips, c.name AS category_name FROM store_products p LEFT JOIN store_categories c ON c.id = p.category_id WHERE p.site_id = @site_id";
         $params = [];
         if (!empty($f['status'])) { $sql .= " AND p.status = :status"; $params['status'] = $f['status']; }
         if (!empty($f['category_id'])) { $sql .= " AND p.category_id = :cat"; $params['cat'] = (int)$f['category_id']; }
@@ -296,10 +376,11 @@ class StoreService
     public function productBySlug(string $slug): ?array
     {
         $db = Database::instance();
-        $stmt = $db->prepare("SELECT * FROM store_products WHERE slug = :slug AND site_id = @site_id AND status = 'active' LIMIT 1");
-        $stmt->execute(['slug' => $slug]);
+        $stmt = $db->prepare("SELECT * FROM store_products WHERE (slug = :slug OR catalog_handle = :handle) AND site_id = @site_id AND status = 'active' LIMIT 1");
+        $stmt->execute(['slug' => $slug, 'handle' => $slug]);
         $row = $stmt->fetch();
-        return $row ? $this->hydrateProduct($row) : null;
+        if (!$row || !\App\Services\IpAccessService::canViewProduct($row)) return null;
+        return $this->hydrateProduct($row);
     }
 
     public function saveProduct(array $d, ?int $id = null): int
@@ -307,19 +388,44 @@ class StoreService
         $db = Database::instance();
         $name = trim((string)($d['name'] ?? ''));
         if ($name === '') throw new \InvalidArgumentException('Nombre requerido');
-        $slug = trim((string)($d['slug'] ?? '')) ?: $this->slugify($name);
+        $slugInput = trim((string)($d['slug'] ?? ''));
+        // El slug siempre se normaliza: minúsculas, sin acentos, espacios ni símbolos.
+        $slug = $slugInput !== '' ? $this->slugify($slugInput) : $this->slugify($name);
+        if ($slug === '') $slug = $this->slugify($name);
         $this->assertSlugFree('store_products', $slug, $id);
         $existingProduct = [];
         if ($id) {
-            $st = $db->prepare('SELECT tags, images, vendor, product_type, catalog_handle, source FROM store_products WHERE id = ? AND site_id = @site_id LIMIT 1');
+            $st = $db->prepare('SELECT tags, images, vendor, product_type, catalog_handle, source, free_shipping, tax_exempt, visibility, allowed_ips FROM store_products WHERE id = ? AND site_id = @site_id LIMIT 1');
             $st->execute([$id]);
             $existingProduct = $st->fetch(\PDO::FETCH_ASSOC) ?: [];
         }
         if (!array_key_exists('tags', $d) && !empty($existingProduct['tags'])) {
             $d['tags'] = json_decode((string)$existingProduct['tags'], true) ?: [];
         }
+        $freeShipping = array_key_exists('free_shipping', $d)
+            ? (int)(bool)$d['free_shipping']
+            : (int)($existingProduct['free_shipping'] ?? 0);
+        $taxExempt = array_key_exists('tax_exempt', $d)
+            ? (int)(bool)$d['tax_exempt']
+            : (int)($existingProduct['tax_exempt'] ?? 0);
+        $visibility = strtolower(trim((string)($d['visibility'] ?? ($existingProduct['visibility'] ?? 'public'))));
+        if (!in_array($visibility, ['public', 'private'], true)) $visibility = 'public';
+        $allowedIpsRaw = array_key_exists('allowed_ips', $d)
+            ? (string)$d['allowed_ips']
+            : (string)($existingProduct['allowed_ips'] ?? '');
+        $allowedIps = implode(', ', \App\Services\IpAccessService::normalizeRules($allowedIpsRaw));
+        $categoryId = !empty($d['category_id']) ? (int)$d['category_id'] : null;
+        $existingCategoryId = (int)($existingProduct['category_id'] ?? 0);
+        $categoryChanged = $id
+            ? (array_key_exists('category_id', $d) && (int)$categoryId !== $existingCategoryId)
+            : !empty($categoryId);
+        $categoryLocked = (int)($existingProduct['category_locked'] ?? 0);
+        if ($categoryChanged) $categoryLocked = 1;
+        $categorySource = $categoryLocked ? 'manual' : (string)($existingProduct['category_source'] ?? '');
         $params = [
-            'category_id' => !empty($d['category_id']) ? (int)$d['category_id'] : null,
+            'category_id' => $categoryId,
+            'category_locked' => $categoryLocked,
+            'category_source' => $categorySource,
             'name' => $name,
             'slug' => $slug,
             'description' => (string)($d['description'] ?? ''),
@@ -338,19 +444,26 @@ class StoreService
             'seo_title' => (string)($d['seo_title'] ?? ''),
             'seo_description' => (string)($d['seo_description'] ?? ''),
             'sort_order' => (int)($d['sort_order'] ?? 0),
+            'free_shipping' => $freeShipping,
+            'tax_exempt' => $taxExempt,
+            'visibility' => $visibility,
+            'allowed_ips' => $allowedIps !== '' ? $allowedIps : null,
         ];
         if ($id) {
             $params['id'] = $id;
-            $db->prepare("UPDATE store_products SET category_id=:category_id, name=:name, slug=:slug, description=:description, short_description=:short_description,
+            $db->prepare("UPDATE store_products SET category_id=:category_id, category_locked=:category_locked, category_source=:category_source, name=:name, slug=:slug, description=:description, short_description=:short_description,
                 price_cents=:price_cents, compare_price_cents=:compare_price_cents, currency=:currency, sku=:sku, stock=:stock, track_stock=:track_stock,
                 weight_grams=:weight_grams, images=:images, tags=:tags, status=:status, is_featured=:is_featured, seo_title=:seo_title,
-                seo_description=:seo_description, sort_order=:sort_order WHERE id=:id AND site_id=@site_id")->execute($params);
+                seo_description=:seo_description, sort_order=:sort_order, free_shipping=:free_shipping, tax_exempt=:tax_exempt,
+                visibility=:visibility, allowed_ips=:allowed_ips WHERE id=:id AND site_id=@site_id")->execute($params);
             $productId = $id;
         } else {
-            $db->prepare("INSERT INTO store_products (site_id, category_id, name, slug, description, short_description, price_cents, compare_price_cents,
-                currency, sku, stock, track_stock, weight_grams, images, tags, status, is_featured, seo_title, seo_description, sort_order)
-                VALUES (@site_id, :category_id, :name, :slug, :description, :short_description, :price_cents, :compare_price_cents, :currency, :sku, :stock,
-                :track_stock, :weight_grams, :images, :tags, :status, :is_featured, :seo_title, :seo_description, :sort_order)")->execute($params);
+            $db->prepare("INSERT INTO store_products (site_id, category_id, category_locked, category_source, name, slug, description, short_description, price_cents, compare_price_cents,
+                currency, sku, stock, track_stock, weight_grams, images, tags, status, is_featured, seo_title, seo_description, sort_order,
+                free_shipping, tax_exempt, visibility, allowed_ips)
+                VALUES (@site_id, :category_id, :category_locked, :category_source, :name, :slug, :description, :short_description, :price_cents, :compare_price_cents, :currency, :sku, :stock,
+                :track_stock, :weight_grams, :images, :tags, :status, :is_featured, :seo_title, :seo_description, :sort_order,
+                :free_shipping, :tax_exempt, :visibility, :allowed_ips)")->execute($params);
             $productId = (int)$db->lastInsertId();
         }
         if (array_key_exists('variants', $d)) $this->saveVariants($productId, (array)$d['variants']);
@@ -360,6 +473,13 @@ class StoreService
             $readySlug = (string)($ready->fetchColumn() ?: '');
             if ($readySlug !== '') (new StockNotificationService())->notifyForProduct($readySlug);
         } catch (\Throwable $e) {
+        }
+        if ($categoryChanged) {
+            try {
+                \App\Services\CatalogTaxonomyService::buildMap(null, true);
+                \App\Services\CatalogTaxonomyService::clearCaches();
+            } catch (\Throwable $e) {
+            }
         }
         return $productId;
     }
@@ -529,12 +649,15 @@ class StoreService
         try {
             $lines = [];
             $subtotal = 0;
+            $shippingBase = 0;
+            $hasNonExempt = false;
             foreach ($items as $it) {
                 $pid = (int)($it['product_id'] ?? 0);
                 $qty = max(1, min(99, (int)($it['qty'] ?? 1)));
                 $vid = !empty($it['variant_id']) ? (int)$it['variant_id'] : null;
                 $p = $this->product($pid);
                 if (!$p || $p['status'] !== 'active') throw new \RuntimeException('Producto no disponible');
+                if (!\App\Services\IpAccessService::canViewProduct($p)) throw new \RuntimeException('Producto no disponible');
                 $unit = (int)$p['price_cents'];
                 $variantName = '';
                 if ($vid) {
@@ -556,10 +679,15 @@ class StoreService
                 }
                 $lineTotal = $unit * $qty;
                 $subtotal += $lineTotal;
+                $lineFreeShipping = (int)($p['free_shipping'] ?? 0) === 1;
+                if (!$lineFreeShipping) {
+                    $shippingBase += $lineTotal;
+                    $hasNonExempt = true;
+                }
                 $lines[] = [
                     'product_id' => $pid, 'variant_id' => $vid, 'name' => $p['name'], 'variant_name' => $variantName,
                     'price_cents' => $unit, 'qty' => $qty, 'subtotal_cents' => $lineTotal,
-                    'image' => $p['images'][0] ?? '',
+                    'image' => $p['images'][0] ?? '', 'free_shipping' => $lineFreeShipping,
                 ];
             }
 
@@ -575,8 +703,8 @@ class StoreService
                 $zone = $zstmt->fetch();
                 if (!$zone) throw new \RuntimeException('Zona de envio invalida');
                 $zoneId = (int)$zone['id'];
-                $shippingCents = (int)$zone['cost_cents'];
-                if ((int)$zone['free_over_cents'] > 0 && $subtotal >= (int)$zone['free_over_cents']) $shippingCents = 0;
+                $shippingCents = $hasNonExempt ? (int)$zone['cost_cents'] : 0;
+                if ($hasNonExempt && (int)$zone['free_over_cents'] > 0 && $shippingBase >= (int)$zone['free_over_cents']) $shippingCents = 0;
             }
 
             $discountCents = 0;
@@ -635,12 +763,14 @@ class StoreService
             $orderId = (int)$db->lastInsertId();
             $this->markOrderInternal($orderId);
 
-            $istmt = $db->prepare("INSERT INTO store_order_items (site_id, order_id, product_id, variant_id, name, variant_name, price_cents, qty, subtotal_cents, image)
-                VALUES (@site_id, :oid, :pid, :vid, :name, :vname, :price, :qty, :sub, :img)");
+            $istmt = $db->prepare("INSERT INTO store_order_items (site_id, order_id, product_id, variant_id, sku, product_ref, name, variant_name, price_cents, qty, subtotal_cents, weight_grams, image)
+                VALUES (@site_id, :oid, :pid, :vid, :sku, :pref, :name, :vname, :price, :qty, :sub, :weight, :img)");
             foreach ($lines as $l) {
                 $istmt->execute([
-                    'oid' => $orderId, 'pid' => $l['product_id'], 'vid' => $l['variant_id'], 'name' => $l['name'],
-                    'vname' => $l['variant_name'], 'price' => $l['price_cents'], 'qty' => $l['qty'], 'sub' => $l['subtotal_cents'], 'img' => $l['image'],
+                    'oid' => $orderId, 'pid' => (int)($l['product_id'] ?? 0), 'vid' => ($l['variant_id'] ?? null) ?: null,
+                    'sku' => mb_substr((string)($l['sku'] ?? ''), 0, 120), 'pref' => mb_substr((string)($l['product_ref'] ?? $l['ref'] ?? ''), 0, 255),
+                    'name' => $l['name'], 'vname' => $l['variant_name'], 'price' => $l['price_cents'], 'qty' => $l['qty'],
+                    'sub' => $l['subtotal_cents'], 'weight' => (int)($l['weight_grams'] ?? 0), 'img' => $l['image'],
                 ]);
             }
 
@@ -774,10 +904,11 @@ class StoreService
         if ($quoteCode !== '' && !preg_match('/^COT-[A-Z0-9-]{4,36}$/', $quoteCode)) $quoteCode = '';
         $couponIn = strtoupper(trim((string)($input['coupon'] ?? '')));
         $pointsReq = max(0, (int)($input['points'] ?? 0));
+        $giftCardIn = (array)($input['gift_card'] ?? []);
         $quote = $breb->quote($itemsIn, $method, $couponIn, $pointsReq, [
             'department_code' => $departmentCode,
             'municipality_code' => $municipalityCode,
-        ]);
+        ], $giftCardIn);
         if (empty($quote['ok'])) throw new \RuntimeException((string)($quote['message'] ?? 'El pedido no es valido'));
         $shippingMeta = (array)($quote['shipping'] ?? []);
         if (empty($shippingMeta['ok'])) throw new \RuntimeException((string)($shippingMeta['message'] ?? 'No hay cobertura para este municipio.'));
@@ -789,6 +920,9 @@ class StoreService
         if ($pointsReq > 0 && (int)($quote['points_used'] ?? 0) <= 0) {
             throw new \RuntimeException((string)($quote['points_message'] ?? 'No se pudieron aplicar los puntos.'));
         }
+        if (trim((string)($giftCardIn['code'] ?? '')) !== '' && ($quote['gift_card_ok'] ?? null) === false) {
+            throw new \RuntimeException((string)($quote['gift_card_message'] ?? 'La tarjeta de regalo no es válida.'));
+        }
         if ((int)$quote['issue_count'] > 0) {
             $names = [];
             foreach (array_slice((array)$quote['issues'], 0, 3) as $issue) {
@@ -796,6 +930,32 @@ class StoreService
                 if ($label !== '') $names[] = $label;
             }
             throw new \RuntimeException('Revisa la disponibilidad del pedido: ' . ($names ? implode(', ', $names) : 'hay productos no disponibles'));
+        }
+        if ($method === 'addi') {
+            $addi = new AddiService();
+            if (!$addi->isConfigured() || $addi->publicMethod() === null) {
+                throw new \RuntimeException('Addi no está disponible en este momento.');
+            }
+            $addiTotal = (int)($quote['total_cents'] ?? 0);
+            $addiCfg = $addi->config($addiTotal);
+            if (empty($addiCfg['ok'])) {
+                throw new \RuntimeException((string)($addiCfg['message'] ?? 'No se pudo validar Addi.'));
+            }
+            $addiData = (array)($addiCfg['data'] ?? []);
+            $addiMin = (int)($addiData['minAmount'] ?? 0);
+            $addiMax = (int)($addiData['maxAmount'] ?? 0);
+            if (empty($addiData['isActiveAlly'])) {
+                throw new \RuntimeException('Addi no está activo para este comercio todavía.');
+            }
+            if ($addiMin > 0 && $addiTotal < $addiMin * 100) {
+                throw new \RuntimeException('Addi aplica para compras desde ' . $this->money($addiMin * 100, (string)($settings['store_currency'] ?? 'COP')) . '.');
+            }
+            if ($addiMax > 0 && $addiTotal > $addiMax * 100) {
+                throw new \RuntimeException('Addi aplica para compras hasta ' . $this->money($addiMax * 100, (string)($settings['store_currency'] ?? 'COP')) . '.');
+            }
+            if (empty($addiData['policy'])) {
+                throw new \RuntimeException('Addi no está disponible para este monto.');
+            }
         }
 
         $lines = (array)$quote['items'];
@@ -810,6 +970,9 @@ class StoreService
         $couponId = (int)($quote['coupon_id'] ?? 0);
         $pointsUsed = (int)($quote['points_used'] ?? 0);
         $pointsDiscount = (int)($quote['points_discount_cents'] ?? 0);
+        $giftCardDiscount = (int)($quote['gift_card_discount_cents'] ?? 0);
+        $giftCardCode = (string)($quote['gift_card_code'] ?? '');
+        $giftCardCodeMasked = (string)($quote['gift_card_code_masked'] ?? '');
         $pointsCustomerId = 0;
         if ($pointsUsed > 0) {
             $me = (new CustomerService())->current();
@@ -822,6 +985,9 @@ class StoreService
         $discountNet = (int)$quote['discount_net_cents'];
         $shipping = (int)$quote['shipping_cents'];
         $total = (int)$quote['total_cents'];
+        if ($total > 0 && !(new CheckoutPaymentMethodService())->isVisible($method)) {
+            throw new \RuntimeException('El método de pago seleccionado no está disponible en este momento.');
+        }
 
         $currency = ($settings['store_currency'] ?? '') !== '' ? (string)$settings['store_currency'] : 'COP';
         $uuid = $this->uuid4();
@@ -863,6 +1029,8 @@ class StoreService
             'recommendation_items' => (array)($quote['recommendation_items'] ?? []),
             'points_used' => $pointsUsed,
             'points_discount_cents' => $pointsDiscount,
+            'gift_card_cents' => $giftCardDiscount,
+            'gift_card_code_masked' => $giftCardCodeMasked,
         ]);
 
         $db = Database::instance();
@@ -875,10 +1043,10 @@ class StoreService
                 subtotal_cents, subtotal_net_cents, tax_cents, breb_discount_cents, breb_discount_net_cents,
                 recommendation_discount_cents, recommendation_discount_net_cents,
                 shipping_cents, discount_cents, total_cents, currency, payment_method, payment_status, payment_reference, payment_link,
-                payment_expires_at, payment_proof_status, payment_meta, fulfillment_status, notes, ip_hash)
+                payment_expires_at, payment_proof_status, payment_meta, fulfillment_status, notes, ip_hash, gift_card_cents, gift_card_code)
                 VALUES (@site_id, :uuid, :num, :cid, :name, :email, :phone, :doc, :quote, :addr, :rate, :dept, :mun, :carrier,
                 :etamin, :etamax, :sub, :subnet, :tax, :bdis, :bdisnet, :rdis, :rdisnet,
-                :ship, :disc, :total, :cur, :pm, 'pending', :pref, :link, :expires, 'none', :meta, 'new', :notes, :iph)")
+                :ship, :disc, :total, :cur, :pm, 'pending', :pref, :link, :expires, 'none', :meta, 'new', :notes, :iph, :gcc, :gcode)")
                 ->execute([
                     'uuid' => $uuid, 'num' => $orderNumber, 'cid' => $cust, 'name' => $name, 'email' => $email, 'phone' => $phone,
                     'doc' => $document, 'quote' => $quoteCode !== '' ? $quoteCode : null, 'addr' => $addressJson,
@@ -891,21 +1059,25 @@ class StoreService
                     'ship' => $shipping, 'disc' => $discount, 'total' => $total, 'cur' => $currency, 'pm' => $method,
                     'pref' => $paymentReference, 'link' => $paymentLink, 'expires' => $expiresAt, 'meta' => $paymentMeta,
                     'notes' => $notes, 'iph' => $ip !== '' ? hash('sha256', $ip) : '',
+                    'gcc' => $giftCardDiscount, 'gcode' => $giftCardCode !== '' ? $giftCardCode : null,
                 ]);
             $orderId = (int)$db->lastInsertId();
             $this->markOrderInternal($orderId);
 
-            $istmt = $db->prepare("INSERT INTO store_order_items (site_id, order_id, product_id, variant_id, name, variant_name, price_cents, qty, subtotal_cents, discount_cents, discount_net_cents, recommendation_discount_cents, recommendation_discount_net_cents, recommendation_rate, recommendation_source, image)
-                VALUES (@site_id, :oid, 0, NULL, :name, '', :price, :qty, :sub, :disc, :discnet, :recdisc, :recdiscnet, :recrate, :recsource, :img)");
+            $istmt = $db->prepare("INSERT INTO store_order_items (site_id, order_id, product_id, variant_id, sku, product_ref, name, variant_name, price_cents, qty, subtotal_cents, discount_cents, discount_net_cents, recommendation_discount_cents, recommendation_discount_net_cents, recommendation_rate, recommendation_source, weight_grams, image)
+                VALUES (@site_id, :oid, :pid, :vid, :sku, :pref, :name, '', :price, :qty, :sub, :disc, :discnet, :recdisc, :recdiscnet, :recrate, :recsource, :weight, :img)");
             foreach ($lines as $l) {
                 $istmt->execute([
-                    'oid' => $orderId, 'name' => (string)($l['title'] ?? $l['ref']), 'price' => (int)$l['original_unit_cents'],
+                    'oid' => $orderId, 'pid' => (int)($l['product_id'] ?? 0), 'vid' => ($l['variant_id'] ?? null) ?: null,
+                    'sku' => mb_substr((string)($l['sku'] ?? ''), 0, 120), 'pref' => mb_substr((string)($l['product_ref'] ?? $l['ref'] ?? ''), 0, 255),
+                    'name' => (string)($l['title'] ?? $l['ref']), 'price' => (int)$l['original_unit_cents'],
                     'qty' => (int)$l['qty'], 'sub' => (int)$l['original_line_cents'], 'img' => (string)($l['image'] ?? ''),
                     'disc' => (int)($l['discount_cents'] ?? 0), 'discnet' => (int)($l['discount_net_cents'] ?? 0),
                     'recdisc' => (int)($l['recommendation_discount_cents'] ?? 0),
                     'recdiscnet' => (int)($l['recommendation_discount_net_cents'] ?? 0),
                     'recrate' => (float)($l['recommendation_rate'] ?? 0) ?: null,
                     'recsource' => (string)($l['rec']['source'] ?? '') ?: null,
+                    'weight' => (int)($l['weight_grams'] ?? 0),
                 ]);
             }
             if ($pointsUsed > 0 && $pointsCustomerId > 0) {
@@ -913,6 +1085,17 @@ class StoreService
                     ->execute([$pointsCustomerId, -$pointsUsed, $orderId]);
                 $db->prepare("UPDATE store_customers SET points_balance = points_balance - ? WHERE id = ? AND site_id = @site_id")
                     ->execute([$pointsUsed, $pointsCustomerId]);
+            }
+            if ($giftCardDiscount > 0) {
+                $reserve = (new GiftCardService())->reserveForOrder(
+                    $orderId,
+                    $giftCardCode,
+                    (string)($giftCardIn['pin'] ?? ''),
+                    $giftCardDiscount
+                );
+                if (empty($reserve['ok'])) {
+                    throw new \RuntimeException((string)($reserve['message'] ?? 'No se pudo aplicar la tarjeta de regalo.'));
+                }
             }
             $db->commit();
         } catch (\Throwable $e) {
@@ -958,7 +1141,18 @@ class StoreService
         $addiPayment = null;
         $sistecreditoPayment = null;
         $mercadopagoPayment = null;
-        if ($method === 'mercadopago' && (new MercadoPagoService())->isAvailable()) {
+        $giftCardPayment = null;
+        if ($total === 0 && $giftCardDiscount > 0) {
+            $this->markPaid($uuid, 'GIFTCARD-' . $orderNumber, 'gift_card');
+            $order = $this->orderById($orderId);
+            $giftCardPayment = [
+                'method' => 'gift_card',
+                'status' => 'paid',
+                'redirect_url' => '',
+                'paid_with_gift_card' => true,
+            ];
+        }
+        if ($giftCardPayment === null && $method === 'mercadopago' && (new MercadoPagoService())->isAvailable()) {
             $mp = new MercadoPagoService();
             $mpMode = $mp->mode();
             $mpResult = $mpMode === 'checkout_pro' ? $mp->createPreference($order) : ['ok' => true, 'redirect_url' => '', 'status' => 'pending'];
@@ -986,7 +1180,7 @@ class StoreService
                 ]);
             $order = $this->orderById($orderId);
         }
-        if ($method === 'sistecredito') {
+        if ($giftCardPayment === null && $method === 'sistecredito') {
             $scResult = (new SistecreditoService())->createApplication($order);
             if (empty($scResult['ok'])) {
                 $this->updateOrder($orderId, ['payment_status' => 'failed']);
@@ -1006,35 +1200,47 @@ class StoreService
                 ->execute(['SISTE-' . $orderNumber, json_encode($meta, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), date('Y-m-d H:i:s', time() + 900), $orderId]);
             $order = $this->orderById($orderId);
         }
-        if ($method === 'addi') {
+        if ($giftCardPayment === null && $method === 'addi') {
             $addiResult = (new AddiService())->createApplication($order);
             if (empty($addiResult['ok'])) {
                 $this->updateOrder($orderId, ['payment_status' => 'failed']);
                 throw new \RuntimeException((string)($addiResult['message'] ?? 'No se pudo iniciar el pago con Addi.'));
             }
+            $addiOrderId = (string)($addiResult['addi_order_id'] ?? '');
             $addiPayment = [
                 'method' => 'addi',
                 'redirect_url' => (string)$addiResult['redirect_url'],
                 'status' => 'REDIRECT',
+                'addi_order_id' => $addiOrderId,
             ];
             $meta = json_decode((string)($order['payment_meta'] ?? ''), true) ?: [];
+            $meta['addi_order_id'] = $addiOrderId;
             $meta['addi_redirect_url'] = $addiPayment['redirect_url'];
             $meta['addi_status'] = 'REDIRECT';
-            $db->prepare('UPDATE store_orders SET payment_meta = ? WHERE id = ? AND site_id = @site_id')
-                ->execute([json_encode($meta, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), $orderId]);
+            $db->prepare('UPDATE store_orders SET payment_reference = ?, payment_link = ?, payment_meta = ?, payment_expires_at = ? WHERE id = ? AND site_id = @site_id')
+                ->execute([
+                    'ADDI-' . $orderNumber,
+                    $addiPayment['redirect_url'] !== '' ? $addiPayment['redirect_url'] : null,
+                    json_encode($meta, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                    date('Y-m-d H:i:s', time() + 7200),
+                    $orderId,
+                ]);
             $order = $this->orderById($orderId);
         }
         try {
             $this->notifyOrder($order);
         } catch (\Throwable $e) {
         }
-        return ['order' => $order, 'payment' => $mercadopagoPayment ?: ($sistecreditoPayment ?: ($addiPayment ?: $breb->paymentInfo($order)))];
+        return ['order' => $order, 'payment' => $giftCardPayment ?: ($mercadopagoPayment ?: ($sistecreditoPayment ?: ($addiPayment ?: $breb->paymentInfo($order))))];
     }
 
     public function orderById(int $id): ?array
     {
         $db = Database::instance();
-        $stmt = $db->prepare("SELECT * FROM store_orders WHERE id = :id AND site_id = @site_id LIMIT 1");
+        $stmt = $db->prepare("SELECT o.*, u.username AS archived_by_name
+            FROM store_orders o
+            LEFT JOIN users u ON u.id = o.archived_by AND u.site_id = o.site_id
+            WHERE o.id = :id AND o.site_id = @site_id LIMIT 1");
         $stmt->execute(['id' => $id]);
         $row = $stmt->fetch();
         return $row ? $this->hydrateOrder($row) : null;
@@ -1049,29 +1255,258 @@ class StoreService
         return $row ? $this->hydrateOrder($row) : null;
     }
 
-    public function orders(array $f = []): array
+    private function orderWhere(array $f, array &$params): string
     {
-        $db = Database::instance();
-        $sql = "SELECT * FROM store_orders WHERE site_id = @site_id";
-        $params = [];
-        if (!empty($f['payment_status'])) { $sql .= " AND payment_status = :ps"; $params['ps'] = $f['payment_status']; }
-        if (!empty($f['fulfillment_status'])) { $sql .= " AND fulfillment_status = :fs"; $params['fs'] = $f['fulfillment_status']; }
+        $sql = '';
+        $archived = (string)($f['archived'] ?? '');
+        if ($archived === '1' || $archived === 'archived') {
+            $sql .= " AND o.archived_at IS NOT NULL";
+        } elseif ($archived !== 'all') {
+            $sql .= " AND o.archived_at IS NULL";
+        }
+        if (isset($f['is_test']) && $f['is_test'] !== '') {
+            $sql .= " AND o.is_test = :istest";
+            $params['istest'] = ((string)$f['is_test'] === '1') ? 1 : 0;
+        }
+        if (!empty($f['payment_status'])) { $sql .= " AND o.payment_status = :ps"; $params['ps'] = $f['payment_status']; }
+        if (!empty($f['fulfillment_status'])) { $sql .= " AND o.fulfillment_status = :fs"; $params['fs'] = $f['fulfillment_status']; }
+        if (!empty($f['payment_method'])) { $sql .= " AND o.payment_method = :pm"; $params['pm'] = $f['payment_method']; }
+        if (!empty($f['date_from'])) {
+            $ts = strtotime((string)$f['date_from']);
+            if ($ts !== false) { $sql .= " AND o.created_at >= :df"; $params['df'] = date('Y-m-d 00:00:00', $ts); }
+        }
+        if (!empty($f['date_to'])) {
+            $ts = strtotime((string)$f['date_to']);
+            if ($ts !== false) { $sql .= " AND o.created_at <= :dt"; $params['dt'] = date('Y-m-d 23:59:59', $ts); }
+        }
+        if (isset($f['min_cents']) && $f['min_cents'] !== '') { $sql .= " AND o.total_cents >= :minc"; $params['minc'] = (int)$f['min_cents']; }
+        if (isset($f['max_cents']) && $f['max_cents'] !== '') { $sql .= " AND o.total_cents <= :maxc"; $params['maxc'] = (int)$f['max_cents']; }
         if (!empty($f['search'])) {
-            $sql .= " AND (customer_name LIKE :q1 OR customer_email LIKE :q2 OR order_number LIKE :q3 OR uuid LIKE :q4)";
+            $sql .= " AND (o.customer_name LIKE :q1 OR o.customer_email LIKE :q2 OR o.order_number LIKE :q3 OR o.uuid LIKE :q4)";
             $params['q1'] = '%' . $f['search'] . '%';
             $params['q2'] = '%' . $f['search'] . '%';
             $params['q3'] = '%' . $f['search'] . '%';
             $params['q4'] = '%' . $f['search'] . '%';
         }
-        $sql .= " ORDER BY id DESC LIMIT " . min((int)($f['limit'] ?? 50), 200);
+        return $sql;
+    }
+
+    public function orders(array $f = []): array
+    {
+        $db = Database::instance();
+        $sql = "SELECT o.*, u.username AS archived_by_name
+                FROM store_orders o
+                LEFT JOIN users u ON u.id = o.archived_by AND u.site_id = o.site_id
+                WHERE o.site_id = @site_id";
+        $params = [];
+        $sql .= $this->orderWhere($f, $params);
+        $sql .= " ORDER BY o.id DESC LIMIT " . min((int)($f['limit'] ?? 50), 200);
         $stmt = $db->prepare($sql);
         $stmt->execute($params);
         return array_map([$this, 'hydrateOrder'], $stmt->fetchAll());
     }
 
+    public function ordersExport(array $f = []): array
+    {
+        $db = Database::instance();
+        $sql = "SELECT o.*, u.username AS archived_by_name
+                FROM store_orders o
+                LEFT JOIN users u ON u.id = o.archived_by AND u.site_id = o.site_id
+                WHERE o.site_id = @site_id";
+        $params = [];
+        $sql .= $this->orderWhere($f, $params);
+        $sql .= " ORDER BY o.id DESC LIMIT 5000";
+        $stmt = $db->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll();
+    }
+
+    public function orderCounts(): array
+    {
+        $db = Database::instance();
+        try {
+            $row = $db->query("SELECT
+                SUM(CASE WHEN archived_at IS NULL THEN 1 ELSE 0 END) AS active,
+                SUM(CASE WHEN archived_at IS NOT NULL THEN 1 ELSE 0 END) AS archived,
+                SUM(CASE WHEN is_test = 1 THEN 1 ELSE 0 END) AS test_count,
+                SUM(CASE WHEN is_test = 0 THEN 1 ELSE 0 END) AS real_count,
+                COUNT(*) AS total
+                FROM store_orders WHERE site_id = @site_id")->fetch();
+        } catch (\Throwable $e) {
+            $row = [];
+        }
+        return [
+            'active' => (int)($row['active'] ?? 0),
+            'archived' => (int)($row['archived'] ?? 0),
+            'tests' => (int)($row['test_count'] ?? 0),
+            'real' => (int)($row['real_count'] ?? 0),
+            'total' => (int)($row['total'] ?? 0),
+        ];
+    }
+
+    public function logOrderEvent(int $orderId, string $event, string $from = '', string $to = '', string $reason = '', ?int $userId = null): void
+    {
+        if ($orderId <= 0) return;
+        try {
+            $db = Database::instance();
+            $db->prepare("INSERT INTO store_order_events (site_id, order_id, event, from_value, to_value, reason, user_id)
+                VALUES (@site_id, ?, ?, ?, ?, ?, ?)")->execute([
+                $orderId,
+                mb_substr($event, 0, 40),
+                mb_substr($from, 0, 80),
+                mb_substr($to, 0, 80),
+                mb_substr($reason, 0, 120),
+                $userId ?? \App\Core\Session::userId(),
+            ]);
+        } catch (\Throwable $e) {
+        }
+    }
+
+    public function orderEvents(int $orderId, int $limit = 50): array
+    {
+        $db = Database::instance();
+        try {
+            $stmt = $db->prepare("SELECT e.*, u.username
+                FROM store_order_events e
+                LEFT JOIN users u ON u.id = e.user_id AND u.site_id = e.site_id
+                WHERE e.site_id = @site_id AND e.order_id = ?
+                ORDER BY e.id DESC LIMIT " . max(1, min(200, $limit)));
+            $stmt->execute([$orderId]);
+            return $stmt->fetchAll();
+        } catch (\Throwable $e) {
+            return [];
+        }
+    }
+
+    public function archiveOrders(array $ids, bool $archived, string $reason = '', ?int $userId = null): int
+    {
+        $ids = array_values(array_unique(array_filter(array_map('intval', $ids), function ($id) { return $id > 0; })));
+        if (!$ids) return 0;
+        $db = Database::instance();
+        $in = implode(',', array_fill(0, count($ids), '?'));
+        if ($archived) {
+            $sql = "UPDATE store_orders SET archived_at = NOW(), archive_reason = ?, archived_by = ?
+                    WHERE site_id = @site_id AND id IN ($in)";
+            $params = array_merge([mb_substr(trim($reason) ?: 'manual', 0, 40), $userId], $ids);
+        } else {
+            $sql = "UPDATE store_orders SET archived_at = NULL, archive_reason = NULL, archived_by = NULL
+                    WHERE site_id = @site_id AND id IN ($in)";
+            $params = $ids;
+        }
+        $stmt = $db->prepare($sql);
+        $stmt->execute($params);
+        $count = $stmt->rowCount();
+        $event = $archived ? 'archived' : 'restored';
+        foreach ($ids as $orderId) {
+            $this->logOrderEvent($orderId, $event, $archived ? 'active' : 'archived', $archived ? 'archived' : 'active', $reason, $userId);
+        }
+        return $count;
+    }
+
+    public function archiveOrdersByFilters(array $f, bool $archived, string $reason = '', ?int $userId = null): int
+    {
+        $db = Database::instance();
+        $params = [];
+        $where = $this->orderWhere($f, $params);
+        $sql = "SELECT o.id FROM store_orders o WHERE o.site_id = @site_id $where ORDER BY o.id DESC LIMIT 500";
+        $stmt = $db->prepare($sql);
+        $stmt->execute($params);
+        $ids = $stmt->fetchAll(PDO::FETCH_COLUMN);
+        return $this->archiveOrders($ids, $archived, $reason, $userId);
+    }
+
+    public function markOrdersTest(array $ids, bool $isTest): int
+    {
+        $ids = array_values(array_unique(array_filter(array_map('intval', $ids), function ($id) { return $id > 0; })));
+        if (!$ids) return 0;
+        $db = Database::instance();
+        $in = implode(',', array_fill(0, count($ids), '?'));
+        $stmt = $db->prepare("UPDATE store_orders SET is_test = ? WHERE site_id = @site_id AND id IN ($in)");
+        $stmt->execute(array_merge([$isTest ? 1 : 0], $ids));
+        $count = $stmt->rowCount();
+        foreach ($ids as $orderId) {
+            $this->logOrderEvent($orderId, $isTest ? 'test_marked' : 'test_unmarked', $isTest ? '0' : '1', $isTest ? '1' : '0');
+        }
+        return $count;
+    }
+
+    public function detectTestOrders(int $limit = 200): array
+    {
+        $db = Database::instance();
+        $limit = max(1, min(500, $limit));
+        $sql = "SELECT o.*, u.username AS archived_by_name
+                FROM store_orders o
+                LEFT JOIN users u ON u.id = o.archived_by AND u.site_id = o.site_id
+                WHERE o.site_id = @site_id AND o.archived_at IS NULL AND o.is_test = 0 AND (
+                    o.order_number LIKE 'TEST-%'
+                    OR LOWER(o.customer_email) LIKE '%@test%'
+                    OR LOWER(o.customer_email) LIKE '%@example.com%'
+                    OR LOWER(o.customer_email) LIKE '%testuser%'
+                    OR LOWER(o.customer_name) LIKE '%test%'
+                    OR LOWER(o.customer_name) LIKE '%prueba%'
+                    OR LOWER(o.customer_name) LIKE '%alerta%'
+                    OR o.total_cents <= 100000
+                )
+                ORDER BY o.id DESC LIMIT $limit";
+        $stmt = $db->prepare($sql);
+        $stmt->execute();
+        $rows = $stmt->fetchAll();
+        foreach ($rows as &$row) {
+            $reasons = [];
+            $number = strtoupper((string)($row['order_number'] ?? ''));
+            $email = strtolower((string)($row['customer_email'] ?? ''));
+            $name = strtolower((string)($row['customer_name'] ?? ''));
+            if (str_starts_with($number, 'TEST-')) $reasons[] = 'Número TEST-';
+            if (str_contains($email, '@test') || str_contains($email, '@example.com') || str_contains($email, 'testuser')) $reasons[] = 'Correo de prueba';
+            if (str_contains($name, 'test') || str_contains($name, 'prueba') || str_contains($name, 'alerta')) $reasons[] = 'Nombre de prueba';
+            if ((int)($row['total_cents'] ?? 0) <= 100000) $reasons[] = 'Monto mínimo';
+            $row['test_reasons'] = array_values(array_unique($reasons));
+        }
+        unset($row);
+        return $rows;
+    }
+
+    public function autoArchiveOrders(): array
+    {
+        $s = $this->settings();
+        if (($s['store_auto_archive_enabled'] ?? '0') !== '1') {
+            return ['ok' => true, 'enabled' => false, 'failed' => 0, 'tests' => 0];
+        }
+        $failedDays = max(1, (int)($s['store_archive_failed_days'] ?: 30));
+        $testDays = max(1, (int)($s['store_archive_test_days'] ?: 7));
+        $failedCutoff = date('Y-m-d H:i:s', time() - ($failedDays * 86400));
+        $testCutoff = date('Y-m-d H:i:s', time() - ($testDays * 86400));
+        $db = Database::instance();
+        $failed = 0;
+        $tests = 0;
+        try {
+            $stmt = $db->prepare("UPDATE store_orders
+                SET archived_at = NOW(), archive_reason = 'auto_failed', archived_by = NULL
+                WHERE site_id = @site_id AND archived_at IS NULL AND is_test = 0
+                  AND (payment_status = 'failed' OR fulfillment_status = 'cancelled')
+                  AND created_at < :cutoff");
+            $stmt->execute(['cutoff' => $failedCutoff]);
+            $failed = $stmt->rowCount();
+        } catch (\Throwable $e) {
+        }
+        try {
+            $stmt = $db->prepare("UPDATE store_orders
+                SET archived_at = NOW(), archive_reason = 'auto_test', archived_by = NULL
+                WHERE site_id = @site_id AND archived_at IS NULL AND is_test = 1
+                  AND created_at < :cutoff");
+            $stmt->execute(['cutoff' => $testCutoff]);
+            $tests = $stmt->rowCount();
+        } catch (\Throwable $e) {
+        }
+        return ['ok' => true, 'enabled' => true, 'failed' => $failed, 'tests' => $tests];
+    }
+
     public function updateOrder(int $id, array $d): void
     {
         $db = Database::instance();
+        $oldStmt = $db->prepare("SELECT payment_status, fulfillment_status FROM store_orders WHERE id = :id AND site_id = @site_id LIMIT 1");
+        $oldStmt->execute(['id' => $id]);
+        $oldRow = $oldStmt->fetch() ?: [];
         $sets = [];
         $params = ['id' => $id];
         if (!empty($d['fulfillment_status']) && in_array($d['fulfillment_status'], ['new', 'confirmed', 'preparing', 'shipped', 'delivered', 'cancelled'], true)) {
@@ -1086,7 +1521,24 @@ class StoreService
         if (array_key_exists('admin_notes', $d)) { $sets[] = "admin_notes = :an"; $params['an'] = (string)$d['admin_notes']; }
         if (!$sets) return;
         $db->prepare("UPDATE store_orders SET " . implode(', ', $sets) . " WHERE id = :id AND site_id = @site_id")->execute($params);
+        try {
+            $newStmt = $db->prepare("SELECT payment_status, fulfillment_status FROM store_orders WHERE id = :id AND site_id = @site_id LIMIT 1");
+            $newStmt->execute(['id' => $id]);
+            $newRow = $newStmt->fetch() ?: [];
+            $changes = [];
+            if ((string)($oldRow['payment_status'] ?? '') !== (string)($newRow['payment_status'] ?? '')) {
+                $changes[] = 'pago: ' . ($oldRow['payment_status'] ?? '—') . ' → ' . ($newRow['payment_status'] ?? '—');
+            }
+            if ((string)($oldRow['fulfillment_status'] ?? '') !== (string)($newRow['fulfillment_status'] ?? '')) {
+                $changes[] = 'estado: ' . ($oldRow['fulfillment_status'] ?? '—') . ' → ' . ($newRow['fulfillment_status'] ?? '—');
+            }
+            if ($changes) $this->logOrderEvent($id, 'status_update', '', implode('; ', $changes));
+        } catch (\Throwable $e) {
+        }
         $reverse = in_array((string)($d['payment_status'] ?? ''), ['failed', 'refunded'], true) || (string)($d['fulfillment_status'] ?? '') === 'cancelled';
+        if ($reverse) {
+            try { (new GiftCardService())->onOrderFailed($id, 'Pedido ' . (string)($d['payment_status'] ?? $d['fulfillment_status'] ?? 'anulado')); } catch (\Throwable $e) {}
+        }
         if ($reverse || (string)($d['payment_status'] ?? '') === 'paid') {
             try {
                 $st = $db->prepare('SELECT uuid FROM store_orders WHERE id = ? AND site_id = @site_id LIMIT 1');
@@ -1097,6 +1549,7 @@ class StoreService
                         (new \App\Services\AffiliateService())->reverseOrder($uuid, 'Pedido ' . (string)($d['payment_status'] ?? $d['fulfillment_status'] ?? 'anulado'));
                         TrackingConversionService::onOrderCancelled($uuid, 'Pedido ' . (string)($d['payment_status'] ?? $d['fulfillment_status'] ?? 'anulado'));
                     } elseif ((string)($d['payment_status'] ?? '') === 'paid') {
+                        try { (new GiftCardService())->onOrderPaid($uuid); } catch (\Throwable $e) {}
                         TrackingConversionService::onOrderPaid($uuid);
                         (new CartAbandonmentService())->markConverted($uuid);
                     }
@@ -1109,7 +1562,10 @@ class StoreService
     public function markPaid(string $uuid, string $providerRef, string $method): bool
     {
         $db = Database::instance();
-        $stmt = $db->prepare("UPDATE store_orders SET payment_status = 'paid', paid_at = NOW(), provider_ref = :ref, payment_method = :pm
+        $stmt = $db->prepare("UPDATE store_orders SET payment_status = 'paid', paid_at = NOW(), provider_ref = :ref, payment_method = :pm,
+            archived_at = CASE WHEN is_test = 1 THEN archived_at ELSE NULL END,
+            archive_reason = CASE WHEN is_test = 1 THEN archive_reason ELSE NULL END,
+            archived_by = CASE WHEN is_test = 1 THEN archived_by ELSE NULL END
             WHERE uuid = :uuid AND site_id = @site_id AND payment_status <> 'paid'");
         $stmt->execute(['ref' => $providerRef, 'pm' => $method, 'uuid' => $uuid]);
         $changed = $stmt->rowCount() >= 1;
@@ -1123,6 +1579,10 @@ class StoreService
             }
         }
         try {
+            (new GiftCardService())->onOrderPaid($uuid);
+        } catch (\Throwable $e) {
+        }
+        try {
             TrackingConversionService::onOrderPaid($uuid);
         } catch (\Throwable $e) {
         }
@@ -1133,16 +1593,17 @@ class StoreService
         return $changed;
     }
 
-    public function stats(): array
+    public function stats(bool $includeTests = false): array
     {
         $db = Database::instance();
+        $where = $includeTests ? '' : ' AND is_test = 0';
         $stmt = $db->prepare("SELECT
             COUNT(*) AS orders_total,
             SUM(CASE WHEN payment_status = 'paid' THEN 1 ELSE 0 END) AS orders_paid,
             SUM(CASE WHEN payment_status = 'paid' THEN total_cents ELSE 0 END) AS revenue_cents,
             SUM(CASE WHEN fulfillment_status = 'new' THEN 1 ELSE 0 END) AS orders_new,
             SUM(CASE WHEN fulfillment_status = 'shipped' THEN 1 ELSE 0 END) AS orders_shipped
-            FROM store_orders WHERE site_id = @site_id");
+            FROM store_orders WHERE site_id = @site_id$where");
         $stmt->execute();
         $o = $stmt->fetch() ?: [];
         $p = $db->prepare("SELECT COUNT(*) AS products_total, SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) AS products_active,
@@ -1227,6 +1688,10 @@ class StoreService
                 (new LoyaltyService())->reverseOrderPoints((int)$o['id'], 'release');
             } catch (\Throwable $e) {
             }
+            try {
+                (new GiftCardService())->onOrderFailed((int)$o['id'], 'Pago no completado');
+            } catch (\Throwable $e) {
+            }
             $released[] = $o['order_number'] ?: $o['uuid'];
         }
         return ['released' => count($released), 'orders' => $released];
@@ -1268,6 +1733,7 @@ class StoreService
                 'sistecredito' => 'Sistecrédito',
                 'wompi' => 'Wompi',
                 'cod' => 'Contra entrega',
+                'gift_card' => 'Tarjeta de regalo',
                 default => 'Pago asistido',
             };
             $body = "Pedido " . $order['order_number'] . "\n\n" . $lines . "\nSubtotal: " . $this->money((int)$order['subtotal_cents'], $currency)
@@ -1314,6 +1780,10 @@ class StoreService
         $row['compare_price_cents'] = (int)$row['compare_price_cents'];
         $row['stock'] = (int)$row['stock'];
         $row['track_stock'] = (int)$row['track_stock'];
+        $row['free_shipping'] = (int)($row['free_shipping'] ?? 0);
+        $row['tax_exempt'] = (int)($row['tax_exempt'] ?? 0);
+        $row['visibility'] = (string)($row['visibility'] ?? 'public');
+        $row['allowed_ips'] = (string)($row['allowed_ips'] ?? '');
         return $row;
     }
 

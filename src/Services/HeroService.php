@@ -17,6 +17,11 @@ class HeroService
 
     private const THEME_SETTING = 'theme.sonika.hero_theme';
     private const THEME_CONFIG_SETTING = 'theme.sonika.hero_theme_config';
+    private const CACHE_VERSION_SETTING = 'theme.sonika.hero_cache_version';
+
+    /** Rango de zoom del fondo: 50% reduce la imagen, 250% la acerca. */
+    public const BG_ZOOM_MIN = 50;
+    public const BG_ZOOM_MAX = 250;
 
     public const CONTENT_TYPES = [
         'text' => ['label' => 'Texto comercial', 'available' => true],
@@ -77,7 +82,8 @@ class HeroService
         try {
             $st = Database::instance()->prepare("INSERT INTO settings (site_id, `key`, `value`) VALUES (@site_id, ?, ?) ON DUPLICATE KEY UPDATE `value` = VALUES(`value`)");
             $st->execute([self::THEME_SETTING, $id]);
-            return ['ok' => true, 'active_theme' => $id, 'themes' => $this->themes()];
+            $version = $this->bumpCacheVersion();
+            return ['ok' => true, 'active_theme' => $id, 'themes' => $this->themes(), 'cache_version' => $version];
         } catch (\Throwable $e) {
             return ['ok' => false, 'message' => 'No se pudo guardar el theme.'];
         }
@@ -109,7 +115,7 @@ class HeroService
             'title' => "EL SONIDO\nSE *APODERA*.",
             'subtitle' => 'Tu música. Tu escenario. Tu momento.',
             'cta_label' => 'Explorar Instrumentos',
-            'cta_url' => '/guitarras',
+            'cta_url' => '/tienda',
             'cta2_label' => 'Ver la Experiencia',
             'cta2_video' => 'https://www.youtube.com/watch?v=dsD03vmVe30',
             'autoplay' => 9000,
@@ -141,25 +147,25 @@ class HeroService
             'mobile_cta_width_value' => 100,
             'mobile_cta_width_unit' => '%',
             'categories' => [
-                ['label' => 'Guitarras', 'slug' => 'guitarras', 'href' => '/guitarras', 'image' => 'https://cdn.shopify.com/s/files/1/0269/4178/4117/files/3_c0fcc64c-78ef-4675-b9c0-04cc0127a521.png?v=1748015983&width=640', 'enabled' => 1],
-                ['label' => 'Pianos', 'slug' => 'pianos', 'href' => '/pianos', 'image' => 'https://cdn.shopify.com/s/files/1/0269/4178/4117/files/1_82429ffb-d1db-43da-b2b2-f5d95dcb861a.png?v=1758898900&width=640', 'enabled' => 1],
-                ['label' => 'Acordeones', 'slug' => 'acordeon', 'href' => '/acordeon', 'image' => 'https://cdn.shopify.com/s/files/1/0269/4178/4117/products/ACOR36.png?v=1717789153&width=640', 'enabled' => 1],
-                ['label' => 'Baterías', 'slug' => 'baterias', 'href' => '/buscar?q=bateria', 'image' => 'https://cdn.shopify.com/s/files/1/0269/4178/4117/files/1_04b0d32c-6821-410d-865d-c04aba234935.png?v=1776099590&width=640', 'enabled' => 1],
-                ['label' => 'Bajos', 'slug' => 'bajos', 'href' => '/guitarras?sub=bajos', 'image' => 'https://cdn.shopify.com/s/files/1/0269/4178/4117/files/BAJOELECFENDERSQDEBUTPBASSSUNBURTMOD0379700503.png?v=1791214002&width=640', 'enabled' => 1],
-                ['label' => 'Violines', 'slug' => 'violines', 'href' => '/buscar?q=violin', 'image' => 'https://cdn.shopify.com/s/files/1/0269/4178/4117/files/1_1addf835-272f-4619-a99c-b104923b7845.png?v=1764197651&width=640', 'enabled' => 1],
-                ['label' => 'Ukelele', 'slug' => 'ukelele', 'href' => '/buscar?q=ukelele', 'image' => 'https://cdn.shopify.com/s/files/1/0269/4178/4117/products/Ukelele_florecer_miche-instrumentos_musicales_tienda_en_linea-1.jpg?v=1631538264&width=640', 'enabled' => 1],
-                ['label' => 'Saxofón', 'slug' => 'saxofon', 'href' => '/buscar?q=saxofon', 'image' => 'https://cdn.shopify.com/s/files/1/0269/4178/4117/files/ARTICULOSMICHE_3_211c9030-1f81-4ba1-b3d5-313d344763a3.png?v=1760458403&width=640', 'enabled' => 1],
-                ['label' => 'Timbales', 'slug' => 'timbales', 'href' => '/buscar?q=timbal', 'image' => 'https://cdn.shopify.com/s/files/1/0269/4178/4117/files/LP1415-KP_5a484e93-8e61-4402-a275-91ed107e38b0.webp?v=1727973167&width=640', 'enabled' => 1],
-                ['label' => 'Bongoes', 'slug' => 'bongoes', 'href' => '/buscar?q=bongo', 'image' => 'https://cdn.shopify.com/s/files/1/0269/4178/4117/products/BON067.png?v=1586384906&width=640', 'enabled' => 1],
-                ['label' => 'Tumbadoras', 'slug' => 'tumbadoras', 'href' => '/buscar?q=tumbadora', 'image' => 'https://cdn.shopify.com/s/files/1/0269/4178/4117/products/CONGACP1212CHERRYENFIBRAVIDRIOTUMBACONAROCONFORTMICHETIENDACON137.png?v=1692204700&width=640', 'enabled' => 1],
-                ['label' => 'Baquetas', 'slug' => 'baquetas', 'href' => '/buscar?q=baqueta', 'image' => 'https://cdn.shopify.com/s/files/1/0269/4178/4117/products/BAQ039.png?v=1574455593&width=640', 'enabled' => 1],
-                ['label' => 'Micrófonos', 'slug' => 'microfono-miche', 'href' => '/microfono-miche', 'image' => 'https://cdn.shopify.com/s/files/1/0269/4178/4117/files/MICROFONOAUDIOTECHNICAAT2020CONDENSADOR.png?v=1791216440&width=640', 'enabled' => 1],
-                ['label' => 'Cabinas', 'slug' => 'cabinas', 'href' => '/buscar?q=cabina', 'image' => 'https://cdn.shopify.com/s/files/1/0269/4178/4117/files/CABINAACTIVAEVETX-15SPUSSUBWOOFERETX-15SP.png?v=1790694499&width=640', 'enabled' => 1],
+                ['label' => 'Guitarras', 'slug' => 'guitarras', 'href' => '/cuerdas/guitarras', 'image' => 'https://cdn.shopify.com/s/files/1/0269/4178/4117/files/3_c0fcc64c-78ef-4675-b9c0-04cc0127a521.png?v=1748015983&width=640', 'enabled' => 1],
+                ['label' => 'Pianos', 'slug' => 'pianos', 'href' => '/teclados/pianos', 'image' => 'https://cdn.shopify.com/s/files/1/0269/4178/4117/files/1_82429ffb-d1db-43da-b2b2-f5d95dcb861a.png?v=1758898900&width=640', 'enabled' => 1],
+                ['label' => 'Acordeones', 'slug' => 'acordeon', 'href' => '/vientos/acordeones', 'image' => 'https://cdn.shopify.com/s/files/1/0269/4178/4117/products/ACOR36.png?v=1717789153&width=640', 'enabled' => 1],
+                ['label' => 'Baterías', 'slug' => 'baterias', 'href' => '/percusion/baterias', 'image' => 'https://cdn.shopify.com/s/files/1/0269/4178/4117/files/1_04b0d32c-6821-410d-865d-c04aba234935.png?v=1776099590&width=640', 'enabled' => 1],
+                ['label' => 'Bajos', 'slug' => 'bajos', 'href' => '/cuerdas/bajos', 'image' => 'https://cdn.shopify.com/s/files/1/0269/4178/4117/files/BAJOELECFENDERSQDEBUTPBASSSUNBURTMOD0379700503.png?v=1791214002&width=640', 'enabled' => 1],
+                ['label' => 'Violines', 'slug' => 'violines', 'href' => '/cuerdas/violines', 'image' => 'https://cdn.shopify.com/s/files/1/0269/4178/4117/files/1_1addf835-272f-4619-a99c-b104923b7845.png?v=1764197651&width=640', 'enabled' => 1],
+                ['label' => 'Ukelele', 'slug' => 'ukelele', 'href' => '/cuerdas/ukeleles', 'image' => 'https://cdn.shopify.com/s/files/1/0269/4178/4117/products/Ukelele_florecer_miche-instrumentos_musicales_tienda_en_linea-1.jpg?v=1631538264&width=640', 'enabled' => 1],
+                ['label' => 'Saxofón', 'slug' => 'saxofon', 'href' => '/vientos/saxofones', 'image' => 'https://cdn.shopify.com/s/files/1/0269/4178/4117/files/ARTICULOSMICHE_3_211c9030-1f81-4ba1-b3d5-313d344763a3.png?v=1760458403&width=640', 'enabled' => 1],
+                ['label' => 'Timbales', 'slug' => 'timbales', 'href' => '/percusion/timbales', 'image' => 'https://cdn.shopify.com/s/files/1/0269/4178/4117/files/LP1415-KP_5a484e93-8e61-4402-a275-91ed107e38b0.webp?v=1727973167&width=640', 'enabled' => 1],
+                ['label' => 'Bongoes', 'slug' => 'bongoes', 'href' => '/percusion/bongos', 'image' => 'https://cdn.shopify.com/s/files/1/0269/4178/4117/products/BON067.png?v=1586384906&width=640', 'enabled' => 1],
+                ['label' => 'Tumbadoras', 'slug' => 'tumbadoras', 'href' => '/percusion/congas', 'image' => 'https://cdn.shopify.com/s/files/1/0269/4178/4117/products/CONGACP1212CHERRYENFIBRAVIDRIOTUMBACONAROCONFORTMICHETIENDACON137.png?v=1692204700&width=640', 'enabled' => 1],
+                ['label' => 'Baquetas', 'slug' => 'baquetas', 'href' => '/percusion/baquetas', 'image' => 'https://cdn.shopify.com/s/files/1/0269/4178/4117/products/BAQ039.png?v=1574455593&width=640', 'enabled' => 1],
+                ['label' => 'Micrófonos', 'slug' => 'microfono-miche', 'href' => '/microfonos', 'image' => 'https://cdn.shopify.com/s/files/1/0269/4178/4117/files/MICROFONOAUDIOTECHNICAAT2020CONDENSADOR.png?v=1791216440&width=640', 'enabled' => 1],
+                ['label' => 'Cabinas', 'slug' => 'cabinas', 'href' => '/audio/cabinas', 'image' => 'https://cdn.shopify.com/s/files/1/0269/4178/4117/files/CABINAACTIVAEVETX-15SPUSSUBWOOFERETX-15SP.png?v=1790694499&width=640', 'enabled' => 1],
                 ['label' => 'Amplificadores Fender', 'slug' => 'amplificadores-fender', 'href' => '/buscar?q=amplificador%20fender', 'image' => 'https://cdn.shopify.com/s/files/1/0269/4178/4117/files/2330300000_fen_amp_frt_1_nr.png?v=1741811461&width=640', 'enabled' => 1],
-                ['label' => 'Audio Profesional', 'slug' => 'amplificadores', 'href' => '/amplificadores', 'image' => 'https://cdn.shopify.com/s/files/1/0269/4178/4117/files/1_175f6da6-d872-4f86-8371-b7976ffb28bc.png?v=1771707885&width=640', 'enabled' => 1],
-                ['label' => 'Audífonos', 'slug' => 'audifonos', 'href' => '/buscar?q=audifono', 'image' => 'https://cdn.shopify.com/s/files/1/0269/4178/4117/files/AUDIFONOAUDIOTECHNICAATHM20XBTNEGROATHM20XBT.png?v=1790267571&width=640', 'enabled' => 1],
-                ['label' => 'Cabezas móviles', 'slug' => 'cabezas-moviles', 'href' => '/buscar?q=cabeza%20movil', 'image' => 'https://cdn.shopify.com/s/files/1/0269/4178/4117/files/FORMATODECREACIONART_9_71047ce9-a78f-42f3-bf86-d73b40f047c5.png?v=1785446032&width=640', 'enabled' => 1],
-                ['label' => 'Accesorios', 'slug' => 'cuerdas-guitarras', 'href' => '/cuerdas-guitarras', 'image' => 'https://cdn.shopify.com/s/files/1/0269/4178/4117/files/1_67a602cb-ddb7-41e0-b756-d3cb589f6893.png?v=1776956607&width=640', 'enabled' => 1],
+                ['label' => 'Audio Profesional', 'slug' => 'amplificadores', 'href' => '/audio', 'image' => 'https://cdn.shopify.com/s/files/1/0269/4178/4117/files/1_175f6da6-d872-4f86-8371-b7976ffb28bc.png?v=1771707885&width=640', 'enabled' => 1],
+                ['label' => 'Audífonos', 'slug' => 'audifonos', 'href' => '/audio/audifonos', 'image' => 'https://cdn.shopify.com/s/files/1/0269/4178/4117/files/AUDIFONOAUDIOTECHNICAATHM20XBTNEGROATHM20XBT.png?v=1790267571&width=640', 'enabled' => 1],
+                ['label' => 'Cabezas móviles', 'slug' => 'cabezas-moviles', 'href' => '/iluminacion/cabezas-moviles', 'image' => 'https://cdn.shopify.com/s/files/1/0269/4178/4117/files/FORMATODECREACIONART_9_71047ce9-a78f-42f3-bf86-d73b40f047c5.png?v=1785446032&width=640', 'enabled' => 1],
+                ['label' => 'Accesorios', 'slug' => 'cuerdas-guitarras', 'href' => '/accesorios', 'image' => 'https://cdn.shopify.com/s/files/1/0269/4178/4117/files/1_67a602cb-ddb7-41e0-b756-d3cb589f6893.png?v=1776956607&width=640', 'enabled' => 1],
             ],
             'benefits' => [
                 ['icon' => 'truck', 'title' => 'Envío rápido', 'text' => 'a todo Colombia', 'enabled' => 1],
@@ -232,10 +238,89 @@ class HeroService
         try {
             $st = Database::instance()->prepare("INSERT INTO settings (site_id, `key`, `value`) VALUES (@site_id, ?, ?) ON DUPLICATE KEY UPDATE `value` = VALUES(`value`)");
             $st->execute([self::THEME_CONFIG_SETTING, json_encode($config, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)]);
-            return ['ok' => true, 'config' => $config];
+            $version = $this->bumpCacheVersion();
+            return ['ok' => true, 'config' => $config, 'cache_version' => $version, 'save_summary' => $this->configSaveSummary($config)];
         } catch (\Throwable $e) {
             return ['ok' => false, 'message' => 'No se pudo guardar la configuración del theme.'];
         }
+    }
+
+    /** Versión de assets del Hero: cambia al guardar o purgar para romper caché. */
+    public function cacheVersion(): int
+    {
+        try {
+            $st = Database::instance()->prepare("SELECT `value` FROM settings WHERE site_id = @site_id AND `key` = ? LIMIT 1");
+            $st->execute([self::CACHE_VERSION_SETTING]);
+            return max(0, (int)$st->fetchColumn());
+        } catch (\Throwable $e) {
+            return 0;
+        }
+    }
+
+    public function bumpCacheVersion(): int
+    {
+        $version = max(time(), $this->cacheVersion() + 1);
+        try {
+            $st = Database::instance()->prepare("INSERT INTO settings (site_id, `key`, `value`) VALUES (@site_id, ?, ?) ON DUPLICATE KEY UPDATE `value` = VALUES(`value`)");
+            $st->execute([self::CACHE_VERSION_SETTING, (string)$version]);
+            return $version;
+        } catch (\Throwable $e) {
+            return 0;
+        }
+    }
+
+    /** Resumen legible de lo que realmente quedó guardado por slide. */
+    private function configSaveSummary(array $config): array
+    {
+        $out = [];
+        foreach ((array)($config['slides'] ?? []) as $s) {
+            if (!is_array($s)) continue;
+            $comp = $s['composition'] ?? [];
+            if (is_string($comp)) $comp = json_decode($comp, true) ?: [];
+            $out[] = [
+                'id' => (string)($s['id'] ?? ''),
+                'desktop_zoom' => isset($comp['background']['desktop']['zoom']) ? (float)$comp['background']['desktop']['zoom'] : null,
+                'mobile_zoom' => isset($comp['background']['mobile']['zoom']) ? (float)$comp['background']['mobile']['zoom'] : null,
+                'mobile_fit' => (string)($comp['background']['mobile']['fit'] ?? 'cover'),
+            ];
+        }
+        return $out;
+    }
+
+    /**
+     * Purga lo que puede quedar cacheado del Hero:
+     * - versión de assets (imágenes con ?v=)
+     * - OPcache de HeroService y SonikaHeroWidget
+     * - archivos de caché propios del Hero en /cache y /storage/cache
+     * No toca la configuración ni los slides.
+     */
+    public function purgeCache(): array
+    {
+        $version = $this->bumpCacheVersion();
+        $opcache = 0;
+        if (function_exists('opcache_invalidate')) {
+            foreach ([__FILE__, dirname(__DIR__) . '/Widgets/SonikaHeroWidget.php'] as $file) {
+                $file = realpath($file) ?: $file;
+                clearstatcache(true, $file);
+                if (is_file($file) && @opcache_invalidate($file, true)) $opcache++;
+            }
+        }
+        $cleared = 0;
+        $root = defined('ROOT_DIR') ? (string)ROOT_DIR : dirname(__DIR__, 2);
+        foreach ([$root . '/cache', $root . '/storage/cache'] as $dir) {
+            foreach (glob($dir . '/hero*') ?: [] as $file) {
+                if (is_file($file) && @unlink($file)) $cleared++;
+            }
+        }
+        return [
+            'ok' => $version > 0,
+            'version' => $version,
+            'opcache_files' => $opcache,
+            'cache_files' => $cleared,
+            'message' => $version > 0
+                ? 'Caché del Hero purgada. Versión de assets: ' . $version . '.'
+                : 'No se pudo actualizar la versión del Hero.',
+        ];
     }
 
     private function normalizeThemeConfig(array $input, array $defaults): array
@@ -255,7 +340,7 @@ class HeroService
         $out['title'] = trim((string)($primary['title'] ?? $defaults['title']));
         $out['subtitle'] = trim((string)($primary['subtitle'] ?? $defaults['subtitle']));
         $out['cta_label'] = trim((string)($primary['cta_label'] ?? $defaults['cta_label']));
-        $out['cta_url'] = $this->safeThemeUrl((string)($primary['cta_url'] ?? $defaults['cta_url']), '/guitarras');
+        $out['cta_url'] = $this->safeThemeUrl((string)($primary['cta_url'] ?? $defaults['cta_url']), '/tienda');
         $out['cta2_label'] = trim((string)($primary['cta2_label'] ?? $defaults['cta2_label']));
         $out['cta2_video'] = $this->safeThemeUrl((string)($primary['cta2_video'] ?? $defaults['cta2_video']), '');
 
@@ -291,7 +376,7 @@ class HeroService
         $out['mobile_cards_offset'] = round(self::pxToLength($cardsPx, $cardsUnit), 2);
         $out['mobile_cards_offset_unit'] = $cardsUnit;
 
-        $out['mobile_height'] = max(480, min(720, (int)($input['mobile_height'] ?? $defaults['mobile_height'])));
+        $out['mobile_height'] = max(360, min(960, (int)($input['mobile_height'] ?? $defaults['mobile_height'])));
         $out['mobile_description_lines'] = max(1, min(4, (int)($input['mobile_description_lines'] ?? $defaults['mobile_description_lines'])));
         $out['mobile_group_scale'] = max(60, min(130, (int)($input['mobile_group_scale'] ?? $defaults['mobile_group_scale'])));
         $out['mobile_eyebrow_scale'] = max(60, min(140, (int)($input['mobile_eyebrow_scale'] ?? $defaults['mobile_eyebrow_scale'])));
@@ -497,7 +582,7 @@ class HeroService
             $fit = (string)($b['fit'] ?? 'cover');
             if (!in_array($fit, ['cover', 'contain'], true)) $fit = 'cover';
             $out['background'][$device] = [
-                'zoom' => max(100, min(250, (float)($b['zoom'] ?? $defaults['background'][$device]['zoom']))),
+                'zoom' => max(self::BG_ZOOM_MIN, min(self::BG_ZOOM_MAX, (float)($b['zoom'] ?? $defaults['background'][$device]['zoom']))),
                 'x' => max(-100, min(100, (float)($b['x'] ?? 0))),
                 'y' => max(-100, min(100, (float)($b['y'] ?? 0))),
                 'focal_x' => max(0, min(100, (float)($b['focal_x'] ?? $defaults['background'][$device]['focal_x']))),
@@ -628,7 +713,7 @@ class HeroService
                 ->execute(['u' => $this->uuid4(), 'n' => $name, 's' => $status, 'o' => $mx, 'l' => $layout, 'lt' => $lt, 'ld' => $ld, 'rt' => $rt, 'rd' => $rd, 'de' => $de]);
             $id = (int)$db->lastInsertId();
         }
-        return ['ok' => true, 'slide' => $this->get($id)];
+        return ['ok' => true, 'slide' => $this->get($id), 'cache_version' => $this->bumpCacheVersion()];
     }
 
     public function duplicate(int $id): array
@@ -644,7 +729,7 @@ class HeroService
     public function delete(int $id): array
     {
         Database::instance()->prepare("DELETE FROM wwi_hero_slides WHERE id = :id AND site_id = @site_id")->execute(['id' => $id]);
-        return ['ok' => true];
+        return ['ok' => true, 'cache_version' => $this->bumpCacheVersion()];
     }
 
     public function reorder(array $ids): array
@@ -653,7 +738,7 @@ class HeroService
         $st = $db->prepare("UPDATE wwi_hero_slides SET sort_order = :o WHERE id = :id AND site_id = @site_id");
         $i = 0;
         foreach ($ids as $id) { $st->execute(['o' => $i++, 'id' => (int)$id]); }
-        return ['ok' => true];
+        return ['ok' => true, 'cache_version' => $this->bumpCacheVersion()];
     }
 
     public function publish(int $id): array
@@ -675,7 +760,7 @@ class HeroService
         }
         $this->snapshot($id, $s, 'publish');
         Database::instance()->prepare("UPDATE wwi_hero_slides SET status='active' WHERE id = :id AND site_id = @site_id")->execute(['id' => $id]);
-        return ['ok' => true];
+        return ['ok' => true, 'cache_version' => $this->bumpCacheVersion()];
     }
 
     public function versions(int $slideId): array

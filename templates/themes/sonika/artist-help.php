@@ -1,12 +1,14 @@
 <?php
 /**
- * Guía visual del panel del artista: tarjeta de progreso, wizard de primeros
+ * Guía visual del panel del Partner: tarjeta de progreso, wizard de primeros
  * pasos y tooltips en lenguaje sencillo.
  *
  * Variables esperadas desde router.php:
  * $__affPP, $__wizardSteps, $__wizDone, $__wizTotal, $__wizPct,
  * $__wizNextIndex, $__wizNextTitle, $__wizStatus, $__isDemo.
  */
+$__helpCanBeHired = $__helpCanBeHired ?? ($__canBeHiredP ?? true);
+$__helpAudience = $__helpCanBeHired ? 'fans' : 'clientes y seguidores';
 $__wizCfg = [
     'id' => (int)($__affPP['id'] ?? 0),
     'status' => (string)($__wizStatus ?? ''),
@@ -365,19 +367,21 @@ $__wizCfg = [
     ['Productos que visitaron tus seguidores', 'Los productos que más miró la gente que llegó por tu enlace. Te ayuda a saber qué recomendar.'],
     ['Retiro', 'Aquí pides que te paguen tus comisiones. El mínimo es $100.000 y confirmas con un código que llega a tu correo.'],
     ['Mis Ganancias', 'Te mostramos en qué estado está cada comisión, desde “estimada” hasta “pagada”.'],
+<?php if (!empty($__helpCanBeHired)): ?>
     ['Solicitudes de contratación', 'Personas u organizaciones que quieren contratarte. Responde rápido para no perder la oportunidad.'],
-    ['Aportes de agradecimiento', 'Propinas o aportes que tus fans te dejan. Son un extra voluntario, no una comisión.'],
+<?php endif; ?>
+    ['Aportes de agradecimiento', 'Propinas o aportes que tus <?= $__helpAudience ?> te dejan. Son un extra voluntario, no una comisión.'],
     ['Estudio Visual', 'Sube tus fotos. Te indicamos el tamaño ideal y las optimizamos para que tu página cargue rápido.'],
     ['Trayectoria', 'Cuenta tu historia, las bandas con las que has tocado y tus logros. Esto ayuda a que te encuentren y confíen en ti.'],
-    ['Perfil público', 'Así te ven los fans. Escribe una descripción corta y clara; puedes cambiarla cuando quieras.'],
+    ['Perfil público', 'Así te ven tus <?= $__helpAudience ?>. Escribe una descripción corta y clara; puedes cambiarla cuando quieras.'],
     ['SONIKA Sound League', 'Tu nivel sube con las ventas del mes. Es una forma de medir tu crecimiento; no cambia el porcentaje de tu comisión.'],
     ['Logros y Premios', 'Reconocimientos que ganas al alcanzar metas. Se muestran en tu panel como motivación.']
   ];
   var TAB_TIPS = {
     ventas: 'Mira cuántas personas entraron con tu enlace, qué compraron y cuánto has ganado.',
     ganancias: 'Consulta tus comisiones y pide tu retiro cuando tengas el mínimo.',
-    tienda: 'Tu enlace personal lleva a tu vitrina. Compártelo en redes; si alguien compra después de entrar por él, la venta se te atribuye por 30 días.',
-    comunidad: 'Revisa solicitudes de contratación y aportes de tus fans.',
+    tienda: '<?= $__helpCanBeHired ? "Tu enlace personal lleva a tu vitrina. Compártelo en redes; si alguien compra después de entrar por él, la venta se te atribuye por 30 días." : "Tu enlace personal lleva a tu tienda. Compártelo en redes; si alguien compra después de entrar por él, la venta se te atribuye por 30 días." ?>',
+    comunidad: '<?= $__helpCanBeHired ? "Revisa solicitudes de contratación y aportes de tus fans." : "Revisa tus aportes y la actividad de tu comunidad." ?>',
     perfil: 'Edita tu foto, portada, historia y redes para que tu página se vea profesional.'
   };
   var METRIC_TIPS = {
@@ -396,7 +400,10 @@ $__wizCfg = [
     'Copiar enlace': 'Copia tu enlace personal para compartirlo en WhatsApp, Instagram o donde quieras.',
     'Confirmar retiro': 'Escribe el código que llegó a tu correo para confirmar el retiro.',
     'Ver mi página': 'Abre tu página pública tal como la ven tus fans.',
+    'Ver mi tienda': 'Abre tu tienda pública tal como la ven tus clientes.',
     'Contrato': 'Lee, firma o consulta tu contrato del programa.',
+    'Firmar contrato': 'Firma el contrato vigente para activar tu participación y tus comisiones.',
+    'Contrato firmado ✓': 'Tu contrato está firmado. Puedes consultarlo cuando quieras.',
     'Guía': 'Abre esta guía cuando quieras. Te muestra el siguiente paso y cómo hacerlo.'
   };
 

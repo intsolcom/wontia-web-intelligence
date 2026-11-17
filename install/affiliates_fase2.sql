@@ -1,4 +1,4 @@
--- SONIKA Artist Partners — Fase 2: contratos versionados, aceptaciones, OTP, documentos. Idempotente.
+-- SONIKA Partners — Fase 2: contratos versionados, aceptaciones, OTP, documentos. Idempotente.
 CREATE TABLE IF NOT EXISTS affiliate_contracts (
   id INT AUTO_INCREMENT PRIMARY KEY,
   site_id INT NOT NULL,

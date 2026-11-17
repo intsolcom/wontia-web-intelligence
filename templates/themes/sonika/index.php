@@ -29,6 +29,27 @@ if ($__cmsSlug !== 'home') {
 }
 
 sonika_site_head('SONIKA — Instrumentos Musicales', 'Compra instrumentos musicales, audio, iluminación y accesorios con envío a toda Colombia. Sonido profesional, precio justo.');
+$__homeOrigin = 'https://sonika.com.co';
+echo \App\Services\SeoService::jsonLd('Organization', [
+    '@id' => $__homeOrigin . '/#organization',
+    'name' => 'SONIKA',
+    'url' => $__homeOrigin . '/',
+    'logo' => $__homeOrigin . '/assets/wontia-og.png',
+    'description' => 'Tienda de instrumentos musicales, audio, iluminación y accesorios con envío a toda Colombia.',
+    'address' => ['@type' => 'PostalAddress', 'addressCountry' => 'CO'],
+]);
+echo \App\Services\SeoService::jsonLd('WebSite', [
+    '@id' => $__homeOrigin . '/#website',
+    'name' => 'SONIKA',
+    'url' => $__homeOrigin . '/',
+    'inLanguage' => 'es-CO',
+    'publisher' => ['@id' => $__homeOrigin . '/#organization'],
+    'potentialAction' => [
+        '@type' => 'SearchAction',
+        'target' => ['@type' => 'EntryPoint', 'urlTemplate' => $__homeOrigin . '/buscar?q={search_term_string}'],
+        'query-input' => 'required name=search_term_string',
+    ],
+]);
 ?>
 
 <?php $__heroBuilder = \App\Widgets\WidgetRegistry::render('sonika-hero', ['enabled' => 1]); ?>
@@ -63,6 +84,8 @@ sonika_site_head('SONIKA — Instrumentos Musicales', 'Compra instrumentos music
 </div>
 <?php endif; ?>
 
+<?php $__heroThemeActive = (new \App\Services\HeroService())->activeTheme(); ?>
+<?php if ($__heroThemeActive !== 'the-sound-takes-over'): ?>
 <div class="wrap">
   <div class="trust">
     <?php foreach ((array)wwi_tc('sonika', 'benefits', []) as $b): ?>
@@ -70,12 +93,13 @@ sonika_site_head('SONIKA — Instrumentos Musicales', 'Compra instrumentos music
     <?php endforeach; ?>
   </div>
 </div>
+<?php endif; ?>
 
 <?= \App\Widgets\WidgetRegistry::render('sonika-categories', []) ?>
 
 <section class="pad wrap" id="catalogo">
   <div class="head"><h2>Productos destacados</h2><a href="/tienda">Ver tienda →</a></div>
-  <?php $featured = array_slice(sonika_products(), 0, 12); ?>
+  <?php $featured = function_exists('sonika_featured_instruments') ? sonika_featured_instruments() : []; if (!$featured) $featured = array_slice(sonika_products(), 0, 12); ?>
   <?php if (!empty($featured)): ?>
     <div class="prod-grid">
       <?php foreach ($featured as $p) sonika_product_card($p); ?>

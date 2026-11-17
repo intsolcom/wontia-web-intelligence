@@ -89,7 +89,7 @@ $__contractUrl = '/sonika-partners/contrato';
     .sp__calc-checks{display:grid;grid-template-columns:1fr 1fr;gap:8px}
     .sp__calc-check{display:flex;align-items:center;gap:6px;font-size:10px;color:#d3d3d3;text-transform:none;letter-spacing:0;font-weight:600}
     .sp__calc-check input{width:15px;height:15px;min-height:0;flex:none;accent-color:#F20D16}
-    .sp__profiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:14px}
+    .sp__profiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:14px}
     .sp__profile{border:1px solid #e5e0d8;border-radius:15px;padding:15px;background:#fff}
     .sp__profile b{display:block;font-size:14px}.sp__profile span{display:block;font-size:11.5px;line-height:1.55;color:#666;margin-top:4px}
     .sp__profile em{display:inline-block;font-style:normal;font-size:9.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#8a641e;background:#fbf1d7;border-radius:99px;padding:3px 7px;margin-bottom:8px}
@@ -105,14 +105,54 @@ $__contractUrl = '/sonika-partners/contrato';
     .sp__submit{grid-column:1/-1;min-height:46px;border:0;border-radius:11px;background:#111;color:#fff;font-weight:850;font-size:13px;cursor:pointer}
     .sp__submit:hover{background:#2a2a2a}.sp__msg{grid-column:1/-1;font-size:12.5px;line-height:1.5;min-height:18px;font-weight:700}
     .sp__note{font-size:10.5px;color:#888;line-height:1.5;margin:16px 0 0}
-    .sp__category{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0 12px}
+    .sp__form-wrap{min-width:0}
+    .sp__success{border:1px solid #e5e0d8;border-radius:16px;padding:20px;background:#fcfbf9}
+    .sp__success-head{display:flex;gap:12px;align-items:flex-start}
+    .sp__success-icon{width:42px;height:42px;border-radius:50%;background:#e8f7ee;color:#0d7a58;display:grid;place-items:center;font-weight:900;font-size:20px;flex:0 0 42px}
+    .sp__success-kicker{font-size:10px;font-weight:850;letter-spacing:.12em;text-transform:uppercase;color:#0d7a58}
+    .sp__success h3{font:800 clamp(1.3rem,2.2vw,1.7rem)/1.1 Sora,Inter,system-ui,sans-serif;letter-spacing:-.03em;margin:4px 0 6px}
+    .sp__success p{font-size:12.5px;line-height:1.6;color:#666;margin:0}
+    .sp__steps{display:flex;gap:8px;list-style:none;padding:0;margin:16px 0}
+    .sp__steps li{flex:1;display:flex;gap:6px;align-items:center;font-size:10.5px;font-weight:700;color:#999;border-top:2px solid #e5e0d8;padding-top:8px}
+    .sp__steps li b{width:20px;height:20px;border-radius:50%;background:#eee;display:grid;place-items:center;font-size:10px;color:#777;flex:0 0 20px}
+    .sp__steps li.is-done{color:#0d7a58;border-color:#0d7a58}.sp__steps li.is-done b{background:#0d7a58;color:#fff}
+    .sp__steps li.is-current{color:#111;border-color:#F20D16}.sp__steps li.is-current b{background:#F20D16;color:#fff}
+    .sp__otp-box{border:1px solid #e5e0d8;border-radius:13px;padding:14px;background:#fff;margin-top:6px}
+    .sp__otp-box p{margin:0 0 6px}
+    .sp__otp-help{font-size:11.5px!important;color:#777!important}
+    .sp__otp-form{display:grid;gap:8px;margin-top:10px}
+    .sp__otp-form label{font-size:10.5px;font-weight:800;text-transform:uppercase;color:#555;letter-spacing:.02em}
+    .sp__otp-form input{width:100%;min-height:54px;border:1px solid #d9d4cc;border-radius:12px;padding:10px;text-align:center;font:800 26px/1 Sora,Inter,system-ui,sans-serif;letter-spacing:.35em;color:#111;background:#fff}
+    .sp__otp-form input:focus{outline:2px solid rgba(242,13,22,.25);border-color:#F20D16}
+    .sp__otp-form button{min-height:46px;border:0;border-radius:11px;background:#111;color:#fff;font-weight:850;font-size:13px;cursor:pointer}
+    .sp__otp-form button:disabled{opacity:.6;cursor:wait}
+    .sp__otp-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px}
+    .sp__otp-actions button{border:0;background:none;color:#0d7a58;font-weight:800;font-size:11.5px;cursor:pointer;padding:0}
+    .sp__otp-actions button:disabled{color:#999;cursor:not-allowed}
+    .sp__otp-actions span{font-size:11px;color:#888}
+    .sp__success-next{display:flex;gap:10px;align-items:flex-start;border:1px solid #cfe9d9;background:#f4fbf7;border-radius:13px;padding:14px;margin-top:12px}
+    .sp__success-icon--sm{width:30px;height:30px;flex:0 0 30px;font-size:14px}
+    .sp__success-next b{font-size:13px;color:#0d7a58}
+    .sp__success-next p{margin-top:3px}
+    .sp__success-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .sp__success-actions .sp__submit{grid-column:auto;display:inline-flex;align-items:center;justify-content:center;padding:0 14px;min-height:40px;text-decoration:none;font-size:12px}
+    .sp__success-actions .sp__link{display:inline-flex;align-items:center;min-height:40px;padding:0 12px;border:1px solid #d9d4cc;border-radius:10px;font-size:11.5px;font-weight:800;color:#555;text-decoration:none;background:#fff}
+    .sp__existing{margin-top:14px;border:1px dashed #d9d4cc;border-radius:12px;padding:12px;background:#fcfbf9}
+    .sp__existing summary{font-size:11.5px;font-weight:800;color:#555;cursor:pointer}
+    .sp__existing p{font-size:11px;color:#777;margin:6px 0}
+    .sp__existing form{display:grid;gap:7px;margin-top:8px}
+    .sp__existing input{width:100%;min-height:40px;border:1px solid #d9d4cc;border-radius:9px;padding:8px 10px;font:inherit;font-size:12px;background:#fff}
+    .sp__existing button{min-height:38px;border:0;border-radius:9px;background:#111;color:#fff;font-weight:800;font-size:11.5px;cursor:pointer}
+    .sp__existing .sp__otp-actions button{background:none;color:#0d7a58;min-height:auto;border-radius:0;font-size:11px}
+    .sp__existing-msg{font-size:11.5px;font-weight:700;min-height:16px;line-height:1.45}
+    .sp__category{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:8px 0 12px}
     .sp__cat{border:1px solid #d9d4cc;border-radius:11px;padding:10px;background:#fff;cursor:pointer;text-align:left;font:inherit}
     .sp__cat b{display:block;font-size:11.5px;color:#161616}.sp__cat span{display:block;font-size:10px;color:#777;margin-top:2px}
     .sp__cat.on{border-color:#F20D16;background:#fff7f7;box-shadow:0 0 0 2px rgba(242,13,22,.08)}
     .sp__group{display:contents}.sp__group[hidden]{display:none}
     .sp__faq{display:grid;gap:8px;margin-top:12px}.sp__faq details{background:#fff;border:1px solid #e5e0d8;border-radius:12px;padding:12px 14px}.sp__faq summary{font-size:12.5px;font-weight:800;cursor:pointer}.sp__faq p{font-size:12px;color:#666;line-height:1.6;margin:8px 0 0}
-    @media(max-width:900px){.sp__hero{grid-template-columns:1fr;padding-top:24px}.sp__card{order:-1}.sp__benefits{grid-template-columns:repeat(2,minmax(0,1fr))}.sp__formula,.sp__register{grid-template-columns:1fr}.sp__profiles{grid-template-columns:1fr}.sp__combo-products,.sp__examples--products{grid-template-columns:1fr}.sp__combo-total{text-align:left}}
-    @media(max-width:560px){.sp__wrap{padding:0 16px}.sp__benefits{grid-template-columns:1fr}.sp__examples{grid-template-columns:1fr}.sp__form{grid-template-columns:1fr}.sp__form .full{grid-column:auto}.sp__actions{display:grid}.sp__btn{width:100%}.sp__category{grid-template-columns:1fr}.sp__calc-row,.sp__calc-checks,.sp__streak{grid-template-columns:1fr}}
+    @media(max-width:900px){.sp__hero{grid-template-columns:1fr;padding-top:24px}.sp__card{order:-1}.sp__benefits{grid-template-columns:repeat(2,minmax(0,1fr))}.sp__formula,.sp__register{grid-template-columns:1fr}.sp__profiles{grid-template-columns:repeat(2,minmax(0,1fr))}.sp__category{grid-template-columns:repeat(2,1fr)}.sp__combo-products,.sp__examples--products{grid-template-columns:1fr}.sp__combo-total{text-align:left}}
+    @media(max-width:560px){.sp__wrap{padding:0 16px}.sp__benefits{grid-template-columns:1fr}.sp__examples{grid-template-columns:1fr}.sp__form{grid-template-columns:1fr}.sp__form .full{grid-column:auto}.sp__actions{display:grid}.sp__btn{width:100%}.sp__category{grid-template-columns:1fr}.sp__calc-row,.sp__calc-checks,.sp__streak{grid-template-columns:1fr}.sp__steps{flex-direction:column}.sp__steps li{border-top:0;border-left:2px solid #e5e0d8;padding:0 0 0 8px}.sp__success-actions .sp__submit,.sp__success-actions .sp__link{width:100%;justify-content:center}}
   </style>
   <div class="sp__wrap">
     <section class="sp__hero">
@@ -203,7 +243,8 @@ $__contractUrl = '/sonika-partners/contrato';
       <div class="sp__profiles">
         <div class="sp__profile"><em>Artista</em><b>Músico, cantante, instrumentista</b><span>Página de artista, repertorio, eventos, booking y Directorio Sonika. Misma comisión.</span></div>
         <div class="sp__profile"><em>Influencer</em><b>Creador de contenido</b><span>Creator page, media kit, campañas, product seeding y calendario. Misma comisión.</span></div>
-        <div class="sp__profile"><em>Persona natural</em><b>Fan, cliente, embajador</b><span>Link, QR y kit simple para compartir por WhatsApp. Sin página pública. Misma comisión.</span></div>
+        <div class="sp__profile"><em>Persona natural</em><b>Fan, cliente, embajador</b><span>Tienda, QR, link de partner y kit para compartir. Sin herramientas de contratación. Misma comisión.</span></div>
+        <div class="sp__profile"><em>Comercial</em><b>Tienda, marca o negocio</b><span>Tienda, catálogo, link de atribución y métricas. Sin contratación para eventos. Misma comisión.</span></div>
       </div>
     </section>
 
@@ -215,6 +256,7 @@ $__contractUrl = '/sonika-partners/contrato';
         <p class="sp__note">Programa en habilitación. Comisiones y condiciones sujetas al contrato vigente. No se garantizan ingresos.</p>
         <p style="margin-top:12px"><a href="/artista/solicitud" style="font-size:11.5px;color:#777">Consultar estado de mi solicitud</a> · <a href="<?= htmlspecialchars($__contractUrl, ENT_QUOTES, 'UTF-8') ?>" style="font-size:11.5px;color:#777">Leer contrato</a></p>
       </div>
+      <div class="sp__form-wrap">
       <form class="sp__form" id="partner-register" novalidate>
         <div class="full">
           <label>¿Cómo te describes? <span style="font-weight:500;text-transform:none;color:#888">(categoría interna, no cambia tu comisión)</span></label>
@@ -222,12 +264,13 @@ $__contractUrl = '/sonika-partners/contrato';
             <button type="button" class="sp__cat on" data-cat="artist"><b>Artista</b><span>Músico, cantante, instrumentista</span></button>
             <button type="button" class="sp__cat" data-cat="influencer"><b>Influencer</b><span>Creador de contenido</span></button>
             <button type="button" class="sp__cat" data-cat="natural"><b>Persona natural</b><span>Fan, cliente, embajador</span></button>
+            <button type="button" class="sp__cat" data-cat="commercial"><b>Comercial</b><span>Tienda, marca o negocio</span></button>
           </div>
           <input type="hidden" name="profile_category" id="sp-profile-category" value="artist">
         </div>
         <label>Nombre completo<input name="full_name" autocomplete="name" required></label>
         <label>Correo electrónico<input name="email" type="email" autocomplete="email" required></label>
-        <label>Nombre público<input name="public_name" placeholder="Como quieres aparecer"></label>
+        <label>Nombre público o del negocio<input name="public_name" placeholder="Como quieres aparecer"></label>
         <label id="sp-artist-name-label">Nombre artístico<input name="artist_name" autocomplete="nickname"></label>
         <label>Tipo de documento<select name="doc_type"><option value="">Selecciona</option><option>CC</option><option>CE</option><option>NIT</option><option>Pasaporte</option></select></label>
         <label>Número de documento<input name="doc_number" inputmode="numeric"></label>
@@ -243,6 +286,10 @@ $__contractUrl = '/sonika-partners/contrato';
         <div class="sp__group full" data-group="natural">
           <label>¿Cómo vas a compartir?<input name="niche" placeholder="WhatsApp, grupos, clientes, familia"></label>
         </div>
+        <div class="sp__group full" data-group="commercial">
+          <label>Tipo de negocio<input name="niche" placeholder="Ej. tienda de música, academia, estudio"></label>
+          <label>Sitio web<input name="website" type="url" placeholder="https://tunegocio.com"></label>
+        </div>
         <label>Instagram<input name="social_instagram" placeholder="@usuario"></label>
         <label>YouTube / TikTok<input name="social_video" placeholder="Canal o @usuario"></label>
         <label>Contraseña<input name="password" type="password" minlength="8" autocomplete="new-password" placeholder="Mínimo 8 caracteres" required></label>
@@ -251,6 +298,62 @@ $__contractUrl = '/sonika-partners/contrato';
         <button class="sp__submit" type="submit">Enviar solicitud</button>
         <div class="sp__msg" id="partner-register-msg" role="status" aria-live="polite"></div>
       </form>
+      <div class="sp__success" id="partner-register-success" hidden>
+        <div class="sp__success-head">
+          <span class="sp__success-icon" aria-hidden="true">✓</span>
+          <div>
+            <span class="sp__success-kicker">Registro exitoso</span>
+            <h3>¡Ya eres parte de SONIKA Partners!</h3>
+            <p>Tu solicitud fue creada. Solo falta verificar tu correo para continuar.</p>
+          </div>
+        </div>
+        <ol class="sp__steps" aria-label="Pasos del registro">
+          <li class="is-done"><b>1</b><span>Registro</span></li>
+          <li class="is-current" id="sp-step-verify"><b>2</b><span>Verifica tu correo</span></li>
+          <li id="sp-step-review"><b>3</b><span>Revisión y contrato</span></li>
+        </ol>
+        <div class="sp__otp-box" id="sp-otp-box">
+          <p><b>Hemos enviado un código de 6 dígitos a</b> <span id="sp-otp-email">tu correo</span>.</p>
+          <p class="sp__otp-help">Ve a tu correo, copia el código y pégalo en la casilla. Revisa también la carpeta de spam. El código vence en 10 minutos.</p>
+          <form class="sp__otp-form" id="partner-otp-form" novalidate>
+            <label for="sp-otp-code">Código de verificación</label>
+            <input id="sp-otp-code" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" placeholder="000000" aria-describedby="sp-otp-msg" />
+            <button type="submit" id="sp-otp-submit">Verificar correo</button>
+          </form>
+          <div class="sp__otp-actions">
+            <button type="button" id="sp-otp-resend">Reenviar código</button>
+            <span id="sp-otp-countdown" aria-live="polite"></span>
+          </div>
+          <div class="sp__msg" id="sp-otp-msg" role="status" aria-live="polite"></div>
+        </div>
+        <div class="sp__success-next" id="sp-otp-next" hidden>
+          <span class="sp__success-icon sp__success-icon--sm" aria-hidden="true">✓</span>
+          <div>
+            <b>Correo verificado. Tu solicitud quedó en revisión.</b>
+            <p>La aprobación no es automática. Mientras revisamos tu perfil, puedes iniciar sesión para completar tus datos y firmar el contrato.</p>
+            <div class="sp__success-actions">
+              <a class="sp__submit" href="/mi-antro?next=contrato">Iniciar sesión y continuar</a>
+              <a class="sp__link" href="/artista/solicitud">Consultar estado</a>
+            </div>
+          </div>
+        </div>
+        <p class="sp__note" style="margin-top:12px">¿No ves el correo? Revisa spam o promociones y usa “Reenviar código”. Si el correo está mal escrito, escríbenos desde <a href="/soporte">Soporte</a>.</p>
+      </div>
+      <details class="sp__existing" id="sp-existing-verify">
+        <summary>¿Ya te registraste y no verificaste tu correo?</summary>
+        <p>Ingresa el correo con el que te registraste y el código que enviamos.</p>
+        <form id="partner-existing-otp" novalidate>
+          <input name="email" type="email" autocomplete="email" placeholder="Correo registrado" required />
+          <input name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="Código de 6 dígitos" required />
+          <button type="submit">Verificar correo</button>
+        </form>
+        <div class="sp__otp-actions">
+          <button type="button" id="sp-existing-resend">Reenviar código</button>
+          <span id="sp-existing-countdown" aria-live="polite"></span>
+        </div>
+        <div class="sp__existing-msg" id="sp-existing-msg" role="status" aria-live="polite"></div>
+      </details>
+      </div>
     </section>
 
     <section class="sp__section" style="padding-top:34px">
@@ -321,10 +424,95 @@ $__contractUrl = '/sonika-partners/contrato';
 
       var form = document.getElementById('partner-register');
       var msg = document.getElementById('partner-register-msg');
+      var success = document.getElementById('partner-register-success');
+      var otpForm = document.getElementById('partner-otp-form');
+      var otpBox = document.getElementById('sp-otp-box');
+      var otpInput = document.getElementById('sp-otp-code');
+      var otpMsg = document.getElementById('sp-otp-msg');
+      var otpEmailEl = document.getElementById('sp-otp-email');
+      var otpNext = document.getElementById('sp-otp-next');
+      var resendBtn = document.getElementById('sp-otp-resend');
+      var countdownEl = document.getElementById('sp-otp-countdown');
+      var stepVerify = document.getElementById('sp-step-verify');
+      var stepReview = document.getElementById('sp-step-review');
+      var existingForm = document.getElementById('partner-existing-otp');
+      var existingMsg = document.getElementById('sp-existing-msg');
+      var existingResend = document.getElementById('sp-existing-resend');
+      var existingCountdown = document.getElementById('sp-existing-countdown');
+      var registeredEmail = '';
+      var resendTimer = null;
       var category = 'artist';
       var buttons = document.querySelectorAll('#sp-category .sp__cat');
       var hidden = document.getElementById('sp-profile-category');
       var artistNameLabel = document.getElementById('sp-artist-name-label');
+
+      function digits(value) { return String(value || '').replace(/\D/g, '').slice(0, 6); }
+      function setMsg(el, text, type) {
+        if (!el) return;
+        var colors = { ok: '#0d7a58', warn: '#8a641e', info: '#51607a', error: '#b42318' };
+        el.style.color = colors[type] || colors.info;
+        el.textContent = text || '';
+      }
+      function startCooldown(seconds, button, countdown) {
+        if (!button || !countdown) return;
+        var remaining = seconds;
+        button.disabled = true;
+        button.textContent = 'Reenviar código';
+        countdown.textContent = 'Podrás reenviar en ' + remaining + ' s';
+        if (resendTimer) clearInterval(resendTimer);
+        resendTimer = setInterval(function () {
+          remaining--;
+          if (remaining <= 0) {
+            clearInterval(resendTimer);
+            resendTimer = null;
+            button.disabled = false;
+            button.textContent = 'Reenviar código';
+            countdown.textContent = '';
+            return;
+          }
+          countdown.textContent = 'Podrás reenviar en ' + remaining + ' s';
+        }, 1000);
+      }
+      function sendOtp(email, button, countdown, msgEl, okText) {
+        email = String(email || '').trim();
+        if (!email) { setMsg(msgEl, 'Escribe tu correo para reenviar el código.', 'error'); return; }
+        if (button) { button.disabled = true; button.textContent = 'Enviando...'; }
+        setMsg(msgEl, 'Enviando un nuevo código...', 'info');
+        fetch('/api/v1/public/affiliates/otp/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: email }) })
+          .then(function (r) { return r.json(); })
+          .then(function (result) {
+            if (result && result.ok) {
+              setMsg(msgEl, result.sent === false ? 'El código se generó, pero el correo no pudo enviarse. Revisa tu correo o intenta de nuevo.' : (okText || 'Código reenviado. Revisa tu correo y la carpeta de spam.'), result.sent === false ? 'warn' : 'ok');
+              startCooldown(60, button, countdown);
+            } else {
+              if (button) { button.disabled = false; button.textContent = 'Reenviar código'; }
+              setMsg(msgEl, (result && result.message) || 'No se pudo reenviar el código.', 'error');
+            }
+          })
+          .catch(function () {
+            if (button) { button.disabled = false; button.textContent = 'Reenviar código'; }
+            setMsg(msgEl, 'Error de conexión. Intenta de nuevo.', 'error');
+          });
+      }
+      function verifyOtp(email, code, msgEl, button, onOk) {
+        email = String(email || '').trim();
+        code = digits(code);
+        if (!email) { setMsg(msgEl, 'Escribe tu correo.', 'error'); return; }
+        if (code.length !== 6) { setMsg(msgEl, 'Escribe el código de 6 dígitos que enviamos a tu correo.', 'error'); return; }
+        if (button) { button.disabled = true; button.textContent = 'Verificando...'; }
+        setMsg(msgEl, 'Verificando código...', 'info');
+        fetch('/api/v1/public/affiliates/otp/verify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: email, code: code }) })
+          .then(function (r) { return r.json(); })
+          .then(function (result) {
+            if (button) { button.disabled = false; button.textContent = 'Verificar correo'; }
+            if (result && result.ok) { if (onOk) onOk(); }
+            else setMsg(msgEl, (result && result.message) || 'Código incorrecto o vencido. Revisa tu correo e intenta de nuevo.', 'error');
+          })
+          .catch(function () {
+            if (button) { button.disabled = false; button.textContent = 'Verificar correo'; }
+            setMsg(msgEl, 'Error de conexión. Intenta de nuevo.', 'error');
+          });
+      }
       function setCategory(cat) {
         category = cat;
         if (hidden) hidden.value = cat;
@@ -341,6 +529,12 @@ $__contractUrl = '/sonika-partners/contrato';
       buttons.forEach(function (b) { b.addEventListener('click', function () { setCategory(b.getAttribute('data-cat')); }); });
       setCategory('artist');
 
+      if (otpInput) otpInput.addEventListener('input', function () { this.value = digits(this.value); });
+      if (existingForm) {
+        var existingCode = existingForm.querySelector('input[name=code]');
+        if (existingCode) existingCode.addEventListener('input', function () { this.value = digits(this.value); });
+      }
+
       if (form) form.addEventListener('submit', function (event) {
         event.preventDefault();
         if (!form.checkValidity()) { form.reportValidity(); return; }
@@ -354,24 +548,71 @@ $__contractUrl = '/sonika-partners/contrato';
         var socials = {};
         var ig = form.querySelector('input[name=social_instagram]');
         var sv = form.querySelector('input[name=social_video]');
+        var web = form.querySelector('input[name=website]');
         if (ig && ig.value.trim()) socials.instagram = ig.value.trim();
         if (sv && sv.value.trim()) socials.video = sv.value.trim();
+        if (category === 'commercial' && web && web.value.trim()) socials.website = web.value.trim();
         if (Object.keys(socials).length) data.socials = socials;
         button.disabled = true; button.textContent = 'Enviando solicitud...';
-        msg.style.color = '#51607a'; msg.textContent = 'Estamos registrando tu solicitud.';
+        setMsg(msg, 'Estamos registrando tu solicitud.', 'info');
         fetch('/api/v1/public/affiliates/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
           .then(function (r) { return r.json(); })
           .then(function (result) {
             button.disabled = false; button.textContent = 'Enviar solicitud';
             if (result && result.ok) {
-              msg.style.color = '#0d7a58';
-              msg.innerHTML = 'Solicitud recibida. Revisaremos tu perfil. <a href="/mi-antro?next=contrato" style="color:#0d7a58;font-weight:800">Inicia sesión y firma tu contrato</a>.';
+              registeredEmail = String(result.email || data.email || '').trim();
+              if (otpEmailEl) otpEmailEl.textContent = registeredEmail;
               form.reset(); setCategory('artist');
+              form.hidden = true;
+              if (success) success.hidden = false;
+              setMsg(otpMsg, result.otp_sent === false ? 'Tu registro fue creado, pero no pudimos enviar el código automáticamente. Pulsa “Reenviar código”.' : 'Código enviado. Revisa tu correo y la carpeta de spam.', result.otp_sent === false ? 'warn' : 'ok');
+              startCooldown(60, resendBtn, countdownEl);
+              if (success) success.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              setTimeout(function () { if (otpInput) otpInput.focus(); }, 350);
             } else {
-              msg.style.color = '#b42318'; msg.textContent = (result && result.message) || 'No se pudo enviar la solicitud.';
+              setMsg(msg, (result && result.message) || 'No se pudo enviar la solicitud.', 'error');
             }
           })
-          .catch(function () { button.disabled = false; button.textContent = 'Enviar solicitud'; msg.style.color = '#b42318'; msg.textContent = 'Error de conexión. Intenta de nuevo.'; });
+          .catch(function () { button.disabled = false; button.textContent = 'Enviar solicitud'; setMsg(msg, 'Error de conexión. Intenta de nuevo.', 'error'); });
+      });
+
+      if (otpForm) otpForm.addEventListener('submit', function (event) {
+        event.preventDefault();
+        var code = digits(otpInput ? otpInput.value : '');
+        if (otpInput) otpInput.value = code;
+        var button = otpForm.querySelector('button[type=submit]');
+        verifyOtp(registeredEmail, code, otpMsg, button, function () {
+          otpForm.hidden = true;
+          if (otpBox) otpBox.hidden = true;
+          if (resendBtn && resendBtn.parentElement) resendBtn.parentElement.hidden = true;
+          if (otpNext) otpNext.hidden = false;
+          if (stepVerify) { stepVerify.classList.remove('is-current'); stepVerify.classList.add('is-done'); }
+          if (stepReview) stepReview.classList.add('is-current');
+          setMsg(otpMsg, '', 'ok');
+          if (otpNext) otpNext.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        });
+      });
+
+      if (resendBtn) resendBtn.addEventListener('click', function () {
+        sendOtp(registeredEmail, resendBtn, countdownEl, otpMsg, 'Código reenviado. Revisa tu correo y la carpeta de spam.');
+      });
+
+      if (existingForm) existingForm.addEventListener('submit', function (event) {
+        event.preventDefault();
+        var email = existingForm.querySelector('input[name=email]').value.trim();
+        var code = digits(existingForm.querySelector('input[name=code]').value);
+        var button = existingForm.querySelector('button[type=submit]');
+        verifyOtp(email, code, existingMsg, button, function () {
+          existingForm.hidden = true;
+          if (existingResend && existingResend.parentElement) existingResend.parentElement.hidden = true;
+          existingMsg.style.color = '#0d7a58';
+          existingMsg.innerHTML = 'Correo verificado. Tu solicitud está en revisión. <a href="/mi-antro?next=contrato" style="color:#0d7a58;font-weight:800">Inicia sesión</a> · <a href="/artista/solicitud" style="color:#0d7a58;font-weight:800">Consulta el estado</a>.';
+        });
+      });
+
+      if (existingResend) existingResend.addEventListener('click', function () {
+        var emailInput = existingForm ? existingForm.querySelector('input[name=email]') : null;
+        sendOtp(emailInput ? emailInput.value : '', existingResend, existingCountdown, existingMsg, 'Código reenviado. Revisa tu correo y la carpeta de spam.');
       });
     })();
   </script>
