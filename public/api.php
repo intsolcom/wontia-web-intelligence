@@ -221,6 +221,7 @@ $router->get('/api/v1/public/store/reviews', [\App\Controllers\StorePublicContro
 $router->post('/api/v1/public/store/reviews/{id}/helpful', [\App\Controllers\StorePublicController::class, 'reviewHelpful']);
 $router->post('/api/v1/public/banner/event', [\App\Controllers\BannerEventController::class, 'event']);
 $router->post('/api/v1/public/seo/track', [\App\Controllers\SeoTrackingController::class, 'track']);
+$router->post('/api/v1/public/seo/vitals', [\App\Controllers\SeoVitalsController::class, 'record']);
 $router->post('/api/v1/public/tracking/event', [\App\Controllers\TrackingConversionController::class, 'event']);
 $router->get('/api/v1/public/tracking/purchase/{uuid}', [\App\Controllers\TrackingConversionController::class, 'purchase']);
 $router->get('/api/v1/public/youtube/oauth/callback', [\App\Controllers\Admin\ProductContentLabController::class, 'youtubeCallback']);
@@ -761,6 +762,7 @@ $r->delete('/media/{id}/purge', [\App\Controllers\Admin\MediaController::class, 
     $r->get('/seo-global-launch/analytics', [\App\Controllers\Admin\SeoGlobalLaunchController::class, 'analytics']);
     $r->get('/seo-global-launch/opportunities', [\App\Controllers\Admin\SeoGlobalLaunchController::class, 'opportunities']);
     $r->get('/seo-global-launch/daily', [\App\Controllers\Admin\SeoGlobalLaunchController::class, 'daily']);
+    $r->get('/seo-global-launch/vitals', [\App\Controllers\Admin\SeoGlobalLaunchController::class, 'vitals']);
     $r->get('/seo-global-launch/live', [\App\Controllers\Admin\SeoGlobalLaunchController::class, 'live']);
     $r->get('/seo-global-launch/integrations', [\App\Controllers\Admin\SeoGlobalLaunchController::class, 'integrations']);
     $r->post('/seo-global-launch/integrations', [\App\Controllers\Admin\SeoGlobalLaunchController::class, 'saveIntegrations']);

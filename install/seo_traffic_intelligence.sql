@@ -157,3 +157,19 @@ CREATE TABLE IF NOT EXISTS seo_catalog_fixes (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     KEY idx_site_product (site_id, product_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Core Web Vitals de usuarios reales (RUM), sin IP ni user-agent.
+CREATE TABLE IF NOT EXISTS seo_vitals (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    site_id INT NOT NULL,
+    page_url VARCHAR(500) NOT NULL,
+    metric VARCHAR(16) NOT NULL,
+    value DECIMAL(12,4) NOT NULL,
+    rating VARCHAR(20) NOT NULL DEFAULT 'good',
+    device VARCHAR(16) NULL,
+    connection VARCHAR(16) NULL,
+    is_test TINYINT NOT NULL DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    KEY idx_site_metric_created (site_id, metric, created_at),
+    KEY idx_site_page_created (site_id, page_url(191), created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

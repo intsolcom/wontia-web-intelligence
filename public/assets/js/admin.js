@@ -6288,6 +6288,7 @@ W.sglTechLoad=async function(){
         +'<div><label style="font-size:11px;color:var(--w-muted)">Crawl-delay</label><input class="w-input" type="number" min="0" max="120" id="sgl-crawl" value="'+(parseInt(c.robots_crawl_delay)||0)+'" style="width:100%"/></div>'
         +'</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px"><div><label style="font-size:11px;color:var(--w-muted)">Robots: Allow (una ruta por línea)</label><textarea class="w-input" id="sgl-robots-allow" rows="3" style="width:100%">'+W.esc(c.robots_allow||'')+'</textarea></div><div><label style="font-size:11px;color:var(--w-muted)">Robots: Disallow (una ruta por línea)</label><textarea class="w-input" id="sgl-robots-disallow" rows="3" style="width:100%">'+W.esc(c.robots_disallow||'')+'</textarea></div></div>'
         +'<div style="margin-top:12px"><button class="w-btn w-btn-primary" onclick="W.sglTechSaveConfig()">Guardar configuración técnica</button><span id="sgl-tech-msg" role="status" aria-live="polite" style="font-size:11px;margin-left:8px;color:var(--w-muted)"></span></div></div>';
+    h+='<div class="w-card" style="margin-top:14px"><div class="w-flex-between" style="gap:10px;flex-wrap:wrap"><div><h3 style="margin:0">Core Web Vitals reales (RUM)</h3><p style="font-size:12px;color:var(--w-muted);margin:5px 0 0">p75 de usuarios reales con consentimiento. No incluye bots ni pruebas. Se envía al salir de la página.</p></div><button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="W.sglVitalsLoad()">Actualizar</button></div><div id="sgl-vitals" style="margin-top:12px"><div style="font-size:12px;color:var(--w-muted)">Cargando...</div></div></div>';
     h+='<div class="w-card"><h3 style="margin:0 0 8px">Canonical · robots · hreflang</h3><p style="font-size:12px;color:var(--w-muted);margin:0 0 12px">Edita la configuración por URL. Hreflang: una línea por idioma con formato <code>es|https://...</code>.</p>';
     if(!pages.length){h+='<div class="w-empty-state"><h3>Sin URLs</h3><p>Publica páginas o posts para administrar su SEO técnico.</p></div>';}
     else{
@@ -6304,6 +6305,37 @@ W.sglTechLoad=async function(){
     }
     h+='</div>';
     box.innerHTML=h;
+    W.sglVitalsLoad();
+};
+W.sglVitalsLoad=async function(){
+    var el=document.getElementById('sgl-vitals'); if(!el)return;
+    var r=await W.api('/api/v1/admin/seo-global-launch/vitals?days=30');
+    if(!r||!r.ok||!r.data){el.innerHTML='<div style="font-size:12px;color:#f87171">No se pudo cargar RUM.</div>';return}
+    var d=r.data||{},m=d.metrics||{};
+    var keys=['lcp','inp','cls','ttfb'];
+    var labels={lcp:'LCP',inp:'INP',cls:'CLS',ttfb:'TTFB'};
+    var colors={good:'#34d399','needs-improvement':'#fbbf24',poor:'#f87171'};
+    var names={good:'Bueno','needs-improvement':'Mejorable',poor:'Pobre'};
+    var fmt=function(k,v){if(v===undefined||v===null)return '—';return k==='cls'?Number(v).toFixed(3):W.num(v)+' ms'};
+    var h='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px">';
+    keys.forEach(function(k){
+        var x=m[k];
+        h+='<div class="w-card" style="margin:0;padding:12px"><div style="font-size:10px;color:var(--w-muted);text-transform:uppercase;letter-spacing:.06em">'+labels[k]+' p75</div>'
+            +'<div style="font-size:20px;font-weight:800;color:'+(x?colors[x.rating]:'var(--w-muted)')+'">'+(x?fmt(k,x.p75):'—')+'</div>'
+            +'<div style="font-size:10px;color:var(--w-muted)">'+(x?(names[x.rating]||x.rating)+' · '+W.num(x.samples)+' muestras':'Sin datos')+'</div></div>';
+    });
+    h+='</div>';
+    if(!d.samples){h+='<div style="font-size:12px;color:var(--w-muted);margin-top:10px">Aún no hay datos RUM. Se recogen solo con consentimiento de analítica y al salir de la página.</div>';}
+    else{
+        if(d.top_slow&&d.top_slow.length){
+            h+='<div style="margin-top:12px"><div style="font-size:11px;font-weight:700;margin-bottom:6px">Páginas con peor LCP</div><table class="w-table"><thead><tr><th>Página</th><th>LCP p75</th><th>Muestras</th></tr></thead><tbody>';
+            d.top_slow.forEach(function(p){h+='<tr><td style="font-size:11px;word-break:break-all">'+W.esc(p.page)+'</td><td style="color:'+(colors[p.rating]||'inherit')+';font-weight:700">'+W.num(p.lcp_p75)+' ms</td><td>'+W.num(p.samples)+'</td></tr>'});
+            h+='</tbody></table></div>';
+        }
+        h+='<div style="font-size:10px;color:var(--w-muted);margin-top:8px">Último dato: '+W.esc(d.last_seen||'—')+' · '+W.num(d.pages||0)+' páginas · '+W.num(d.samples)+' muestras en '+(d.days||30)+' días.</div>';
+    }
+    h+='<div style="font-size:10px;color:var(--w-muted);margin-top:6px">'+W.esc(d.note||'')+'</div>';
+    el.innerHTML=h;
 };
 W.sglTechSaveConfig=async function(){
     var v=function(id){var el=document.getElementById(id);return el?el.value:''};

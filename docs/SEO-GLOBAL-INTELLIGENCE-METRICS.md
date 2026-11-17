@@ -242,3 +242,18 @@ Implementado y verificado:
 - **Meta Ads / CAPI:** pendiente de `act_...`, token `ads_read`, token CAPI y confirmación del Pixel.
 - **GA4:** al final, sin Measurement ID.
 
+---
+
+## 9. RUM — Core Web Vitals reales
+
+Implementado:
+
+- Endpoint público `POST /api/v1/public/seo/vitals`.
+- Tabla `seo_vitals` sin IP ni user-agent: `page_url`, `metric`, `value`, `rating`, `device`, `connection`, `is_test`, `created_at`.
+- Solo se recoge con consentimiento de analítica (`sonika_cookie_consent`); los bots se descartan.
+- El navegador envía al `pagehide`/`visibilitychange` con `sendBeacon`: LCP, INP (p98 de event timing), CLS acumulado, TTFB y FCP.
+- El servidor calcula p75 por métrica, dispositivo y página con los umbrales oficiales: LCP 2,5/4 s; INP 200/500 ms; CLS 0,1/0,25; TTFB 0,8/1,8 s; FCP 1,8/3 s.
+- Panel: **Técnico → Core Web Vitals reales (RUM)** con p75, muestras y páginas con peor LCP.
+- Las pruebas usan `?rum_test=1` y se guardan con `is_test=1`; no entran en el resumen.
+- Limitación: INP y CLS son aproximaciones del navegador; no sustituyen CrUX ni PageSpeed. PageSpeed sigue bloqueado por cuota 0/día del proyecto Google.
+

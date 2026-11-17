@@ -172,6 +172,59 @@
       return { type: 'cart_snapshot', session_id: sid, page_url: page, target: JSON.stringify({ qty: qty, value_cents: value }), label: 'guest_cart', utm: utm, device: dev() };
     } catch (e) { return null; }
   }
+  var vitals = { lcp: 0, inp: 0, cls: 0, ttfb: 0, fcp: 0 };
+  var eventDurations = [];
+  var clsObserved = false;
+  try {
+    var nav = performance.getEntriesByType('navigation')[0];
+    if (nav && nav.responseStart > 0) vitals.ttfb = Math.max(0, Math.round(nav.responseStart - nav.startTime));
+    var fcpEntry = performance.getEntriesByName('first-contentful-paint')[0];
+    if (fcpEntry) vitals.fcp = Math.round(fcpEntry.startTime);
+    if (window.PerformanceObserver) {
+      try {
+        new PerformanceObserver(function (list) {
+          var e = list.getEntries();
+          if (e.length) vitals.lcp = Math.round(e[e.length - 1].startTime);
+        }).observe({ type: 'largest-contentful-paint', buffered: true });
+      } catch (e) {}
+      try {
+        clsObserved = true;
+        new PerformanceObserver(function (list) {
+          list.getEntries().forEach(function (en) { if (!en.hadRecentInput) vitals.cls += en.value; });
+        }).observe({ type: 'layout-shift', buffered: true });
+      } catch (e) {}
+      try {
+        new PerformanceObserver(function (list) {
+          list.getEntries().forEach(function (en) { if (en.duration > 0 && eventDurations.length < 500) eventDurations.push(en.duration); });
+        }).observe({ type: 'event', buffered: true, durationThreshold: 40 });
+      } catch (e) {}
+    }
+  } catch (e) {}
+  function p98(arr) {
+    if (!arr.length) return 0;
+    var copy = arr.slice().sort(function (a, b) { return a - b; });
+    var i = Math.ceil(0.98 * copy.length) - 1;
+    return copy[Math.max(0, Math.min(copy.length - 1, i))] || 0;
+  }
+  function sendVitals() {
+    var items = [];
+    var isTest = q.get('rum_test') === '1';
+    var conn = (navigator.connection && navigator.connection.effectiveType) ? String(navigator.connection.effectiveType) : '';
+    var pagePath = location.pathname || '/';
+    var inp = Math.round(p98(eventDurations));
+    if (vitals.lcp > 0) items.push({ metric: 'lcp', value: vitals.lcp });
+    if (inp > 0) items.push({ metric: 'inp', value: inp });
+    if (clsObserved) items.push({ metric: 'cls', value: Math.round(vitals.cls * 10000) / 10000 });
+    if (vitals.ttfb > 0) items.push({ metric: 'ttfb', value: vitals.ttfb });
+    if (vitals.fcp > 0) items.push({ metric: 'fcp', value: vitals.fcp });
+    if (!items.length) return;
+    items.forEach(function (it) { it.page_url = pagePath; it.device = dev(); it.connection = conn; it.is_test = isTest ? 1 : 0; });
+    var payload = JSON.stringify({ items: items });
+    try {
+      if (navigator.sendBeacon) navigator.sendBeacon('/api/v1/public/seo/vitals', new Blob([payload], { type: 'application/json' }));
+      else fetch('/api/v1/public/seo/vitals', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: payload, keepalive: true }).catch(function () {});
+    } catch (e) {}
+  }
   function leave() {
     if (sent) return; sent = true;
     var snapshot = guestCart();
@@ -181,6 +234,7 @@
       if (location.pathname === '/checkout' && !checkoutSubmitted) push({ type: 'checkout_abandon', session_id: sid, page_url: page, target: 'checkout', label: snapshot.target, utm: utm, device: dev() });
     }
     push({ type: 'page_leave', session_id: sid, page_url: page, duration_ms: Date.now() - start, scroll_pct: maxScroll, device: dev() });
+    sendVitals();
     flush(true);
   }
   document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'hidden') leave(); });

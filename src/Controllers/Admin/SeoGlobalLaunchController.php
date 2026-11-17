@@ -205,6 +205,11 @@ class SeoGlobalLaunchController
         Response::json(['ok' => true, 'data' => (new \App\Services\SeoDailyMetricsService())->series((int)$req->get('days', 30))]);
     }
 
+    public function vitals(Request $req): void
+    {
+        Response::json(['ok' => true, 'data' => (new \App\Services\SeoVitalsService())->summary((int)$req->get('days', 30))]);
+    }
+
     public function live(Request $req): void
     {
         $data = (new \App\Services\SeoLiveMonitorService())->overview(
