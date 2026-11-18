@@ -873,19 +873,21 @@ class SeoGlobalLaunchBrick
     // Helpers
     // ─────────────────────────────────────────────
 
-    private static function siteUrl(): string
+    public static function siteUrl(): string
     {
-        // URL pública canonónica configurada por el administrador. Tiene
+        static $cached = null;
+        if ($cached !== null) return $cached;
+        // URL pública canónica configurada por el administrador. Tiene
         // prioridad sobre el host de la petición para que sitemap, canonical y
         // cron usen siempre el dominio público, incluso en CLI o previews.
         $configured = trim(self::setting('seo_site_url'));
         if ($configured !== '' && preg_match('~^https?://~i', $configured)) {
-            return rtrim($configured, '/');
+            return $cached = rtrim($configured, '/');
         }
         $host = trim((string)($_SERVER['HTTP_HOST'] ?? ''));
         if ($host !== '' && preg_match('/^[a-z0-9.-]+(?::\d+)?$/i', $host)) {
             $scheme = ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https')) ? 'https' : 'http';
-            return $scheme . '://' . $host;
+            return $cached = $scheme . '://' . $host;
         }
         $db = Database::instance();
         $stmt = $db->prepare('SELECT domain FROM sites WHERE id = @site_id');
@@ -893,9 +895,9 @@ class SeoGlobalLaunchBrick
         $domain = $stmt->fetchColumn();
         if ($domain) {
             $scheme = Config::get('APP_ENV', 'production') === 'local' ? 'http' : 'https';
-            return $scheme . '://' . rtrim($domain, '/');
+            return $cached = $scheme . '://' . rtrim($domain, '/');
         }
-        return rtrim((string)Config::get('APP_URL', 'https://wontia.com'), '/');
+        return $cached = rtrim((string)Config::get('APP_URL', 'https://wontia.com'), '/');
     }
 
     private static function setting(string $key, string $default = ''): string

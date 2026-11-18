@@ -51,6 +51,27 @@ $app->boot();
 $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $uri = rtrim($uri, '/') ?: '/';
 
+// Consolida el host público: www -> sin www; previews internos noindex.
+try {
+    $__publicBase = rtrim((string)\App\Bricks\SeoGlobalLaunch\SeoGlobalLaunchBrick::siteUrl(), '/');
+    $__publicHost = strtolower((string)parse_url($__publicBase, PHP_URL_HOST));
+    $__requestHost = strtolower((string)($_SERVER['HTTP_HOST'] ?? ''));
+    if ($__publicHost !== '' && $__requestHost !== '') {
+        $__method = strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET'));
+        $__requestUri = (string)($_SERVER['REQUEST_URI'] ?? '/');
+        if (!str_starts_with($__requestUri, '/')) $__requestUri = '/';
+        $__requestUri = preg_replace('/[\r\n]+/', '', $__requestUri) ?? '/';
+        if ($__requestHost === 'www.' . $__publicHost && in_array($__method, ['GET', 'HEAD'], true) && !str_starts_with($__requestUri, '/api/')) {
+            header('Location: ' . $__publicBase . $__requestUri, true, 301);
+            exit;
+        }
+        if ($__requestHost !== $__publicHost && str_ends_with($__requestHost, '.wontia.com')) {
+            header('X-Robots-Tag: noindex, nofollow');
+        }
+    }
+} catch (\Throwable $e) {
+}
+
 // El Hero se edita en caliente y usa imágenes versionadas. Forzamos
 // revalidación del HTML de la home para que los cambios de zoom/imagen
 // lleguen a móvil sin depender de la caché heurística del navegador.

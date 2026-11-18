@@ -9,11 +9,13 @@ $__pqrfSeg = trim((string)($segments[1] ?? ''), '/');
 $__pqrfIsTrack = $__pqrfSeg === 'seguimiento';
 $__pqrfToken = trim((string)($_GET['token'] ?? ''));
 
+header('X-Robots-Tag: noindex, nofollow');
+
 if ($__pqrfIsTrack) {
-    sonika_site_head('Seguimiento de tu solicitud — SONIKA', 'Consulta el estado y el historial de tu solicitud radicada en SONIKA.');
+    sonika_site_head('Seguimiento de tu solicitud — SONIKA', 'Consulta el estado y el historial de tu solicitud radicada en SONIKA.', null, true);
     sonika_breadcrumb(['PQRS' => '/pqrf', 'Seguimiento' => null]);
 } else {
-    sonika_site_head('PQRS / Radica tu solicitud — SONIKA', 'Radica peticiones, quejas, reclamos, sugerencias o felicitaciones y sigue su estado.');
+    sonika_site_head('PQRS / Radica tu solicitud — SONIKA', 'Radica peticiones, quejas, reclamos, sugerencias o felicitaciones y sigue su estado.', null, true);
     sonika_breadcrumb(['PQRS / Radica tu solicitud' => null]);
 }
 

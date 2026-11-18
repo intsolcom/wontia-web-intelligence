@@ -9,17 +9,24 @@ class SeoService
     {
         $scheme = ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https')) ? 'https' : 'http';
         $host = (string)($_SERVER['HTTP_HOST'] ?? '');
-        $url = $host !== '' ? $scheme . '://' . $host : rtrim((string)Config::get('APP_URL', 'https://wontia.intsolcom.com'), '/');
+        $requestUrl = $host !== '' ? $scheme . '://' . $host : rtrim((string)Config::get('APP_URL', 'https://wontia.intsolcom.com'), '/');
+        $publicBase = rtrim($requestUrl, '/');
+        try {
+            $publicBase = rtrim((string)\App\Bricks\SeoGlobalLaunch\SeoGlobalLaunchBrick::siteUrl(), '/');
+        } catch (\Throwable $e) {
+        }
+        $publicHost = strtolower((string)parse_url($publicBase, PHP_URL_HOST));
         $title = htmlspecialchars($page['meta_title'] ?? $page['title'] ?? 'Wontia');
         $desc = htmlspecialchars($page['meta_description'] ?? Config::get('site_description', 'Applied Intelligence Platform'));
-        $ogImage = $page['og_image'] ?? "$url/assets/wontia-og.png";
+        $ogImage = $page['og_image'] ?? ($publicBase . '/assets/wontia-og.png');
         $path = trim((string)($page['slug'] ?? ''), '/');
-        $canonical = $page['canonical_url'] ?? rtrim($url, '/') . '/' . $path;
+        $canonical = $page['canonical_url'] ?? $publicBase . '/' . $path;
+        $canonical = self::normalizeCanonicalHost((string)$canonical, $publicBase, $publicHost);
         $technical = '';
         $technicalUrl = $canonical;
         try {
             $brickCanonical = \App\Bricks\SeoGlobalLaunch\SeoGlobalLaunchBrick::canonicalForUrl($technicalUrl);
-            if ($brickCanonical !== '') $canonical = $brickCanonical;
+            if ($brickCanonical !== '') $canonical = self::normalizeCanonicalHost($brickCanonical, $publicBase, $publicHost);
             $technical = \App\Bricks\SeoGlobalLaunch\SeoGlobalLaunchBrick::technicalHeadTags($technicalUrl);
         } catch (\Throwable $e) {
             $technical = '';
@@ -71,5 +78,20 @@ class SeoService
             $pos++;
         }
         return self::jsonLd('BreadcrumbList', ['itemListElement' => $list]);
+    }
+
+    /** Fuerza www y previews internos al host público canónico. */
+    private static function normalizeCanonicalHost(string $url, string $publicBase, string $publicHost): string
+    {
+        $parts = parse_url($url);
+        if (!is_array($parts) || empty($parts['host'])) return $url;
+        $host = strtolower((string)$parts['host']);
+        $isWww = $publicHost !== '' && $host === 'www.' . $publicHost;
+        $isInternal = str_ends_with($host, '.wontia.com');
+        if (!$isWww && !$isInternal) return $url;
+        $path = (string)($parts['path'] ?? '/');
+        if ($path === '') $path = '/';
+        $query = isset($parts['query']) && $parts['query'] !== '' ? '?' . $parts['query'] : '';
+        return rtrim($publicBase, '/') . $path . $query;
     }
 }

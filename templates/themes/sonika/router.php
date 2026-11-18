@@ -1927,6 +1927,7 @@ switch ($segments[0] ?? '') {
         return true;
 
     case 'buscar':
+        header('X-Robots-Tag: noindex, nofollow');
         if (($segments[1] ?? '') === 'sugerencias') {
             $q = trim((string)($_GET['q'] ?? ''));
             $q = trim(preg_replace('/\s+/u', ' ', strip_tags($q)) ?? $q);
@@ -1994,7 +1995,7 @@ switch ($segments[0] ?? '') {
         $all = sonika_filter_products($_GET);
         try { (new \App\Services\SearchAnalyticsService())->log($q, ['marca' => function_exists('sonika_filter_values') ? implode(',', sonika_filter_values($_GET['marca'] ?? [])) : (string)($_GET['marca'] ?? ''), 'tipo' => (string)($_GET['tipo'] ?? ''), 'cat' => (string)($_GET['cat'] ?? ''), 'min' => (float)($_GET['min'] ?? 0), 'max' => (float)($_GET['max'] ?? 0), 'desc' => (float)($_GET['desc'] ?? 0), 'oferta' => !empty($_GET['oferta']), 'nuevo' => !empty($_GET['nuevo']), 'disp' => !empty($_GET['disp']), 'orden' => (string)($_GET['orden'] ?? '')], count($all)); } catch (\Throwable $e) {}
         $pg = sonika_slice($all, 24);
-        sonika_site_head('Buscar' . ($q ? ': ' . $q : '') . ' — SONIKA', 'Resultados de búsqueda en SONIKA.');
+        sonika_site_head('Buscar' . ($q ? ': ' . $q : '') . ' — SONIKA', 'Resultados de búsqueda en SONIKA.', null, true);
         sonika_breadcrumb(['Buscar' => null]);
         ?>
         <section class="pad wrap">

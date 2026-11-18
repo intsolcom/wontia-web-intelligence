@@ -268,3 +268,27 @@ Implementado:
 - Si la propiedad es de tipo Dominio, configurar `sc-domain:sonika.com.co` en Integraciones; si es prefijo de URL, `https://sonika.com.co/`.
 - Sin acceso, la pestaña muestra el correo, el botón para abrir Search Console y un botón para reintentar; el resto del panel sigue funcionando.
 
+---
+
+## 11. Consolidación de host e indexación
+
+Diagnóstico (18 de noviembre de 2026):
+
+- Googlebot visitó el sitio más de 1.500 veces en 90 días y rastreó home, categorías y productos con HTTP 200. **El sitio sí está indexado**; el problema es consolidación y ranking, no ausencia.
+- Google muestra mezcladas `www.sonika.com.co` y `sonika.com.co`, y también `/buscar` y `/pqrf`, porque cada host generaba su propio canonical y las páginas internas eran indexables.
+- `sonika-com-co.wontia.com` también respondía 200 con canonical propio.
+
+Correcciones implementadas:
+
+- **301 de `www.sonika.com.co` a `https://sonika.com.co`** para GET/HEAD, conservando ruta y query. Las peticiones `/api/` y los POST no se redirigen para no romper webhooks.
+- **Canonical HTML único** a `https://sonika.com.co`; `www` y los previews `*.wontia.com` se normalizan al host público.
+- **`X-Robots-Tag: noindex, nofollow`** en previews `*.wontia.com`, sin bloquear su acceso.
+- **`/buscar` y `/pqrf` con `noindex`**; se retiraron del `Disallow` para que Google pueda rastrearlos y procesar el noindex. Solo `/buscar/live` y `/buscar/sugerencias` (JSON) quedan bloqueados.
+- `siteUrl()` con caché estática para no consultar la base en cada URL del sitemap.
+
+Pendiente después de esto:
+
+- Autorizar la cuenta de servicio en Search Console para inspeccionar cobertura, consultas y posición.
+- Enviar el sitemap y solicitar indexación de home y categorías principales.
+- Mejorar contenido único de productos/categorías: es el siguiente factor para rankear consultas comerciales.
+
