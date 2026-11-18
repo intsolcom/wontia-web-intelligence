@@ -84,6 +84,28 @@ class OrderOperationsService
             'eta_max_days' => (int)($order['shipping_eta_max_days'] ?? 0),
         ];
         $order['payment_detail'] = $this->paymentDetail($order);
+        $order['affiliate'] = null;
+        try {
+            $db = Database::instance();
+            $st = $db->prepare('SELECT a.affiliate_id, a.code, a.model, a.fixed_at,
+                    p.full_name, p.public_name, p.artist_name, p.email
+                FROM affiliate_order_attributions a
+                LEFT JOIN affiliate_profiles p ON p.id = a.affiliate_id AND p.site_id = a.site_id
+                WHERE a.site_id = @site_id AND a.order_ref = ? LIMIT 1');
+            $st->execute([(string)($order['uuid'] ?? '')]);
+            $aff = $st->fetch(\PDO::FETCH_ASSOC);
+            if ($aff) {
+                $aff['name'] = trim((string)($aff['full_name'] ?? ''));
+                if ($aff['name'] === '') $aff['name'] = trim((string)($aff['public_name'] ?? ''));
+                if ($aff['name'] === '') $aff['name'] = trim((string)($aff['artist_name'] ?? ''));
+                $cs = $db->prepare('SELECT amount, status, tier_rate FROM affiliate_commissions WHERE site_id = @site_id AND order_ref = ? LIMIT 1');
+                $cs->execute([(string)($order['uuid'] ?? '')]);
+                $aff['commission'] = $cs->fetch(\PDO::FETCH_ASSOC) ?: null;
+                $order['affiliate'] = $aff;
+            }
+        } catch (\Throwable $e) {
+            $order['affiliate'] = null;
+        }
         $checklist = $this->checklist($orderId);
         $provider = $this->providerForOrder($orderId);
         $notifications = $this->notifications($orderId);

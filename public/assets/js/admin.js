@@ -8305,6 +8305,82 @@ W.orderCopySummary=function(id){
     lines.push('Total: '+W.orderMoney(o.total_cents));
     W.orderCopy(lines.join('\n'));
 };
+W.orderProviderText=function(){
+    var o=W._orderDetail;if(!o)return '';
+    var ship=o.shipping_detail||{},cust=o.customer_detail||{},pay=o.payment_detail||{},cl=(o.operations||{}).checklist||{},aff=o.affiliate||null;
+    var L=[];
+    L.push('SONIKA — RESUMEN PARA MICHE');
+    L.push('Pedido: '+(o.order_number||o.uuid));
+    L.push('Fecha: '+W.orderDate(o.created_at));
+    L.push('Estado: pago '+String(o.payment_status||'')+' / pedido '+String(o.fulfillment_status||''));
+    L.push('');
+    L.push('CLIENTE');
+    L.push('Nombre: '+(cust.name||''));
+    L.push('Documento: '+(cust.document||''));
+    L.push('Teléfono: '+(cust.phone||''));
+    L.push('Correo: '+(cust.email||''));
+    L.push('');
+    L.push('ENTREGA');
+    L.push('Dirección: '+(ship.line1||''));
+    L.push('Ciudad: '+[ship.city,ship.department].filter(Boolean).join(' / '));
+    L.push('Indicaciones: '+(ship.notes||o.notes||''));
+    if(ship.carrier)L.push('Transportadora: '+ship.carrier);
+    if(ship.eta_min_days&&ship.eta_max_days)L.push('Entrega estimada: '+ship.eta_min_days+'-'+ship.eta_max_days+' días');
+    L.push('');
+    L.push('PRODUCTOS');
+    (o.items||[]).forEach(function(it){L.push((it.qty||1)+' x '+(it.name||'')+' | SKU '+(it.sku||'—')+' | Unitario '+W.orderMoney(it.unit_price_cents||it.price_cents)+' | Total '+W.orderMoney(it.line_total_cents||it.subtotal_cents));});
+    L.push('');
+    L.push('PAGO Y TOTALES');
+    L.push('Método: '+W.orderMethodLabel(pay.method));
+    L.push('Estado del pago: '+String(o.payment_status||''));
+    if(cl.payment_settlement_ref)L.push('Abono confirmado: '+cl.payment_settlement_ref+(cl.payment_settled_at?' · '+W.orderDate(cl.payment_settled_at):''));
+    L.push('Envío: '+(Number(o.shipping_cents)>0?W.orderMoney(o.shipping_cents):'Gratis'));
+    L.push('Total: '+W.orderMoney(o.total_cents));
+    if(aff)L.push('Partner: '+(aff.name||aff.code||'')+(aff.code?' ('+aff.code+')':''));
+    if(o.notes)L.push('Notas del pedido: '+o.notes);
+    return L.join('\n');
+};
+W.orderProviderCopy=function(){
+    var t=W.orderProviderText();if(!t)return;W.orderCopy(t);
+};
+W.orderProviderSummary=function(id){
+    var o=W._orderDetail;if(!o)return;
+    var ship=o.shipping_detail||{},cust=o.customer_detail||{},pay=o.payment_detail||{},cl=(o.operations||{}).checklist||{},aff=o.affiliate||null,items=o.items||[];
+    var rows=items.map(function(it){
+        return '<tr><td><b>'+W.esc(it.name||'Producto')+'</b><div class="muted">SKU '+W.esc(it.sku||'—')+(it.variant_name?' · '+W.esc(it.variant_name):'')+'</div></td><td class="r">'+(it.qty||1)+'</td><td class="r">'+W.orderMoney(it.unit_price_cents||it.price_cents)+'</td><td class="r"><b>'+W.orderMoney(it.line_total_cents||it.subtotal_cents)+'</b></td></tr>';
+    }).join('');
+    var addr=[ship.line1,ship.city,ship.department].filter(Boolean).join(', ');
+    var affLine=aff?'<div class="box"><span>Partner SONIKA</span><b>'+W.esc(aff.name||aff.code||'')+(aff.code?' · '+W.esc(aff.code):'')+'</b></div>':'';
+    var notes=(ship.notes||o.notes||'');
+    var html='<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Resumen Miche '+(o.order_number||o.uuid)+'</title><style>'
+        +'body{font:12px/1.5 Arial,Helvetica,sans-serif;color:#111;margin:0;padding:24px}'
+        +'h1{font-size:20px;margin:0} .brand{color:#F20D16} .muted{color:#667085;font-size:10.5px}'
+        +'.head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #F20D16;padding-bottom:12px;margin-bottom:14px}'
+        +'.meta{text-align:right;font-size:11px}.meta b{font-size:15px;display:block}'
+        +'.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}'
+        +'.box{border:1px solid #ddd;border-radius:8px;padding:9px 11px;margin-bottom:8px}'
+        +'.box span{display:block;font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:#667085;margin-bottom:2px}'
+        +'.box b{font-size:12px} .box div{font-size:11.5px}'
+        +'table{width:100%;border-collapse:collapse;margin:8px 0 14px}'
+        +'th{text-align:left;font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:#667085;border-bottom:1px solid #ddd;padding:6px}'
+        +'td{border-bottom:1px solid #eee;padding:7px 6px;vertical-align:top}.r{text-align:right;white-space:nowrap}'
+        +'.totals{margin-left:auto;width:280px}.totals div{display:flex;justify-content:space-between;padding:3px 0;font-size:11.5px}'
+        +'.totals .total{border-top:1px solid #111;margin-top:5px;padding-top:7px;font-size:15px;font-weight:bold}'
+        +'.foot{margin-top:20px;border-top:1px solid #ddd;padding-top:8px;font-size:9.5px;color:#667085;display:flex;justify-content:space-between}'
+        +'@media print{body{padding:0}@page{size:A4;margin:16mm}}'
+        +'</style></head><body>'
+        +'<div class="head"><div><h1><span class="brand">SONIKA</span> · Resumen para Miche</h1><div class="muted">Documento de despacho · '+W.esc(o.order_number||o.uuid)+'</div></div><div class="meta"><b>'+W.orderMoney(o.total_cents)+'</b>'+W.esc(W.orderDate(o.created_at))+'<br>Pago: '+W.esc(String(o.payment_status||''))+'</div></div>'
+        +'<div class="grid"><div><div class="box"><span>Cliente</span><b>'+W.esc(cust.name||'')+'</b><div>'+W.esc(cust.document||'')+' · '+W.esc(cust.phone||'')+'</div><div>'+W.esc(cust.email||'')+'</div></div><div class="box"><span>Entrega</span><b>'+W.esc(addr||'—')+'</b><div>'+W.esc(notes)+'</div></div></div>'
+        +'<div><div class="box"><span>Envío</span><b>'+W.esc(ship.carrier||'Por asignar')+'</b><div>'+(ship.eta_min_days&&ship.eta_max_days?W.esc(ship.eta_min_days+'-'+ship.eta_max_days+' días'):'—')+'</div></div><div class="box"><span>Pago</span><b>'+W.esc(W.orderMethodLabel(pay.method))+'</b><div>'+W.esc(String(o.payment_status||''))+(cl.payment_settlement_ref?' · '+W.esc(cl.payment_settlement_ref):'')+'</div></div>'+affLine+'</div></div>'
+        +'<table><thead><tr><th>Producto / SKU</th><th class="r">Cant.</th><th class="r">Unitario</th><th class="r">Total</th></tr></thead><tbody>'+(rows||'<tr><td colspan="4">Sin productos</td></tr>')+'</tbody></table>'
+        +'<div class="totals"><div><span>Subtotal</span><span>'+W.orderMoney(o.subtotal_cents)+'</span></div>'+(Number(o.discount_cents)>0?'<div><span>Descuentos</span><span>-'+W.orderMoney(o.discount_cents)+'</span></div>':'')+'<div><span>Envío</span><span>'+(Number(o.shipping_cents)>0?W.orderMoney(o.shipping_cents):'Gratis')+'</span></div><div class="total"><span>Total</span><span>'+W.orderMoney(o.total_cents)+'</span></div></div>'
+        +'<div class="foot"><span>SONIKA · sonika.com.co · clientes@sonika.com.co · WhatsApp 3045650333</span><span>Generado '+W.orderDate(new Date().toISOString())+'</span></div>'
+        +'</body></html>';
+    var w=window.open('','_blank','width=880,height=940');
+    if(!w){W.notify('Permite las ventanas emergentes para abrir el resumen','error');return;}
+    w.document.open();w.document.write(html);w.document.close();
+    setTimeout(function(){try{w.focus();w.print();}catch(e){}},350);
+};
 W.orderPanelToggle=function(force){
     var ct=document.getElementById('w-modal-content');if(!ct||!ct.classList.contains('w-order-panel'))return;
     var full=typeof force==='boolean'?force:!ct.classList.contains('w-order-panel--full');
@@ -8333,7 +8409,7 @@ W.storeOrderDetail=async function(id){
     var r=await W.api('/api/v1/admin/store/orders/'+id);
     if(!r||!r.ok||!r.data){W.notify((r&&r.message)||'No se pudo cargar el pedido','error');return;}
     var o=r.data;W._orderDetail=o;
-    var ops=o.operations||{},cl=ops.checklist||{},prov=ops.provider||{},pay=o.payment_detail||{},ship=o.shipping_detail||{},cust=o.customer_detail||{},items=o.items||[];
+    var ops=o.operations||{},cl=ops.checklist||{},prov=ops.provider||{},pay=o.payment_detail||{},ship=o.shipping_detail||{},cust=o.customer_detail||{},items=o.items||[],aff=o.affiliate||null;
     var meta=pay.meta||{};
     var testBadge=(+o.is_test)?W.orderChip('PRUEBA','warn'):'';
     var archiveBadge=o.archived_at?W.orderChip('ARCHIVADO','mute'):'';
@@ -8415,6 +8491,7 @@ W.storeOrderDetail=async function(id){
     var timelineHtml='<div class="w-op-card"><div class="w-op-card-head"><h4>Historial del pedido</h4>'+W.orderChip((ops.timeline||[]).length+' eventos','mute')+'</div><div class="w-op-timeline">'+(tlRows||'<div class="w-op-muted">Sin eventos.</div>')+'</div></div>';
     var overviewHtml='<div class="w-op-card"><div class="w-op-card-head"><h4>Resumen de la transacción</h4>'+W.orderChip(W.orderMethodLabel(pay.method),'mute')+'</div>'
         +'<div class="w-op-grid2"><div class="w-op-field"><label>Estado del pago</label><div>'+W.orderChip(String(o.payment_status||''),payTone)+'</div></div><div class="w-op-field"><label>Estado del pedido</label><div>'+W.orderChip(String(o.fulfillment_status||''),fulTone)+'</div></div><div class="w-op-field"><label>Referencia</label><div class="w-op-sku">'+W.esc(pay.reference||pay.provider_ref||'—')+'</div></div><div class="w-op-field"><label>Pagado</label><div>'+W.orderDate(pay.paid_at)+'</div></div></div>'
+        +(aff?'<div class="w-op-field" style="margin-top:9px"><label>Partner</label><div><b>'+W.esc(aff.name||aff.code||'')+'</b> · <span class="w-op-sku">'+W.esc(aff.code||'')+'</span>'+(aff.commission?' · '+W.orderMoney(aff.commission.amount)+' '+W.esc(aff.commission.status||''):'')+'</div></div>':'')
         +paymentExtra+totals+'</div>';
     var manageHtml='<div class="w-op-card w-op-noprint"><div class="w-op-card-head"><h4>Gestión</h4>'+W.orderChip(o.archived_at?'Archivado':'Activo',o.archived_at?'mute':'ok')+'</div>'
         +'<div class="w-op-grid2"><div class="w-op-field"><label>Estado del pago</label><select class="w-input" id="so-pay" style="width:100%">'+['pending','paid','failed','refunded'].map(function(s){return '<option value="'+s+'"'+(o.payment_status===s?' selected':'')+'>'+s+'</option>'}).join('')+'</select></div><div class="w-op-field"><label>Estado del pedido</label><select class="w-input" id="so-ful" style="width:100%">'+['new','confirmed','preparing','shipped','delivered','cancelled'].map(function(s){return '<option value="'+s+'"'+(o.fulfillment_status===s?' selected':'')+'>'+s+'</option>'}).join('')+'</select></div></div>'
@@ -8423,7 +8500,7 @@ W.storeOrderDetail=async function(id){
         +'</div>';
     var heroImg=o.order_image||(items[0]&&items[0].image)||'';
     var heroMedia='<div class="w-op-hero-media"><span class="w-op-hero-fallback">📦</span>'+(heroImg?'<img src="'+W.esc(heroImg)+'" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.remove()">':'')+'</div>';
-    var hero='<div class="w-op-hero"><div class="w-op-hero-left">'+heroMedia+'<div><div class="w-op-kicker">Pedido</div><div class="w-op-title">'+W.esc(o.order_number||o.uuid)+'</div><div class="w-op-muted">'+W.esc(cust.name||'')+' · '+W.orderDate(o.created_at)+'</div><div class="w-op-chips">'+W.orderChip(o.payment_status==='paid'?'Pagado':'Pago '+String(o.payment_status||''),payTone)+W.orderChip(o.fulfillment_status==='delivered'?'Entregado':(o.fulfillment_status==='shipped'?'Enviado':'Pedido '+String(o.fulfillment_status||'')),fulTone)+testBadge+archiveBadge+(cl.provider_reported?W.orderChip('Reportado a Miche','ok'):'')+'</div></div></div><div class="w-op-hero-r"><div class="w-op-total">'+W.orderMoney(o.total_cents)+'</div><div class="w-op-actions"><button class="w-btn w-btn-secondary w-btn-sm w-op-noprint" type="button" onclick="wontia.orderCopySummary('+id+')">Copiar resumen</button><button class="w-btn w-btn-secondary w-btn-sm w-op-noprint" type="button" onclick="window.print()">Imprimir</button></div></div></div>';
+    var hero='<div class="w-op-hero"><div class="w-op-hero-left">'+heroMedia+'<div><div class="w-op-kicker">Pedido</div><div class="w-op-title">'+W.esc(o.order_number||o.uuid)+'</div><div class="w-op-muted">'+W.esc(cust.name||'')+' · '+W.orderDate(o.created_at)+'</div><div class="w-op-chips">'+W.orderChip(o.payment_status==='paid'?'Pagado':'Pago '+String(o.payment_status||''),payTone)+W.orderChip(o.fulfillment_status==='delivered'?'Entregado':(o.fulfillment_status==='shipped'?'Enviado':'Pedido '+String(o.fulfillment_status||'')),fulTone)+testBadge+archiveBadge+(cl.provider_reported?W.orderChip('Reportado a Miche','ok'):'')+(aff?W.orderChip('Partner: '+(aff.name||aff.code||''),'ok'):'')+'</div></div></div><div class="w-op-hero-r"><div class="w-op-total">'+W.orderMoney(o.total_cents)+'</div><div class="w-op-actions"><button class="w-btn w-btn-secondary w-btn-sm w-op-noprint" type="button" onclick="wontia.orderCopySummary('+id+')">Copiar resumen</button><button class="w-btn w-btn-primary w-btn-sm w-op-noprint" type="button" onclick="wontia.orderProviderSummary('+id+')">Resumen Miche</button><button class="w-btn w-btn-secondary w-btn-sm w-op-noprint" type="button" onclick="wontia.orderProviderCopy('+id+')">Copiar Miche</button><button class="w-btn w-btn-secondary w-btn-sm w-op-noprint" type="button" onclick="window.print()">Imprimir</button></div></div></div>';
     var style='<style>'
         +'.w-order-panel{display:flex;flex-direction:column;overflow:hidden}.w-order-panel .w-modal-head{margin:0!important;padding:15px 20px!important;border-bottom:1px solid var(--w-border);flex:0 0 auto}.w-order-panel>.w-modal-actions{margin:0!important;padding:11px 20px!important;border-top:1px solid var(--w-border);flex:0 0 auto}.w-order-panel>.w-op-body{flex:1;min-height:0;overflow-y:auto;padding:16px 20px;background:var(--w-bg)}'
         +'.w-op-hero{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;background:var(--w-surface);border:1px solid var(--w-border);border-radius:14px;padding:14px 16px;margin-bottom:14px}.w-op-hero-left{display:flex;gap:13px;align-items:flex-start;min-width:0}.w-op-hero-media{position:relative;width:72px;height:72px;border-radius:12px;border:1px solid var(--w-border);background:#fff;overflow:hidden;flex:none;display:grid;place-items:center}.w-op-hero-fallback{position:absolute;inset:0;display:grid;place-items:center;font-size:24px;color:var(--w-muted);background:var(--w-bg2)}.w-op-hero-media img{position:relative;z-index:1;width:100%;height:100%;object-fit:contain;background:#fff}.w-op-kicker{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--w-muted);font-weight:850}.w-op-title{font:800 20px/1.2 Sora,Inter,system-ui,sans-serif;letter-spacing:-.02em}.w-op-total{font:800 22px/1 Sora,Inter,system-ui,sans-serif;text-align:right;font-variant-numeric:tabular-nums}.w-op-chips{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px}.w-op-hero-r{text-align:right}.w-op-hero-r .w-op-actions{justify-content:flex-end;margin-top:8px}'
