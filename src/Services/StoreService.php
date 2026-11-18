@@ -623,6 +623,8 @@ class StoreService
         if (!$this->ready()) throw new \RuntimeException('La tienda no esta configurada');
         $settings = $this->settings();
         if ($settings['store_enabled'] !== '1' && $settings['store_enabled'] !== '') throw new \RuntimeException('La tienda esta deshabilitada');
+        $affRef = strtolower(trim((string)($input['ref'] ?? '')));
+        $affRef = substr((string)preg_replace('/[^a-z0-9\-]/', '', $affRef), 0, 64);
         $this->assertRateLimit($settings, $input, $ip);
         (new CustomerService())->ensureTables();
         (new LoyaltyService())->ensureTables();
@@ -785,7 +787,7 @@ class StoreService
 
             // Atribución de Partner SONIKA — nunca bloquea el pedido.
             try {
-                $__aff = (string)($_COOKIE['sonika_aff'] ?? '');
+                $__aff = $affRef !== '' ? $affRef : (string)($_COOKIE['sonika_aff'] ?? '');
                 $__internal = 0;
                 if ($__aff !== '') {
                     $st = $db->prepare('SELECT is_internal FROM store_orders WHERE id = ? AND site_id = @site_id LIMIT 1');

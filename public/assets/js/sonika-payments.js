@@ -671,6 +671,15 @@
     return h;
   }
 
+  function checkoutRefQuery() {
+    try {
+      var m = document.cookie.match(/(?:^|; )sonika_aff=([^;]+)/);
+      var c = m ? decodeURIComponent(m[1]) : '';
+      if (!c) { var el = document.getElementById('skpayRef'); c = el ? el.value : ''; }
+      return c ? '?ref=' + encodeURIComponent(c) : '';
+    } catch (e) { return ''; }
+  }
+
   function renderSummary() {
     var h = summaryHtml();
     ['skpaySummary', 'skpayCheckoutSummary'].forEach(function (id) {
@@ -678,7 +687,7 @@
       if (!el) return;
       el.innerHTML = '<div class="skpay__summary-head"><h2>Resumen</h2><span class="skpay__status-pill">' + esc(methodLabel()) + '</span></div><div class="skpay__summary-body">' + h;
       if (id === 'skpaySummary' && state.quote) {
-        el.innerHTML += '<a class="skpay__btn" id="skpayGoCheckout" href="/checkout">Continuar con el pago</a>';
+        el.innerHTML += '<a class="skpay__btn" id="skpayGoCheckout" href="/checkout' + checkoutRefQuery() + '">Continuar con el pago</a>';
         el.innerHTML += '</div>';
       } else if (id === 'skpayCheckoutSummary' && state.quote) {
         el.innerHTML += '<div class="skpay__trust"><span>✓ Pago por verificar</span><span>✓ Envío a toda Colombia</span></div></div>';
@@ -1036,7 +1045,8 @@
         coupon: state.coupon,
         points: state.points,
         gift_card: state.giftCard || null,
-        quote_code: (function () { try { return localStorage.getItem('sonika_quote_code') || ''; } catch (e) { return ''; } })()
+        quote_code: (function () { try { return localStorage.getItem('sonika_quote_code') || ''; } catch (e) { return ''; } })(),
+        ref: (document.getElementById('skpayRef') || {}).value || ''
       };
       state.busy = true;
       if (submit) { submit.disabled = true; submit.textContent = 'Creando pedido…'; }

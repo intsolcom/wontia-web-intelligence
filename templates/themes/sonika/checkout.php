@@ -1,4 +1,26 @@
 <?php $__payCfg = sonika_payments_config(); $__freeNet = (int)($__payCfg['breb']['free_shipping_net_cents'] ?? 30000000); $__taxRate = (float)($__payCfg['breb']['tax_rate'] ?? 19); $__freeGross = (int)round($__freeNet * (1 + $__taxRate / 100)); $__freeLabel = '$' . number_format($__freeNet / 100, 0, ',', '.'); $__freeGrossLabel = '$' . number_format($__freeGross / 100, 0, ',', '.'); $__termsUrl = (string)($__payCfg['breb']['terms_url'] ?? '/politicas'); $__pts = (array)($__payCfg['points'] ?? []); $__me = null; $__addrDefault = []; try { $__me = (new \App\Services\CustomerService())->current(); if ($__me) { $__addrs = (new \App\Services\CustomerService())->addresses((int)$__me['id']); if ($__addrs) $__addrDefault = (array)$__addrs[0]; } } catch (\Throwable $e) {} $__departments = []; try { $__departments = (new \App\Services\ShippingService())->departments(); } catch (\Throwable $e) {} $__ptBalance = (int)($__pts['balance'] ?? 0); $__ptRedeem = (int)($__pts['redeem_cents'] ?? 0); $__ptValue = '$' . number_format($__ptRedeem / 100, 0, ',', '.'); ?>
+<?php
+$__affCode = function_exists('sonika_aff_ref') ? sonika_aff_ref() : '';
+$__affPartner = null;
+if ($__affCode !== '') {
+    try {
+        $__affSvc = new \App\Services\AffiliateService();
+        $__affLink = $__affSvc->resolveLink($__affCode);
+        if ($__affLink) {
+            $__affPartner = $__affSvc->getById((int)$__affLink['affiliate_id']);
+            if ($__affPartner && (string)($__affPartner['status'] ?? '') !== 'APPROVED') $__affPartner = null;
+        }
+    } catch (\Throwable $e) {
+        $__affPartner = null;
+    }
+}
+$__affName = '';
+if ($__affPartner) {
+    $__affName = trim((string)($__affPartner['full_name'] ?? ''));
+    if ($__affName === '') $__affName = trim((string)($__affPartner['public_name'] ?? ''));
+    if ($__affName === '') $__affName = trim((string)($__affPartner['artist_name'] ?? ''));
+}
+?>
 <section class="wrap skpay" id="checkoutPage">
   <div class="skpay__head">
     <div>
@@ -15,6 +37,14 @@
         <h2>Tu pedido</h2>
         <div id="skpayCheckoutItems" class="skpay__cart-items" aria-live="polite" aria-busy="true"></div>
       </div>
+      <?php if ($__affPartner && $__affName !== ''): ?>
+      <div class="skpay__section" id="skpayPartnerBox" style="border-left:4px solid #F20D16;background:#fff8f8">
+        <h2 style="margin:0 0 4px">Partner SONIKA</h2>
+        <p style="margin:0;font-size:14px;color:#334155">Esta compra se atribuye a <b><?= sonika_esc($__affName) ?></b>.</p>
+        <p class="skpay__tiny" style="margin:5px 0 0">El código de atribución se guarda al confirmar el pedido.</p>
+      </div>
+      <?php endif; ?>
+      <input type="hidden" id="skpayRef" name="ref" value="<?= sonika_esc($__affCode) ?>" />
       <div class="skpay__section">
         <h2>Datos de contacto</h2>
         <p class="skpay__tiny" style="margin:-4px 0 12px">Todos los campos son obligatorios. Usamos tus datos solo para gestionar el pedido y la entrega.</p>
