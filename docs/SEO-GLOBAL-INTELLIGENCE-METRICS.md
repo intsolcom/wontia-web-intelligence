@@ -317,3 +317,15 @@ Pendiente después de esto:
 - `store_categories.description` pasó de `VARCHAR(500)` a `TEXT`; `install/store.sql` actualizado.
 - Rollback: `seo_catalog_fixes` guarda el antes/después de las 10 categorías (antes estaban vacías).
 
+---
+
+## 14. Guías y FAQ en 50 productos top
+
+- 50 productos seleccionados por vistas de página de los últimos 90 días; se excluyeron productos de prueba.
+- Tabla `product_seo_content`: `intro`, `use_cases_json`, `faq_json`, `meta_description`, `status`, `source`. **No reemplaza** la descripción original del fabricante.
+- La ficha muestra una **Guía rápida** debajo de la descripción, con casos de uso y preguntas frecuentes; el `meta description` usa el texto generado y se añade `FAQPage` JSON-LD. El `Product` JSON-LD usa la introducción completa.
+- Generación con DeepSeek desde datos reales del producto; validaciones: introducción ≥90 palabras, 4 casos de uso, 3 FAQ y meta ≥60 caracteres. Revisión por muestreo (5 fichas) y escaneo de afirmaciones sensibles.
+- Corrección detectada: el producto 3029 tenía nombre “NEGRA” y slug “azul”; se eliminó el color del texto generado.
+- Rollback: cambiar `status` a `draft` o borrar la fila; la descripción original nunca se modifica.
+- Estado: **50 publicados**. El bloque es complementario: si se elimina, la ficha sigue funcionando con su contenido original.
+

@@ -184,3 +184,20 @@ CREATE TABLE IF NOT EXISTS store_order_events (
     KEY idx_store_order_events_order (site_id, order_id, id),
     KEY idx_store_order_events_event (site_id, event)
 ) ENGINE=InnoDB;
+
+-- Bloque editorial complementario por producto (guía rápida, casos de uso y FAQ).
+CREATE TABLE IF NOT EXISTS product_seo_content (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    site_id INT NOT NULL,
+    product_id INT NOT NULL,
+    intro TEXT NULL,
+    use_cases_json JSON NULL,
+    faq_json JSON NULL,
+    meta_description VARCHAR(500) NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'draft',
+    source VARCHAR(30) NOT NULL DEFAULT 'tia',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_site_product (site_id, product_id),
+    KEY idx_site_status (site_id, status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

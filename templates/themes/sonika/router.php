@@ -1598,6 +1598,15 @@ if (($segments[0] ?? '') === 'producto' && !empty($segments[1])) {
             $__pdpVendor = trim((string)($product['vendor'] ?? ''));
             $__pdpDescText = $__pdpTitleText . ($__pdpVendor !== '' ? ' de ' . $__pdpVendor : '') . '. Compra en SONIKA con envío a toda Colombia.';
         }
+        $__pdpSeoContent = null;
+        try {
+            $__pdpSeoContent = (new \App\Services\ProductSeoContentService())->forProduct((int)($product['id'] ?? 0));
+        } catch (\Throwable $e) {
+            $__pdpSeoContent = null;
+        }
+        if ($__pdpSeoContent && trim((string)($__pdpSeoContent['meta_description'] ?? '')) !== '') {
+            $__pdpDescText = trim((string)$__pdpSeoContent['meta_description']);
+        }
         $__pdpHeadDesc = trim((string)mb_substr($__pdpDescText, 0, 155));
         if (mb_strlen($__pdpDescText) > 155 && preg_match('/^(.{40,})\s\S*$/u', $__pdpHeadDesc, $__m)) $__pdpHeadDesc = rtrim($__m[1], " ,.;:") . '…';
         $__pdpHeadImg = (string)($product['images'][0]['src'] ?? '');
@@ -1611,6 +1620,18 @@ if (($segments[0] ?? '') === 'producto' && !empty($segments[1])) {
         }
         $crumbs[$product['title'] ?? 'Producto'] = null;
         sonika_breadcrumb($crumbs);
+        if ($__pdpSeoContent && !empty($__pdpSeoContent['faq'])) {
+            $__faqEntities = [];
+            foreach ($__pdpSeoContent['faq'] as $__f) {
+                if (!is_array($__f) || trim((string)($__f['q'] ?? '')) === '') continue;
+                $__faqEntities[] = [
+                    '@type' => 'Question',
+                    'name' => (string)$__f['q'],
+                    'acceptedAnswer' => ['@type' => 'Answer', 'text' => (string)($__f['a'] ?? '')],
+                ];
+            }
+            if ($__faqEntities) echo \App\Services\SeoService::jsonLd('FAQPage', ['mainEntity' => $__faqEntities]);
+        }
         $img = sonika_img($product, 900);
         $price = sonika_price($product);
         $cmp = sonika_compare($product);
@@ -1621,6 +1642,9 @@ if (($segments[0] ?? '') === 'producto' && !empty($segments[1])) {
         $__pdpSku = (string)(sonika_variant($product)['sku'] ?? '');
         $__pdpBrand = trim((string)($product['vendor'] ?? ''));
         $__pdpDesc = $__pdpDescText;
+        if ($__pdpSeoContent && trim((string)($__pdpSeoContent['intro'] ?? '')) !== '') {
+            $__pdpDesc = trim((string)$__pdpSeoContent['intro']);
+        }
         if (mb_strlen($__pdpDesc) > 800) $__pdpDesc = mb_substr($__pdpDesc, 0, 800);
         $__pdpSchema = [
             'name' => (string)($product['title'] ?? 'Producto'),
@@ -1735,6 +1759,32 @@ if (($segments[0] ?? '') === 'producto' && !empty($segments[1])) {
           <?= $__contentHtml ?>
         </section>
         <script src="/assets/themes/sonika/product-content.js" defer></script>
+        <?php endif; ?>
+
+        <?php if ($__pdpSeoContent && trim((string)($__pdpSeoContent['intro'] ?? '')) !== ''): ?>
+        <section class="wrap pdp-desc" id="guia-producto" style="margin-top:6px">
+          <div class="pdp-desc__head"><h2>Guía rápida: <?= sonika_esc($product['title']) ?></h2></div>
+          <div style="max-width:920px;color:#475467;font-size:14.5px;line-height:1.75">
+            <?php foreach (preg_split('/\n\s*\n/', (string)$__pdpSeoContent['intro']) as $__pdpP): ?>
+              <p style="margin:0 0 12px"><?= sonika_esc(trim($__pdpP)) ?></p>
+            <?php endforeach; ?>
+            <?php if (!empty($__pdpSeoContent['use_cases'])): ?>
+              <h3 style="margin:18px 0 8px;font-size:16px">Ideal para</h3>
+              <ul style="margin:0 0 12px 20px;padding:0">
+                <?php foreach ($__pdpSeoContent['use_cases'] as $__pdpU): ?><li style="margin:4px 0"><?= sonika_esc((string)$__pdpU) ?></li><?php endforeach; ?>
+              </ul>
+            <?php endif; ?>
+            <?php if (!empty($__pdpSeoContent['faq'])): ?>
+              <h3 style="margin:18px 0 8px;font-size:16px">Preguntas frecuentes</h3>
+              <?php foreach ($__pdpSeoContent['faq'] as $__pdpF): if (!is_array($__pdpF)) continue; ?>
+                <details style="border-bottom:1px solid #ececec;padding:8px 0">
+                  <summary style="cursor:pointer;font-weight:700"><?= sonika_esc((string)($__pdpF['q'] ?? '')) ?></summary>
+                  <p style="margin:8px 0 0;color:#475467"><?= sonika_esc((string)($__pdpF['a'] ?? '')) ?></p>
+                </details>
+              <?php endforeach; ?>
+            <?php endif; ?>
+          </div>
+        </section>
         <?php endif; ?>
 
         <?= \App\Widgets\WidgetRegistry::render('product-reviews', ['product_ref' => (string)$product['handle']]) ?>
