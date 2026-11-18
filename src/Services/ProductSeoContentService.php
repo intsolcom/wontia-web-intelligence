@@ -205,6 +205,68 @@ class ProductSeoContentService
         return Database::instance()->prepare("UPDATE product_seo_content SET status='published' WHERE site_id=@site_id AND product_id=?")->execute([$productId]);
     }
 
+    /**
+     * Productos recomendados para una categoría: primero las fichas con guía
+     * publicada y, si faltan, los más vistos en los últimos 90 días.
+     * El resultado se cachea 6 horas por conjunto de rutas.
+     */
+    public function categoryHighlights(array $paths, int $limit = 3): array
+    {
+        $this->ensureTable();
+        $paths = array_values(array_filter(array_map('strval', $paths)));
+        if (!$paths) return [];
+        $limit = max(1, min(6, $limit));
+        $db = Database::instance();
+        $in = implode(',', array_fill(0, count($paths), '?'));
+        $rows = [];
+        try {
+            $st = $db->prepare("SELECT p.slug, p.name FROM store_products p
+                JOIN store_categories c ON c.id=p.category_id AND c.site_id=p.site_id
+                JOIN product_seo_content s ON s.product_id=p.id AND s.site_id=p.site_id AND s.status='published'
+                WHERE p.site_id=@site_id AND c.path IN ($in) AND p.status='active' AND p.visibility='public'
+                ORDER BY p.id DESC LIMIT $limit");
+            $st->execute($paths);
+            $rows = $st->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\Throwable $e) {
+            $rows = [];
+        }
+        if (count($rows) >= $limit) return $rows;
+
+        $cacheFile = ROOT_DIR . '/cache/seo-cat-highlights-' . md5(implode('|', $paths)) . '.json';
+        $top = [];
+        if (is_file($cacheFile) && (time() - (int)filemtime($cacheFile)) < 21600) {
+            $top = json_decode((string)file_get_contents($cacheFile), true) ?: [];
+        }
+        if (!$top) {
+            try {
+                $st = $db->prepare("SELECT p.slug, p.name, COUNT(*) v
+                    FROM seo_live_requests r
+                    JOIN store_products p ON p.slug COLLATE utf8mb4_unicode_ci = SUBSTRING(r.path, 11) AND p.site_id=r.site_id
+                    JOIN store_categories c ON c.id=p.category_id AND c.site_id=p.site_id
+                    WHERE r.site_id=@site_id AND r.is_internal=0 AND r.is_bot=0 AND r.is_page_view=1
+                      AND r.path LIKE '/producto/%' AND r.created_at >= (NOW() - INTERVAL 90 DAY)
+                      AND c.path IN ($in) AND p.status='active' AND p.visibility='public'
+                    GROUP BY p.id, p.slug, p.name ORDER BY v DESC LIMIT 6");
+                $st->execute($paths);
+                $top = $st->fetchAll(\PDO::FETCH_ASSOC);
+                if ($top) @file_put_contents($cacheFile, json_encode($top, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+            } catch (\Throwable $e) {
+                $top = [];
+            }
+        }
+        $seen = [];
+        foreach ($rows as $r) $seen[(string)$r['slug']] = true;
+        foreach ($top as $t) {
+            if (count($rows) >= $limit) break;
+            $slug = (string)($t['slug'] ?? '');
+            if ($slug === '' || isset($seen[$slug])) continue;
+            $seen[$slug] = true;
+            $rows[] = ['slug' => $slug, 'name' => (string)($t['name'] ?? '')];
+        }
+        return $rows;
+    }
+
+
     public function stats(): array
     {
         $this->ensureTable();

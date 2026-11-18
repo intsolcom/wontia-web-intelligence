@@ -1910,6 +1910,48 @@ if ($cat) {
         <?php foreach (preg_split('/\n\s*\n/', $__catEditorial) as $__catP): ?>
           <p style="margin:0 0 12px"><?= sonika_esc(trim($__catP)) ?></p>
         <?php endforeach; ?>
+        <?php
+        $__catExplore = [];
+        $__catSubs = array_slice((array)$__catChildren, 0, 8);
+        $__catRelated = $__catSubs;
+        $__catRelatedTitle = 'Explora por subcategoría';
+        if (!$__catRelated && $__tax && $__catAncestors) {
+            $__catParentKey = (string)($__catAncestors[count($__catAncestors) - 1]['key'] ?? '');
+            if ($__catParentKey !== '') {
+                $__catRelated = array_slice(array_values(array_filter(
+                    $__tax->children($__catParentKey),
+                    static fn($n) => (string)($n['key'] ?? '') !== $__catKey
+                )), 0, 5);
+                $__catRelatedTitle = 'Explora también';
+            }
+        }
+        try {
+            $__catKeys = sonika_category_keys($__catKey);
+            $__catExplore = (new \App\Services\ProductSeoContentService())->categoryHighlights($__catKeys, 3);
+        } catch (\Throwable $e) {
+            $__catExplore = [];
+        }
+        ?>
+        <?php if ($__catRelated || $__catExplore): ?>
+        <div style="margin-top:18px;border-top:1px solid #ececec;padding-top:14px">
+          <?php if ($__catRelated): ?>
+            <h3 style="margin:0 0 8px;font-size:16px"><?= sonika_esc($__catRelatedTitle) ?></h3>
+            <ul style="margin:0 0 14px 20px;padding:0">
+              <?php foreach ($__catRelated as $__sub): ?>
+                <li style="margin:4px 0"><a href="<?= sonika_esc((string)$__sub['url']) ?>" style="color:#F20D16;font-weight:600"><?= sonika_esc((string)$__sub['name']) ?></a></li>
+              <?php endforeach; ?>
+            </ul>
+          <?php endif; ?>
+          <?php if ($__catExplore): ?>
+            <h3 style="margin:0 0 8px;font-size:16px">Productos recomendados</h3>
+            <ul style="margin:0 0 4px 20px;padding:0">
+              <?php foreach ($__catExplore as $__ex): ?>
+                <li style="margin:4px 0"><a href="/producto/<?= sonika_esc((string)$__ex['slug']) ?>" style="color:#F20D16;font-weight:600"><?= sonika_esc((string)$__ex['name']) ?></a></li>
+              <?php endforeach; ?>
+            </ul>
+          <?php endif; ?>
+        </div>
+        <?php endif; ?>
       </div>
     </section>
     <?php endif; ?>
