@@ -8368,12 +8368,13 @@ W.orderProviderSummary=function(id){
         ? '<div class="box"><h2>Partner SONIKA</h2><div class="kv"><span>Nombre</span><b>'+W.esc(aff.name||aff.code||'')+'</b></div><div class="kv"><span>Código</span><b>'+W.esc(aff.code||'—')+'</b></div>'+(aff.commission?'<div class="kv"><span>Comisión</span><b>'+moneyP(aff.commission.amount)+' · '+W.esc(commLabels[String(aff.commission.status||'')]||aff.commission.status||'')+'</b></div>':'')+'</div>'
         : '<div class="box"><h2>Control</h2><div class="kv"><span>UUID</span><b class="mono">'+W.esc(String(o.uuid||'').slice(0,18))+'</b></div><div class="kv"><span>Origen</span><b>'+W.esc(o.affiliate_ref?('Partner '+o.affiliate_ref):'Venta directa')+'</b></div><div class="kv"><span>Registrado</span><b>'+W.esc(W.orderDate(o.created_at))+'</b></div></div>';
     var settleLine=cl.payment_settlement_ref?'<div class="kv"><span>Abono</span><b>'+W.esc(cl.payment_settlement_ref)+(cl.payment_settled_at?' · '+W.esc(W.orderDate(cl.payment_settled_at)):'')+'</b></div>':'';
-    var html='<!doctype html><html lang="es"><head><meta charset="utf-8"><title>'+W.esc(fileName)+'</title><style>'
+    var html='<!doctype html><html lang="es"><head><meta charset="utf-8"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap" rel="stylesheet"><title>'+W.esc(fileName)+'</title><style>'
         +'*{box-sizing:border-box}'
         +'body{font:12.5px/1.55 Arial,Helvetica,sans-serif;color:#0F172A;background:#fff;margin:0;padding:22px 26px;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
         +'.page{max-width:820px;margin:0 auto}'
         +'.head{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;border-bottom:2px solid #101D3A;padding-bottom:14px;margin-bottom:16px}'
         +'.logo{height:46px;width:auto;display:block}.logo-fallback{display:none;font:800 24px Arial;color:#101D3A;letter-spacing:.06em}'
+        +'.slogan{font-family:"Great Vibes","Brush Script MT","Segoe Script",cursive;font-size:21px;line-height:1.1;color:#F20D16;margin:4px 0 0;letter-spacing:.02em;font-weight:400}'
         +'.doc-title{font:800 18px/1.2 Arial,Helvetica,sans-serif;color:#101D3A;margin:8px 0 0}'
         +'.doc-sub{font-size:9.5px;text-transform:uppercase;letter-spacing:.12em;color:#374151;font-weight:700;margin-top:3px}'
         +'.meta{text-align:right;font-size:11.5px;color:#1F2937;line-height:1.6}.meta b{display:block;font-size:16px;color:#101D3A}.meta .red{color:#F20D16;font-weight:800}'
@@ -8408,7 +8409,7 @@ W.orderProviderSummary=function(id){
         +'@page{size:A4;margin:14mm 14mm 16mm}'
         +'</style></head><body><div class="actions"><button class="print" onclick="window.print()">Imprimir / Guardar PDF</button><button class="close" onclick="window.close()">Cerrar</button></div>'
         +'<div class="page">'
-        +'<div class="head"><div><img class="logo" src="https://sonika.com.co/assets/themes/sonika/logo-transparent.png" alt="SONIKA" onerror="this.style.display=\'none\';document.getElementById(\'logoFallback\').style.display=\'block\'"><div id="logoFallback" class="logo-fallback">SONIKA</div><div class="doc-title">Resumen de pedido</div><div class="doc-sub">Documento de despacho · Miche</div></div>'
+        +'<div class="head"><div><img class="logo" src="https://sonika.com.co/assets/themes/sonika/logo-transparent.png" alt="SONIKA" onerror="this.style.display=\'none\';document.getElementById(\'logoFallback\').style.display=\'block\'"><div id="logoFallback" class="logo-fallback">SONIKA</div><div class="slogan">El Sonido que te mueve</div><div class="doc-title">Resumen de pedido</div><div class="doc-sub">Documento de despacho · Miche</div></div>'
         +'<div class="meta"><b>'+W.esc(orderNo)+'</b>'+W.esc(W.orderDate(o.created_at))+'<br>'+W.esc(payLabel)+'</div></div>'
         +'<div class="statusbar"><div><span>Pedido</span><b class="badge '+fulClass+'">'+W.esc(fulLabel)+'</b></div><div><span>Pago</span><b class="badge '+payClass+'">'+W.esc(payLabel)+'</b></div><div><span>Método</span><b>'+W.esc(W.orderMethodLabel(pay.method))+'</b></div><div><span>Total</span><b>'+W.orderMoney(o.total_cents)+'</b></div></div>'
         +'<div class="grid"><div class="box"><h2>Cliente</h2><div class="kv"><span>Nombre</span><b>'+W.esc(cust.name||'—')+'</b></div><div class="kv"><span>Documento</span><b>'+W.esc(cust.document||'—')+'</b></div><div class="kv"><span>Teléfono</span><b>'+W.esc(cust.phone||'—')+'</b></div><div class="kv"><span>Correo</span><b>'+W.esc(cust.email||'—')+'</b></div></div>'
@@ -8431,6 +8432,7 @@ W.orderProviderSummary=function(id){
     var schedulePrint=function(){if(scheduled)return;scheduled=true;setTimeout(doPrint,220);};
     try{w.onload=schedulePrint;}catch(e){}
     try{var logo=w.document.querySelector('.logo');if(logo&&!logo.complete){logo.onload=schedulePrint;logo.onerror=schedulePrint;}}catch(e){}
+    try{if(w.document.fonts&&w.document.fonts.ready){w.document.fonts.ready.then(schedulePrint);}}catch(e){}
     setTimeout(schedulePrint,1200);
 };
 W.orderPanelToggle=function(force){

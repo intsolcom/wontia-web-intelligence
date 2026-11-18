@@ -82,7 +82,12 @@ if (!function_exists('sonika_fonts_url')) {
         $fd = sonika_font('display');
         $fams = array_values(array_unique(array_filter([$fb, $fd, function_exists('sonika_nav_font') ? sonika_nav_font() : 'Sora'])));
         $parts = [];
-        foreach ($fams as $f) $parts[] = 'family=' . str_replace(' ', '+', $f) . ':wght@400;500;600;700;800';
+        foreach ($fams as $f) {
+            if (strcasecmp($f, 'Great Vibes') === 0) continue;
+            $parts[] = 'family=' . str_replace(' ', '+', $f) . ':wght@400;500;600;700;800';
+        }
+        // Tipografía tipo firma para el slogan de marca.
+        $parts[] = 'family=Great+Vibes';
         return 'https://fonts.googleapis.com/css2?' . implode('&', $parts) . '&display=swap';
     }
 }
@@ -2134,7 +2139,7 @@ ob_start();
   <div class="wrap">
     <div class="nav">
       <?= \App\Widgets\WidgetRegistry::render('mega-menu', ['categories' => sonika_categories(), 'guitar_subs' => sonika_guitar_subs_used()]) ?>
-      <a class="logo" href="/"><?= sonika_logo_tag() ?></a>
+      <a class="logo" href="/" aria-label="SONIKA — El Sonido que te mueve"><span class="logo-stack"><?= sonika_logo_tag() ?><span class="logo-slogan">El Sonido que te mueve</span></span></a>
       <?php
       $__advBrands = []; $__advTypes = []; $__advMax = 0.0;
       foreach (sonika_products() as $__p) {
@@ -2915,6 +2920,9 @@ if (!function_exists('sonika_css')) {
                 header.site{position:sticky;top:0;z-index:80;background:rgba(255,255,255,.92);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
         .nav{display:flex;align-items:center;gap:20px;padding:14px 0}
         .logo{display:flex;align-items:center;gap:10px;font-family:var(--font-display);font-weight:800;font-size:21px;letter-spacing:-.02em}
+        .logo .logo-stack{display:flex;flex-direction:column;align-items:flex-start;line-height:1;gap:0}
+        .logo .logo-slogan{font-family:"Great Vibes","Brush Script MT","Segoe Script",cursive;font-size:16px;line-height:1;color:var(--brand,#F20D16);margin-top:1px;white-space:nowrap;font-weight:400;letter-spacing:.02em}
+        @media(max-width:900px){.logo .logo-slogan{font-size:11.5px}}
         .logo .mark{width:36px;height:36px;border-radius:11px;background:linear-gradient(135deg,var(--brand),var(--brand2));display:flex;align-items:center;justify-content:center;color:#fff;font-size:19px;box-shadow:0 6px 18px rgba(242,13,22,.35)}
         .logo-img{height:34px;width:auto;display:block}
         .search{flex:1;display:flex;align-items:center;gap:8px;background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:10px 14px;min-width:140px}
