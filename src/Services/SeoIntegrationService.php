@@ -274,6 +274,53 @@ class SeoIntegrationService
         ];
     }
 
+    /**
+     * Inspección de URL (URL Inspection API): estado real de indexación.
+     */
+    public function gscInspect(string $url): array
+    {
+        $credentials = $this->gscCredentials();
+        $property = $this->setting('seo_gsc_property');
+        if (!$credentials || $property === '') {
+            return ['ok' => false, 'status' => 'skipped', 'message' => 'Configura la cuenta de servicio y la propiedad de Search Console.'];
+        }
+        $token = $this->gscToken($credentials);
+        if (!$token) return ['ok' => false, 'status' => 'error', 'message' => 'No se pudo obtener el token de Google.'];
+        $body = json_encode([
+            'inspectionUrl' => $url,
+            'siteUrl' => $property,
+            'languageCode' => 'es',
+        ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        $result = $this->request('POST', 'https://searchconsole.googleapis.com/v1/urlInspection/index:inspect', [
+            'Authorization: Bearer ' . $token,
+            'Content-Type: application/json',
+        ], $body);
+        if ($result['error']) return ['ok' => false, 'status' => 'error', 'message' => $result['error']];
+        $data = json_decode((string)$result['body'], true);
+        if ($result['http'] !== 200 || !is_array($data)) {
+            $message = (string)($data['error']['message'] ?? ('Google respondió HTTP ' . $result['http']));
+            return ['ok' => false, 'status' => 'error', 'http' => $result['http'], 'message' => $message];
+        }
+        $index = (array)($data['inspectionResult']['indexStatusResult'] ?? []);
+        return [
+            'ok' => true,
+            'status' => 'ok',
+            'url' => $url,
+            'property' => $property,
+            'verdict' => (string)($index['verdict'] ?? ''),
+            'coverage_state' => (string)($index['coverageState'] ?? ''),
+            'robots_txt_state' => (string)($index['robotsTxtState'] ?? ''),
+            'indexing_state' => (string)($index['indexingState'] ?? ''),
+            'page_fetch_state' => (string)($index['pageFetchState'] ?? ''),
+            'last_crawl_time' => (string)($index['lastCrawlTime'] ?? ''),
+            'google_canonical' => (string)($index['googleCanonical'] ?? ''),
+            'user_canonical' => (string)($index['userCanonical'] ?? ''),
+            'referring_urls' => array_slice((array)($index['referringUrls'] ?? []), 0, 10),
+            'sitemaps' => array_slice((array)($index['sitemaps'] ?? []), 0, 10),
+            'raw' => $index,
+        ];
+    }
+
     public function bingTest(): array
     {
         $key = $this->decrypt($this->setting('seo_bing_key'));

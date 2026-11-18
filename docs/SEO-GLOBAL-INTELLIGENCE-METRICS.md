@@ -292,3 +292,17 @@ Pendiente después de esto:
 - Enviar el sitemap y solicitar indexación de home y categorías principales.
 - Mejorar contenido único de productos/categorías: es el siguiente factor para rankear consultas comerciales.
 
+---
+
+## 12. Merchant Center e inspección de indexación
+
+- **Feed para Google Merchant Center:** `https://sonika.com.co/google-merchant.xml`.
+  - Generado desde `store_products` activos y públicos.
+  - Campos: id, título, descripción, link, imagen principal y adicionales, disponibilidad, precio, precio de oferta, condición, marca, MPN/SKU, tipo de producto, categoría amplia de Google y etiquetas de categoría/marca.
+  - Cache de 1 hora en `/app/cache/google-merchant.xml`.
+  - Sin envío ni devoluciones en el feed: se configuran a nivel de cuenta en Merchant Center porque no hay pesos ni envío gratis por producto.
+- **Inspector de URL** en la pestaña Google (`POST /api/v1/admin/seo-global-launch/gsc/inspect`):
+  - Muestra cobertura, veredicto, canonical de Google, canonical del usuario, último rastreo, robots y estado de fetch.
+- **Hallazgo del 18 de noviembre de 2026:** la home sin `www` estaba marcada como duplicada y Google había elegido `sonika-com-co.wontia.com` como canónica; la home `www` sí estaba indexada y los productos también apuntaban al host interno. Los 301/canonical/noindex ya corrigen la causa; falta el recrawl.
+- **Datos de Search Console (28 días):** 10 clics / 40 impresiones en consultas; 23 clics / 97 impresiones en páginas; la consulta “sonika” concentra 10 clics en posición 2,3 y `/tienda` 14 clics en posición 3,8.
+

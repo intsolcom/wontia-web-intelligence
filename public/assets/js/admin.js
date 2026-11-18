@@ -6351,6 +6351,8 @@ W.sglGscLoad=async function(){
     var dimOpts=dims.map(function(d){return '<option value="'+d[0]+'"'+(dim===d[0]?' selected':'')+'>'+d[1]+'</option>'}).join('');
     var dayOpts=[7,28,90].map(function(d){return '<option value="'+d+'"'+(days===d?' selected':'')+'>'+d+' días</option>'}).join('');
     var h='<div class="w-card" style="margin-bottom:14px"><div class="w-flex-between" style="gap:10px;flex-wrap:wrap"><div><h3 style="margin:0">Google Search Console</h3><p style="font-size:12px;color:var(--w-muted);margin:5px 0 0">Búsqueda orgánica de Google. Los datos pueden tardar 2-3 días en actualizarse.</p></div><div style="display:flex;gap:6px;flex-wrap:wrap"><select class="w-input" style="width:auto" onchange="W._sglGscDim=this.value;W.sglGscLoad()">'+dimOpts+'</select><select class="w-input" style="width:auto" onchange="W._sglGscDays=parseInt(this.value)||28;W.sglGscLoad()">'+dayOpts+'</select><button class="w-btn w-btn-secondary w-btn-sm" onclick="W.sglGscLoad()">Actualizar</button></div></div></div>';
+    h+='<div class="w-card" style="margin-bottom:14px"><div class="w-flex-between" style="gap:10px;flex-wrap:wrap"><div><h3 style="margin:0">Google Merchant Center</h3><p style="font-size:12px;color:var(--w-muted);margin:5px 0 0">Feed de productos para free listings y Shopping. Envíalo como fuente programada en Merchant Center.</p></div><a class="w-btn w-btn-secondary w-btn-sm" href="/google-merchant.xml" target="_blank" rel="noopener">Abrir feed</a></div><div style="font-family:var(--w-font-mono);font-size:11px;background:var(--w-bg2);border:1px solid var(--w-border);border-radius:8px;padding:9px;margin-top:10px;word-break:break-all">https://sonika.com.co/google-merchant.xml</div></div>';
+    h+='<div class="w-card" style="margin-bottom:14px"><h3 style="margin:0 0 8px">Inspeccionar URL en Google</h3><p style="font-size:12px;color:var(--w-muted);margin:0 0 10px">Consulta el estado real de indexación, el canonical que eligió Google y el último rastreo.</p><div style="display:flex;gap:6px;flex-wrap:wrap"><input id="sgl-gsc-url" class="w-input" value="https://sonika.com.co/" style="flex:1;min-width:220px"/><button class="w-btn w-btn-secondary w-btn-sm" onclick="W.sglGscInspect()">Inspeccionar</button></div><div id="sgl-gsc-inspect" style="margin-top:10px"></div></div>';
     var r=await W.api('/api/v1/admin/seo-global-launch/gsc?days='+days+'&dimension='+encodeURIComponent(dim)+'&limit=50');
     if(!r||!r.ok||r.status!=='ok'){
         var email='';
@@ -6381,6 +6383,23 @@ W.sglGscLoad=async function(){
     });
     h+='</tbody></table></div><div style="font-size:10px;color:var(--w-muted);margin-top:8px">'+W.esc(r.property||'')+' · '+W.esc(r.start||'')+' a '+W.esc(r.end||'')+'</div></div>';
     box.innerHTML=h;
+};
+W.sglGscInspect=async function(){
+    var el=document.getElementById('sgl-gsc-inspect'); if(!el)return;
+    var input=document.getElementById('sgl-gsc-url');
+    var url=input?input.value.trim():'';
+    if(!url){el.innerHTML='<div style="font-size:12px;color:#f87171">Escribe una URL.</div>';return}
+    el.innerHTML='<div style="font-size:11px;color:var(--w-muted)">Consultando Google…</div>';
+    var r=await W.api('/api/v1/admin/seo-global-launch/gsc/inspect',{method:'POST',body:{url:url}});
+    if(!r||!r.ok){el.innerHTML='<div style="font-size:12px;color:#f87171">'+W.esc((r&&r.message)||'No se pudo inspeccionar.')+'</div>';return}
+    var color=r.verdict==='PASS'?'#34d399':(r.verdict==='NEUTRAL'?'#fbbf24':'#f87171');
+    el.innerHTML='<div style="border-left:3px solid '+color+';padding-left:10px">'
+      +'<div style="font-weight:700;font-size:13px">'+W.esc(r.coverage_state||r.verdict||'Sin estado')+'</div>'
+      +'<div style="font-size:11px;color:var(--w-muted);margin-top:4px">Veredicto: '+W.esc(r.verdict||'—')+' · Último rastreo: '+W.esc(r.last_crawl_time||'—')+'</div>'
+      +'<div style="font-size:11px;color:var(--w-muted)">Google canonical: '+W.esc(r.google_canonical||'—')+'</div>'
+      +'<div style="font-size:11px;color:var(--w-muted)">Tu canonical: '+W.esc(r.user_canonical||'—')+'</div>'
+      +'<div style="font-size:11px;color:var(--w-muted)">Robots: '+W.esc(r.robots_txt_state||'—')+' · Fetch: '+W.esc(r.page_fetch_state||'—')+' · Indexación: '+W.esc(r.indexing_state||'—')+'</div>'
+      +'</div>';
 };
 W.sglTechSaveConfig=async function(){
     var v=function(id){var el=document.getElementById(id);return el?el.value:''};

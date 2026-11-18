@@ -100,6 +100,11 @@ if ($uri === '/sitemap.xml') {
     exit;
 }
 
+if ($uri === '/google-merchant.xml') {
+    require ROOT_DIR . '/public/google-merchant.php';
+    exit;
+}
+
 if ($uri === '/sitemap-brick.xml') {
     require ROOT_DIR . '/public/sitemap-brick.php';
     exit;

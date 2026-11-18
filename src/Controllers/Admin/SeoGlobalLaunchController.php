@@ -221,6 +221,16 @@ class SeoGlobalLaunchController
         Response::json($result);
     }
 
+    public function gscInspect(Request $req): void
+    {
+        $url = trim((string)$req->input('url', ''));
+        if ($url === '' || !preg_match('~^https?://~i', $url)) {
+            Response::json(['ok' => false, 'status' => 'error', 'message' => 'URL inválida.'], 422);
+            return;
+        }
+        Response::json((new \App\Services\SeoIntegrationService())->gscInspect($url));
+    }
+
     public function live(Request $req): void
     {
         $data = (new \App\Services\SeoLiveMonitorService())->overview(
