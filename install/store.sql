@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS store_categories (
     site_id INT NOT NULL DEFAULT 1,
     name VARCHAR(150) NOT NULL,
     slug VARCHAR(150) NOT NULL,
-    description VARCHAR(500),
+    description TEXT,
     image VARCHAR(500),
     parent_id INT NULL,
     path VARCHAR(255) NULL,

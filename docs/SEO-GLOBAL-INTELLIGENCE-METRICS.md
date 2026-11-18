@@ -306,3 +306,14 @@ Pendiente después de esto:
 - **Hallazgo del 18 de noviembre de 2026:** la home sin `www` estaba marcada como duplicada y Google había elegido `sonika-com-co.wontia.com` como canónica; la home `www` sí estaba indexada y los productos también apuntaban al host interno. Los 301/canonical/noindex ya corrigen la causa; falta el recrawl.
 - **Datos de Search Console (28 días):** 10 clics / 40 impresiones en consultas; 23 clics / 97 impresiones en páginas; la consulta “sonika” concentra 10 clics en posición 2,3 y `/tienda` 14 clics en posición 3,8.
 
+---
+
+## 13. Contenido editorial de categorías — primer lote
+
+- 10 categorías con introducción editorial de 300–437 palabras, almacenada en `store_categories.description`.
+- La guía se muestra **debajo del grid de productos** para no afectar la conversión; el meta description usa el primer fragmento (máx. 155 caracteres) y el `CollectionPage` JSON-LD usa la misma descripción.
+- Categorías: Guitarras Eléctricas, Guitarras Acústicas, Guitarras Electroacústicas, Baterías Acústicas, Acordeones, Pianos, Cabinas, Micrófonos Inalámbricos, Congas y Tumbadoras, Platillos.
+- Revisión humana: se eliminaron marcas inventadas por la IA (`JINBAO`, `KOHLT`) y una mención incorrecta a `SABIAN` en Baterías; se suavizaron afirmaciones sobre especificaciones.
+- `store_categories.description` pasó de `VARCHAR(500)` a `TEXT`; `install/store.sql` actualizado.
+- Rollback: `seo_catalog_fixes` guarda el antes/después de las 10 categorías (antes estaban vacías).
+

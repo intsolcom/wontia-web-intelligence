@@ -1776,7 +1776,23 @@ if ($cat) {
     $__catDesc = $cat['name'] . ($__catTags !== '' ? ': ' . $__catTags : '') . '. '
         . ($__catCount > 0 ? 'Explora ' . $__catCount . ' productos disponibles' : 'Explora nuestra selección')
         . ' en SONIKA con envío a toda Colombia, garantía y asesoría personalizada.';
-    sonika_site_head($cat['name'] . ' — SONIKA', $__catDesc, sonika_origin() . $cat['url']);
+    $__catEditorial = '';
+    try {
+        $__catPath = (string)($cat['path'] ?? ltrim((string)$cat['url'], '/'));
+        $__catSt = \App\Core\Database::instance()->prepare('SELECT description FROM store_categories WHERE site_id=@site_id AND path=? LIMIT 1');
+        $__catSt->execute([$__catPath]);
+        $__catEditorial = trim((string)$__catSt->fetchColumn());
+    } catch (\Throwable $e) {
+        $__catEditorial = '';
+    }
+    $__catMeta = $__catEditorial !== '' ? trim((string)preg_replace('/\s+/', ' ', strip_tags($__catEditorial))) : $__catDesc;
+    if (mb_strlen($__catMeta) > 155) {
+        $__catMeta = mb_substr($__catMeta, 0, 155);
+        $__catCut = mb_strrpos($__catMeta, ' ');
+        if ($__catCut !== false && $__catCut > 110) $__catMeta = mb_substr($__catMeta, 0, $__catCut);
+        $__catMeta = rtrim($__catMeta, " ,.;:") . '…';
+    }
+    sonika_site_head($cat['name'] . ' — SONIKA', $__catMeta, sonika_origin() . $cat['url']);
     $__crumbs = [];
     foreach ($__catAncestors as $__anc) $__crumbs[$__anc['name']] = $__anc['url'];
     $__crumbs[$cat['name']] = null;
@@ -1794,7 +1810,7 @@ if ($cat) {
     }
     echo \App\Services\SeoService::jsonLd('CollectionPage', [
         'name' => $cat['name'],
-        'description' => $__catDesc,
+        'description' => $__catMeta,
         'url' => $__catUrl,
         'inLanguage' => 'es-CO',
         'mainEntity' => [
@@ -1837,6 +1853,16 @@ if ($cat) {
       </div>
       <?php sonika_shop_js(); ?>
     </section>
+    <?php if ($__catEditorial !== ''): ?>
+    <section class="pad wrap" id="guia-categoria" style="padding-top:6px">
+      <div class="head" style="margin-top:10px"><h2 style="font-size:22px">Guía de compra: <?= sonika_esc($cat['name']) ?></h2></div>
+      <div style="max-width:920px;color:#475467;font-size:14.5px;line-height:1.75">
+        <?php foreach (preg_split('/\n\s*\n/', $__catEditorial) as $__catP): ?>
+          <p style="margin:0 0 12px"><?= sonika_esc(trim($__catP)) ?></p>
+        <?php endforeach; ?>
+      </div>
+    </section>
+    <?php endif; ?>
     <?php
     sonika_site_footer();
     return true;
