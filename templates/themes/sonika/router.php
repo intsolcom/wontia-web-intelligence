@@ -990,10 +990,27 @@ JS;
             echo '<div style="color:#94a3b8;font-size:13px">Aún sin visitas a productos de tus seguidores.</div>';
         }
         echo '</div>';
-        echo '<div class="ahp-sec" data-tab="ventas"><h2>Pedidos atribuidos</h2><table><thead><tr><th>Pedido</th><th>Base</th><th>Tasa</th><th>Comisión</th><th>Estado</th><th>Fecha</th></tr></thead><tbody>';
+        echo '<div class="ahp-sec" data-tab="ventas"><h2>Pedidos atribuidos</h2><table><thead><tr><th>Pedido</th><th>Cliente</th><th>Productos</th><th>Venta</th><th>Comisión</th><th>Estado</th></tr></thead><tbody>';
         if (empty($__d['recent'])) echo '<tr><td colspan="6" style="color:#94a3b8">Sin pedidos atribuidos todavía.</td></tr>';
+        $__payLabelsP = ['pending' => 'Pago pendiente', 'paid' => 'Pagado', 'failed' => 'Pago rechazado', 'refunded' => 'Reembolsado'];
+        $__fulLabelsP = ['new' => 'Recibido', 'confirmed' => 'Confirmado', 'preparing' => 'En preparación', 'shipped' => 'Despachado', 'delivered' => 'Entregado', 'cancelled' => 'Cancelado'];
         foreach ($__d['recent'] as $__r) {
-            echo '<tr><td>' . sonika_esc((string)$__r['order_ref']) . '</td><td class="n">' . $__money($__r['base_amount']) . '</td><td class="n">' . number_format((float)$__r['tier_rate'] * 100, 2, ',', '.') . '%</td><td class="n">' . $__money($__r['amount']) . '</td><td><span class="st ' . sonika_esc((string)$__r['status']) . '">' . sonika_esc($__states[$__r['status']] ?? $__r['status']) . '</span></td><td>' . sonika_esc(substr((string)$__r['created_at'], 0, 10)) . '</td></tr>';
+            $__orderNoP = trim((string)($__r['order_number'] ?? ''));
+            if ($__orderNoP === '') $__orderNoP = substr((string)$__r['order_ref'], 0, 8);
+            $__custP = trim((string)($__r['customer_name'] ?? ''));
+            if ($__custP === '') $__custP = '—';
+            $__itemsP = trim((string)($__r['items_summary'] ?? ''));
+            if ($__itemsP === '') $__itemsP = '—';
+            if (mb_strlen($__itemsP) > 90) $__itemsP = mb_substr($__itemsP, 0, 90) . '…';
+            $__fulP = $__fulLabelsP[(string)($__r['fulfillment_status'] ?? '')] ?? '';
+            $__payP = $__payLabelsP[(string)($__r['payment_status'] ?? '')] ?? '';
+            $__statusP = $__fulP . ($__payP !== '' ? ($__fulP !== '' ? ' · ' : '') . $__payP : '');
+            echo '<tr><td><b>' . sonika_esc($__orderNoP) . '</b><br><small>' . sonika_esc(substr((string)$__r['created_at'], 0, 10)) . '</small></td>'
+                . '<td>' . sonika_esc($__custP) . '</td>'
+                . '<td>' . sonika_esc($__itemsP) . ($__statusP !== '' ? '<br><small>' . sonika_esc($__statusP) . '</small>' : '') . '</td>'
+                . '<td class="n">' . $__money($__r['base_amount']) . '<br><small>Tasa ' . number_format((float)$__r['tier_rate'] * 100, 1, ',', '.') . '%</small></td>'
+                . '<td class="n">' . $__money($__r['amount']) . '</td>'
+                . '<td><span class="st ' . sonika_esc((string)$__r['status']) . '">' . sonika_esc($__states[$__r['status']] ?? $__r['status']) . '</span></td></tr>';
         }
         echo '</tbody></table></div>';
         $__storeHandlesP = $__svcP->storeProducts((int)$__affPP['id']);

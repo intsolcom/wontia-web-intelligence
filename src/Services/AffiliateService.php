@@ -1306,7 +1306,13 @@ class AffiliateService
             $st = $db->prepare('SELECT status, COALESCE(SUM(amount),0) amt, COUNT(*) c FROM affiliate_commissions WHERE affiliate_id = :a AND site_id = @site_id GROUP BY status');
             $st->execute(['a' => $affiliateId]);
             foreach ($st->fetchAll() as $row) $out['by_status'][(string)$row['status']] = ['amount' => (float)$row['amt'], 'count' => (int)$row['c']];
-            $st = $db->prepare('SELECT order_ref, base_amount, tier_rate, amount, status, created_at FROM affiliate_commissions WHERE affiliate_id = :a AND site_id = @site_id ORDER BY id DESC LIMIT 10');
+            $st = $db->prepare('SELECT c.order_ref, c.base_amount, c.tier_rate, c.amount, c.status, c.created_at,
+                    o.order_number, o.customer_name, o.payment_status, o.fulfillment_status, o.total_cents,
+                    (SELECT GROUP_CONCAT(CONCAT(i.qty, " x ", i.name) SEPARATOR " · ") FROM store_order_items i WHERE i.order_id = o.id AND i.site_id = o.site_id) items_summary
+                FROM affiliate_commissions c
+                LEFT JOIN store_orders o ON o.uuid = c.order_ref AND o.site_id = c.site_id
+                WHERE c.affiliate_id = :a AND c.site_id = @site_id
+                ORDER BY c.id DESC LIMIT 10');
             $st->execute(['a' => $affiliateId]);
             $out['recent'] = $st->fetchAll();
         } catch (\Throwable $e) {
