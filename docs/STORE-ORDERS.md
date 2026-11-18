@@ -111,3 +111,21 @@ Respaldo de los archivos modificados:
 ```
 
 Para revertir el archivado de los pedidos de prueba actuales, usar la acción **Restaurar** en la pestaña Archivados.
+
+---
+
+## 9. Ficha 360 y resumen para Miche
+
+La ficha del pedido está en **Administración → Central de pedidos** (`/admin.php#order-center/pedidos`). Al abrir un pedido, arriba a la derecha:
+
+- **Resumen Miche:** abre una hoja imprimible o guardable como PDF con cliente, documento, teléfono, correo, dirección, indicaciones, transportadora, ETA, productos con SKU/cantidad/unitario/total, pago, abono, envío, total y partner.
+- **Copiar Miche:** copia el mismo resumen como texto para WhatsApp o correo.
+- **Reportar pedido a proveedor (Miche):** handoff interno. Requiere los 3 checks (dinero en cuenta, cliente confirmado por AIP y reconfirmación). Crea caso, tarea y handoff en `oc_*`, pero **no envía** nada a Miche.
+
+**No existe envío automático a Miche.** Para activarlo faltan:
+
+1. Correo o teléfono de Miche en `oc_partners.contact_email` / `contact_phone` (hoy están vacíos).
+2. Definir el disparador: al confirmar el pedido, al marcar los 3 checks o al pulsar “Reportar a proveedor”.
+3. Escribir el registro en `oc_notifications` y enviar por el canal elegido. Hoy esa tabla está vacía y el código solo la lee.
+
+**Pedidos internos:** los pedidos con `is_internal = 1` no reciben comisión de partner. Si un pedido asistido por un administrador es una venta real, hay que revisar esa marca antes de atribuirlo.

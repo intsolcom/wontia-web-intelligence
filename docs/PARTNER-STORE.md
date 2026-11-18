@@ -59,3 +59,9 @@ El Partner ya no tiene que salir a `/tienda` para armar su catálogo. El panel i
 - `public/assets/js/sonika-attribution.js`
 - `public/assets/js/sonika-share.js`
 - `install/affiliates_partner_store.sql`
+
+## Checkout y atribución
+
+- Si el cliente llega con `?ref=` o la cookie `sonika_aff`, el checkout muestra **“Partner SONIKA: nombre”** y guarda el código en un campo oculto.
+- Al confirmar el pedido, el código viaja en el payload (`ref`) y `StoreService` lo usa como respaldo de la cookie. La comisión exige un clic válido en los últimos 30 días.
+- Los pedidos con `is_internal = 1` no reciben comisión, aunque tengan `ref`. Es una protección para pruebas y compras internas; si un pedido asistido por un administrador es una venta real, hay que revisar esa marca.
