@@ -24,6 +24,7 @@ El archivado es **no destructivo**. Los pedidos siguen en `store_orders` y se pu
 | `is_test` | `1` = pedido de prueba. |
 | `archive_reason` | Motivo: `prueba`, `duplicado`, `spam`, `cancelado`, `manual`, `auto_failed`, `auto_test`. |
 | `archived_by` | ID del usuario que archivó. |
+| `affiliate_ref` | Código del partner que originó la venta. Se guarda aunque el pedido quede marcado como interno. |
 
 La migración se ejecuta desde `StoreService::ensureTables()`.
 
@@ -129,3 +130,14 @@ La ficha del pedido está en **Administración → Central de pedidos** (`/admin
 3. Escribir el registro en `oc_notifications` y enviar por el canal elegido. Hoy esa tabla está vacía y el código solo la lee.
 
 **Pedidos internos:** los pedidos con `is_internal = 1` no reciben comisión de partner. Si un pedido asistido por un administrador es una venta real, hay que revisar esa marca antes de atribuirlo.
+
+---
+
+## 10. Atribución manual de partner
+
+- La **Central de pedidos** abre la ficha 360 completa al pulsar **Ver** (antes abría un modal mínimo).
+- La ficha muestra **Partner** con nombre, código y comisión, o **Ref. partner** si el pedido tiene el código pero no la atribución.
+- Si no hay atribución, el botón **Atribuir partner** pide el código, crea la atribución y la comisión, y quita la marca de pedido interno.
+- Endpoint: `POST /api/v1/admin/store/orders/{id}/attribute-partner` con `{code}`.
+- El panel del partner muestra el número de pedido, cliente, productos, estado de pago/despacho, base, tasa y comisión; ya no muestra solo el UUID.
+- La atribución manual exige un clic válido del partner en los últimos 30 días.
