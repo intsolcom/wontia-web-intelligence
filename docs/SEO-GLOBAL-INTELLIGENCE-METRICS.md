@@ -329,5 +329,5 @@ Pendiente después de esto:
 - Rollback: cambiar `status` a `draft` o borrar la fila; la descripción original nunca se modifica.
 - Estado: **50 publicados**. El bloque es complementario: si se elimina, la ficha sigue funcionando con su contenido original.
 - Enlaces internos en las 10 guías de categoría: bloque **Explora también** con categorías hermanas y **Productos recomendados** con 3 fichas (primero las que tienen guía publicada; si faltan, las más vistas en 90 días, con caché de 6 h en `/app/cache`).
-- Imagen desplegada: `wontia-web-intelligence:products-20261118b`; rollback `pre-products-20261118` (`categories-20261118`).
+- Imagen desplegada: `wontia-web-intelligence:products-20261118c`; rollback `pre-products-20261118c` (`products-20261118b`) y `pre-products-20261118` (`categories-20261118`).
 
