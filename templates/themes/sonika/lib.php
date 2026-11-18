@@ -172,6 +172,8 @@ if (!function_exists('sonika_store_local')) {
                 $tags = json_decode((string)($r['tags'] ?? ''), true) ?: [];
                 if (!$tags) $tags = ['1) Categoria_' . $pt];
                 $out[] = [
+                    'id' => (int)($r['id'] ?? 0),
+                    'product_id' => (int)($r['id'] ?? 0),
                     'handle' => (string)($r['slug'] ?: $r['id']),
                     'title' => (string)($r['name'] ?? ''),
                     'vendor' => (string)($r['vendor'] ?? ''),
@@ -263,6 +265,8 @@ if (!function_exists('sonika_products')) {
             $used[$handle] = true;
             if (($l['status'] ?? 'draft') !== 'active') continue;
             $p['handle'] = trim((string)($l['handle'] ?? '')) ?: $handle;
+            $p['id'] = (int)($l['id'] ?? 0);
+            $p['product_id'] = (int)($l['id'] ?? 0);
             $p['_catalog_handle'] = (string)($l['_catalog_handle'] ?? '') ?: $handle;
             $p['title'] = trim((string)($l['title'] ?? '')) ?: (string)($p['title'] ?? '');
             $p['vendor'] = trim((string)($l['vendor'] ?? '')) ?: (string)($p['vendor'] ?? '');
