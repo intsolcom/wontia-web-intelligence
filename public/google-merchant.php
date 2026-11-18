@@ -47,6 +47,21 @@ $clean = static function ($v, int $max): string {
     }
     return $v;
 };
+// Google Merchant no permite texto promocional en el título.
+$cleanTitle = static function (string $v): string {
+    $v = preg_replace('/^BLACKDAY\s+/iu', '', $v) ?? $v;
+    $v = preg_replace('/\s+(PROMOCI[ÓO]N|PROMOCION|OFERTA)\s*$/iu', '', $v) ?? $v;
+    $v = preg_replace('/\s+GRATIS\s*$/iu', '', $v) ?? $v;
+    return trim((string)preg_replace('/\s{2,}/u', ' ', $v));
+};
+$dupSkus = [];
+try {
+    foreach ($db->query("SELECT sku FROM store_products WHERE site_id=@site_id AND status='active' AND sku<>'' GROUP BY sku HAVING COUNT(*) > 1")->fetchAll(\PDO::FETCH_COLUMN) as $dupSku) {
+        $dupSkus[(string)$dupSku] = true;
+    }
+} catch (\Throwable $e) {
+    $dupSkus = [];
+}
 $categoryMap = [
     'cuerdas' => 'Musical Instruments & Equipment > Guitars & Basses',
     'percusion' => 'Musical Instruments & Equipment > Drums & Percussion',
@@ -68,7 +83,7 @@ foreach ($rows as $r) {
     $id = (string)(int)($r['id'] ?? 0);
     $slug = trim((string)($r['slug'] ?? ''));
     if ($id === '0' || $slug === '') continue;
-    $name = $clean($r['name'] ?? '', 150);
+    $name = $cleanTitle($clean($r['name'] ?? '', 150));
     if ($name === '') continue;
     $body = $clean($r['description'] ?? '', 5000);
     if (mb_strlen($body) < 60) $body = $clean($r['seo_description'] ?? '', 5000);
@@ -86,6 +101,7 @@ foreach ($rows as $r) {
     if (!preg_match('~^https?://~i', $image)) $image = $base . '/' . ltrim($image, '/');
 
     $price = max(0, (int)($r['price_cents'] ?? 0));
+    if ($price <= 0) continue;
     $compare = max(0, (int)($r['compare_price_cents'] ?? 0));
     $regular = $compare > $price ? $compare : $price;
     $currency = 'COP';
@@ -95,6 +111,7 @@ foreach ($rows as $r) {
     $googleCat = $categoryMap[$top] ?? '';
     $productType = $path !== '' ? str_replace('/', ' > ', $path) : 'Instrumentos musicales';
     $sku = $clean($r['sku'] ?? '', 100);
+    $skuUnique = $sku !== '' && !isset($dupSkus[$sku]);
 
     $xml .= "<item>\n";
     $xml .= '<g:id>' . $esc($id) . "</g:id>\n";
@@ -113,7 +130,7 @@ foreach ($rows as $r) {
     }
     $xml .= "<g:condition>new</g:condition>\n";
     $xml .= '<g:brand>' . $esc($vendor) . "</g:brand>\n";
-    if ($sku !== '') {
+    if ($skuUnique) {
         $xml .= "<g:identifier_exists>yes</g:identifier_exists>\n";
         $xml .= '<g:mpn>' . $esc($sku) . "</g:mpn>\n";
     } else {

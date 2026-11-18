@@ -301,9 +301,11 @@ Pendiente después de esto:
   - Campos: id, título, descripción, link, imagen principal y adicionales, disponibilidad, precio, precio de oferta, condición, marca, MPN/SKU, tipo de producto, categoría amplia de Google y etiquetas de categoría/marca.
   - Cache de 1 hora en `/app/cache/google-merchant.xml`.
   - Sin envío ni devoluciones en el feed: se configuran a nivel de cuenta en Merchant Center porque no hay pesos ni envío gratis por producto.
+  - **Control de calidad del 18 de noviembre:** 3.314 ítems; 0 títulos con texto promocional, 0 precios en cero, 0 MPN duplicados y 0 productos sin imagen. Un producto con precio 0 se excluye del feed. Los títulos se limpian de “PROMOCIÓN”, “GRATIS” y prefijos de campaña; si un SKU se repite, se omite el MPN y se declara `identifier_exists=no`.
 - **Inspector de URL** en la pestaña Google (`POST /api/v1/admin/seo-global-launch/gsc/inspect`):
   - Muestra cobertura, veredicto, canonical de Google, canonical del usuario, último rastreo, robots y estado de fetch.
 - **Hallazgo del 18 de noviembre de 2026:** la home sin `www` estaba marcada como duplicada y Google había elegido `sonika-com-co.wontia.com` como canónica; la home `www` sí estaba indexada y los productos también apuntaban al host interno. Los 301/canonical/noindex ya corrigen la causa; falta el recrawl.
+- **Inspección de 61 URLs (18 de noviembre, 13:23 UTC):** 4 indexadas con canonical correcto; 1 home duplicada hacia el host interno; 8 fichas con canonical elegido hacia el host interno (rastreadas entre el 16 y el 23 de octubre); 48 URLs aún no reconocidas. Una ficha rastreada el mismo 18 de noviembre ya muestra `https://sonika.com.co/producto/ukel16` como canónica: la corrección funciona en cuanto Google vuelve a rastrear.
 - **Datos de Search Console (28 días):** 10 clics / 40 impresiones en consultas; 23 clics / 97 impresiones en páginas; la consulta “sonika” concentra 10 clics en posición 2,3 y `/tienda` 14 clics en posición 3,8.
 
 ---
