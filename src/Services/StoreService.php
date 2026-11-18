@@ -66,6 +66,7 @@ class StoreService
         $db = Database::instance();
         foreach ([
             "ALTER TABLE store_orders ADD COLUMN IF NOT EXISTS ip_hash VARCHAR(64) NULL",
+            "ALTER TABLE store_orders ADD COLUMN IF NOT EXISTS affiliate_ref VARCHAR(64) NULL",
             "ALTER TABLE store_orders ADD COLUMN IF NOT EXISTS stock_released TINYINT DEFAULT 0",
             "ALTER TABLE store_orders ADD COLUMN IF NOT EXISTS quote_code VARCHAR(40) COLLATE utf8mb4_unicode_ci NULL",
             "ALTER TABLE store_orders MODIFY quote_code VARCHAR(40) COLLATE utf8mb4_unicode_ci NULL",
@@ -754,13 +755,13 @@ class StoreService
 
             $db->prepare("INSERT INTO store_orders (site_id, uuid, order_number, customer_id, customer_name, customer_email, customer_phone, customer_document,
                 shipping_address, shipping_zone_id, subtotal_cents, shipping_cents, discount_cents, total_cents, currency, payment_method, payment_status,
-                fulfillment_status, notes, ip_hash) VALUES (@site_id, :uuid, :num, :cid, :name, :email, :phone, :doc, :addr, :zone, :sub, :ship, :disc, :total, :cur, :pm,
-                'pending', 'new', :notes, :iph)")
+                fulfillment_status, notes, ip_hash, affiliate_ref) VALUES (@site_id, :uuid, :num, :cid, :name, :email, :phone, :doc, :addr, :zone, :sub, :ship, :disc, :total, :cur, :pm,
+                'pending', 'new', :notes, :iph, :affref)")
                 ->execute([
                     'uuid' => $uuid, 'num' => $orderNumber, 'cid' => $cust, 'name' => $name, 'email' => $email, 'phone' => $phone,
                     'doc' => (string)($customer['document'] ?? ''), 'addr' => $addressJson, 'zone' => $zoneId,
                     'sub' => $subtotal, 'ship' => $shippingCents, 'disc' => $discountCents, 'total' => $total, 'cur' => $settings['store_currency'],
-                    'pm' => $method, 'notes' => (string)($input['notes'] ?? ''), 'iph' => $ipHash,
+                    'pm' => $method, 'notes' => (string)($input['notes'] ?? ''), 'iph' => $ipHash, 'affref' => $affRef !== '' ? $affRef : null,
                 ]);
             $orderId = (int)$db->lastInsertId();
             $this->markOrderInternal($orderId);

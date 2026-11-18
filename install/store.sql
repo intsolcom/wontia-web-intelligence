@@ -120,6 +120,7 @@ CREATE TABLE IF NOT EXISTS store_orders (
     notes TEXT,
     admin_notes TEXT,
     ip_hash VARCHAR(64) NULL,
+    affiliate_ref VARCHAR(64) NULL,
     is_internal TINYINT NOT NULL DEFAULT 0,
     internal_reason VARCHAR(40) NULL,
     stock_released TINYINT DEFAULT 0,

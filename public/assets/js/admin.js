@@ -8295,7 +8295,7 @@ W.orderMoney=function(cents){
 W.orderDate=function(s){s=String(s||'');return s?s.replace('T',' ').slice(0,16):'—';};
 W.orderMethodLabel=function(m){var map={mercadopago:'Mercado Pago',breb:'Bre-B',addi:'Addi',sistecredito:'Sistecrédito',epayco:'ePayco',request:'Pago asistido',cod:'Contra entrega',wompi:'Wompi',gift_card:'Tarjeta de regalo'};return map[String(m||'')]||String(m||'—');};
 W.orderChannelLabel=function(c){var map={email:'Correo',sms:'SMS',whatsapp:'WhatsApp'};return map[String(c||'')]||String(c||'—');};
-W.orderEventLabel=function(e){var map={order_received:'Pedido recibido',customer_validated:'Pedido validado por el cliente',preparing:'En preparación',shipped:'Enviado',review_request:'Solicitud de reseña',payment_settled:'Abono bancario confirmado',reported_to_provider:'Reportado a Miche',customer_confirmed:'Cliente confirmó',customer_rejected:'Cliente no confirmó'};return map[String(e||'')]||String(e||'—');};
+W.orderEventLabel=function(e){var map={order_received:'Pedido recibido',customer_validated:'Pedido validado por el cliente',preparing:'En preparación',shipped:'Enviado',review_request:'Solicitud de reseña',payment_settled:'Abono bancario confirmado',reported_to_provider:'Reportado a Miche',customer_confirmed:'Cliente confirmó',customer_rejected:'Cliente no confirmó',partner_attributed:'Atribuido a partner'};return map[String(e||'')]||String(e||'—');};
 W.orderChip=function(text,tone){return '<span class="w-op-chip w-op-chip--'+(tone||'mute')+'">'+W.esc(text)+'</span>';};
 W.orderCopy=function(text){try{navigator.clipboard.writeText(String(text||''));W.notify('Copiado','success');}catch(e){window.prompt('Copia:',String(text||''));}};
 W.orderCopySummary=function(id){
@@ -8405,6 +8405,15 @@ W.orderReportProvider=async function(id){
     if(r&&r.missing&&r.missing.length)msg+=': '+r.missing.join(', ');
     W.notify(msg,'error');
 };
+W.orderAttributePartner=async function(id){
+    var o=W._orderDetail||{};
+    var code=o.affiliate_ref||'';
+    if(!code){code=window.prompt('Código del partner (ej. daniela-gomez-9528):','');if(!code)return;}
+    if(!window.confirm('¿Atribuir el pedido '+(o.order_number||id)+' al partner '+code+'? Se quitará la marca de pedido interno.'))return;
+    var r=await W.api('/api/v1/admin/store/orders/'+id+'/attribute-partner',{method:'POST',body:{code:code}});
+    if(r&&r.ok){W.notify('Pedido atribuido a '+((r.affiliate&&r.affiliate.name)||code),'success');W.storeOrderDetail(id);if(W.storeOrdersLoad)W.storeOrdersLoad();}
+    else W.notify((r&&r.message)||'No se pudo atribuir el pedido','error');
+};
 W.storeOrderDetail=async function(id){
     var r=await W.api('/api/v1/admin/store/orders/'+id);
     if(!r||!r.ok||!r.data){W.notify((r&&r.message)||'No se pudo cargar el pedido','error');return;}
@@ -8491,7 +8500,7 @@ W.storeOrderDetail=async function(id){
     var timelineHtml='<div class="w-op-card"><div class="w-op-card-head"><h4>Historial del pedido</h4>'+W.orderChip((ops.timeline||[]).length+' eventos','mute')+'</div><div class="w-op-timeline">'+(tlRows||'<div class="w-op-muted">Sin eventos.</div>')+'</div></div>';
     var overviewHtml='<div class="w-op-card"><div class="w-op-card-head"><h4>Resumen de la transacción</h4>'+W.orderChip(W.orderMethodLabel(pay.method),'mute')+'</div>'
         +'<div class="w-op-grid2"><div class="w-op-field"><label>Estado del pago</label><div>'+W.orderChip(String(o.payment_status||''),payTone)+'</div></div><div class="w-op-field"><label>Estado del pedido</label><div>'+W.orderChip(String(o.fulfillment_status||''),fulTone)+'</div></div><div class="w-op-field"><label>Referencia</label><div class="w-op-sku">'+W.esc(pay.reference||pay.provider_ref||'—')+'</div></div><div class="w-op-field"><label>Pagado</label><div>'+W.orderDate(pay.paid_at)+'</div></div></div>'
-        +(aff?'<div class="w-op-field" style="margin-top:9px"><label>Partner</label><div><b>'+W.esc(aff.name||aff.code||'')+'</b> · <span class="w-op-sku">'+W.esc(aff.code||'')+'</span>'+(aff.commission?' · '+W.orderMoney(aff.commission.amount)+' '+W.esc(aff.commission.status||''):'')+'</div></div>':'')
+        +(aff?'<div class="w-op-field" style="margin-top:9px"><label>Partner</label><div><b>'+W.esc(aff.name||aff.code||'')+'</b> · <span class="w-op-sku">'+W.esc(aff.code||'')+'</span>'+(aff.commission?' · '+W.orderMoney(aff.commission.amount)+' '+W.esc(aff.commission.status||''):'')+'</div></div>':(o.affiliate_ref?'<div class="w-op-field" style="margin-top:9px"><label>Ref. partner</label><div><b>'+W.esc(o.affiliate_ref)+'</b> · sin atribuir <button class="w-btn w-btn-secondary w-btn-sm" type="button" onclick="wontia.orderAttributePartner('+id+')">Atribuir</button></div></div>':''))
         +paymentExtra+totals+'</div>';
     var manageHtml='<div class="w-op-card w-op-noprint"><div class="w-op-card-head"><h4>Gestión</h4>'+W.orderChip(o.archived_at?'Archivado':'Activo',o.archived_at?'mute':'ok')+'</div>'
         +'<div class="w-op-grid2"><div class="w-op-field"><label>Estado del pago</label><select class="w-input" id="so-pay" style="width:100%">'+['pending','paid','failed','refunded'].map(function(s){return '<option value="'+s+'"'+(o.payment_status===s?' selected':'')+'>'+s+'</option>'}).join('')+'</select></div><div class="w-op-field"><label>Estado del pedido</label><select class="w-input" id="so-ful" style="width:100%">'+['new','confirmed','preparing','shipped','delivered','cancelled'].map(function(s){return '<option value="'+s+'"'+(o.fulfillment_status===s?' selected':'')+'>'+s+'</option>'}).join('')+'</select></div></div>'
@@ -8500,7 +8509,7 @@ W.storeOrderDetail=async function(id){
         +'</div>';
     var heroImg=o.order_image||(items[0]&&items[0].image)||'';
     var heroMedia='<div class="w-op-hero-media"><span class="w-op-hero-fallback">📦</span>'+(heroImg?'<img src="'+W.esc(heroImg)+'" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.remove()">':'')+'</div>';
-    var hero='<div class="w-op-hero"><div class="w-op-hero-left">'+heroMedia+'<div><div class="w-op-kicker">Pedido</div><div class="w-op-title">'+W.esc(o.order_number||o.uuid)+'</div><div class="w-op-muted">'+W.esc(cust.name||'')+' · '+W.orderDate(o.created_at)+'</div><div class="w-op-chips">'+W.orderChip(o.payment_status==='paid'?'Pagado':'Pago '+String(o.payment_status||''),payTone)+W.orderChip(o.fulfillment_status==='delivered'?'Entregado':(o.fulfillment_status==='shipped'?'Enviado':'Pedido '+String(o.fulfillment_status||'')),fulTone)+testBadge+archiveBadge+(cl.provider_reported?W.orderChip('Reportado a Miche','ok'):'')+(aff?W.orderChip('Partner: '+(aff.name||aff.code||''),'ok'):'')+'</div></div></div><div class="w-op-hero-r"><div class="w-op-total">'+W.orderMoney(o.total_cents)+'</div><div class="w-op-actions"><button class="w-btn w-btn-secondary w-btn-sm w-op-noprint" type="button" onclick="wontia.orderCopySummary('+id+')">Copiar resumen</button><button class="w-btn w-btn-primary w-btn-sm w-op-noprint" type="button" onclick="wontia.orderProviderSummary('+id+')">Resumen Miche</button><button class="w-btn w-btn-secondary w-btn-sm w-op-noprint" type="button" onclick="wontia.orderProviderCopy('+id+')">Copiar Miche</button><button class="w-btn w-btn-secondary w-btn-sm w-op-noprint" type="button" onclick="window.print()">Imprimir</button></div></div></div>';
+    var hero='<div class="w-op-hero"><div class="w-op-hero-left">'+heroMedia+'<div><div class="w-op-kicker">Pedido</div><div class="w-op-title">'+W.esc(o.order_number||o.uuid)+'</div><div class="w-op-muted">'+W.esc(cust.name||'')+' · '+W.orderDate(o.created_at)+'</div><div class="w-op-chips">'+W.orderChip(o.payment_status==='paid'?'Pagado':'Pago '+String(o.payment_status||''),payTone)+W.orderChip(o.fulfillment_status==='delivered'?'Entregado':(o.fulfillment_status==='shipped'?'Enviado':'Pedido '+String(o.fulfillment_status||'')),fulTone)+testBadge+archiveBadge+(cl.provider_reported?W.orderChip('Reportado a Miche','ok'):'')+(aff?W.orderChip('Partner: '+(aff.name||aff.code||''),'ok'):'')+(o.is_internal?W.orderChip('Interno','warn'):'')+'</div></div></div><div class="w-op-hero-r"><div class="w-op-total">'+W.orderMoney(o.total_cents)+'</div><div class="w-op-actions"><button class="w-btn w-btn-secondary w-btn-sm w-op-noprint" type="button" onclick="wontia.orderCopySummary('+id+')">Copiar resumen</button><button class="w-btn w-btn-primary w-btn-sm w-op-noprint" type="button" onclick="wontia.orderProviderSummary('+id+')">Resumen Miche</button><button class="w-btn w-btn-secondary w-btn-sm w-op-noprint" type="button" onclick="wontia.orderProviderCopy('+id+')">Copiar Miche</button>'+(aff?'':'<button class="w-btn w-btn-secondary w-btn-sm w-op-noprint" type="button" onclick="wontia.orderAttributePartner('+id+')">Atribuir partner</button>')+'<button class="w-btn w-btn-secondary w-btn-sm w-op-noprint" type="button" onclick="window.print()">Imprimir</button></div></div></div>';
     var style='<style>'
         +'.w-order-panel{display:flex;flex-direction:column;overflow:hidden}.w-order-panel .w-modal-head{margin:0!important;padding:15px 20px!important;border-bottom:1px solid var(--w-border);flex:0 0 auto}.w-order-panel>.w-modal-actions{margin:0!important;padding:11px 20px!important;border-top:1px solid var(--w-border);flex:0 0 auto}.w-order-panel>.w-op-body{flex:1;min-height:0;overflow-y:auto;padding:16px 20px;background:var(--w-bg)}'
         +'.w-op-hero{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;background:var(--w-surface);border:1px solid var(--w-border);border-radius:14px;padding:14px 16px;margin-bottom:14px}.w-op-hero-left{display:flex;gap:13px;align-items:flex-start;min-width:0}.w-op-hero-media{position:relative;width:72px;height:72px;border-radius:12px;border:1px solid var(--w-border);background:#fff;overflow:hidden;flex:none;display:grid;place-items:center}.w-op-hero-fallback{position:absolute;inset:0;display:grid;place-items:center;font-size:24px;color:var(--w-muted);background:var(--w-bg2)}.w-op-hero-media img{position:relative;z-index:1;width:100%;height:100%;object-fit:contain;background:#fff}.w-op-kicker{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--w-muted);font-weight:850}.w-op-title{font:800 20px/1.2 Sora,Inter,system-ui,sans-serif;letter-spacing:-.02em}.w-op-total{font:800 22px/1 Sora,Inter,system-ui,sans-serif;text-align:right;font-variant-numeric:tabular-nums}.w-op-chips{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px}.w-op-hero-r{text-align:right}.w-op-hero-r .w-op-actions{justify-content:flex-end;margin-top:8px}'
@@ -9863,19 +9872,7 @@ W.ocPedidos=async function(q,status){
     if(inp)inp.addEventListener('keydown',function(e){if(e.key==='Enter')W.ocPedidos(inp.value,(document.getElementById('oc-st')||{}).value)});
 };
 W.ocVerPedido=async function(id){
-    var d=await W.api('/api/v1/admin/orders-center/orders/'+id);
-    if(!d||!d.ok){W.notify((d&&d.message)||'No disponible','error');return}
-    var o=d.data||{};
-    var h='<div style="font-size:13px;line-height:1.7;max-height:65vh;overflow:auto">'
-      +'<div><b>Pedido:</b> '+W.esc(o.order_number||('#'+o.id))+'</div>'
-      +'<div><b>Cliente:</b> '+W.esc(o.customer_name||'')+' — '+W.esc(o.customer_email||'')+' '+W.esc(o.customer_phone||'')+'</div>'
-      +'<div><b>Estado:</b> '+W.esc(W.ocFulfillLabel(o.fulfillment_status))+' · '+W.esc(W.ocPayLabel(o.payment_status))+'</div>'
-      +'<div style="margin:10px 0 6px"><b>Productos</b></div>';
-    (o.items||[]).forEach(function(it){
-        h+='<div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--w-border);padding:4px 0"><span>'+W.esc(it.name||'')+(it.variant_name?(' ('+W.esc(it.variant_name)+')'):'')+' x'+(it.qty||1)+'</span><span>'+W.ocMoney(it.subtotal_cents||0,o.currency)+'</span></div>';
-    });
-    h+='<div style="display:flex;justify-content:space-between;margin-top:8px;font-weight:800"><span>Total</span><span>'+W.ocMoney(o.total_cents||0,o.currency)+'</span></div></div>';
-    W.modal('Pedido '+(o.order_number||('#'+o.id)),h,'<button class="w-btn w-btn-secondary" onclick="wontia.closeModal()">Cerrar</button>');
+    return W.storeOrderDetail(id);
 };
 
 W.renderDirectory=async function(){

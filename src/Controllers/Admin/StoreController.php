@@ -11,6 +11,7 @@ use App\Services\ReturnService;
 use App\Services\ShippingService;
 use App\Services\ProductContentService;
 use App\Services\CheckoutPaymentMethodService;
+use App\Services\AffiliateService;
 
 class StoreController
 {
@@ -387,6 +388,58 @@ class StoreController
         }
         $r = (new OrderOperationsService())->reportToProvider((int)$id, (int)\App\Core\Session::userId());
         Response::json($r, !empty($r['ok']) ? 200 : 422);
+    }
+
+    /**
+     * Atribuye manualmente un pedido a un partner. Sirve para ventas asistidas
+     * que quedaron marcadas como internas o que perdieron la cookie de origen.
+     */
+    public function orderAttributePartner(Request $req, string $id): void
+    {
+        if (!in_array((string)\App\Core\Session::userRole(), ['superadmin', 'admin'], true)) {
+            Response::error('No autorizado para atribuir pedidos a un partner.', 403);
+        }
+        $order = $this->svc()->orderById((int)$id);
+        if (!$order) Response::error('Pedido no encontrado.', 404);
+        $d = $req->json();
+        $code = trim((string)($d['code'] ?? ''));
+        if ($code === '') $code = trim((string)($order['affiliate_ref'] ?? ''));
+        if ($code === '') Response::error('Indica el código del partner.', 422);
+        $affSvc = new AffiliateService();
+        $link = $affSvc->resolveLink($code);
+        if (!$link) Response::error('Código de partner no válido.', 422);
+        $aff = $affSvc->getById((int)$link['affiliate_id']);
+        if (!$aff || (string)($aff['status'] ?? '') !== 'APPROVED') Response::error('El partner no está aprobado.', 422);
+        $base = max(0.0, ((float)($order['subtotal_cents'] ?? 0) - (float)($order['discount_cents'] ?? 0)) / 100);
+        $maxItem = 0.0;
+        foreach ((array)($order['items'] ?? []) as $it) {
+            $maxItem = max($maxItem, ((float)($it['price_cents'] ?? 0)) / 100);
+        }
+        $db = Database::instance();
+        $r = $affSvc->attributeOrder((string)$order['uuid'], $base, null, (string)$link['code'], 0.0, $maxItem);
+        if (!$r || empty($r['ok'])) {
+            Response::error('No se pudo atribuir. Verifica que el partner tenga un clic válido en los últimos 30 días.', 422);
+        }
+        $db->prepare('UPDATE store_orders SET is_internal=0, internal_reason=NULL, affiliate_ref=? WHERE site_id=@site_id AND id=?')
+            ->execute([(string)$link['code'], (int)$id]);
+        try {
+            $affSvc->log((int)$link['affiliate_id'], 'manual_attribution', [
+                'order' => (string)$order['uuid'], 'order_number' => (string)($order['order_number'] ?? ''),
+                'by' => 'admin:' . (int)\App\Core\Session::userId(), 'base' => $base, 'max_item' => $maxItem,
+            ]);
+        } catch (\Throwable $e) {}
+        try {
+            $this->svc()->logOrderEvent((int)$id, 'partner_attributed', '', (string)$link['code'], 'Atribución manual a partner', (int)\App\Core\Session::userId());
+        } catch (\Throwable $e) {}
+        Response::json([
+            'ok' => true,
+            'data' => $r,
+            'affiliate' => [
+                'id' => (int)$link['affiliate_id'],
+                'name' => trim((string)($aff['full_name'] ?? $aff['public_name'] ?? $aff['artist_name'] ?? '')),
+                'code' => (string)$link['code'],
+            ],
+        ]);
     }
 
     // ── Zones ──

@@ -596,6 +596,7 @@ $r->post('/banners/{id}/recovery', [\App\Controllers\Admin\BannerAdminController
     $r->put('/store/orders/{id}', [\App\Controllers\Admin\StoreController::class, 'orderUpdate']);
     $r->post('/store/orders/{id}/checklist/payment', [\App\Controllers\Admin\StoreController::class, 'orderChecklistPayment']);
     $r->post('/store/orders/{id}/report-provider', [\App\Controllers\Admin\StoreController::class, 'orderReportProvider']);
+    $r->post('/store/orders/{id}/attribute-partner', [\App\Controllers\Admin\StoreController::class, 'orderAttributePartner']);
     $r->get('/store/zones', [\App\Controllers\Admin\StoreController::class, 'zones']);
     $r->post('/store/zones', [\App\Controllers\Admin\StoreController::class, 'zoneSave']);
     $r->put('/store/zones/{id}', [\App\Controllers\Admin\StoreController::class, 'zoneSave']);
