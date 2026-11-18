@@ -8346,40 +8346,92 @@ W.orderProviderCopy=function(){
 W.orderProviderSummary=function(id){
     var o=W._orderDetail;if(!o)return;
     var ship=o.shipping_detail||{},cust=o.customer_detail||{},pay=o.payment_detail||{},cl=(o.operations||{}).checklist||{},aff=o.affiliate||null,items=o.items||[];
+    var moneyP=function(v){try{return '$'+Number(v||0).toLocaleString('es-CO',{minimumFractionDigits:0,maximumFractionDigits:0});}catch(e){return '$'+Number(v||0).toFixed(0);}};
+    var commLabels={ESTIMATED:'Estimada',APPROVED:'Aprobada',PAID:'Pagada',REVERSED:'Revertida',PENDING_VALIDATION:'En validación',ON_HOLD:'En espera',PAYMENT_QUEUED:'En pago'};
     var rows=items.map(function(it){
-        return '<tr><td><b>'+W.esc(it.name||'Producto')+'</b><div class="muted">SKU '+W.esc(it.sku||'—')+(it.variant_name?' · '+W.esc(it.variant_name):'')+'</div></td><td class="r">'+(it.qty||1)+'</td><td class="r">'+W.orderMoney(it.unit_price_cents||it.price_cents)+'</td><td class="r"><b>'+W.orderMoney(it.line_total_cents||it.subtotal_cents)+'</b></td></tr>';
+        return '<tr><td><b>'+W.esc(it.name||'Producto')+'</b><div class="sku">SKU '+W.esc(it.sku||'—')+(it.variant_name?' · '+W.esc(it.variant_name):'')+'</div></td><td class="r">'+(it.qty||1)+'</td><td class="r">'+W.orderMoney(it.unit_price_cents||it.price_cents)+'</td><td class="r"><b>'+W.orderMoney(it.line_total_cents||it.subtotal_cents)+'</b></td></tr>';
     }).join('');
     var addr=[ship.line1,ship.city,ship.department].filter(Boolean).join(', ');
-    var affLine=aff?'<div class="box"><span>Partner SONIKA</span><b>'+W.esc(aff.name||aff.code||'')+(aff.code?' · '+W.esc(aff.code):'')+'</b></div>':'';
     var notes=(ship.notes||o.notes||'');
-    var html='<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Resumen Miche '+(o.order_number||o.uuid)+'</title><style>'
-        +'body{font:12px/1.5 Arial,Helvetica,sans-serif;color:#111;margin:0;padding:24px}'
-        +'h1{font-size:20px;margin:0} .brand{color:#F20D16} .muted{color:#667085;font-size:10.5px}'
-        +'.head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #F20D16;padding-bottom:12px;margin-bottom:14px}'
-        +'.meta{text-align:right;font-size:11px}.meta b{font-size:15px;display:block}'
-        +'.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}'
-        +'.box{border:1px solid #ddd;border-radius:8px;padding:9px 11px;margin-bottom:8px}'
-        +'.box span{display:block;font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:#667085;margin-bottom:2px}'
-        +'.box b{font-size:12px} .box div{font-size:11.5px}'
-        +'table{width:100%;border-collapse:collapse;margin:8px 0 14px}'
-        +'th{text-align:left;font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:#667085;border-bottom:1px solid #ddd;padding:6px}'
-        +'td{border-bottom:1px solid #eee;padding:7px 6px;vertical-align:top}.r{text-align:right;white-space:nowrap}'
-        +'.totals{margin-left:auto;width:280px}.totals div{display:flex;justify-content:space-between;padding:3px 0;font-size:11.5px}'
-        +'.totals .total{border-top:1px solid #111;margin-top:5px;padding-top:7px;font-size:15px;font-weight:bold}'
-        +'.foot{margin-top:20px;border-top:1px solid #ddd;padding-top:8px;font-size:9.5px;color:#667085;display:flex;justify-content:space-between}'
-        +'@media print{body{padding:0}@page{size:A4;margin:16mm}}'
-        +'</style></head><body>'
-        +'<div class="head"><div><h1><span class="brand">SONIKA</span> · Resumen para Miche</h1><div class="muted">Documento de despacho · '+W.esc(o.order_number||o.uuid)+'</div></div><div class="meta"><b>'+W.orderMoney(o.total_cents)+'</b>'+W.esc(W.orderDate(o.created_at))+'<br>Pago: '+W.esc(String(o.payment_status||''))+'</div></div>'
-        +'<div class="grid"><div><div class="box"><span>Cliente</span><b>'+W.esc(cust.name||'')+'</b><div>'+W.esc(cust.document||'')+' · '+W.esc(cust.phone||'')+'</div><div>'+W.esc(cust.email||'')+'</div></div><div class="box"><span>Entrega</span><b>'+W.esc(addr||'—')+'</b><div>'+W.esc(notes)+'</div></div></div>'
-        +'<div><div class="box"><span>Envío</span><b>'+W.esc(ship.carrier||'Por asignar')+'</b><div>'+(ship.eta_min_days&&ship.eta_max_days?W.esc(ship.eta_min_days+'-'+ship.eta_max_days+' días'):'—')+'</div></div><div class="box"><span>Pago</span><b>'+W.esc(W.orderMethodLabel(pay.method))+'</b><div>'+W.esc(String(o.payment_status||''))+(cl.payment_settlement_ref?' · '+W.esc(cl.payment_settlement_ref):'')+'</div></div>'+affLine+'</div></div>'
+    var payLabels={paid:'Pagado',pending:'Pago pendiente',failed:'Pago rechazado',refunded:'Reembolsado'};
+    var fulLabels={new:'Recibido',confirmed:'Confirmado',preparing:'En preparación',shipped:'Despachado',delivered:'Entregado',cancelled:'Cancelado'};
+    var payLabel=payLabels[String(o.payment_status||'')]||('Pago '+String(o.payment_status||''));
+    var fulLabel=fulLabels[String(o.fulfillment_status||'')]||String(o.fulfillment_status||'');
+    var payClass=o.payment_status==='paid'?'ok':(o.payment_status==='failed'||o.payment_status==='refunded'?'bad':'warn');
+    var fulClass=o.fulfillment_status==='delivered'?'ok':(o.fulfillment_status==='cancelled'?'bad':(o.fulfillment_status==='shipped'?'ok':'warn'));
+    var orderNo=String(o.order_number||o.uuid||'').trim();
+    var custName=String(cust.name||'').trim();
+    var custDoc=String(cust.document||'').trim();
+    var orderDate=String(o.created_at||'').slice(0,10)||new Date().toISOString().slice(0,10);
+    var fileName=[orderNo,custName,custDoc,orderDate].filter(Boolean).join(' - ').replace(/[\\/:*?"<>|]+/g,'-').replace(/\s+/g,' ').trim().slice(0,180)||('Pedido '+orderNo);
+    var partnerBox=aff
+        ? '<div class="box"><h2>Partner SONIKA</h2><div class="kv"><span>Nombre</span><b>'+W.esc(aff.name||aff.code||'')+'</b></div><div class="kv"><span>Código</span><b>'+W.esc(aff.code||'—')+'</b></div>'+(aff.commission?'<div class="kv"><span>Comisión</span><b>'+moneyP(aff.commission.amount)+' · '+W.esc(commLabels[String(aff.commission.status||'')]||aff.commission.status||'')+'</b></div>':'')+'</div>'
+        : '<div class="box"><h2>Control</h2><div class="kv"><span>UUID</span><b class="mono">'+W.esc(String(o.uuid||'').slice(0,18))+'</b></div><div class="kv"><span>Origen</span><b>'+W.esc(o.affiliate_ref?('Partner '+o.affiliate_ref):'Venta directa')+'</b></div><div class="kv"><span>Registrado</span><b>'+W.esc(W.orderDate(o.created_at))+'</b></div></div>';
+    var settleLine=cl.payment_settlement_ref?'<div class="kv"><span>Abono</span><b>'+W.esc(cl.payment_settlement_ref)+(cl.payment_settled_at?' · '+W.esc(W.orderDate(cl.payment_settled_at)):'')+'</b></div>':'';
+    var html='<!doctype html><html lang="es"><head><meta charset="utf-8"><title>'+W.esc(fileName)+'</title><style>'
+        +'*{box-sizing:border-box}'
+        +'body{font:12.5px/1.55 Arial,Helvetica,sans-serif;color:#0F172A;background:#fff;margin:0;padding:22px 26px;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
+        +'.page{max-width:820px;margin:0 auto}'
+        +'.head{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;border-bottom:2px solid #101D3A;padding-bottom:14px;margin-bottom:16px}'
+        +'.logo{height:46px;width:auto;display:block}.logo-fallback{display:none;font:800 24px Arial;color:#101D3A;letter-spacing:.06em}'
+        +'.doc-title{font:800 18px/1.2 Arial,Helvetica,sans-serif;color:#101D3A;margin:8px 0 0}'
+        +'.doc-sub{font-size:9.5px;text-transform:uppercase;letter-spacing:.12em;color:#374151;font-weight:700;margin-top:3px}'
+        +'.meta{text-align:right;font-size:11.5px;color:#1F2937;line-height:1.6}.meta b{display:block;font-size:16px;color:#101D3A}.meta .red{color:#F20D16;font-weight:800}'
+        +'.statusbar{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}'
+        +'.statusbar>div{border:1px solid #D1D5DB;border-radius:6px;padding:7px 9px;background:#F9FAFB}'
+        +'.statusbar span{display:block;font-size:8.5px;text-transform:uppercase;letter-spacing:.08em;color:#374151;font-weight:800;margin-bottom:3px}'
+        +'.statusbar b{font-size:12px;color:#0F172A}'
+        +'.badge{display:inline-block;border-radius:999px;padding:2px 7px;font-size:10px;font-weight:800}'
+        +'.badge.ok{background:#ECFDF5;color:#067647;border:1px solid #A7F3D0}.badge.warn{background:#FFFBEB;color:#B45309;border:1px solid #FDE68A}.badge.bad{background:#FEF2F2;color:#B91C1C;border:1px solid #FECACA}'
+        +'.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}'
+        +'.box{border:1px solid #D1D5DB;border-radius:6px;padding:9px 11px;background:#fff}'
+        +'.box h2{font-size:9.5px;text-transform:uppercase;letter-spacing:.08em;color:#101D3A;margin:0 0 6px;padding-bottom:4px;border-bottom:1px solid #E5E7EB}'
+        +'.kv{display:flex;gap:8px;font-size:11.5px;margin:3px 0;line-height:1.5}.kv span{color:#374151;min-width:66px;font-weight:700}.kv b{color:#0F172A;font-weight:600;word-break:break-word}'
+        +'.mono{font-family:Consolas,Monaco,monospace;font-size:10.5px;letter-spacing:.01em}'
+        +'table{width:100%;border-collapse:collapse;margin:8px 0 10px}'
+        +'th{background:#101D3A;color:#fff;text-align:left;font-size:9px;text-transform:uppercase;letter-spacing:.06em;padding:7px 8px;font-weight:800}'
+        +'td{border-bottom:1px solid #E5E7EB;padding:8px;vertical-align:top;font-size:11.5px;color:#0F172A}'
+        +'tbody tr:nth-child(even){background:#F9FAFB}.r{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}'
+        +'.sku{font-size:10px;color:#4B5563;margin-top:2px;font-family:Consolas,Monaco,monospace}'
+        +'.totals{width:300px;margin-left:auto}.totals>div{display:flex;justify-content:space-between;padding:3px 0;font-size:11.5px;color:#1F2937}'
+        +'.totals .total{border-top:2px solid #101D3A;margin-top:5px;padding-top:7px;font-size:15px;font-weight:800;color:#101D3A}'
+        +'.notes{border-left:3px solid #F20D16;background:#FFF7F7;padding:8px 10px;font-size:11.5px;color:#1F2937;margin:0 0 12px;line-height:1.55}'
+        +'.notes b{display:block;font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:#374151;margin-bottom:3px}'
+        +'.sign{display:grid;grid-template-columns:1.4fr 1fr 1fr 1.4fr;gap:14px;margin-top:18px;border-top:1px solid #D1D5DB;padding-top:10px}'
+        +'.sign span{display:block;font-size:8.5px;text-transform:uppercase;letter-spacing:.08em;color:#374151;font-weight:800;margin-bottom:2px}'
+        +'.sign .line{border-bottom:1px solid #6B7280;height:26px}'
+        +'.foot{display:flex;justify-content:space-between;gap:20px;border-top:1px solid #D1D5DB;margin-top:16px;padding-top:8px;font-size:9.5px;color:#374151;line-height:1.55}'
+        +'.foot b{color:#101D3A}'
+        +'.actions{display:flex;justify-content:flex-end;gap:6px;max-width:820px;margin:0 auto 10px;background:#fff;border:1px solid #D1D5DB;border-radius:8px;padding:6px}'
+        +'.actions button{border:0;border-radius:6px;padding:7px 11px;font-size:11px;font-weight:800;cursor:pointer}.actions .print{background:#101D3A;color:#fff}.actions .close{background:#F3F4F6;color:#101D3A}'
+        +'@media print{body{padding:0}.actions{display:none!important}.page{max-width:none}.head{border-bottom-color:#101D3A}}'
+        +'@page{size:A4;margin:14mm 14mm 16mm}'
+        +'</style></head><body><div class="actions"><button class="print" onclick="window.print()">Imprimir / Guardar PDF</button><button class="close" onclick="window.close()">Cerrar</button></div>'
+        +'<div class="page">'
+        +'<div class="head"><div><img class="logo" src="https://sonika.com.co/assets/themes/sonika/logo-transparent.png" alt="SONIKA" onerror="this.style.display=\'none\';document.getElementById(\'logoFallback\').style.display=\'block\'"><div id="logoFallback" class="logo-fallback">SONIKA</div><div class="doc-title">Resumen de pedido</div><div class="doc-sub">Documento de despacho · Miche</div></div>'
+        +'<div class="meta"><b>'+W.esc(orderNo)+'</b>'+W.esc(W.orderDate(o.created_at))+'<br>'+W.esc(payLabel)+'</div></div>'
+        +'<div class="statusbar"><div><span>Pedido</span><b class="badge '+fulClass+'">'+W.esc(fulLabel)+'</b></div><div><span>Pago</span><b class="badge '+payClass+'">'+W.esc(payLabel)+'</b></div><div><span>Método</span><b>'+W.esc(W.orderMethodLabel(pay.method))+'</b></div><div><span>Total</span><b>'+W.orderMoney(o.total_cents)+'</b></div></div>'
+        +'<div class="grid"><div class="box"><h2>Cliente</h2><div class="kv"><span>Nombre</span><b>'+W.esc(cust.name||'—')+'</b></div><div class="kv"><span>Documento</span><b>'+W.esc(cust.document||'—')+'</b></div><div class="kv"><span>Teléfono</span><b>'+W.esc(cust.phone||'—')+'</b></div><div class="kv"><span>Correo</span><b>'+W.esc(cust.email||'—')+'</b></div></div>'
+        +'<div class="box"><h2>Entrega</h2><div class="kv"><span>Dirección</span><b>'+W.esc(ship.line1||'—')+'</b></div><div class="kv"><span>Ciudad</span><b>'+W.esc([ship.city,ship.department].filter(Boolean).join(' / ')||'—')+'</b></div><div class="kv"><span>Transportadora</span><b>'+W.esc(ship.carrier||'Por asignar')+'</b></div><div class="kv"><span>Entrega</span><b>'+(ship.eta_min_days&&ship.eta_max_days?W.esc(ship.eta_min_days+'-'+ship.eta_max_days+' días'):'—')+'</b></div></div>'
+        +'<div class="box"><h2>Pago</h2><div class="kv"><span>Método</span><b>'+W.esc(W.orderMethodLabel(pay.method))+'</b></div><div class="kv"><span>Estado</span><b>'+W.esc(payLabel)+'</b></div><div class="kv"><span>Referencia</span><b class="mono">'+W.esc(pay.reference||pay.provider_ref||'—')+'</b></div>'+settleLine+'</div>'
+        +partnerBox+'</div>'
+        +(notes?'<div class="notes"><b>Indicaciones de entrega</b>'+W.esc(notes)+'</div>':'')
         +'<table><thead><tr><th>Producto / SKU</th><th class="r">Cant.</th><th class="r">Unitario</th><th class="r">Total</th></tr></thead><tbody>'+(rows||'<tr><td colspan="4">Sin productos</td></tr>')+'</tbody></table>'
         +'<div class="totals"><div><span>Subtotal</span><span>'+W.orderMoney(o.subtotal_cents)+'</span></div>'+(Number(o.discount_cents)>0?'<div><span>Descuentos</span><span>-'+W.orderMoney(o.discount_cents)+'</span></div>':'')+'<div><span>Envío</span><span>'+(Number(o.shipping_cents)>0?W.orderMoney(o.shipping_cents):'Gratis')+'</span></div><div class="total"><span>Total</span><span>'+W.orderMoney(o.total_cents)+'</span></div></div>'
-        +'<div class="foot"><span>SONIKA · sonika.com.co · clientes@sonika.com.co · WhatsApp 3045650333</span><span>Generado '+W.orderDate(new Date().toISOString())+'</span></div>'
-        +'</body></html>';
-    var w=window.open('','_blank','width=880,height=940');
+        +'<div class="sign"><div><span>Recibido por</span><div class="line"></div></div><div><span>Documento</span><div class="line"></div></div><div><span>Fecha</span><div class="line"></div></div><div><span>Firma</span><div class="line"></div></div></div>'
+        +'<div class="foot"><div><b>SONIKA</b> · International Solutions Companies S.A.S. · NIT 901749025-8<br>sonika.com.co · clientes@sonika.com.co · WhatsApp 3045650333</div><div style="text-align:right">Generado: '+W.esc(W.orderDate(new Date().toISOString()))+'<br>Control: '+W.esc(String(o.uuid||'').slice(0,8).toUpperCase())+'</div></div>'
+        +'</div></body></html>';
+    var w=window.open('','_blank','width=900,height=980');
     if(!w){W.notify('Permite las ventanas emergentes para abrir el resumen','error');return;}
     w.document.open();w.document.write(html);w.document.close();
-    setTimeout(function(){try{w.focus();w.print();}catch(e){}},350);
+    try{w.document.title=fileName;}catch(e){}
+    var printed=false;
+    var doPrint=function(){if(printed)return;printed=true;try{w.focus();w.print();}catch(e){}};
+    var scheduled=false;
+    var schedulePrint=function(){if(scheduled)return;scheduled=true;setTimeout(doPrint,220);};
+    try{w.onload=schedulePrint;}catch(e){}
+    try{var logo=w.document.querySelector('.logo');if(logo&&!logo.complete){logo.onload=schedulePrint;logo.onerror=schedulePrint;}}catch(e){}
+    setTimeout(schedulePrint,1200);
 };
 W.orderPanelToggle=function(force){
     var ct=document.getElementById('w-modal-content');if(!ct||!ct.classList.contains('w-order-panel'))return;
@@ -8509,7 +8561,7 @@ W.storeOrderDetail=async function(id){
         +'</div>';
     var heroImg=o.order_image||(items[0]&&items[0].image)||'';
     var heroMedia='<div class="w-op-hero-media"><span class="w-op-hero-fallback">📦</span>'+(heroImg?'<img src="'+W.esc(heroImg)+'" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.remove()">':'')+'</div>';
-    var hero='<div class="w-op-hero"><div class="w-op-hero-left">'+heroMedia+'<div><div class="w-op-kicker">Pedido</div><div class="w-op-title">'+W.esc(o.order_number||o.uuid)+'</div><div class="w-op-muted">'+W.esc(cust.name||'')+' · '+W.orderDate(o.created_at)+'</div><div class="w-op-chips">'+W.orderChip(o.payment_status==='paid'?'Pagado':'Pago '+String(o.payment_status||''),payTone)+W.orderChip(o.fulfillment_status==='delivered'?'Entregado':(o.fulfillment_status==='shipped'?'Enviado':'Pedido '+String(o.fulfillment_status||'')),fulTone)+testBadge+archiveBadge+(cl.provider_reported?W.orderChip('Reportado a Miche','ok'):'')+(aff?W.orderChip('Partner: '+(aff.name||aff.code||''),'ok'):'')+(o.is_internal?W.orderChip('Interno','warn'):'')+'</div></div></div><div class="w-op-hero-r"><div class="w-op-total">'+W.orderMoney(o.total_cents)+'</div><div class="w-op-actions"><button class="w-btn w-btn-secondary w-btn-sm w-op-noprint" type="button" onclick="wontia.orderCopySummary('+id+')">Copiar resumen</button><button class="w-btn w-btn-primary w-btn-sm w-op-noprint" type="button" onclick="wontia.orderProviderSummary('+id+')">Resumen Miche</button><button class="w-btn w-btn-secondary w-btn-sm w-op-noprint" type="button" onclick="wontia.orderProviderCopy('+id+')">Copiar Miche</button>'+(aff?'':'<button class="w-btn w-btn-secondary w-btn-sm w-op-noprint" type="button" onclick="wontia.orderAttributePartner('+id+')">Atribuir partner</button>')+'<button class="w-btn w-btn-secondary w-btn-sm w-op-noprint" type="button" onclick="window.print()">Imprimir</button></div></div></div>';
+    var hero='<div class="w-op-hero"><div class="w-op-hero-left">'+heroMedia+'<div><div class="w-op-kicker">Pedido</div><div class="w-op-title">'+W.esc(o.order_number||o.uuid)+'</div><div class="w-op-muted">'+W.esc(cust.name||'')+' · '+W.orderDate(o.created_at)+'</div><div class="w-op-chips">'+W.orderChip(o.payment_status==='paid'?'Pagado':'Pago '+String(o.payment_status||''),payTone)+W.orderChip(o.fulfillment_status==='delivered'?'Entregado':(o.fulfillment_status==='shipped'?'Enviado':'Pedido '+String(o.fulfillment_status||'')),fulTone)+testBadge+archiveBadge+(cl.provider_reported?W.orderChip('Reportado a Miche','ok'):'')+(aff?W.orderChip('Partner: '+(aff.name||aff.code||''),'ok'):'')+(o.is_internal?W.orderChip('Interno','warn'):'')+'</div></div></div><div class="w-op-hero-r"><div class="w-op-total">'+W.orderMoney(o.total_cents)+'</div><div class="w-op-actions"><button class="w-btn w-btn-secondary w-btn-sm w-op-noprint" type="button" onclick="wontia.orderCopySummary('+id+')">Copiar resumen</button><button class="w-btn w-btn-primary w-btn-sm w-op-noprint" type="button" title="Abre el resumen con logo y nombre de archivo del pedido" onclick="wontia.orderProviderSummary('+id+')">Imprimir / PDF</button><button class="w-btn w-btn-secondary w-btn-sm w-op-noprint" type="button" onclick="wontia.orderProviderCopy('+id+')">Copiar Miche</button>'+(aff?'':'<button class="w-btn w-btn-secondary w-btn-sm w-op-noprint" type="button" onclick="wontia.orderAttributePartner('+id+')">Atribuir partner</button>')+'</div></div></div>';
     var style='<style>'
         +'.w-order-panel{display:flex;flex-direction:column;overflow:hidden}.w-order-panel .w-modal-head{margin:0!important;padding:15px 20px!important;border-bottom:1px solid var(--w-border);flex:0 0 auto}.w-order-panel>.w-modal-actions{margin:0!important;padding:11px 20px!important;border-top:1px solid var(--w-border);flex:0 0 auto}.w-order-panel>.w-op-body{flex:1;min-height:0;overflow-y:auto;padding:16px 20px;background:var(--w-bg)}'
         +'.w-op-hero{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;background:var(--w-surface);border:1px solid var(--w-border);border-radius:14px;padding:14px 16px;margin-bottom:14px}.w-op-hero-left{display:flex;gap:13px;align-items:flex-start;min-width:0}.w-op-hero-media{position:relative;width:72px;height:72px;border-radius:12px;border:1px solid var(--w-border);background:#fff;overflow:hidden;flex:none;display:grid;place-items:center}.w-op-hero-fallback{position:absolute;inset:0;display:grid;place-items:center;font-size:24px;color:var(--w-muted);background:var(--w-bg2)}.w-op-hero-media img{position:relative;z-index:1;width:100%;height:100%;object-fit:contain;background:#fff}.w-op-kicker{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--w-muted);font-weight:850}.w-op-title{font:800 20px/1.2 Sora,Inter,system-ui,sans-serif;letter-spacing:-.02em}.w-op-total{font:800 22px/1 Sora,Inter,system-ui,sans-serif;text-align:right;font-variant-numeric:tabular-nums}.w-op-chips{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px}.w-op-hero-r{text-align:right}.w-op-hero-r .w-op-actions{justify-content:flex-end;margin-top:8px}'

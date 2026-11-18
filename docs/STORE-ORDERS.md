@@ -120,6 +120,7 @@ Para revertir el archivado de los pedidos de prueba actuales, usar la acción **
 La ficha del pedido está en **Administración → Central de pedidos** (`/admin.php#order-center/pedidos`). Al abrir un pedido, arriba a la derecha:
 
 - **Resumen Miche:** abre una hoja imprimible o guardable como PDF con cliente, documento, teléfono, correo, dirección, indicaciones, transportadora, ETA, productos con SKU/cantidad/unitario/total, pago, abono, envío, total y partner.
+- **Imprimir / PDF:** el documento incluye el logo de SONIKA, texto oscuro legible, colores corporativos (azul marino, rojo SONIKA y grises de alto contraste), tabla de productos, totales, firma de recibido y pie legal. El nombre del archivo se genera como `PED-... - Nombre del cliente - Documento - Fecha`.
 - **Copiar Miche:** copia el mismo resumen como texto para WhatsApp o correo.
 - **Reportar pedido a proveedor (Miche):** handoff interno. Requiere los 3 checks (dinero en cuenta, cliente confirmado por AIP y reconfirmación). Crea caso, tarea y handoff en `oc_*`, pero **no envía** nada a Miche.
 
