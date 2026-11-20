@@ -91,10 +91,13 @@ if (!function_exists('sonika_fonts_url')) {
         }
         $parts = [];
         foreach ($fams as $f) {
-            if (function_exists('wwi_slogan_fonts') && in_array($f, wwi_slogan_fonts(), true)) continue;
-            $parts[] = 'family=' . str_replace(' ', '+', $f) . ':wght@400;500;600;700;800';
+            if (function_exists('wwi_slogan_fonts') && in_array($f, wwi_slogan_fonts(), true)) {
+                $parts[] = 'family=' . str_replace(' ', '+', $f);
+            } else {
+                $parts[] = 'family=' . str_replace(' ', '+', $f) . ':wght@400;500;600;700;800';
+            }
         }
-        if ($sloganEnabled) $parts[] = 'family=' . str_replace(' ', '+', $sloganFont);
+        if ($sloganEnabled && !in_array($sloganFont, $fams, true)) $parts[] = 'family=' . str_replace(' ', '+', $sloganFont);
         return 'https://fonts.googleapis.com/css2?' . implode('&', $parts) . '&display=swap';
     }
 }
