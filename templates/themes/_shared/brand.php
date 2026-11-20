@@ -71,7 +71,7 @@ if (!function_exists('wwi_slogan_style')) {
         $color = preg_match('/^#[0-9a-fA-F]{6}$/', (string)$b['slogan_color']) ? (string)$b['slogan_color'] : '#F20D16';
         $scale = max(50, min(100, (int)$b['slogan_mobile_scale'])) / 100;
         return '--slg-size:' . $size . ';--slg-scale:' . rtrim(rtrim(number_format($scale, 2, '.', ''), '0'), '.') . ';'
-            . 'font-family:"' . $font . '","Brush Script MT","Segoe Script",cursive;'
+            . "font-family:'" . $font . "','Brush Script MT','Segoe Script',cursive;"
             . 'color:' . $color . ';margin-top:' . $gapY . 'px;margin-left:' . $gapX . 'px;';
     }
 }

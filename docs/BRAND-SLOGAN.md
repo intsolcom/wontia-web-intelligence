@@ -48,6 +48,8 @@ El sitio carga solo la tipografía seleccionada. El admin carga las seis para la
 ## Notas
 
 - El color debe contrastar con el fondo del footer; la vista previa permite revisar fondo claro y oscuro.
+- La vista previa se ajusta al ancho del navegador: por debajo de 900 px muestra el tamaño móvil. El checkbox **Móvil** permite forzar esa vista.
+- Un valor negativo de separación vertical sube el slogan y puede superponerlo al logo.
 - Si el slogan se desactiva, el sitio no carga la tipografía de firma.
 - Si se borran los settings, se aplican los valores por defecto del código.
 - La configuración no modifica el logo ni las tablas de catálogo.

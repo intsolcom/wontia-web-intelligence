@@ -3599,6 +3599,7 @@ W.sloganCard = function(s){
     var gx = parseInt(s.brand_slogan_gap_x || '0', 10); if (isNaN(gx)) gx = 0;
     var color = /^#[0-9a-fA-F]{6}$/.test(s.brand_slogan_color || '') ? s.brand_slogan_color : '#F20D16';
     var mobile = parseInt(s.brand_slogan_mobile_scale || '72', 10); if (!mobile) mobile = 72;
+    var mobileDefault = window.innerWidth <= 900 ? ' checked' : '';
     var logo = s.logo_image || '';
     var lh = parseInt(s.logo_height || '40', 10); if (!lh) lh = 40;
     var fontOpts = W.sloganFonts.map(function(f){
@@ -3613,17 +3614,17 @@ W.sloganCard = function(s){
         + '<div class="w-form-group"><label class="w-label">Tipo de letra</label><select class="w-select" id="slogan-font" onchange="wontia.sloganPreview()">' + fontOpts + '</select></div>'
         + '<div class="w-form-group"><label class="w-label">Tamaño: <span id="slogan-size-lbl">' + size + '</span> px</label><input type="range" id="slogan-size" min="10" max="48" step="1" value="' + size + '" style="width:100%" oninput="wontia.sloganPreview()"/></div>'
         + '</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
-        + '<div class="w-form-group"><label class="w-label">Separación vertical: <span id="slogan-gap-y-lbl">' + gy + '</span> px</label><input type="range" id="slogan-gap-y" min="-20" max="40" step="1" value="' + gy + '" style="width:100%" oninput="wontia.sloganPreview()"/></div>'
+        + '<div class="w-form-group"><label class="w-label">Separación vertical: <span id="slogan-gap-y-lbl">' + gy + '</span> px</label><input type="range" id="slogan-gap-y" min="-20" max="40" step="1" value="' + gy + '" style="width:100%" oninput="wontia.sloganPreview()"/><div style="font-size:10px;color:var(--w-muted);margin-top:-4px">Valores negativos suben el slogan y pueden superponerlo al logo.</div></div>'
         + '<div class="w-form-group"><label class="w-label">Separación horizontal: <span id="slogan-gap-x-lbl">' + gx + '</span> px</label><input type="range" id="slogan-gap-x" min="-20" max="80" step="1" value="' + gx + '" style="width:100%" oninput="wontia.sloganPreview()"/></div>'
         + '</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
         + '<div class="w-form-group"><label class="w-label">Color</label><input type="color" id="slogan-color" value="' + color + '" style="width:100%;height:38px;padding:3px;border:1px solid var(--w-border);border-radius:8px;background:#fff" oninput="wontia.sloganPreview()"/></div>'
         + '<div class="w-form-group"><label class="w-label">Escala móvil: <span id="slogan-mobile-lbl">' + mobile + '</span> %</label><input type="range" id="slogan-mobile" min="50" max="100" step="1" value="' + mobile + '" style="width:100%" oninput="wontia.sloganPreview()"/></div>'
-        + '</div></div><div><div class="w-flex-between" style="align-items:center;margin-bottom:6px"><label class="w-label" style="margin:0">Vista previa</label><div class="w-flex w-gap-sm"><button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.sloganPreviewTheme(\'light\')">Claro</button><button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.sloganPreviewTheme(\'dark\')">Oscuro</button></div></div>'
+        + '</div></div><div><div class="w-flex-between" style="align-items:center;margin-bottom:6px"><label class="w-label" style="margin:0">Vista previa</label><div class="w-flex w-gap-sm" style="align-items:center;flex-wrap:wrap"><label style="font-size:11px;display:flex;align-items:center;gap:4px;cursor:pointer"><input type="checkbox" id="slogan-preview-mobile"'+mobileDefault+' onchange="wontia.sloganPreview()" style="width:auto"/> Móvil</label><button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.sloganPreviewTheme(\'light\')">Claro</button><button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.sloganPreviewTheme(\'dark\')">Oscuro</button></div></div>'
         + '<div id="slogan-preview" style="border:1px solid var(--w-border);border-radius:12px;min-height:190px;display:flex;align-items:center;justify-content:center;background:#fff;padding:20px;overflow:auto"><div style="display:flex;flex-direction:column;align-items:flex-start;max-width:100%">'
         + '<img id="slogan-preview-logo" src="' + W.esc(logo) + '" alt="Logo" style="height:' + lh + 'px;width:auto;max-width:220px;display:' + (logo ? 'block' : 'none') + '"/>'
         + '<div id="slogan-preview-fallback" style="display:' + (logo ? 'none' : 'block') + ';font:800 26px Sora,Inter,sans-serif;color:#101D3A;letter-spacing:-.02em">SONIKA</div>'
         + '<span id="slogan-preview-text" class="logo-slogan" style="display:block;line-height:1;white-space:nowrap;font-family:\'' + W.esc(font) + '\',cursive;font-size:' + size + 'px;color:' + color + ';margin-top:' + gy + 'px;margin-left:' + gx + 'px">' + W.esc(text) + '</span>'
-        + '</div></div><div style="font-size:11px;color:var(--w-muted);margin-top:8px">La escala móvil se aplica por debajo de 900 px. El color debe contrastar con el fondo del footer.</div>'
+        + '</div></div><div style="font-size:11px;color:var(--w-muted);margin-top:8px">Marca “Móvil” para ver el tamaño escalado que se aplica por debajo de 900 px. El color debe contrastar con el fondo del footer.</div>'
         + '</div></div></div>';
 };
 
@@ -3637,17 +3638,19 @@ W.sloganPreview = function(){
     var color = W.val('slogan-color') || '#F20D16';
     var mobile = parseInt(W.val('slogan-mobile'), 10) || 72;
     var enabled = !!(document.getElementById('slogan-enabled') && document.getElementById('slogan-enabled').checked);
+    var mobilePreview = (window.innerWidth <= 900) || !!(document.getElementById('slogan-preview-mobile') && document.getElementById('slogan-preview-mobile').checked);
+    var effectiveSize = mobilePreview ? Math.round(size * mobile / 100 * 10) / 10 : size;
     el.textContent = enabled ? txt : '';
     el.style.display = (enabled && txt.trim() !== '') ? 'block' : 'none';
     el.style.fontFamily = '"' + font + '","Brush Script MT","Segoe Script",cursive';
-    el.style.fontSize = size + 'px';
+    el.style.fontSize = effectiveSize + 'px';
     el.style.color = color;
     el.style.marginTop = gy + 'px';
     el.style.marginLeft = gx + 'px';
     el.style.setProperty('--slg-size', size);
     el.style.setProperty('--slg-scale', mobile / 100);
     var setLbl = function(id, val){ var n = document.getElementById(id); if (n) n.textContent = val; };
-    setLbl('slogan-size-lbl', size);
+    setLbl('slogan-size-lbl', mobilePreview ? (size + ' / ' + effectiveSize) : size);
     setLbl('slogan-gap-y-lbl', gy);
     setLbl('slogan-gap-x-lbl', gx);
     setLbl('slogan-mobile-lbl', mobile);
@@ -3712,6 +3715,10 @@ W.renderLogoPanel=async function(){
     html+='<div class="w-flex w-gap-sm"><button class="w-btn w-btn-primary" onclick="wontia.saveBrand()">Guardar logo, favicon y slogan</button><button class="w-btn w-btn-secondary" onclick="wontia.renderSettings(\'logo\')">Recargar</button></div>';
     panel.innerHTML=html;
     setTimeout(function(){ if (W.sloganPreview) W.sloganPreview(); }, 0);
+    if (!W._sloganResizeBound) {
+        W._sloganResizeBound = true;
+        window.addEventListener('resize', function(){ if (document.getElementById('slogan-preview') && W.sloganPreview) W.sloganPreview(); });
+    }
 };
 
 W.brandSlider=function(v){ var l=document.getElementById('logo-h-lbl'); if(l)l.textContent=v; var img=document.querySelector('#logo-preview img'); if(img)img.style.height=parseInt(v,10)+'px'; if(W.sloganPreview)W.sloganPreview(); };
