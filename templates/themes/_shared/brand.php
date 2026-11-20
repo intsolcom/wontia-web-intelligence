@@ -9,9 +9,21 @@ if (!function_exists('wwi_brand')) {
     {
         static $b = null;
         if ($b !== null) return $b;
-        $b = ['logo' => '', 'logo_dark' => '', 'logo_height' => 40, 'show_text' => true, 'text' => 'WONTIA', 'alt' => 'Logo', 'favicon' => '', 'favicon_touch' => '', 'theme_color' => '', 'asset_version' => ''];
+        $b = [
+            'logo' => '', 'logo_dark' => '', 'logo_height' => 40, 'show_text' => true,
+            'text' => 'WONTIA', 'alt' => 'Logo', 'favicon' => '', 'favicon_touch' => '',
+            'theme_color' => '', 'asset_version' => '',
+            'slogan_enabled' => true,
+            'slogan_text' => 'El Sonido que te mueve',
+            'slogan_font' => 'Great Vibes',
+            'slogan_size' => 18,
+            'slogan_gap_y' => 4,
+            'slogan_gap_x' => 0,
+            'slogan_color' => '#F20D16',
+            'slogan_mobile_scale' => 72,
+        ];
         try {
-            $st = Database::instance()->prepare("SELECT `key`,`value` FROM settings WHERE site_id = @site_id AND `key` IN ('logo_image','logo_dark','logo_height','logo_show_text','logo_text','logo_alt','favicon','favicon_touch','theme_color','asset_version')");
+            $st = Database::instance()->prepare("SELECT `key`,`value` FROM settings WHERE site_id = @site_id AND `key` IN ('logo_image','logo_dark','logo_height','logo_show_text','logo_text','logo_alt','favicon','favicon_touch','theme_color','asset_version','brand_slogan_enabled','brand_slogan_text','brand_slogan_font','brand_slogan_size','brand_slogan_gap_y','brand_slogan_gap_x','brand_slogan_color','brand_slogan_mobile_scale')");
             $st->execute();
             $s = [];
             foreach ($st->fetchAll() as $r) $s[$r['key']] = $r['value'];
@@ -25,9 +37,55 @@ if (!function_exists('wwi_brand')) {
             if (isset($s['favicon_touch'])) $b['favicon_touch'] = trim((string)$s['favicon_touch']);
             if (isset($s['theme_color'])) $b['theme_color'] = trim((string)$s['theme_color']);
             if (isset($s['asset_version'])) $b['asset_version'] = trim((string)$s['asset_version']);
+            if (isset($s['brand_slogan_enabled'])) $b['slogan_enabled'] = ((string)$s['brand_slogan_enabled']) !== '0';
+            if (isset($s['brand_slogan_text'])) $b['slogan_text'] = mb_substr(trim((string)$s['brand_slogan_text']), 0, 80);
+            if (isset($s['brand_slogan_font']) && in_array((string)$s['brand_slogan_font'], wwi_slogan_fonts(), true)) $b['slogan_font'] = (string)$s['brand_slogan_font'];
+            if (isset($s['brand_slogan_size'])) $b['slogan_size'] = max(10, min(48, (int)$s['brand_slogan_size']));
+            if (isset($s['brand_slogan_gap_y'])) $b['slogan_gap_y'] = max(-20, min(40, (int)$s['brand_slogan_gap_y']));
+            if (isset($s['brand_slogan_gap_x'])) $b['slogan_gap_x'] = max(-20, min(80, (int)$s['brand_slogan_gap_x']));
+            if (isset($s['brand_slogan_color']) && preg_match('/^#[0-9a-fA-F]{6}$/', (string)$s['brand_slogan_color'])) $b['slogan_color'] = (string)$s['brand_slogan_color'];
+            if (isset($s['brand_slogan_mobile_scale'])) $b['slogan_mobile_scale'] = max(50, min(100, (int)$s['brand_slogan_mobile_scale']));
         } catch (\Throwable $e) {
         }
         return $b;
+    }
+}
+
+if (!function_exists('wwi_slogan_fonts')) {
+    /** Tipografías tipo firma permitidas para el slogan. */
+    function wwi_slogan_fonts(): array
+    {
+        return ['Great Vibes', 'Dancing Script', 'Allura', 'Parisienne', 'Sacramento', 'Caveat'];
+    }
+}
+
+if (!function_exists('wwi_slogan_style')) {
+    /** Variables y estilos inline del slogan, compartidos por header, footer y PDF. */
+    function wwi_slogan_style(string $context = 'header'): string
+    {
+        $b = wwi_brand();
+        $font = in_array((string)$b['slogan_font'], wwi_slogan_fonts(), true) ? (string)$b['slogan_font'] : 'Great Vibes';
+        $size = max(10, min(48, (int)$b['slogan_size']));
+        $gapY = max(-20, min(40, (int)$b['slogan_gap_y']));
+        $gapX = max(-20, min(80, (int)$b['slogan_gap_x']));
+        $color = preg_match('/^#[0-9a-fA-F]{6}$/', (string)$b['slogan_color']) ? (string)$b['slogan_color'] : '#F20D16';
+        $scale = max(50, min(100, (int)$b['slogan_mobile_scale'])) / 100;
+        return '--slg-size:' . $size . ';--slg-scale:' . rtrim(rtrim(number_format($scale, 2, '.', ''), '0'), '.') . ';'
+            . 'font-family:"' . $font . '","Brush Script MT","Segoe Script",cursive;'
+            . 'color:' . $color . ';margin-top:' . $gapY . 'px;margin-left:' . $gapX . 'px;';
+    }
+}
+
+if (!function_exists('wwi_slogan_tag')) {
+    /** HTML del slogan; devuelve vacío si está desactivado o sin texto. */
+    function wwi_slogan_tag(string $context = 'header'): string
+    {
+        $b = wwi_brand();
+        if (empty($b['slogan_enabled'])) return '';
+        $text = trim((string)$b['slogan_text']);
+        if ($text === '') return '';
+        return '<span class="logo-slogan" style="' . wwi_slogan_style($context) . '">'
+            . htmlspecialchars($text, ENT_QUOTES, 'UTF-8') . '</span>';
     }
 }
 

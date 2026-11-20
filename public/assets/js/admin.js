@@ -2923,7 +2923,7 @@ W.renderSettings=function(tab){
     W.state.settingsTab=tab||'general';
     var t=W.state.settingsTab;
     var tabBtn=function(id,label){return '<button class="w-btn '+(t===id?'w-btn-primary':'w-btn-secondary')+'" onclick="wontia.renderSettings(\''+id+'\')">'+label+'</button>';};
-    app.innerHTML='<div class="w-flex w-gap-sm" style="margin-bottom:16px;flex-wrap:wrap">'+tabBtn('general','Ajustes')+tabBtn('themes','Themes')+tabBtn('nav','Menús')+tabBtn('logo','Logo & Favicon')+tabBtn('security','Seguridad')+tabBtn('cache','Administración de caché')+tabBtn('update','Update')+tabBtn('typography','Tipografía')+tabBtn('reconciliation','Conciliación de catálogo')+'</div><div id="settings-panel"></div>';
+    app.innerHTML='<div class="w-flex w-gap-sm" style="margin-bottom:16px;flex-wrap:wrap">'+tabBtn('general','Ajustes')+tabBtn('themes','Themes')+tabBtn('nav','Menús')+tabBtn('logo','Logo, favicon y slogan')+tabBtn('security','Seguridad')+tabBtn('cache','Administración de caché')+tabBtn('update','Update')+tabBtn('typography','Tipografía')+tabBtn('reconciliation','Conciliación de catálogo')+'</div><div id="settings-panel"></div>';
     if(t==='themes')W.renderThemesPanel();
     else if(t==='nav')W.renderNavPanel();
     else if(t==='logo')W.renderLogoPanel();
@@ -3586,6 +3586,104 @@ W.renderSettingsGeneral=async function(){
     panel.innerHTML=html;
 };
 
+W.sloganFonts = ['Great Vibes','Dancing Script','Allura','Parisienne','Sacramento','Caveat'];
+
+W.sloganCard = function(s){
+    s = s || {};
+    var enabled = (s.brand_slogan_enabled !== '0');
+    var text = s.brand_slogan_text || 'El Sonido que te mueve';
+    var font = s.brand_slogan_font || 'Great Vibes';
+    if (W.sloganFonts.indexOf(font) < 0) font = 'Great Vibes';
+    var size = parseInt(s.brand_slogan_size || '18', 10); if (!size) size = 18;
+    var gy = parseInt(s.brand_slogan_gap_y || '4', 10); if (isNaN(gy)) gy = 4;
+    var gx = parseInt(s.brand_slogan_gap_x || '0', 10); if (isNaN(gx)) gx = 0;
+    var color = /^#[0-9a-fA-F]{6}$/.test(s.brand_slogan_color || '') ? s.brand_slogan_color : '#F20D16';
+    var mobile = parseInt(s.brand_slogan_mobile_scale || '72', 10); if (!mobile) mobile = 72;
+    var logo = s.logo_image || '';
+    var lh = parseInt(s.logo_height || '40', 10); if (!lh) lh = 40;
+    var fontOpts = W.sloganFonts.map(function(f){
+        return '<option value="' + W.esc(f) + '"' + (f === font ? ' selected' : '') + '>' + W.esc(f) + '</option>';
+    }).join('');
+    return '<div class="w-card" style="margin-top:14px">'
+        + '<div class="w-flex-between" style="flex-wrap:wrap;gap:8px"><div><h3 style="margin:0">Slogan de marca</h3><div style="font-size:11px;color:var(--w-muted);margin-top:4px">Se aplica al header, footer y PDF del pedido. La vista previa usa el logo y alto actuales.</div></div><div class="w-flex w-gap-sm" style="flex-wrap:wrap"><button type="button" class="w-btn w-btn-primary w-btn-sm" onclick="wontia.saveBrand()">Guardar</button><button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.sloganReset()">Restaurar</button><a class="w-btn w-btn-secondary w-btn-sm" href="/" target="_blank" rel="noopener">Ver en el sitio ↗</a></div></div>'
+        + '<div style="display:grid;grid-template-columns:minmax(0,1.15fr) minmax(300px,.85fr);gap:16px;margin-top:14px"><div>'
+        + '<label style="font-size:12px;display:flex;align-items:center;gap:8px;margin-bottom:10px"><input type="checkbox" id="slogan-enabled" ' + (enabled ? 'checked' : '') + ' style="width:auto" onchange="wontia.sloganPreview()"/> Mostrar slogan</label>'
+        + '<div class="w-form-group"><label class="w-label">Texto del slogan</label><input class="w-input" id="slogan-text" maxlength="80" value="' + W.esc(text) + '" oninput="wontia.sloganPreview()"/></div>'
+        + '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
+        + '<div class="w-form-group"><label class="w-label">Tipo de letra</label><select class="w-select" id="slogan-font" onchange="wontia.sloganPreview()">' + fontOpts + '</select></div>'
+        + '<div class="w-form-group"><label class="w-label">Tamaño: <span id="slogan-size-lbl">' + size + '</span> px</label><input type="range" id="slogan-size" min="10" max="48" step="1" value="' + size + '" style="width:100%" oninput="wontia.sloganPreview()"/></div>'
+        + '</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
+        + '<div class="w-form-group"><label class="w-label">Separación vertical: <span id="slogan-gap-y-lbl">' + gy + '</span> px</label><input type="range" id="slogan-gap-y" min="-20" max="40" step="1" value="' + gy + '" style="width:100%" oninput="wontia.sloganPreview()"/></div>'
+        + '<div class="w-form-group"><label class="w-label">Separación horizontal: <span id="slogan-gap-x-lbl">' + gx + '</span> px</label><input type="range" id="slogan-gap-x" min="-20" max="80" step="1" value="' + gx + '" style="width:100%" oninput="wontia.sloganPreview()"/></div>'
+        + '</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'
+        + '<div class="w-form-group"><label class="w-label">Color</label><input type="color" id="slogan-color" value="' + color + '" style="width:100%;height:38px;padding:3px;border:1px solid var(--w-border);border-radius:8px;background:#fff" oninput="wontia.sloganPreview()"/></div>'
+        + '<div class="w-form-group"><label class="w-label">Escala móvil: <span id="slogan-mobile-lbl">' + mobile + '</span> %</label><input type="range" id="slogan-mobile" min="50" max="100" step="1" value="' + mobile + '" style="width:100%" oninput="wontia.sloganPreview()"/></div>'
+        + '</div></div><div><div class="w-flex-between" style="align-items:center;margin-bottom:6px"><label class="w-label" style="margin:0">Vista previa</label><div class="w-flex w-gap-sm"><button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.sloganPreviewTheme(\'light\')">Claro</button><button type="button" class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.sloganPreviewTheme(\'dark\')">Oscuro</button></div></div>'
+        + '<div id="slogan-preview" style="border:1px solid var(--w-border);border-radius:12px;min-height:190px;display:flex;align-items:center;justify-content:center;background:#fff;padding:20px;overflow:auto"><div style="display:flex;flex-direction:column;align-items:flex-start;max-width:100%">'
+        + '<img id="slogan-preview-logo" src="' + W.esc(logo) + '" alt="Logo" style="height:' + lh + 'px;width:auto;max-width:220px;display:' + (logo ? 'block' : 'none') + '"/>'
+        + '<div id="slogan-preview-fallback" style="display:' + (logo ? 'none' : 'block') + ';font:800 26px Sora,Inter,sans-serif;color:#101D3A;letter-spacing:-.02em">SONIKA</div>'
+        + '<span id="slogan-preview-text" class="logo-slogan" style="display:block;line-height:1;white-space:nowrap;font-family:\'' + W.esc(font) + '\',cursive;font-size:' + size + 'px;color:' + color + ';margin-top:' + gy + 'px;margin-left:' + gx + 'px">' + W.esc(text) + '</span>'
+        + '</div></div><div style="font-size:11px;color:var(--w-muted);margin-top:8px">La escala móvil se aplica por debajo de 900 px. El color debe contrastar con el fondo del footer.</div>'
+        + '</div></div></div>';
+};
+
+W.sloganPreview = function(){
+    var el = document.getElementById('slogan-preview-text'); if (!el) return;
+    var txt = W.val('slogan-text') || 'El Sonido que te mueve';
+    var font = W.val('slogan-font') || 'Great Vibes';
+    var size = parseInt(W.val('slogan-size'), 10) || 18;
+    var gy = parseInt(W.val('slogan-gap-y'), 10); if (isNaN(gy)) gy = 4;
+    var gx = parseInt(W.val('slogan-gap-x'), 10); if (isNaN(gx)) gx = 0;
+    var color = W.val('slogan-color') || '#F20D16';
+    var mobile = parseInt(W.val('slogan-mobile'), 10) || 72;
+    var enabled = !!(document.getElementById('slogan-enabled') && document.getElementById('slogan-enabled').checked);
+    el.textContent = enabled ? txt : '';
+    el.style.display = (enabled && txt.trim() !== '') ? 'block' : 'none';
+    el.style.fontFamily = '"' + font + '","Brush Script MT","Segoe Script",cursive';
+    el.style.fontSize = size + 'px';
+    el.style.color = color;
+    el.style.marginTop = gy + 'px';
+    el.style.marginLeft = gx + 'px';
+    el.style.setProperty('--slg-size', size);
+    el.style.setProperty('--slg-scale', mobile / 100);
+    var setLbl = function(id, val){ var n = document.getElementById(id); if (n) n.textContent = val; };
+    setLbl('slogan-size-lbl', size);
+    setLbl('slogan-gap-y-lbl', gy);
+    setLbl('slogan-gap-x-lbl', gx);
+    setLbl('slogan-mobile-lbl', mobile);
+    var img = document.getElementById('slogan-preview-logo');
+    var fb = document.getElementById('slogan-preview-fallback');
+    var logo = W.val('logo-image');
+    var lh = parseInt(W.val('logo-height'), 10) || 40;
+    if (img) { if (logo) { img.src = logo; img.style.display = 'block'; img.style.height = lh + 'px'; } else { img.style.display = 'none'; } }
+    if (fb) fb.style.display = logo ? 'none' : 'block';
+};
+
+W.sloganPreviewTheme = function(mode){
+    var box = document.getElementById('slogan-preview'); if (!box) return;
+    var dark = mode === 'dark';
+    box.style.background = dark ? '#101D3A' : '#fff';
+    box.style.borderColor = dark ? '#334155' : 'var(--w-border)';
+    var fb = document.getElementById('slogan-preview-fallback');
+    if (fb) fb.style.color = dark ? '#fff' : '#101D3A';
+    var img = document.getElementById('slogan-preview-logo');
+    if (img) img.style.filter = dark ? 'brightness(0) invert(1)' : 'none';
+    W._sloganPreviewTheme = mode;
+};
+
+W.sloganReset = function(){
+    var set = function(id, val){ var e = document.getElementById(id); if (e) { if (e.type === 'checkbox') e.checked = !!val; else e.value = val; } };
+    set('slogan-enabled', true);
+    set('slogan-text', 'El Sonido que te mueve');
+    set('slogan-font', 'Great Vibes');
+    set('slogan-size', 18);
+    set('slogan-gap-y', 4);
+    set('slogan-gap-x', 0);
+    set('slogan-color', '#F20D16');
+    set('slogan-mobile', 72);
+    W.sloganPreview();
+};
+
 W.renderLogoPanel=async function(){
     var panel=document.getElementById('settings-panel'); if(!panel)return;
     panel.innerHTML='<div style="padding:20px;color:var(--w-muted)">Cargando…</div>';
@@ -3603,6 +3701,7 @@ W.renderLogoPanel=async function(){
     html+='<label style="font-size:12px;display:flex;align-items:center;gap:8px"><input type="checkbox" id="logo-show-text" '+(show?'checked':'')+' style="width:auto"/> Mostrar el texto junto al logo</label>';
     html+='<div class="w-form-group" style="margin-top:10px"><label class="w-label">Texto alternativo (alt) — obligatorio si hay logo</label><input class="w-input" id="logo-alt" value="'+W.esc(alt)+'" placeholder="Ej: Logo de INTSOLCOM"/></div>';
     html+='</div></div><div id="logo-lib" style="display:none;margin-top:12px"></div></div>';
+    html+=W.sloganCard(s);
     html+='<div class="w-card"><h3>Favicon</h3><div style="font-size:11px;color:var(--w-muted);margin-bottom:12px">.ico o PNG (32×32; 180×180 para apple-touch).</div>';
     html+='<div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap"><div id="fav-preview" style="width:48px;height:48px;border:1px solid var(--w-border);border-radius:10px;display:flex;align-items:center;justify-content:center;overflow:hidden;background:var(--w-bg)">'+(fav?'<img src="'+W.esc(fav)+'" style="width:32px;height:32px;object-fit:contain"/>':'<span style="font-size:10px;color:var(--w-muted)">—</span>')+'</div>';
     html+='<button class="w-btn w-btn-secondary w-btn-sm" onclick="wontia.brandPick(\'favicon\')">Elegir del Media</button><label class="w-btn w-btn-secondary w-btn-sm" style="cursor:pointer">Subir<input type="file" accept=".ico,image/x-icon,image/png,image/vnd.microsoft.icon" style="display:none" onchange="wontia.brandUpload(this,\'favicon\')"/></label><button class="w-btn w-btn-danger w-btn-sm" onclick="wontia.brandClear(\'favicon\')">Quitar</button></div>';
@@ -3610,19 +3709,21 @@ W.renderLogoPanel=async function(){
     html+='<div class="w-form-group" style="margin-top:10px"><label class="w-label">Apple touch icon (opcional)</label><input class="w-input" id="logo-favicon-touch" value="'+W.esc(touch)+'" placeholder="/assets/uploads/..."/></div>';
     html+='<div class="w-form-group"><label class="w-label">Color de tema (opcional)</label><input class="w-input" id="logo-theme-color" value="'+W.esc(tc)+'" placeholder="#7c3cff"/></div>';
     html+='</div>';
-    html+='<div class="w-flex w-gap-sm"><button class="w-btn w-btn-primary" onclick="wontia.saveBrand()">Guardar logo y favicon</button><button class="w-btn w-btn-secondary" onclick="wontia.renderSettings(\'logo\')">Recargar</button></div>';
+    html+='<div class="w-flex w-gap-sm"><button class="w-btn w-btn-primary" onclick="wontia.saveBrand()">Guardar logo, favicon y slogan</button><button class="w-btn w-btn-secondary" onclick="wontia.renderSettings(\'logo\')">Recargar</button></div>';
     panel.innerHTML=html;
+    setTimeout(function(){ if (W.sloganPreview) W.sloganPreview(); }, 0);
 };
 
-W.brandSlider=function(v){ var l=document.getElementById('logo-h-lbl'); if(l)l.textContent=v; var img=document.querySelector('#logo-preview img'); if(img)img.style.height=parseInt(v,10)+'px'; };
+W.brandSlider=function(v){ var l=document.getElementById('logo-h-lbl'); if(l)l.textContent=v; var img=document.querySelector('#logo-preview img'); if(img)img.style.height=parseInt(v,10)+'px'; if(W.sloganPreview)W.sloganPreview(); };
 W.brandClear=function(which){
     var id=which==='logo'?'logo-image':'logo-favicon'; var el=document.getElementById(id); if(el)el.value='';
     var box=document.getElementById(which==='logo'?'logo-preview':'fav-preview');
     if(box)box.innerHTML='<span style="font-size:'+(which==='logo'?'12':'10')+'px;color:var(--w-muted)">Sin '+(which==='logo'?'logo':'favicon')+'</span>';
+    if(which==='logo'&&W.sloganPreview)W.sloganPreview();
 };
 W.brandSet=function(which,url){
     var id=which==='logo'?'logo-image':'logo-favicon'; var el=document.getElementById(id); if(el)el.value=url;
-    if(which==='logo'){ var h=(document.getElementById('logo-height')||{}).value||40; var p=document.getElementById('logo-preview'); if(p)p.innerHTML='<img src="'+url+'" style="height:'+parseInt(h,10)+'px;width:auto;max-width:100%"/>'; }
+    if(which==='logo'){ var h=(document.getElementById('logo-height')||{}).value||40; var p=document.getElementById('logo-preview'); if(p)p.innerHTML='<img src="'+url+'" style="height:'+parseInt(h,10)+'px;width:auto;max-width:100%"/>'; if(W.sloganPreview)W.sloganPreview(); }
     else { var f=document.getElementById('fav-preview'); if(f)f.innerHTML='<img src="'+url+'" style="width:32px;height:32px;object-fit:contain"/>'; }
     var box=document.getElementById('logo-lib'); if(box)box.style.display='none';
 };
@@ -3642,10 +3743,22 @@ W.brandUpload=async function(input,which){
     input.value='';
 };
 W.saveBrand=async function(){
-    var data={ logo_image:W.val('logo-image'), logo_height:(document.getElementById('logo-height')||{}).value||'40', logo_show_text:(document.getElementById('logo-show-text')&&document.getElementById('logo-show-text').checked)?1:0, logo_text:W.val('logo-text'), logo_alt:W.val('logo-alt'), favicon:W.val('logo-favicon'), favicon_touch:W.val('logo-favicon-touch'), theme_color:W.val('logo-theme-color') };
+    var data={ logo_image:W.val('logo-image'), logo_height:(document.getElementById('logo-height')||{}).value||'40', logo_show_text:(document.getElementById('logo-show-text')&&document.getElementById('logo-show-text').checked)?1:0, logo_text:W.val('logo-text'), logo_alt:W.val('logo-alt'), favicon:W.val('logo-favicon'), favicon_touch:W.val('logo-favicon-touch'), theme_color:W.val('logo-theme-color'),
+        brand_slogan_enabled:(document.getElementById('slogan-enabled')&&document.getElementById('slogan-enabled').checked)?1:0,
+        brand_slogan_text:W.val('slogan-text'),
+        brand_slogan_font:W.val('slogan-font'),
+        brand_slogan_size:W.val('slogan-size'),
+        brand_slogan_gap_y:W.val('slogan-gap-y'),
+        brand_slogan_gap_x:W.val('slogan-gap-x'),
+        brand_slogan_color:W.val('slogan-color'),
+        brand_slogan_mobile_scale:W.val('slogan-mobile')
+    };
     if(data.logo_image && !data.logo_alt){ W.notify('Añade el texto alternativo (alt) del logo','error'); return; }
     var r=await W.api('/api/v1/admin/settings',{method:'PUT',body:data});
-    if(r.ok)W.notify('Logo y favicon guardados','success'); else W.notify((r&&r.message)||'Error','error');
+    if(r.ok){
+        window.SONIKA_SLOGAN={enabled:data.brand_slogan_enabled==1,text:data.brand_slogan_text||'El Sonido que te mueve',font:data.brand_slogan_font||'Great Vibes',size:parseInt(data.brand_slogan_size,10)||18,color:data.brand_slogan_color||'#F20D16'};
+        W.notify('Logo, favicon y slogan guardados','success');
+    } else W.notify((r&&r.message)||'Error','error');
 };
 
 W.saveTheme=async function(){
@@ -8364,17 +8477,26 @@ W.orderProviderSummary=function(id){
     var custDoc=String(cust.document||'').trim();
     var orderDate=String(o.created_at||'').slice(0,10)||new Date().toISOString().slice(0,10);
     var fileName=[orderNo,custName,custDoc,orderDate].filter(Boolean).join(' - ').replace(/[\\/:*?"<>|]+/g,'-').replace(/\s+/g,' ').trim().slice(0,180)||('Pedido '+orderNo);
+    var sl=window.SONIKA_SLOGAN||{};
+    var slEnabled=sl.enabled!==false&&String(sl.enabled)!=='0';
+    var slText=String(sl.text||'El Sonido que te mueve').trim();
+    var slFont=String(sl.font||'Great Vibes');
+    if(W.sloganFonts&&W.sloganFonts.indexOf(slFont)<0)slFont='Great Vibes';
+    var slSize=Math.max(10,Math.min(48,Number(sl.size)||18));
+    var slColor=/^#[0-9a-fA-F]{6}$/.test(String(sl.color||''))?String(sl.color):'#F20D16';
+    var slFontParam=encodeURIComponent(slFont).replace(/%20/g,'+');
+    var slHtml=(slEnabled&&slText!=='')?'<div class="slogan" style="font-family:\''+slFont+'\',\'Brush Script MT\',\'Segoe Script\',cursive;font-size:'+slSize+'px;color:'+slColor+'">'+W.esc(slText)+'</div>':'';
     var partnerBox=aff
         ? '<div class="box"><h2>Partner SONIKA</h2><div class="kv"><span>Nombre</span><b>'+W.esc(aff.name||aff.code||'')+'</b></div><div class="kv"><span>Código</span><b>'+W.esc(aff.code||'—')+'</b></div>'+(aff.commission?'<div class="kv"><span>Comisión</span><b>'+moneyP(aff.commission.amount)+' · '+W.esc(commLabels[String(aff.commission.status||'')]||aff.commission.status||'')+'</b></div>':'')+'</div>'
         : '<div class="box"><h2>Control</h2><div class="kv"><span>UUID</span><b class="mono">'+W.esc(String(o.uuid||'').slice(0,18))+'</b></div><div class="kv"><span>Origen</span><b>'+W.esc(o.affiliate_ref?('Partner '+o.affiliate_ref):'Venta directa')+'</b></div><div class="kv"><span>Registrado</span><b>'+W.esc(W.orderDate(o.created_at))+'</b></div></div>';
     var settleLine=cl.payment_settlement_ref?'<div class="kv"><span>Abono</span><b>'+W.esc(cl.payment_settlement_ref)+(cl.payment_settled_at?' · '+W.esc(W.orderDate(cl.payment_settled_at)):'')+'</b></div>':'';
-    var html='<!doctype html><html lang="es"><head><meta charset="utf-8"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap" rel="stylesheet"><title>'+W.esc(fileName)+'</title><style>'
+    var html='<!doctype html><html lang="es"><head><meta charset="utf-8"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family='+slFontParam+'&display=swap" rel="stylesheet"><title>'+W.esc(fileName)+'</title><style>'
         +'*{box-sizing:border-box}'
         +'body{font:12.5px/1.55 Arial,Helvetica,sans-serif;color:#0F172A;background:#fff;margin:0;padding:22px 26px;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
         +'.page{max-width:820px;margin:0 auto}'
         +'.head{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;border-bottom:2px solid #101D3A;padding-bottom:14px;margin-bottom:16px}'
         +'.logo{height:46px;width:auto;display:block}.logo-fallback{display:none;font:800 24px Arial;color:#101D3A;letter-spacing:.06em}'
-        +'.slogan{font-family:"Great Vibes","Brush Script MT","Segoe Script",cursive;font-size:21px;line-height:1.1;color:#F20D16;margin:4px 0 0;letter-spacing:.02em;font-weight:400}'
+        +'.slogan{margin:4px 0 0;letter-spacing:.02em;font-weight:400;line-height:1.1}'
         +'.doc-title{font:800 18px/1.2 Arial,Helvetica,sans-serif;color:#101D3A;margin:8px 0 0}'
         +'.doc-sub{font-size:9.5px;text-transform:uppercase;letter-spacing:.12em;color:#374151;font-weight:700;margin-top:3px}'
         +'.meta{text-align:right;font-size:11.5px;color:#1F2937;line-height:1.6}.meta b{display:block;font-size:16px;color:#101D3A}.meta .red{color:#F20D16;font-weight:800}'
@@ -8409,7 +8531,7 @@ W.orderProviderSummary=function(id){
         +'@page{size:A4;margin:14mm 14mm 16mm}'
         +'</style></head><body><div class="actions"><button class="print" onclick="window.print()">Imprimir / Guardar PDF</button><button class="close" onclick="window.close()">Cerrar</button></div>'
         +'<div class="page">'
-        +'<div class="head"><div><img class="logo" src="https://sonika.com.co/assets/themes/sonika/logo-transparent.png" alt="SONIKA" onerror="this.style.display=\'none\';document.getElementById(\'logoFallback\').style.display=\'block\'"><div id="logoFallback" class="logo-fallback">SONIKA</div><div class="slogan">El Sonido que te mueve</div><div class="doc-title">Resumen de pedido</div><div class="doc-sub">Documento de despacho · Miche</div></div>'
+        +'<div class="head"><div><img class="logo" src="https://sonika.com.co/assets/themes/sonika/logo-transparent.png" alt="SONIKA" onerror="this.style.display=\'none\';document.getElementById(\'logoFallback\').style.display=\'block\'"><div id="logoFallback" class="logo-fallback">SONIKA</div>'+slHtml+'<div class="doc-title">Resumen de pedido</div><div class="doc-sub">Documento de despacho · Miche</div></div>'
         +'<div class="meta"><b>'+W.esc(orderNo)+'</b>'+W.esc(W.orderDate(o.created_at))+'<br>'+W.esc(payLabel)+'</div></div>'
         +'<div class="statusbar"><div><span>Pedido</span><b class="badge '+fulClass+'">'+W.esc(fulLabel)+'</b></div><div><span>Pago</span><b class="badge '+payClass+'">'+W.esc(payLabel)+'</b></div><div><span>Método</span><b>'+W.esc(W.orderMethodLabel(pay.method))+'</b></div><div><span>Total</span><b>'+W.orderMoney(o.total_cents)+'</b></div></div>'
         +'<div class="grid"><div class="box"><h2>Cliente</h2><div class="kv"><span>Nombre</span><b>'+W.esc(cust.name||'—')+'</b></div><div class="kv"><span>Documento</span><b>'+W.esc(cust.document||'—')+'</b></div><div class="kv"><span>Teléfono</span><b>'+W.esc(cust.phone||'—')+'</b></div><div class="kv"><span>Correo</span><b>'+W.esc(cust.email||'—')+'</b></div></div>'

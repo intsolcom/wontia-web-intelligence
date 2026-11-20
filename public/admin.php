@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../vendor/autoload.php';
+require_once __DIR__ . '/../templates/themes/_shared/brand.php';
 
 use App\Core\Config;
 use App\Core\Session;
@@ -223,6 +224,7 @@ endif;
     <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
     <title>WWI Wontia Web Intelligence</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Dancing+Script:wght@400;700&family=Allura&family=Parisienne&family=Sacramento&family=Caveat:wght@400;700&display=swap" rel="stylesheet"/>
     <link rel="stylesheet" href="/assets/css/admin.css?v=<?= filemtime(__DIR__ . '/assets/css/admin.css') ?>"/>
     <link rel="stylesheet" href="/assets/css/hero-composition.css?v=<?= filemtime(__DIR__ . '/assets/css/hero-composition.css') ?>"/>
     <link rel="stylesheet" href="/assets/css/tracking-conversion.css?v=<?= @filemtime(__DIR__ . '/assets/css/tracking-conversion.css') ?: 1 ?>"/>
@@ -372,7 +374,17 @@ endif;
 <div id="w-toast-container" style="position:fixed;top:20px;right:20px;z-index:99999;display:flex;flex-direction:column;gap:8px"></div>
 <div class="w-modal-overlay" id="w-modal" style="display:none" onclick="if(event.target===this)wontia.closeModal()"><div class="w-modal" id="w-modal-content"></div></div>
 
-<script>window.__WWI_VER='<?= filemtime(__DIR__ . '/assets/js/admin.js') ?>';window.__WWI_IS_CENTRAL=<?= is_dir('/app/deploy-queue') ? 'true' : 'false' ?>;</script>
+<?php
+$__brand = function_exists('wwi_brand') ? wwi_brand() : [];
+$__sloganJs = json_encode([
+    'enabled' => !empty($__brand['slogan_enabled']),
+    'text' => (string)($__brand['slogan_text'] ?? 'El Sonido que te mueve'),
+    'font' => (string)($__brand['slogan_font'] ?? 'Great Vibes'),
+    'size' => (int)($__brand['slogan_size'] ?? 18),
+    'color' => (string)($__brand['slogan_color'] ?? '#F20D16'),
+], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+?>
+<script>window.__WWI_VER='<?= filemtime(__DIR__ . '/assets/js/admin.js') ?>';window.__WWI_IS_CENTRAL=<?= is_dir('/app/deploy-queue') ? 'true' : 'false' ?>;window.SONIKA_SLOGAN=<?= $__sloganJs ?>;</script>
 <script src="/assets/js/admin.js?v=<?= filemtime(__DIR__ . '/assets/js/admin.js') ?>"></script>
 </body>
 </html>

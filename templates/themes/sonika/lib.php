@@ -81,13 +81,20 @@ if (!function_exists('sonika_fonts_url')) {
         $fb = sonika_font('body');
         $fd = sonika_font('display');
         $fams = array_values(array_unique(array_filter([$fb, $fd, function_exists('sonika_nav_font') ? sonika_nav_font() : 'Sora'])));
+        $sloganFont = 'Great Vibes';
+        $sloganEnabled = true;
+        if (function_exists('wwi_brand')) {
+            $b = wwi_brand();
+            $sloganEnabled = !empty($b['slogan_enabled']);
+            $candidate = (string)($b['slogan_font'] ?? 'Great Vibes');
+            if (function_exists('wwi_slogan_fonts') && in_array($candidate, wwi_slogan_fonts(), true)) $sloganFont = $candidate;
+        }
         $parts = [];
         foreach ($fams as $f) {
-            if (strcasecmp($f, 'Great Vibes') === 0) continue;
+            if (function_exists('wwi_slogan_fonts') && in_array($f, wwi_slogan_fonts(), true)) continue;
             $parts[] = 'family=' . str_replace(' ', '+', $f) . ':wght@400;500;600;700;800';
         }
-        // Tipografía tipo firma para el slogan de marca.
-        $parts[] = 'family=Great+Vibes';
+        if ($sloganEnabled) $parts[] = 'family=' . str_replace(' ', '+', $sloganFont);
         return 'https://fonts.googleapis.com/css2?' . implode('&', $parts) . '&display=swap';
     }
 }
@@ -2139,7 +2146,8 @@ ob_start();
   <div class="wrap">
     <div class="nav">
       <?= \App\Widgets\WidgetRegistry::render('mega-menu', ['categories' => sonika_categories(), 'guitar_subs' => sonika_guitar_subs_used()]) ?>
-      <a class="logo" href="/" aria-label="SONIKA — El Sonido que te mueve"><span class="logo-stack"><?= sonika_logo_tag() ?><span class="logo-slogan">El Sonido que te mueve</span></span></a>
+      <?php $__logoSlogan = function_exists('wwi_brand') ? trim((string)(wwi_brand()['slogan_text'] ?? '')) : ''; ?>
+      <a class="logo" href="/" aria-label="SONIKA<?= $__logoSlogan !== '' ? ' — ' . sonika_esc($__logoSlogan) : '' ?>"><span class="logo-stack"><?= sonika_logo_tag() ?><?= function_exists('wwi_slogan_tag') ? wwi_slogan_tag('header') : '' ?></span></a>
       <?php
       $__advBrands = []; $__advTypes = []; $__advMax = 0.0;
       foreach (sonika_products() as $__p) {
@@ -2921,8 +2929,8 @@ if (!function_exists('sonika_css')) {
         .nav{display:flex;align-items:center;gap:20px;padding:14px 0}
         .logo{display:flex;align-items:center;gap:10px;font-family:var(--font-display);font-weight:800;font-size:21px;letter-spacing:-.02em}
         .logo .logo-stack{display:flex;flex-direction:column;align-items:flex-start;line-height:1;gap:0}
-        .logo .logo-slogan{font-family:"Great Vibes","Brush Script MT","Segoe Script",cursive;font-size:16px;line-height:1;color:var(--brand,#F20D16);margin-top:1px;white-space:nowrap;font-weight:400;letter-spacing:.02em}
-        @media(max-width:900px){.logo .logo-slogan{font-size:11.5px}}
+        .logo-slogan{display:block;line-height:1;white-space:nowrap;font-weight:400;letter-spacing:.02em;font-size:calc(var(--slg-size,18) * 1px)}
+        @media(max-width:900px){.logo-slogan{font-size:calc(var(--slg-size,18) * var(--slg-scale,.72) * 1px)}}
         .logo .mark{width:36px;height:36px;border-radius:11px;background:linear-gradient(135deg,var(--brand),var(--brand2));display:flex;align-items:center;justify-content:center;color:#fff;font-size:19px;box-shadow:0 6px 18px rgba(242,13,22,.35)}
         .logo-img{height:34px;width:auto;display:block}
         .search{flex:1;display:flex;align-items:center;gap:8px;background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:10px 14px;min-width:140px}
